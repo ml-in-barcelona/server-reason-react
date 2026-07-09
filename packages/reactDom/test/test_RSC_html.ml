@@ -517,6 +517,104 @@ let error_in_toplevel_in_async () =
   let main = React.Async_component ("app", app) in
   assert_raises (Failure "lol") (fun () -> assert_html main ~disable_backtrace:true [])
 
+(* Errors inside a client tree (client_to_html): a Suspense boundary inside the client tree turns the error into a
+   client-rendered boundary (<!--$!--> pre-flush, $RX post-flush); without one the render fails. *)
+
+(* React's $RX instruction, vendored in Fizz_instructions.ml (a private module, hence the copy) *)
+let rx_definition =
+  {|$RX=function(b,c,d,e,f){var a=document.getElementById(b);a&&(b=a.previousSibling,b.data="$!",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};|}
+
+let mk_throwing_client_app ~children =
+  let client = mk_suspense ~fallback:(React.string "Loading...") ~children () in
+  React.Client_component { key = None; props = []; client; import_module = "./client.js"; import_name = "Client" }
+
+let client_with_sync_error_under_client_suspense () =
+  let app = mk_throwing_client_app ~children:(React.Upper_case_component ("throwing", fun () -> raise (Failure "boom"))) in
+  assert_html app ~disable_backtrace:true
+    ~shell:
+      "<!--$!--><template data-msg=\"Failure(&quot;boom&quot;)\n\
+       \"></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
+
+let client_with_sync_error_under_client_suspense_in_prod () =
+  let app = mk_throwing_client_app ~children:(React.Upper_case_component ("throwing", fun () -> raise (Failure "boom"))) in
+  (* Production must not leak the exception message or backtrace into the HTML: bare template, no data-msg *)
+  assert_html app ~env:`Prod ~disable_backtrace:true
+    ~shell:
+      "<!--$!--><template></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{}]\n\
+       '>window.srr_stream.push()</script>"
+    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
+
+let client_with_async_error_under_client_suspense () =
+  let failing =
+    React.Async_component
+      ( "failing",
+        fun () ->
+          let%lwt () = sleep ~ms:1 in
+          Lwt.fail (Failure "boom") )
+  in
+  let app = mk_throwing_client_app ~children:failing in
+  assert_html app ~disable_backtrace:true
+    ~shell:
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$L2\",null,{},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      Printf.sprintf
+        "<script>%s;$RX(\"B:1\",\"\",\"Switched to client rendering because the server rendering \
+         errored:\\n\\nFailure(\\\"boom\\\")\")</script>"
+        rx_definition;
+    ]
+
+let client_with_async_error_under_client_suspense_in_prod () =
+  let failing =
+    React.Async_component
+      ( "failing",
+        fun () ->
+          let%lwt () = sleep ~ms:1 in
+          Lwt.fail (Failure "boom") )
+  in
+  let app = mk_throwing_client_app ~children:failing in
+  (* Production passes no message to $RX, only the digest slot *)
+  assert_html app ~env:`Prod ~disable_backtrace:true
+    ~shell:
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$L2\",null,{}]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      Printf.sprintf "<script>%s;$RX(\"B:1\",\"\")</script>" rx_definition;
+    ]
+
+let client_with_error_without_suspense () =
+  let client = React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")) in
+  let app =
+    React.Client_component { key = None; props = []; client; import_module = "./client.js"; import_name = "Client" }
+  in
+  assert_raises (Failure "boom") (fun () -> assert_html app ~disable_backtrace:true [])
+
+let client_with_error_under_server_suspense () =
+  (* A server-side Suspense above the client component: the propagated error follows the server path, an E row
+     rejecting the $L reference so the client error boundary takes over *)
+  let client = React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")) in
+  let client_component =
+    React.Client_component { key = None; props = []; client; import_module = "./client.js"; import_name = "Client" }
+  in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:client_component () in
+  assert_html app ~disable_backtrace:true
+    ~shell:
+      "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:E{\"message\":\"Failure(\\\"boom\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script><div hidden id=\"S:2\"></div>\n\
+       <script>$RC('B:2', 'S:2')</script>";
+    ]
+
 let await_tick ?(raise = false) ?(ms = 1) num =
   React.Async_component
     ( "await_tick",
@@ -1213,6 +1311,12 @@ let tests =
     test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
     test "error_without_suspense" error_without_suspense;
+    test "client_with_sync_error_under_client_suspense" client_with_sync_error_under_client_suspense;
+    test "client_with_sync_error_under_client_suspense_in_prod" client_with_sync_error_under_client_suspense_in_prod;
+    test "client_with_async_error_under_client_suspense" client_with_async_error_under_client_suspense;
+    test "client_with_async_error_under_client_suspense_in_prod" client_with_async_error_under_client_suspense_in_prod;
+    test "client_with_error_without_suspense" client_with_error_without_suspense;
+    test "client_with_error_under_server_suspense" client_with_error_under_server_suspense;
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;

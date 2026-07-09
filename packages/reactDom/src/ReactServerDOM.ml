@@ -89,6 +89,9 @@ module Stream = struct
     push_import : 'a -> unit;
     close : unit -> unit;
     mutable closed : bool;
+    (* Whether the $RX function definition was already streamed: it is injected once per stream, with whichever
+       client-render instruction (errored Suspense boundary or timeout) streams first. *)
+    mutable rx_injected : bool;
     mutable index : int;
     mutable pending : int;
     (* Async rows still rendering, in registration order (most recent first). On an abort/timeout every entry gets
@@ -127,6 +130,14 @@ module Stream = struct
     if not context.closed then (
       context.closed <- true;
       context.close ())
+
+  (* Returns whether the caller must inline the $RX function definition before its $RX call, flipping the
+     once-per-stream flag. *)
+  let take_rx_definition context =
+    if context.rx_injected then false
+    else (
+      context.rx_injected <- true;
+      true)
 
   let push to_chunk ~context =
     let index = context.index in
@@ -253,6 +264,7 @@ module Stream = struct
             drain_hints ();
             close_raw ());
         closed = false;
+        rx_injected = false;
         pending;
         index = initial_index;
         pending_rows = [];
@@ -941,14 +953,17 @@ let timeout_error_message =
    emits only the digest in prod). *)
 let timeout_error = { React.message = "The render timed out."; stack = `Null; env = "Server"; digest = "" }
 
-let client_render_boundary_to_chunk ~env ~include_definition index =
+let client_render_boundary_to_chunk ~env ~message ~include_definition index =
   let rx_call =
     (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
     match env with
     | `Prod -> Printf.sprintf {|$RX("B:%x","")|} index
-    | `Dev -> Printf.sprintf {|$RX("B:%x","","%s")|} index (Html.escape_for_inline_script timeout_error_message)
+    | `Dev -> Printf.sprintf {|$RX("B:%x","","%s")|} index (Html.escape_for_inline_script message)
   in
   Html.node "script" [] [ Html.raw (if include_definition then rx_function_definition ^ ";" ^ rx_call else rx_call) ]
+
+let client_render_error_message exn =
+  "Switched to client rendering because the server rendering errored:\n\n" ^ Printexc.to_string exn
 
 let model_to_chunk model index =
   Html.raw
@@ -973,6 +988,19 @@ let html_suspense_placeholder ~fallback id =
       fallback;
       Html.raw "<!--/$-->";
     ]
+
+(* A Suspense boundary whose children errored before its placeholder was flushed: written directly in errored form
+   (<!--$!-->), telling the hydrating client to client-render the boundary. Error detail is dev-only, mirroring
+   ReactDOM.write_suspense_fallback_error and react-dom's errored boundary output. *)
+let html_suspense_client_render ~env ~exn ~fallback =
+  let template =
+    match env with
+    | `Prod -> Html.node "template" [] []
+    | `Dev ->
+        let backtrace = Printexc.get_backtrace () in
+        Html.node "template" [ Html.attribute "data-msg" (Printexc.to_string exn ^ "\n" ^ backtrace) ] []
+  in
+  Html.list [ Html.raw "<!--$!-->"; template; fallback; Html.raw "<!--/$-->" ]
 
 let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
 
@@ -1062,9 +1090,11 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
         | exception React.Suspend (Any_promise promise) ->
             let%lwt _ = promise in
             wait_for_suspense_to_resolve ()
-        | exception _exn ->
+        | exception exn ->
+            (* Propagate like the Async_component branch below: a Suspense boundary above turns the error into a
+               client-rendered boundary; without one the render fails, matching react-dom's shell error. *)
             React.current_tree_context := saved_ctx;
-            Lwt.return Html.null
+            raise exn
         | output ->
             let did_use_id = React.check_did_render_id_hook () in
             if did_use_id then
@@ -1099,15 +1129,21 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
               try%lwt
                 let%lwt html = promise in
                 Lwt.return (boundary_to_chunk html)
-              with _exn -> Lwt.return (boundary_to_chunk Html.null)
+              with exn ->
+                (* The placeholder already flushed: stream a $RX client-render instruction so the client flips the
+                   boundary to errored and retries rendering it there, mirroring react-dom's post-flush errored
+                   boundary. take_rx_definition runs at push time, keeping the $RX definition once-per-stream. *)
+                Lwt.return (fun index ->
+                    client_render_boundary_to_chunk ~env:fiber.env ~message:(client_render_error_message exn)
+                      ~include_definition:(Stream.take_rx_definition context) index)
             in
             let index = Stream.push_boundary_async ~context (fun () -> async) in
             Lwt.return (html_suspense_placeholder ~fallback:fallback_html index)
         | Fail exn -> Lwt.reraise exn
-      with _exn ->
-        let async = Lwt.return (boundary_to_chunk Html.null) in
-        let index = Stream.push_boundary_async ~context (fun () -> async) in
-        Lwt.return (html_suspense_placeholder ~fallback:fallback_html index))
+      with exn ->
+        (* The boundary errored before its placeholder was flushed: write it directly in errored form, telling the
+           hydrating client to client-render it. *)
+        Lwt.return (html_suspense_client_render ~env:fiber.env ~exn ~fallback:fallback_html))
   | Client_component { client; _ } -> client_to_html ~fiber client
   | Provider { children; push; async_key; async_value } ->
       let pop = push () in
@@ -1639,10 +1675,12 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
                      (fun index ->
                        Buffer.add_string buf (Html.to_string (model_to_chunk (Error (env, timeout_error)) index)))
                      pending_rows;
-                   List.iteri
-                     (fun i index ->
+                   List.iter
+                     (fun index ->
                        Buffer.add_string buf
-                         (Html.to_string (client_render_boundary_to_chunk ~env ~include_definition:(i = 0) index)))
+                         (Html.to_string
+                            (client_render_boundary_to_chunk ~env ~message:timeout_error_message
+                               ~include_definition:(Stream.take_rx_definition context) index)))
                      pending_boundaries;
                    context.pending <- 0;
                    Stream.close context);
