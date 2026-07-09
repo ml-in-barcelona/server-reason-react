@@ -99,6 +99,7 @@ Divergences, footguns, missing behavior.
 - **Issue:** Doctype logic lives in three of the four; `write_to_buffer` omits doctype, text separators, and Suspense markers. A subtree emitted via the PPX `Writer` tier follows different rules than a variant subtree in the same document.
 - **Scenario:** A `Writer`-tier subtree at document root won't emit `<!DOCTYPE html>`; text-node comment separators differ between paths.
 - **Action:** Collapse to one serializer parameterized by mode; have the PPX `Writer` tier and RSC reuse it. See design tension T4/T5.
+- **Sync (2026-07-09, worktree):** Two concrete manifestations fixed in the RSC HTML path (found live in the demo — `/demo/singlePageRSC` crashed at HEAD): (1) `Writer` subtrees containing client components crashed `render_html` (`write_to_buffer` raises on `Client_component`; it also renders Suspense without boundary markers) — the RSC path now renders `Writer` via the regular walk (which it already performed for the model) instead of the prerendered emit, in both `render_element_to_html` and `client_to_html`; regression test `writer_subtree_with_client_component`. (2) `Static` prerendered bytes still contained hoistables that the model walk had hoisted, duplicating them in the shell — the `Static` branch now uses the walked HTML when the walk hoisted anything (`Fiber.hoisted_count`); regression test `static_subtree_hoistables_not_duplicated`. The structural four-serializers problem remains open.
 
 ---
 
