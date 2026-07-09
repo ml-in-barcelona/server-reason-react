@@ -631,6 +631,35 @@ let client_with_async_error_under_client_suspense_in_prod () =
       Printf.sprintf "<script>%s;$RX(\"B:1\",\"\")</script>" rx_definition;
     ]
 
+let writer_subtree_with_client_component () =
+  (* The PPX Writer fast path wraps lowercase markup whose children may include client components;
+     its emit closure (ReactDOM.write_to_buffer) raises on them. The RSC HTML path must walk the
+     original tree instead of using the prerendered emit. *)
+  let counter =
+    React.Client_component
+      {
+        key = None;
+        props = [];
+        client = React.string "Client Counter";
+        import_module = "./counter.js";
+        import_name = "Counter";
+      }
+  in
+  let original = React.createElement "div" [] [ counter ] in
+  let app =
+    React.Writer
+      {
+        emit = (fun _ -> raise (Invalid_argument "emit must not be used when the subtree has a client component"));
+        original = (fun () -> original);
+      }
+  in
+  assert_html app
+    ~shell:
+      "<div>Client Counter</div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$L1\",null,{},null,null,1]},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [ "<script data-payload='1:I[\"./counter.js\",[],\"Counter\"]\n'>window.srr_stream.push()</script>" ]
+
 let client_with_error_without_suspense () =
   let client = React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")) in
   let app =
@@ -1361,6 +1390,7 @@ let tests =
     test "client_with_sync_error_under_client_suspense_in_prod" client_with_sync_error_under_client_suspense_in_prod;
     test "client_with_async_error_under_client_suspense" client_with_async_error_under_client_suspense;
     test "client_with_async_error_under_client_suspense_in_prod" client_with_async_error_under_client_suspense_in_prod;
+    test "writer_subtree_with_client_component" writer_subtree_with_client_component;
     test "client_with_error_without_suspense" client_with_error_without_suspense;
     test "client_with_error_under_server_suspense" client_with_error_under_server_suspense;
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;

@@ -360,6 +360,25 @@ let fragment_root_dedupes_stylesheets () =
        data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"/a.css\",\"rel\":\"stylesheet\",\"precedence\":\"high\"},null,null,1],[\"$\",\"link\",null,{\"href\":\"/a.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]]},null,null,1]\n\
        '>window.srr_stream.push()</script>"
 
+let static_subtree_hoistables_not_duplicated () =
+  (* The PPX Static/Writer fast path prerenders static subtrees to raw HTML. Hoistables inside it
+     are pushed to the head during the model walk; the prerendered bytes must not render them a
+     second time at their original position. *)
+  let original =
+    div []
+      [
+        React.createElement "title" [] [ React.string "Static Title" ];
+        React.createElement "span" [] [ React.string "content" ];
+      ]
+  in
+  let app = React.Static { prerendered = "<div><title>Static Title</title><span>content</span></div>"; original } in
+  assert_html app
+    ~shell:
+      "<title>Static Title</title><div><span>content</span></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"Static \
+       Title\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"content\"},null,null,1]]},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+
 let fragment_root_with_skip_root_keeps_hoistables () =
   let app =
     div []
@@ -565,6 +584,7 @@ let tests =
     test "links_gets_pushed_to_the_head" links_gets_pushed_to_the_head;
     test "fragment_root_hoists_resources" fragment_root_hoists_resources;
     test "fragment_root_dedupes_stylesheets" fragment_root_dedupes_stylesheets;
+    test "static_subtree_hoistables_not_duplicated" static_subtree_hoistables_not_duplicated;
     test "fragment_root_with_skip_root_keeps_hoistables" fragment_root_with_skip_root_keeps_hoistables;
     test "self_closing_with_dangerously" self_closing_with_dangerously;
     test "self_closing_with_dangerously_in_head" self_closing_with_dangerously_in_head;

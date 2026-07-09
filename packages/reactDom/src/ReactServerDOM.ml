@@ -320,6 +320,10 @@ module Fiber = struct
     mutable inside_head : bool;
     (* inside_body tracks whether we're currently processing elements inside a <body> element *)
     mutable inside_body : bool;
+    (* Monotonic count of hoistable elements encountered (before dedup). Lets the Static/Writer
+       branches detect that a prerendered subtree contained hoistables, whose raw HTML would
+       otherwise render them a second time at their original position. *)
+    mutable hoisted_count : int;
     (* html_attributes collects the attributes of the <html> tag for document reconstruction *)
     mutable html_attributes : Html.attribute_list;
   }
@@ -1059,10 +1063,9 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
   | Static { prerendered; _ } -> Lwt.return (Html.raw prerendered)
-  | Writer { emit; _ } ->
-      let b = Buffer.create 256 in
-      emit b;
-      Lwt.return (Html.raw (Buffer.contents b))
+  (* Writer subtrees can contain client components/Suspense below the prerendered markup, which the
+     emit closure (ReactDOM.write_to_buffer) cannot serialize — walk the original tree instead. *)
+  | Writer { original; _ } -> client_to_html ~fiber (original ())
   | Text text -> Lwt.return (Html.string text)
   | Int i -> Lwt.return (Html.string (Int.to_string i))
   | Float f -> Lwt.return (Html.string (Js.Float.toString f))
@@ -1211,14 +1214,20 @@ let classify_element ~(fiber : Fiber.t) ~tag ~attributes =
 let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
+  (* Static carries HTML prerendered at compile time (the PPX fast path). The model walk below
+     hoists any <title>/<meta>/<link>/async <script> in the subtree into the fiber — but the
+     prerendered bytes still contain them at their original position. When that happens, use the
+     walked HTML (byte-identical markup with the hoistables nulled) to avoid emitting them twice. *)
   | Static { prerendered; original } ->
-      let%lwt _, model = render_element_to_html ~fiber ~debug_info original in
-      Lwt.return (Html.raw prerendered, model)
-  | Writer { emit; original } ->
-      let%lwt _, model = render_element_to_html ~fiber ~debug_info (original ()) in
-      let b = Buffer.create 256 in
-      emit b;
-      Lwt.return (Html.raw (Buffer.contents b), model)
+      let hoisted_before = fiber.hoisted_count in
+      let%lwt html, model = render_element_to_html ~fiber ~debug_info original in
+      if fiber.hoisted_count = hoisted_before then Lwt.return (Html.raw prerendered, model)
+      else Lwt.return (html, model)
+  (* Writer subtrees can contain components below the prerendered markup. The emit closure
+     (ReactDOM.write_to_buffer) raises on client components and renders Suspense without boundary
+     markers, while the model walk below renders the subtree correctly anyway — use the walk for
+     both halves. *)
+  | Writer { original; _ } -> render_element_to_html ~fiber ~debug_info (original ())
   | Text s -> Lwt.return (Html.string s, `String (Model.escape_string_value s))
   | Int i -> Lwt.return (Html.string (Int.to_string i), `Int i)
   (* HTML stringifies numbers the way JavaScript does ("2", not "2."); the
@@ -1381,6 +1390,7 @@ and render_lower_case_element ~fiber ~debug_info ~key ~tag ~attributes ~children
         ~on_push:Fiber.push_extra_head_child ()
 
 and handle_hoistable_element ~fiber ~debug_info ~key ~tag ~attributes ~children ~inner_html ~on_push () =
+  fiber.hoisted_count <- fiber.hoisted_count + 1;
   let props = Model.props_to_json attributes in
   let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
   let create_model children =
@@ -1655,6 +1665,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
           root_tag = None;
           inside_head = false;
           inside_body = false;
+          hoisted_count = 0;
         }
       in
       let%lwt root_html, root_model = render_element_to_html ~fiber ~debug_info:None element in
