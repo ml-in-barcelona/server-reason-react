@@ -238,8 +238,31 @@ const ReactFlightClientConfigBundlerEsbuild = {
    */
   preloadModule(metadata) {
     debug("preloadModule", metadata);
-    /* TODO: Does it make sense to preload a module in esbuild? */
-    return undefined;
+    /* Client component chunks are code-split by esbuild and registered in the manifest as loader
+       records ({ load: () => import(...) }). Kick off the import here and return the thenable: the
+       Flight runtime blocks the module chunk on it, guaranteeing `requireModule` can return the
+       component synchronously afterwards. Returning undefined means already loaded. */
+    if (metadata.type !== "ClientComponent") {
+      return undefined;
+    }
+    const entry = window.__client_manifest_map[metadata.id];
+    if (!entry || entry.status === "fulfilled") {
+      return undefined;
+    }
+    if (!entry.promise) {
+      entry.promise = entry.load().then(
+        (value) => {
+          entry.status = "fulfilled";
+          entry.value = value;
+        },
+        (error) => {
+          entry.status = "rejected";
+          entry.reason = error;
+          throw error;
+        },
+      );
+    }
+    return entry.promise;
   },
 
   /*
@@ -258,13 +281,22 @@ const ReactFlightClientConfigBundlerEsbuild = {
     const getModule = (type, id) => {
       switch (type) {
         case "ServerFunction":
-          const fn = window.__server_functions_manifest_map[id];
-
-          return fn;
-        case "ClientComponent":
-          const component = window.__client_manifest_map[id];
-
-          return component
+          return window.__server_functions_manifest_map[id];
+        case "ClientComponent": {
+          const entry = window.__client_manifest_map[id];
+          if (!entry) {
+            return undefined;
+          }
+          if (entry.status === "rejected") {
+            throw entry.reason;
+          }
+          if (entry.status !== "fulfilled") {
+            /* preloadModule must have completed before requireModule is called (the Flight runtime
+               blocks the module chunk on its thenable). */
+            throw new Error(`Client component module "${id}" was required before it finished loading.`);
+          }
+          return entry.value;
+        }
       }
     }
 

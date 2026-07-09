@@ -51,10 +51,13 @@ let render_manifest manifest =
             | Some name -> Printf.sprintf "%s.make_client" (print_module_name name)
             | None -> "make_client"
           in
+          (* A loader record, not a React.lazy: the Flight client's $L references already provide
+             laziness (preloadModule starts the import and blocks the module chunk; requireModule
+             returns the component synchronously once loaded). Wrapping in React.lazy produced a
+             lazy-resolving-to-lazy element type, which React rejects when the chunk isn't already
+             loaded ("Lazy element type must resolve to a class or function"). *)
           Printf.sprintf
-            "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"%s\").then(module => {\n\
-            \  return { default: module.%s }\n\
-             }).catch(err => { console.error(err); return { default: null }; }))"
+            "window.__client_manifest_map[\"%s\"] = { load: () => import(\"%s\").then(module => module.%s) }"
             original_path_with_submodule compiled_js_path export
       | Server_function { compiled_js_path; module_name; function_name; id } ->
           let export =
@@ -66,8 +69,7 @@ let render_manifest manifest =
             export)
   in
   Printf.sprintf
-    {|import React from "react";
-window.__client_manifest_map = window.__client_manifest_map || {};
+    {|window.__client_manifest_map = window.__client_manifest_map || {};
 window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};
 %s|}
     (String.concat "\n" register_client_modules)
