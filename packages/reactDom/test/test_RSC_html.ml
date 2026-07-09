@@ -48,7 +48,8 @@ let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
   else Lwt.return @@ assert_list_of_strings content expected
 
-let assert_html element ?(disable_backtrace = false) ?(env = `Dev) ?debug ?(shell = "") assertion_list =
+let assert_html element ?(disable_backtrace = false) ?(env = `Dev) ?debug ?filter_stack_frame ?(shell = "")
+    assertion_list =
   let begin_html = "<!DOCTYPE html><html><head></head><body></body>" in
   let script_html =
     Printf.sprintf
@@ -67,7 +68,9 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
   let subscribed_elements = ref [] in
   let prev = Printexc.backtrace_status () in
   if disable_backtrace then Printexc.record_backtrace false else ();
-  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~env ?debug element in
+  let%lwt html, subscribe =
+    ReactServerDOM.render_html ~progressive_chunk_size:1 ~env ?debug ?filter_stack_frame element
+  in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -132,38 +135,78 @@ let suppress_hydration_warning_in_model () =
        '>window.srr_stream.push()</script>"
     app []
 
-(* let debug_adds_debug_info () =
-  let app =
-    React.Upper_case_component
-      ( "app",
-        fun () ->
-          let value = "my friend" in
-          React.Fragment
-            (React.List
-               [
-                 React.createElement "input"
-                   [
-                     React.JSX.String ("id", "id", "sidebar-search-input");
-                     React.JSX.String ("placeholder", "placeholder", "Search");
-                     React.JSX.String ("value", "value", value);
-                   ]
-                   [];
-                 React.Upper_case_component ("Hello", fun () -> React.createElement "h1" [] [ React.string "Hello :)" ]);
-               ]) )
-  in
-  assert_html
-    ~shell:"<input id=\"sidebar-search-input\" placeholder=\"Search\" value=\"my friend\" /><h1>Hello :)</h1>"
+(* ~debug:true emits the same debug-info rows as render_model (see debug_* tests in test_RSC_model.ml): the first
+   component attaches its debug rows to the root row; nested components are outlined into their own model row with a
+   D ref, while their HTML stays inline in the shell. *)
+
+let drop_all_frames _ _ = false
+
+let debug_adds_debug_info () =
+  let app = React.Upper_case_component ("App", fun () -> React.createElement "h1" [] [ React.string "title" ]) in
+  assert_html ~debug:true ~filter_stack_frame:drop_all_frames
+    ~shell:
+      "<h1>title</h1><script data-payload='0:[\"$\",\"h1\",null,{\"children\":\"title\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
     app
     [
       "<script \
-       data-payload='1:{\"name\":\"app\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
+       data-payload='1:{\"name\":\"App\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
        '>window.srr_stream.push()</script>";
-      "<script data-payload='1:D\"$1\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='0:D\"$1\"\n'>window.srr_stream.push()</script>";
+    ]
+
+let debug_nested_owner_chain () =
+  let app =
+    React.Upper_case_component
+      ( "App",
+        fun () -> React.Upper_case_component ("Child", fun () -> React.createElement "div" [] [ React.string "hello" ])
+      )
+  in
+  assert_html ~debug:true ~filter_stack_frame:drop_all_frames
+    ~shell:"<div>hello</div><script data-payload='0:\"$2\"\n'>window.srr_stream.push()</script>" app
+    [
       "<script \
-       data-payload='2:{\"name\":\"Hello\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
+       data-payload='1:{\"name\":\"App\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
        '>window.srr_stream.push()</script>";
-      "<script data-payload='2:D\"$2\"\n'>window.srr_stream.push()</script>"
-    ] *)
+      "<script data-payload='0:D\"$1\"\n'>window.srr_stream.push()</script>";
+      "<script \
+       data-payload='3:{\"name\":\"Child\",\"env\":\"Server\",\"key\":null,\"owner\":\"$1\",\"stack\":[],\"props\":{}}\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='2:D\"$3\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:[\"$\",\"div\",null,{\"children\":\"hello\"},\"$1\",null,1]\n\
+       '>window.srr_stream.push()</script>";
+    ]
+
+let debug_async_component_owner_chain () =
+  let app =
+    React.Upper_case_component
+      ( "App",
+        fun () ->
+          React.Async_component
+            ("AsyncChild", fun () -> Lwt.return (React.createElement "span" [] [ React.string "async" ])) )
+  in
+  assert_html ~debug:true ~filter_stack_frame:drop_all_frames
+    ~shell:"<span>async</span><script data-payload='0:\"$2\"\n'>window.srr_stream.push()</script>" app
+    [
+      "<script \
+       data-payload='1:{\"name\":\"App\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='0:D\"$1\"\n'>window.srr_stream.push()</script>";
+      "<script \
+       data-payload='3:{\"name\":\"AsyncChild\",\"env\":\"Server\",\"key\":null,\"owner\":\"$1\",\"stack\":[],\"props\":{}}\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='2:D\"$3\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:[\"$\",\"span\",null,{\"children\":\"async\"},\"$1\",null,1]\n\
+       '>window.srr_stream.push()</script>";
+    ]
+
+let debug_not_emitted_without_flag () =
+  let app = React.Upper_case_component ("App", fun () -> React.createElement "div" [] [ React.string "no debug" ]) in
+  assert_html ~debug:false
+    ~shell:
+      "<div>no debug</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"no debug\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    app []
 
 let input_element_with_value () =
   let app = React.createElement "input" [ React.JSX.String ("value", "value", "application") ] [] in
@@ -1287,7 +1330,10 @@ let skip_root_omits_html_content () =
 
 let tests =
   [
-    (* test "debug_adds_debug_info" debug_adds_debug_info; *)
+    test "debug_adds_debug_info" debug_adds_debug_info;
+    test "debug_nested_owner_chain" debug_nested_owner_chain;
+    test "debug_async_component_owner_chain" debug_async_component_owner_chain;
+    test "debug_not_emitted_without_flag" debug_not_emitted_without_flag;
     test "suspense_with_sync_client_component" suspense_with_sync_client_component;
     test "text_with_ampersand" text_with_ampersand;
     test "text_with_html_entity" text_with_html_entity;

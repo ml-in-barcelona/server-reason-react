@@ -2,6 +2,7 @@ val render_html :
   ?skipRoot:bool ->
   ?env:[ `Dev | `Prod ] ->
   ?debug:bool ->
+  ?filter_stack_frame:(string -> string -> bool) ->
   ?timeout:float ->
   ?progressive_chunk_size:int ->
   ?bootstrapScriptContent:string ->
