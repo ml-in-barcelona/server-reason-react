@@ -4,14 +4,9 @@ type t = string
 
 val make : 'a -> t [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
 val fromCharCode : int -> t
-
 val fromCharCodeMany : int array -> t
-[@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-
 val fromCodePoint : int -> t
-
 val fromCodePointMany : int array -> t
-[@@alert not_implemented "is not implemented in native under server-reason-react.js"]
 
 val length : t -> int
 val get : t -> int -> t

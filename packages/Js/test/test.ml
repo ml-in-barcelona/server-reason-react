@@ -108,40 +108,50 @@ let string_tests =
         (* assert_string (make 3.5) "3.5"; *)
         (* assert_string (make [| 1; 2; 3 |]) "1,2,3"); *)
         ());
-    test "length" (fun () -> assert_int (Js.String.length "abcd") 4);
+    test "length" (fun () ->
+        assert_int (Js.String.length "abcd") 4;
+        assert_int (Js.String.length {js|é|js}) 1;
+        assert_int (Js.String.length {js|😀|js}) 2;
+        assert_int (Js.String.length {js|Rẽasöń|js}) 6);
     test "get" (fun () ->
         assert_string (Js.String.get "Reason" 0) "R";
-        assert_string (Js.String.get "Reason" 4) "o" (* assert_string (Js.String.get {js|Rẽasöń|js} 5) {js|ń|js}; *));
+        assert_string (Js.String.get "Reason" 4) "o";
+        assert_string (Js.String.get {js|Rẽasöń|js} 5) {js|ń|js};
+        (* JavaScript returns undefined out of bounds; the closest [t] value is "" *)
+        assert_string (Js.String.get "Reason" 12) "");
     test "fromCharCode" (fun () ->
         assert_string (Js.String.fromCharCode 65) "A";
-        (* assert_string (Js.String.fromCharCode 0x3c8) {js|ψ|js}; *)
-        (* assert_string (Js.String.fromCharCode 0xd55c) {js|한|js} *)
-        (* assert_string (Js.String.fromCharCode -64568) {js|ψ|js}; *)
-        ());
+        assert_string (Js.String.fromCharCode 0x3c8) {js|ψ|js};
+        assert_string (Js.String.fromCharCode 0xd55c) {js|한|js};
+        assert_string (Js.String.fromCharCode (-64568)) {js|ψ|js});
     test "fromCharCodeMany" (fun () ->
-        (* fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js} *)
-        ());
+        assert_string (Js.String.fromCharCodeMany [| 0xd55c; 0xae00; 33 |]) {js|한글!|js};
+        (* surrogate halves pair up into a single code point *)
+        assert_string (Js.String.fromCharCodeMany [| 0xd83d; 0xde00 |]) {js|😀|js});
     test "fromCodePoint" (fun () ->
-        assert_string (Js.String.fromCodePoint 65) "A"
-        (* assert_string (Js.String.fromCodePoint 0x3c8) {js|ψ|js}; *)
-        (* assert_string (Js.String.fromCodePoint 0xd55c) {js|한|js} *)
-        (* assert_string (Js.String.fromCodePoint 0x1f63a) {js|😺|js} *));
-    test "fromCodePointMany" (fun () ->
-        (* assert_string
-           (Js.String.fromCodePointMany [| 0xd55c; 0xae00; 0x1f63a |])
-           {js|한글😺|js} *)
-        ());
+        assert_string (Js.String.fromCodePoint 65) "A";
+        assert_string (Js.String.fromCodePoint 0x3c8) {js|ψ|js};
+        assert_string (Js.String.fromCodePoint 0xd55c) {js|한|js};
+        assert_string (Js.String.fromCodePoint 0x1f63a) {js|😺|js};
+        assert_string (Js.String.fromCodePoint 0x1f600) {js|😀|js});
+    test "fromCodePointMany" (fun () -> assert_string (Js.String.fromCodePointMany [| 0xd55c; 0xae00; 0x1f63a |]) {js|한글😺|js});
     test "charAt" (fun () ->
         assert_string (Js.String.charAt "Reason" ~index:0) "R";
-        assert_string (Js.String.charAt "Reason" ~index:12) ""
-        (* assert_string (Js.String.charAt {js|Rẽasöń|js} 5) {js|ń|js} *));
+        assert_string (Js.String.charAt "Reason" ~index:12) "";
+        assert_string (Js.String.charAt {js|Rẽasöń|js} ~index:5) {js|ń|js});
     test "charCodeAt" (fun () ->
-        (* charCodeAt {js|😺|js} 0) 0xd83d *)
+        assert_float (Js.String.charCodeAt {js|😺|js} ~index:0) (float_of_int 0xd83d);
+        assert_float (Js.String.charCodeAt {js|😺|js} ~index:1) (float_of_int 0xde3a);
+        assert_float (Js.String.charCodeAt {js|é|js} ~index:0) 233.;
+        assert_bool (Float.is_nan (Js.String.charCodeAt "abc" ~index:5)) true;
         assert_float (Js.String.charCodeAt "lola" ~index:1) 111.;
         assert_float (Js.String.charCodeAt "lola" ~index:0) 108.);
     test "codePointAt" (fun () ->
         assert_option_int (Js.String.codePointAt "lola" ~index:1) (Some 111);
-        (* assert_option_int (Js.String.codePointAt {js|¿😺?|js} 1) (Some 0x1f63a); *)
+        assert_option_int (Js.String.codePointAt {js|¿😺?|js} ~index:1) (Some 0x1f63a);
+        assert_option_int (Js.String.codePointAt {js|😀|js} ~index:0) (Some 0x1f600);
+        (* index on the low surrogate returns the trailing surrogate value *)
+        assert_option_int (Js.String.codePointAt {js|😀|js} ~index:1) (Some 0xde00);
         assert_option_int (Js.String.codePointAt "abc" ~index:5) None);
     test "concat" (fun () -> assert_string (Js.String.concat "cow" ~other:"bell") "cowbell");
     test "concatMany" (fun () ->
@@ -151,7 +161,8 @@ let string_tests =
         assert_bool (Js.String.endsWith "ReShoes" ~suffix:"Script") false;
         assert_bool (Js.String.endsWith "abcd" ~suffix:"cd" ~len:4) true;
         assert_bool (Js.String.endsWith "abcde" ~suffix:"cd" ~len:3) false;
-        (* assert_bool (Js.String.endsWith "abcde" ~suffix:"cde" ~len:99) true; *)
+        assert_bool (Js.String.endsWith "abcde" ~suffix:"cde" ~len:99) true;
+        assert_bool (Js.String.endsWith {js|😀b|js} ~suffix:{js|😀|js} ~len:2) true;
         assert_bool (Js.String.endsWith "example.dat" ~suffix:"ple" ~len:7) true);
     test "includes" (fun () ->
         assert_bool (Js.String.includes "programmer" ~search:"gram") true;
@@ -159,8 +170,9 @@ let string_tests =
         assert_bool (Js.String.includes "programmer" ~search:"pro") true;
         assert_bool (Js.String.includes "programmer" ~search:"xyz") false;
         assert_bool (Js.String.includes "programmer" ~search:"gram" ~start:1) true;
-        assert_bool (Js.String.includes "programmer" ~search:"gram" ~start:4) false
-        (* assert_bool (Js.String.includesFrom {js|한|js} {js|대한민국|js} 1) true *));
+        assert_bool (Js.String.includes "programmer" ~search:"gram" ~start:4) false;
+        assert_bool (Js.String.includes {js|대한민국|js} ~search:{js|한|js} ~start:1) true;
+        assert_bool (Js.String.includes {js|😀b|js} ~search:"b" ~start:2) true);
     test "indexOf" (fun () ->
         assert_int (Js.String.indexOf "bookseller" ~search:"ok") 2;
         assert_int (Js.String.indexOf "bookseller" ~search:"sell") 4;
@@ -169,7 +181,11 @@ let string_tests =
         assert_int (Js.String.indexOf "bookseller" ~search:"ok" ~start:1) 2;
         assert_int (Js.String.indexOf "bookseller" ~search:"sell" ~start:2) 4;
         assert_int (Js.String.indexOf "bookseller" ~search:"sell" ~start:5) (-1);
-        assert_int (Js.String.indexOf "bookseller" ~search:"xyz") (-1));
+        assert_int (Js.String.indexOf "bookseller" ~search:"xyz") (-1);
+        (* negative start clamps to 0; indices are UTF-16 code units *)
+        assert_int (Js.String.indexOf "bookseller" ~search:"ok" ~start:(-3)) 2;
+        assert_int (Js.String.indexOf {js|éb|js} ~search:"b") 1;
+        assert_int (Js.String.indexOf {js|a😀b|js} ~search:"b") 3);
     test "lastIndexOf" (fun () ->
         assert_int (Js.String.lastIndexOf "bookseller" ~search:"ok") 2;
         assert_int (Js.String.lastIndexOf "beekeeper" ~search:"ee") 4;
@@ -177,7 +193,8 @@ let string_tests =
         assert_int (Js.String.lastIndexOf "bookseller" ~search:"ok" ~start:6) 2;
         assert_int (Js.String.lastIndexOf "beekeeper" ~search:"ee" ~start:8) 4;
         assert_int (Js.String.lastIndexOf "beekeeper" ~search:"ee" ~start:3) 1;
-        assert_int (Js.String.lastIndexOf "abcdefg" ~search:"xyz" ~start:4) (-1));
+        assert_int (Js.String.lastIndexOf "abcdefg" ~search:"xyz" ~start:4) (-1);
+        assert_int (Js.String.lastIndexOf {js|a😀b😀b|js} ~search:"b") 6);
     (* test "localeCompare" (fun () ->
          localeCompare "ant" "zebra" > 0.0
            localeCompare "zebra" "ant" < 0.0
@@ -198,12 +215,31 @@ let string_tests =
           (unsafe_match [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05.")
           [| Some "2018-04-05"; Some "2018"; Some "04"; Some "05" |];
         assert_string_option_array (unsafe_match [%re "/b[aeiou]g/"] "The large container.") [||]);
+    test "match global returns all full matches without groups" (fun () ->
+        let unsafe_match r s = Js.String.match_ ~regexp:r s |> Stdlib.Option.value ~default:[||] in
+        assert_string_option_array
+          (unsafe_match [%re "/(\\d+)-(\\d+)-(\\d+)/g"] "2018-04-05 2019-05-06")
+          [| Some "2018-04-05"; Some "2019-05-06" |];
+        (* empty matches are all found, like "abc".match(/x*/g) *)
+        assert_string_option_array (unsafe_match [%re "/x*/g"] "abc") [| Some ""; Some ""; Some ""; Some "" |];
+        (* no match with the global flag returns None (null in JavaScript) *)
+        assert_bool (Js.String.match_ ~regexp:[%re "/b[aeiou]g/g"] "The large container." = None) true);
     test "repeat" (fun () ->
         assert_string (Js.String.repeat "ha" ~count:3) "hahaha";
-        assert_string (Js.String.repeat "empty" ~count:0) "");
+        assert_string (Js.String.repeat "empty" ~count:0) "";
+        (* JavaScript raises RangeError on a negative count *)
+        match Js.String.repeat "ha" ~count:(-1) with
+        | exception Invalid_argument _ -> ()
+        | (_ : string) -> Alcotest.fail "repeat with a negative count should raise Invalid_argument");
     test "replace" (fun () ->
         assert_string (Js.String.replace ~search:"old" ~replacement:"new" "old string") "new string";
-        assert_string (Js.String.replace ~search:"the" ~replacement:"this" "the cat and the dog") "this cat and the dog");
+        assert_string (Js.String.replace ~search:"the" ~replacement:"this" "the cat and the dog") "this cat and the dog";
+        (* only the first occurrence is replaced; $&, $$, $`, $' are expanded *)
+        assert_string (Js.String.replace ~search:"a" ~replacement:"[$&]" "banana") "b[a]nana";
+        assert_string (Js.String.replace ~search:"price" ~replacement:"$$100" "price") "$100";
+        assert_string (Js.String.replace ~search:"cd" ~replacement:"[$`|$']" "abcdef") "ab[ab|ef]ef";
+        (* backslash sequences are literal, not backreferences *)
+        assert_string (Js.String.replace ~search:"b" ~replacement:"\\1" "abc") "a\\1c");
     test "replaceByRe" (fun () ->
         assert_string (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x") "xavid");
     test "replaceByRe with references ($n)" (fun () ->
@@ -224,6 +260,47 @@ let string_tests =
         assert_string
           (Js.String.replaceByRe "vowels be gone" ~regexp:[%re "/[aeiou]/g"] ~replacement:"x")
           "vxwxls bx gxnx");
+    test "replaceByRe global empty matches" (fun () ->
+        (* "abc".replace(/x*/g, "-") = "-a-b-c-" *)
+        assert_string (Js.String.replaceByRe "abc" ~regexp:[%re "/x*/g"] ~replacement:"-") "-a-b-c-");
+    test "replaceByRe global on multibyte input" (fun () ->
+        (* "éb".replace(/b/g, "X") = "éX": UTF-16 index 1 is byte offset 2 *)
+        assert_string (Js.String.replaceByRe {js|éb|js} ~regexp:[%re "/b/g"] ~replacement:"X") {js|éX|js});
+    test "replaceByRe unicode flag advances over full code points" (fun () ->
+        (* "😀a".replace(/x*/gu, "-") = "-😀-a-" *)
+        assert_string (Js.String.replaceByRe {js|😀a|js} ~regexp:[%re "/x*/gu"] ~replacement:"-") {js|-😀-a-|js});
+    test "replaceByRe leaves lastIndex at 0 after a global replace" (fun () ->
+        let regexp = [%re "/b/g"] in
+        Js.Re.setLastIndex regexp 3;
+        assert_string (Js.String.replaceByRe "abcb" ~regexp ~replacement:"X") "aXcX";
+        assert_int (Js.Re.lastIndex regexp) 0);
+    test "replaceByRe with named groups referenced by number" (fun () ->
+        assert_string
+          (Js.String.replaceByRe "John Smith" ~regexp:[%re "/(?<first>\\w+) (?<last>\\w+)/"] ~replacement:"$2 $1")
+          "Smith John");
+    test "replaceByRe with a non-participating group" (fun () ->
+        (* "ac".replace(/a(b)?c/, "[$1]") = "[]" *)
+        assert_string (Js.String.replaceByRe "ac" ~regexp:[%re "/a(b)?c/"] ~replacement:"[$1]") "[]");
+    test "replaceByRe with an invalid group reference" (fun () ->
+        (* "abc".replace(/b/, "$9") = "a$9c" *)
+        assert_string (Js.String.replaceByRe "abc" ~regexp:[%re "/b/"] ~replacement:"$9") "a$9c");
+    test "replaceByRe with $` on the original string" (fun () ->
+        assert_string (Js.String.replaceByRe "abcdef" ~regexp:[%re "/cd/"] ~replacement:"<$`>") "ab<ab>ef");
+    test "replaceByRe sticky non-global starts at lastIndex" (fun () ->
+        let regexp = [%re "/b/y"] in
+        Js.Re.setLastIndex regexp 1;
+        assert_string (Js.String.replaceByRe "ab" ~regexp ~replacement:"X") "aX";
+        assert_int (Js.Re.lastIndex regexp) 2);
+    test "splitByRe with sticky flag scans like JavaScript" (fun () ->
+        (* "a-b-c".split(/-/y) = ["a", "b", "c"] *)
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:[%re "/-/y"] "a-b-c")
+          [| Some "a"; Some "b"; Some "c" |]);
+    test "splitByRe does not touch the caller's lastIndex" (fun () ->
+        let regexp = [%re "/-/g"] in
+        Js.Re.setLastIndex regexp 4;
+        ignore (Js.String.splitByRe ~regexp "a-b-c");
+        assert_int (Js.Re.lastIndex regexp) 4);
     test "unsafeReplaceBy0" (fun () ->
         (* let str = "beautiful vowels" in
            let re = [%re "/[aeiou]/g"] in
@@ -256,17 +333,19 @@ let string_tests =
            assert_string replaced "42" *)
         ());
     test "search" (fun () ->
-        (* assert_int (Js.String.search [%re "/\\d+/"] "testing 1 2 3") 8;
-           assert_int (Js.String.search [%re "/\\d+/"] "no numbers") (-1) *)
-        ());
+        assert_int (Js.String.search ~regexp:[%re "/\\d+/"] "testing 1 2 3") 8;
+        assert_int (Js.String.search ~regexp:[%re "/\\d+/"] "no numbers") (-1));
     test "slice" (fun () ->
         assert_string (Js.String.slice ~start:2 ~end_:5 "abcdefg") "cde";
         assert_string (Js.String.slice ~start:2 ~end_:9 "abcdefg") "cdefg";
-        (* assert_string (Js.String.slice ~from:(-4) ~to_:(-2) "abcdefg") "de"; *)
+        assert_string (Js.String.slice ~start:(-4) ~end_:(-2) "abcdefg") "de";
         assert_string (Js.String.slice ~start:5 ~end_:1 "abcdefg") "";
         assert_string (Js.String.slice ~start:4 "abcdefg") "efg";
-        (* assert_string (Js.String.sliceToEnd ~from:(-2) "abcdefg") "fg"; *)
-        assert_string (Js.String.slice ~start:7 "abcdefg") "");
+        assert_string (Js.String.slice ~start:(-2) "abcdefg") "fg";
+        assert_string (Js.String.slice ~start:7 "abcdefg") "";
+        (* UTF-16 indices: "a😀b".slice(1, 3) = "😀" *)
+        assert_string (Js.String.slice ~start:1 ~end_:3 {js|a😀b|js}) {js|😀|js};
+        assert_string (Js.String.slice ~start:(-1) {js|😀x|js}) "x");
     test "split" (fun () ->
         assert_string_array (Js.String.split ~sep:"" "") [||];
         assert_string_array (Js.String.split ~sep:"-" "2018-01-02") [| "2018"; "01"; "02" |];
@@ -296,64 +375,87 @@ let string_tests =
           (Js.String.split ~sep:"-" "with-limit-less-than-zero" ~limit:(-2))
           [| "with"; "limit"; "less"; "than"; "zero" |]);
     test "splitAtMost" (fun () ->
-        (* assert_string_array
-             (splitAtMost "/" ~limit:3 "ant/bee/cat/dog/elk")
-             [| "ant"; "bee"; "cat" |];
-           assert_string_array
-             (splitAtMost "/" ~limit:0 "ant/bee/cat/dog/elk")
-             [||];
-           assert_string_array
-             (splitAtMost "/" ~limit:9 "ant/bee/cat/dog/elk")
-             [| "ant"; "bee"; "cat"; "dog"; "elk" |] *)
-        ());
+        assert_string_array (Js.String.split ~sep:"/" ~limit:3 "ant/bee/cat/dog/elk") [| "ant"; "bee"; "cat" |];
+        assert_string_array (Js.String.split ~sep:"/" ~limit:0 "ant/bee/cat/dog/elk") [||];
+        assert_string_array
+          (Js.String.split ~sep:"/" ~limit:9 "ant/bee/cat/dog/elk")
+          [| "ant"; "bee"; "cat"; "dog"; "elk" |]);
+    test "split unicode" (fun () ->
+        (* an empty separator splits per UTF-16 code unit; "é" is one unit *)
+        assert_string_array
+          (Js.String.split ~sep:"" {js|héllo|js})
+          [| "h"; {js|é|js}; "l"; "l"; "o" |]);
+    test "split without separator" (fun () ->
+        (* str.split(undefined) is [str], like in JavaScript *)
+        assert_string_array (Js.String.split "abc") [| "abc" |];
+        assert_string_array (Js.String.split ~limit:2 "abc") [| "abc" |];
+        assert_string_array (Js.String.split ~limit:0 "abc") [||]);
+    test "split empty string" (fun () ->
+        (* "".split("-") is [""], but "".split("") is [] *)
+        assert_string_array (Js.String.split ~sep:"-" "") [| "" |];
+        assert_string_array (Js.String.split ~sep:"" "") [||]);
     test "splitByRe" (fun () ->
         let unsafe_splitByRe s r = Js.String.splitByRe ~regexp:r s |> Stdlib.Array.map Stdlib.Option.get in
         assert_string_array
           (unsafe_splitByRe "art; bed , cog ;dad" [%re "/\\s*[,;]\\s*/"])
-          [| "art"; "bed"; "cog"; "dad" |]
-        (* assert_string_array
-           (unsafe_splitByRe "has:no:match" [%re "/[,;]/"])
-           [| "has:no:match" |] *));
-    (* test "splitByReAtMost" (fun () ->
-        assert_string_array
-            (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:3
-               "one: two: three: four")
-            [| Some "one"; Some "two"; Some "three" |];
-          assert_string_array
-            (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:0
-               "one: two: three: four")
-            [||];
-          assert_string_array
-            (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:8
-               "one: two: three: four")
-            [| Some "one"; Some "two"; Some "three"; Some "four" |];
-          assert_string_array
-            (splitByReAtMost [%re "/(#)(:)?/"] ~limit:3 "a#b#:c")
-            [| Some "a"; Some "#"; None |]
-       ());*)
+          [| "art"; "bed"; "cog"; "dad" |];
+        assert_string_array (unsafe_splitByRe "has:no:match" [%re "/[,;]/"]) [| "has:no:match" |]);
+    test "splitByRe with empty-match regex terminates" (fun () ->
+        (* "abc".split(/x*/) = ["a", "b", "c"] *)
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:[%re "/x*/"] "abc")
+          [| Some "a"; Some "b"; Some "c" |];
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:[%re "/x*/g"] "abc")
+          [| Some "a"; Some "b"; Some "c" |]);
+    test "splitByRe splices captures in" (fun () ->
+        (* "a#b#:c".split(/(#)(:)?/) = ["a", "#", undefined, "b", "#", ":", "c"] *)
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:[%re "/(#)(:)?/"] "a#b#:c")
+          [| Some "a"; Some "#"; None; Some "b"; Some "#"; Some ":"; Some "c" |]);
+    test "splitByReAtMost" (fun () ->
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:[%re "/\\s*:\\s*/"] ~limit:3 "one: two: three: four")
+          [| Some "one"; Some "two"; Some "three" |];
+        assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/\\s*:\\s*/"] ~limit:0 "one: two: three: four") [||];
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:[%re "/\\s*:\\s*/"] ~limit:8 "one: two: three: four")
+          [| Some "one"; Some "two"; Some "three"; Some "four" |];
+        (* spliced captures count toward the limit *)
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:[%re "/(#)(:)?/"] ~limit:3 "a#b#:c")
+          [| Some "a"; Some "#"; None |];
+        (* negative limits are coerced with ToUint32 and behave as "no limit" *)
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:[%re "/,/"] ~limit:(-1) "a,b,c")
+          [| Some "a"; Some "b"; Some "c" |]);
     test "startsWith" (fun () ->
         assert_bool (Js.String.startsWith "ReScript" ~prefix:"Re") true;
         assert_bool (Js.String.startsWith "ReScript" ~prefix:"") true;
         assert_bool (Js.String.startsWith "JavaScript" ~prefix:"Re") false;
         assert_bool (Js.String.startsWith ~prefix:"cri" ~start:3 "ReScript") true;
         assert_bool (Js.String.startsWith ~prefix:"" ~start:3 "ReScript") true;
-        assert_bool (Js.String.startsWith ~prefix:"Re" ~start:2 "JavaScript") false);
+        assert_bool (Js.String.startsWith ~prefix:"Re" ~start:2 "JavaScript") false;
+        (* negative start clamps to 0; positions are UTF-16 code units *)
+        assert_bool (Js.String.startsWith ~prefix:"He" ~start:(-5) "Hello") true;
+        assert_bool (Js.String.startsWith ~prefix:"b" ~start:2 {js|😀b|js}) true);
     test "substr" (fun () ->
         assert_string (Js.String.substr ~start:3 "abcdefghij") "defghij";
-        (* assert_string (Js.String.substr ~from:(-3) "abcdefghij") "hij"; *)
+        assert_string (Js.String.substr ~start:(-3) "abcdefghij") "hij";
         assert_string (Js.String.substr ~start:12 "abcdefghij") "");
     test "substrAtMost" (fun () ->
-        (* assert_string (Js.String.substrAtMost ~from:3 ~length:4 "abcdefghij") "defghij"; *)
-        (* assert_string (Js.String.substrAtMost ~from:(-3) ~length:4 "abcdefghij") "hij"; *)
-        (* assert_string (Js.String.substrAtMost ~from:12 ~length:2 "abcdefghij") "" *)
-        ());
+        assert_string (Js.String.substr ~start:3 ~len:4 "abcdefghij") "defg";
+        assert_string (Js.String.substr ~start:(-3) ~len:4 "abcdefghij") "hij";
+        assert_string (Js.String.substr ~start:12 ~len:2 "abcdefghij") "");
     test "substring" (fun () ->
         assert_string (Js.String.substring ~start:3 ~end_:6 "playground") "ygr";
         assert_string (Js.String.substring ~start:6 ~end_:3 "playground") "ygr";
         assert_string (Js.String.substring ~start:4 ~end_:12 "playground") "ground";
         assert_string (Js.String.substring ~start:4 "playground") "ground";
         assert_string (Js.String.substring ~start:(-3) "playground") "playground";
-        assert_string (Js.String.substring ~start:12 "playground") "");
+        assert_string (Js.String.substring ~start:12 "playground") "";
+        (* UTF-16 indices: "a😀b".substring(3) = "b" *)
+        assert_string (Js.String.substring ~start:3 {js|a😀b|js}) "b");
     test "toLowerCase" (fun () ->
         assert_string (Js.String.toLowerCase "") "";
         assert_string (Js.String.toLowerCase "ASCII: ABC") "ascii: abc";
@@ -372,7 +474,13 @@ let string_tests =
           "UNICODE MONGOLIAN SEPARATOR + Σ + MONGOLIAN SEPARATOR: \u{180E} + \u{03a3} + \u{180E}");
     test "trim" (fun () ->
         assert_string (Js.String.trim "   abc def   ") "abc def";
-        assert_string (Js.String.trim "\n\r\t abc def \n\n\t\r ") "abc def");
+        assert_string (Js.String.trim "\n\r\t abc def \n\n\t\r ") "abc def";
+        (* the ECMA-262 WhiteSpace set includes \f, NBSP and the BOM *)
+        assert_string (Js.String.trim "\x0Cx\x0C") "x";
+        assert_string (Js.String.trim "\u{00A0}x\u{00A0}") "x";
+        assert_string (Js.String.trim "\u{FEFF}x\u{FEFF}") "x";
+        (* U+180E (Mongolian vowel separator) is not whitespace since Unicode 6.3 *)
+        assert_string (Js.String.trim "\u{180E}x\u{180E}") "\u{180E}x\u{180E}");
     test "anchor" (fun () ->
         (* assert_string
            (anchor "page1" "Page One")
