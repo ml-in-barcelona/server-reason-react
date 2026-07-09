@@ -186,7 +186,8 @@ let input_and_bootstrap_scripts () =
   let app = React.createElement "input" [ React.JSX.String ("id", "id", "sidebar-search-input") ] [] in
   assert_html app ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
     ~shell:
-      "<input id=\"sidebar-search-input\" /><script \
+      "<link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /><link rel=\"modulepreload\" \
+       fetchPriority=\"low\" href=\"react-dom\" /><input id=\"sidebar-search-input\" /><script \
        data-payload='0:[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,null,1]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script>"
@@ -317,6 +318,61 @@ let links_gets_pushed_to_the_head () =
        href=\"http://www.example.com/xmlrpc.php\" rel=\"pingback\" /></head><body></body><script \
        data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,null,1],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,null,1],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,null,1],[\"$\",\"link\",null,{\"href\":\"http://www.example.com/xmlrpc.php\",\"rel\":\"pingback\"},null,null,1]]},null,null,1]},null,null,1]\n\
        '>window.srr_stream.push()</script></html>"
+
+(* React 19.1 writes the preamble unconditionally for non-document renders: hoistables stream
+   before the root HTML, without a <head> wrapper, in priority-bucket order (stylesheets →
+   async scripts → title/meta in discovery order). Verified against react-dom 19.1.0. *)
+let fragment_root_hoists_resources () =
+  let app =
+    div []
+      [
+        React.createElement "title" [] [ React.string "Fragment Title" ];
+        React.createElement "meta"
+          [ React.JSX.String ("name", "name", "description"); React.JSX.String ("content", "content", "desc") ]
+          [];
+        link ~rel:"stylesheet" ~precedence:"default" ~href:"/frag.css" ();
+        script ~async:true ~src:"/frag.js" ();
+        React.createElement "p" [] [ React.string "content" ];
+      ]
+  in
+  assert_html app
+    ~shell:
+      "<link href=\"/frag.css\" rel=\"stylesheet\" precedence=\"default\" /><script async \
+       src=\"/frag.js\"></script><title>Fragment Title</title><meta name=\"description\" content=\"desc\" \
+       /><div><p>content</p></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"Fragment \
+       Title\"},null,null,1],[\"$\",\"meta\",null,{\"name\":\"description\",\"content\":\"desc\"},null,null,1],[\"$\",\"link\",null,{\"href\":\"/frag.css\",\"rel\":\"stylesheet\",\"precedence\":\"default\"},null,null,1],[\"$\",\"script\",null,{\"async\":true,\"src\":\"/frag.js\"},null,null,1],[\"$\",\"p\",null,{\"children\":\"content\"},null,null,1]]},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+
+let fragment_root_dedupes_stylesheets () =
+  let app =
+    div []
+      [
+        link ~rel:"stylesheet" ~precedence:"high" ~href:"/a.css" ();
+        link ~rel:"stylesheet" ~precedence:"low" ~href:"/a.css" ();
+        React.createElement "span" [] [ React.string "hi" ];
+      ]
+  in
+  (* Same href: first occurrence wins, matching the html-root dedup behavior *)
+  assert_html app
+    ~shell:
+      "<link href=\"/a.css\" rel=\"stylesheet\" precedence=\"high\" /><div><span>hi</span></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"/a.css\",\"rel\":\"stylesheet\",\"precedence\":\"high\"},null,null,1],[\"$\",\"link\",null,{\"href\":\"/a.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]]},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+
+let fragment_root_with_skip_root_keeps_hoistables () =
+  let app =
+    div []
+      [
+        React.createElement "title" [] [ React.string "Client Only" ];
+        React.createElement "span" [] [ React.string "hi" ];
+      ]
+  in
+  assert_html ~skipRoot:true app
+    ~shell:
+      "<title>Client Only</title><script data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"Client \
+       Only\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]]},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
 
 let no_async_scripts_to_remain () =
   let app = html [ body [ script ~async:false ~src:"https://cdn.com/jquery.min.js" () ] ] in
@@ -507,6 +563,9 @@ let tests =
     test "async_scripts_gets_deduplicated_2" async_scripts_gets_deduplicated_2;
     test "link_with_rel_and_precedence" link_with_rel_and_precedence;
     test "links_gets_pushed_to_the_head" links_gets_pushed_to_the_head;
+    test "fragment_root_hoists_resources" fragment_root_hoists_resources;
+    test "fragment_root_dedupes_stylesheets" fragment_root_dedupes_stylesheets;
+    test "fragment_root_with_skip_root_keeps_hoistables" fragment_root_with_skip_root_keeps_hoistables;
     test "self_closing_with_dangerously" self_closing_with_dangerously;
     test "self_closing_with_dangerously_in_head" self_closing_with_dangerously_in_head;
     test "upper_case_component_with_resources" upper_case_component_with_resources;

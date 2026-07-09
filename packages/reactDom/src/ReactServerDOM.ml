@@ -1461,6 +1461,8 @@ let sort_head_children children =
 
 let reconstruct_document ~(fiber : Fiber.t) ~root_html ~user_scripts ~skip_root =
   let root_element_is_html_tag = match Fiber.root_tag ~fiber with Some tag -> tag = "html" | None -> false in
+  (* resources and extra_head_children are accumulated in reverse order (cons-prepend) for O(1) insertion *)
+  let all_head_content = List.rev_append fiber.resources (List.rev fiber.extra_head_children) in
   if root_element_is_html_tag then
     let body =
       match (is_body_node root_html, skip_root) with
@@ -1468,8 +1470,6 @@ let reconstruct_document ~(fiber : Fiber.t) ~root_html ~user_scripts ~skip_root 
       | true, true | false, true -> Html.list user_scripts
       | false, false -> Html.list (root_html :: user_scripts)
     in
-    (* resources and extra_head_children are accumulated in reverse order (cons-prepend) for O(1) insertion *)
-    let all_head_content = List.rev_append fiber.resources (List.rev fiber.extra_head_children) in
     match fiber.head_element with
     | Some node ->
         let combined = sort_head_children (all_head_content @ node.children) in
@@ -1478,8 +1478,18 @@ let reconstruct_document ~(fiber : Fiber.t) ~root_html ~user_scripts ~skip_root 
     | None ->
         let sorted = sort_head_children all_head_content in
         Html.node "html" fiber.html_attributes [ Html.node "head" [] sorted; body ]
-  else if skip_root then Html.list user_scripts
-  else Html.list (root_html :: user_scripts)
+  else
+    (* React's Fizz writes the preamble unconditionally for non-document renders: hoistables
+       (charset → viewport → stylesheets → async scripts → other) stream at the very start of
+       the shell, before the root HTML, without a <head> wrapper. A literal <head> in the tree
+       keeps its wrapper around the merged hoisted content. *)
+    let hoisted =
+      match fiber.head_element with
+      | Some node -> [ Html.Node { node with children = sort_head_children (all_head_content @ node.children) } ]
+      | None -> sort_head_children all_head_content
+    in
+    let rest = if skip_root then user_scripts else root_html :: user_scripts in
+    Html.list (hoisted @ rest)
 
 (* Default heuristic for how to split up the HTML content into progressive loading https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-server/src/ReactFizzServer.js#L310-L323 *)
 let default_progressive_chunk_size = 12800
