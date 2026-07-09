@@ -21,6 +21,31 @@ module Section = {
   };
 };
 
+module Value = {
+  [@react.component]
+  let make = (~label, ~value) => {
+    <div className="flex flex-row gap-2 items-baseline">
+      <span
+        className={Cx.make([
+          "text-sm",
+          "font-mono",
+          Theme.text(Theme.Color.Gray10),
+        ])}>
+        {React.string(label)}
+      </span>
+      <span
+        className={Cx.make([
+          "text-lg",
+          "font-mono",
+          "font-bold",
+          Theme.text(Theme.Color.Gray11),
+        ])}>
+        {React.string(value)}
+      </span>
+    </div>;
+  };
+};
+
 module ExpandedContent = {
   [@react.component]
   let make = (~id, ~content: string, ~updatedAt: float, ~title: string) => {
@@ -78,6 +103,10 @@ module Page = {
       );
     let cachedValueFirst = CacheDemo.get("Cached value");
     let cachedValueSecond = CacheDemo.get("Cached value");
+    let unicode = "héllo 🚀";
+    let iso_without_timezone = "2026-07-09T10:00:00";
+    let parsed = Js.Date.fromString(iso_without_timezone);
+    let roundtrip = Js.Date.fromString(Js.Date.toUTCString(parsed));
     Lwt.return(
       <Stack gap=8 justify=`start>
         <Stack gap=2 justify=`start>
@@ -105,6 +134,58 @@ module Page = {
           <Stack gap=1 justify=`start>
             <Text> {"First call: " ++ cachedValueFirst} </Text>
             <Text> {"Second call: " ++ cachedValueSecond} </Text>
+          </Stack>
+        </Section>
+        <Hr />
+        <Section
+          title={js|Js.String is UTF-16, like JavaScript|js}
+          description="Js.String operates on UTF-16 code units on the server, rendering JavaScript-identical values">
+          <Stack gap=1 justify=`start>
+            <Value
+              label={"length \"" ++ unicode ++ "\""}
+              value={string_of_int(Js.String.length(unicode))}
+            />
+            <Value
+              label={js|charCodeAt ~index:1 "héllo"|js}
+              value={Js.Float.toString(
+                Js.String.charCodeAt(~index=1, unicode),
+              )}
+            />
+            <Value
+              label={js|toUpperCase "straße"|js}
+              value={Js.String.toUpperCase({js|straße|js})}
+            />
+            <Value
+              label={js|replaceByRe /l/g -> "L" on "héllo wörld"|js}
+              value={Js.String.replaceByRe(
+                ~regexp=[%re "/l/g"],
+                ~replacement="L",
+                {js|héllo wörld|js},
+              )}
+            />
+          </Stack>
+        </Section>
+        <Hr />
+        <Section
+          title="Js.Date parses like JavaScript"
+          description="Js.Date parses ISO datetimes without a timezone designator as local time and round-trips its own toUTCString output">
+          <Stack gap=1 justify=`start>
+            <Value
+              label={
+                "fromString \""
+                ++ iso_without_timezone
+                ++ "\" (no timezone -> local)"
+              }
+              value={Js.Date.toString(parsed)}
+            />
+            <Value
+              label="getHours (10 in the server's local time)"
+              value={Js.Float.toString(Js.Date.getHours(parsed))}
+            />
+            <Value
+              label="fromString (toUTCString d) round-trips"
+              value={Js.Date.toString(roundtrip)}
+            />
           </Stack>
         </Section>
         <Hr />

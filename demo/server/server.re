@@ -54,7 +54,6 @@ let server =
       getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
       getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
-      getAndPost(Routes.fragmentRSC, Pages.FragmentRSC.handler),
       ...getAndPost
          |> RouterRSC.routeDefinitionsHandlers(
               "/demo/router",
