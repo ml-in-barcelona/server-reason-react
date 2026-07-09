@@ -317,7 +317,9 @@ let toTimeString t =
     let tz = format_tz_offset (tz_offset_at_utc time) in
     Printf.sprintf "%s:%s:%s %s" (pad 2 hours) (pad 2 minutes) (pad 2 seconds) tz
 
-let toString t = if Float.is_nan t.time then "Invalid Date" else Printf.sprintf "%s %s" (toDateString t) (toTimeString t)
+let toString t =
+  if Float.is_nan t.time then "Invalid Date" else Printf.sprintf "%s %s" (toDateString t) (toTimeString t)
+
 let toLocaleString t = toString t
 let toLocaleDateString t = toDateString t
 let toLocaleTimeString t = toTimeString t
@@ -390,7 +392,7 @@ let parse_iso_clock s ~pos =
     else Some (0, pos)
   in
   let* ms, pos =
-    if pos < len && s.[pos] = '.' then (
+    if pos < len && s.[pos] = '.' then
       let start = pos + 1 in
       let rec digits_end p = if p < len && is_ascii_digit s.[p] then digits_end (p + 1) else p in
       let stop = digits_end start in
@@ -398,7 +400,7 @@ let parse_iso_clock s ~pos =
       else
         let frac = String.sub s start (min (stop - start) 3) in
         let frac = frac ^ String.make (3 - String.length frac) '0' in
-        Some (int_of_string frac, stop))
+        Some (int_of_string frac, stop)
     else Some (0, pos)
   in
   (* "24:00:00.000" is a valid end-of-day timestamp, anything past it is not *)
@@ -480,7 +482,6 @@ let array_find_index pred arr =
   loop 0
 
 let parse_month_name name = array_find_index (fun m -> String.equal m name) month_names
-
 let parse_all_digits tok = if tok <> "" && String.for_all is_ascii_digit tok then int_of_string_opt tok else None
 
 (* V8 maps two-digit legacy years: 0-49 -> 2000s, 50-99 -> 1900s. *)

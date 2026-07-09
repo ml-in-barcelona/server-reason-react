@@ -1221,8 +1221,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
   | Static { prerendered; original } ->
       let hoisted_before = fiber.hoisted_count in
       let%lwt html, model = render_element_to_html ~fiber ~debug_info original in
-      if fiber.hoisted_count = hoisted_before then Lwt.return (Html.raw prerendered, model)
-      else Lwt.return (html, model)
+      if fiber.hoisted_count = hoisted_before then Lwt.return (Html.raw prerendered, model) else Lwt.return (html, model)
   (* Writer subtrees can contain components below the prerendered markup. The emit closure
      (ReactDOM.write_to_buffer) raises on client components and renders Suspense without boundary
      markers, while the model walk below renders the subtree correctly anyway — use the walk for
@@ -1438,8 +1437,7 @@ and render_regular_element ~fiber ~debug_info ~key ~tag ~attributes ~children ~i
   let html_props, json_props = process_attributes ~context:fiber.context attributes in
   let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
   match (Html.is_self_closing_tag tag, inner_html) with
-  | true, _ ->
-      Lwt.return (Html.node tag html_props [], Model.node ~env:fiber.env ~tag ~key ~props:json_props ~owner [])
+  | true, _ -> Lwt.return (Html.node tag html_props [], Model.node ~env:fiber.env ~tag ~key ~props:json_props ~owner [])
   | false, Some inner_html ->
       Lwt.return
         ( Html.node tag html_props [ Html.raw inner_html ],

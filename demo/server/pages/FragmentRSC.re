@@ -10,8 +10,12 @@ module Value = {
   [@react.component]
   let make = (~label, ~value) => {
     <div className="flex flex-row gap-2 items-baseline">
-      <span className="text-sm text-gray-400 font-mono"> {React.string(label)} </span>
-      <span className="text-lg text-gray-100 font-mono font-bold"> {React.string(value)} </span>
+      <span className="text-sm text-gray-400 font-mono">
+        {React.string(label)}
+      </span>
+      <span className="text-lg text-gray-100 font-mono font-bold">
+        {React.string(value)}
+      </span>
     </div>;
   };
 };
@@ -20,7 +24,9 @@ module Section = {
   [@react.component]
   let make = (~title, ~children) => {
     <div className="flex flex-col gap-2">
-      <h2 className="text-2xl font-bold text-gray-200"> {React.string(title)} </h2>
+      <h2 className="text-2xl font-bold text-gray-200">
+        {React.string(title)}
+      </h2>
       children
     </div>;
   };
@@ -49,21 +55,23 @@ module Page = {
              "This page has no <html> wrapper: view-source and note the <title>, <meta> and <link> hoisted to the very top of the response, before this <div>.",
            )}
         </p>
-        <Section title={{js|Js.String is UTF-16, like JavaScript|js}}>
+        <Section title={js|Js.String is UTF-16, like JavaScript|js}>
           <Value
             label={"length \"" ++ unicode ++ "\""}
             value={string_of_int(Js.String.length(unicode))}
           />
           <Value
-            label={{js|charCodeAt ~index:1 "héllo"|js}}
-            value={Js.Float.toString(Js.String.charCodeAt(~index=1, unicode))}
+            label={js|charCodeAt ~index:1 "héllo"|js}
+            value={Js.Float.toString(
+              Js.String.charCodeAt(~index=1, unicode),
+            )}
           />
           <Value
-            label={{js|toUpperCase "straße"|js}}
+            label={js|toUpperCase "straße"|js}
             value={Js.String.toUpperCase({js|straße|js})}
           />
           <Value
-            label={{js|replaceByRe /l/g -> "L" on "héllo wörld"|js}}
+            label={js|replaceByRe /l/g -> "L" on "héllo wörld"|js}
             value={Js.String.replaceByRe(
               ~regexp=[%re "/l/g"],
               ~replacement="L",
@@ -73,7 +81,11 @@ module Page = {
         </Section>
         <Section title="Js.Date parses like JavaScript">
           <Value
-            label={"fromString \"" ++ iso_without_timezone ++ "\" (no timezone -> local)"}
+            label={
+              "fromString \""
+              ++ iso_without_timezone
+              ++ "\" (no timezone -> local)"
+            }
             value={Js.Date.toString(parsed)}
           />
           <Value
@@ -92,4 +104,5 @@ module Page = {
 
 let debug = Sys.getenv_opt("DEMO_ENV") == Some("development");
 
-let handler = request => DreamRSC.createFromRequest(~debug, <Page />, request);
+let handler = request =>
+  DreamRSC.createFromRequest(~debug, <Page />, request);

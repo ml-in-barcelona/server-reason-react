@@ -389,7 +389,8 @@ let fragment_root_with_skip_root_keeps_hoistables () =
   in
   assert_html ~skipRoot:true app
     ~shell:
-      "<title>Client Only</title><script data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"Client \
+      "<title>Client Only</title><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"Client \
        Only\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]]},null,null,1]\n\
        '>window.srr_stream.push()</script>"
 

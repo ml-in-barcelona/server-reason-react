@@ -44,7 +44,8 @@ let lastIndexOf ~search ?start str =
 let localeCompare ~other:_ _ = Js_internal.notImplemented "Js.String" "localeCompare"
 
 (* Removes the given flag from a JavaScript flags string, e.g. [remove_flag 'g' "gi"] is ["i"]. *)
-let remove_flag flag flags = Stdlib.String.to_seq flags |> Stdlib.Seq.filter (fun c -> c <> flag) |> Stdlib.String.of_seq
+let remove_flag flag flags =
+  Stdlib.String.to_seq flags |> Stdlib.Seq.filter (fun c -> c <> flag) |> Stdlib.String.of_seq
 
 let match_ ~regexp str =
   if Js_re.global regexp then (
@@ -140,9 +141,7 @@ let advance_string_index str index unicode =
   else
     let is_high c = c >= 0xD800 && c <= 0xDBFF in
     let is_low c = c >= 0xDC00 && c <= 0xDFFF in
-    match
-      (Quickjs.String.Prototype.char_code_at index str, Quickjs.String.Prototype.char_code_at (index + 1) str)
-    with
+    match (Quickjs.String.Prototype.char_code_at index str, Quickjs.String.Prototype.char_code_at (index + 1) str) with
     | Some high, Some low when is_high high && is_low low -> index + 2
     | _ -> index + 1
 
@@ -239,7 +238,9 @@ let split ?sep ?limit str =
   | Some sep -> (
       if str = "" && sep <> "" then
         (* JavaScript: "".split(sep) is [""] for any non-empty separator. *)
-        match limit with Some limit when to_uint32 limit = 0 -> [||] | _ -> [| str |]
+        match limit with
+        | Some limit when to_uint32 limit = 0 -> [||]
+        | _ -> [| str |]
       else
         match limit with
         | None -> Quickjs.String.Prototype.split sep str
@@ -259,7 +260,7 @@ let splitByRe ~regexp ?limit str =
     let splitter = Js_re.fromStringWithFlags (Js_re.source regexp) ~flags in
     let unicode = is_full_unicode regexp in
     let size = Quickjs.String.Prototype.length str in
-    if size = 0 then (match Js_re.exec ~str splitter with Some _ -> [||] | None -> [| Some str |])
+    if size = 0 then match Js_re.exec ~str splitter with Some _ -> [||] | None -> [| Some str |]
     else
       let substring_between start_u16 end_u16 =
         let start_byte = Quickjs.String.byte_index_of_utf16 str start_u16 in
@@ -284,7 +285,7 @@ let splitByRe ~regexp ?limit str =
                 let match_start = Js_re.index result in
                 (* The loop in the spec only probes positions before the end of
                    the string: a match starting at the very end is ignored. *)
-                if match_start < size then (
+                if match_start < size then
                   let match_end = Stdlib.min (Js_re.lastIndex splitter) size in
                   if match_end = !segment_start then (
                     (* Empty match at the current segment start: no split here,
@@ -298,7 +299,7 @@ let splitByRe ~regexp ?limit str =
                       push (Stdlib.Array.get captures i)
                     done;
                     segment_start := match_end;
-                    loop ()))
+                    loop ())
           in
           loop ();
           false

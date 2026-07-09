@@ -163,7 +163,8 @@ let debug_nested_owner_chain () =
       )
   in
   assert_html ~debug:true ~filter_stack_frame:drop_all_frames
-    ~shell:"<div>hello</div><script data-payload='0:\"$2\"\n'>window.srr_stream.push()</script>" app
+    ~shell:"<div>hello</div><script data-payload='0:\"$2\"\n'>window.srr_stream.push()</script>"
+    app
     [
       "<script \
        data-payload='1:{\"name\":\"App\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
@@ -186,7 +187,8 @@ let debug_async_component_owner_chain () =
             ("AsyncChild", fun () -> Lwt.return (React.createElement "span" [] [ React.string "async" ])) )
   in
   assert_html ~debug:true ~filter_stack_frame:drop_all_frames
-    ~shell:"<span>async</span><script data-payload='0:\"$2\"\n'>window.srr_stream.push()</script>" app
+    ~shell:"<span>async</span><script data-payload='0:\"$2\"\n'>window.srr_stream.push()</script>"
+    app
     [
       "<script \
        data-payload='1:{\"name\":\"App\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
@@ -572,7 +574,9 @@ let mk_throwing_client_app ~children =
   React.Client_component { key = None; props = []; client; import_module = "./client.js"; import_name = "Client" }
 
 let client_with_sync_error_under_client_suspense () =
-  let app = mk_throwing_client_app ~children:(React.Upper_case_component ("throwing", fun () -> raise (Failure "boom"))) in
+  let app =
+    mk_throwing_client_app ~children:(React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")))
+  in
   assert_html app ~disable_backtrace:true
     ~shell:
       "<!--$!--><template data-msg=\"Failure(&quot;boom&quot;)\n\
@@ -581,7 +585,9 @@ let client_with_sync_error_under_client_suspense () =
     [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
 
 let client_with_sync_error_under_client_suspense_in_prod () =
-  let app = mk_throwing_client_app ~children:(React.Upper_case_component ("throwing", fun () -> raise (Failure "boom"))) in
+  let app =
+    mk_throwing_client_app ~children:(React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")))
+  in
   (* Production must not leak the exception message or backtrace into the HTML: bare template, no data-msg *)
   assert_html app ~env:`Prod ~disable_backtrace:true
     ~shell:
@@ -623,8 +629,7 @@ let client_with_async_error_under_client_suspense_in_prod () =
   (* Production passes no message to $RX, only the digest slot *)
   assert_html app ~env:`Prod ~disable_backtrace:true
     ~shell:
-      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
-       data-payload='0:[\"$\",\"$L2\",null,{}]\n\
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L2\",null,{}]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";

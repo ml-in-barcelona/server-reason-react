@@ -184,7 +184,8 @@ let to_json_basic () =
   let d = Date.fromFloat (Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () +. 123.) in
   assert_option Alcotest.string "toJSON should return Some" (Date.toJSON d) (Some "2020-06-15T12:30:45.123Z")
 
-let to_json_nan () = assert_option Alcotest.string "toJSON should return None for NaN" (Date.toJSON (Date.fromFloat nan)) None
+let to_json_nan () =
+  assert_option Alcotest.string "toJSON should return None for NaN" (Date.toJSON (Date.fromFloat nan)) None
 
 let to_json_unsafe_basic () =
   let d = Date.fromFloat (Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () +. 123.) in

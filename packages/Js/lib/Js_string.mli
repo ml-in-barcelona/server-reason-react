@@ -7,7 +7,6 @@ val fromCharCode : int -> t
 val fromCharCodeMany : int array -> t
 val fromCodePoint : int -> t
 val fromCodePointMany : int array -> t
-
 val length : t -> int
 val get : t -> int -> t
 val charAt : index:int -> t -> t

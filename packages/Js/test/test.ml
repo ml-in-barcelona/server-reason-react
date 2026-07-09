@@ -134,7 +134,8 @@ let string_tests =
         assert_string (Js.String.fromCodePoint 0xd55c) {js|한|js};
         assert_string (Js.String.fromCodePoint 0x1f63a) {js|😺|js};
         assert_string (Js.String.fromCodePoint 0x1f600) {js|😀|js});
-    test "fromCodePointMany" (fun () -> assert_string (Js.String.fromCodePointMany [| 0xd55c; 0xae00; 0x1f63a |]) {js|한글😺|js});
+    test "fromCodePointMany" (fun () ->
+        assert_string (Js.String.fromCodePointMany [| 0xd55c; 0xae00; 0x1f63a |]) {js|한글😺|js});
     test "charAt" (fun () ->
         assert_string (Js.String.charAt "Reason" ~index:0) "R";
         assert_string (Js.String.charAt "Reason" ~index:12) "";
@@ -293,9 +294,7 @@ let string_tests =
         assert_int (Js.Re.lastIndex regexp) 2);
     test "splitByRe with sticky flag scans like JavaScript" (fun () ->
         (* "a-b-c".split(/-/y) = ["a", "b", "c"] *)
-        assert_string_option_array
-          (Js.String.splitByRe ~regexp:[%re "/-/y"] "a-b-c")
-          [| Some "a"; Some "b"; Some "c" |]);
+        assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/-/y"] "a-b-c") [| Some "a"; Some "b"; Some "c" |]);
     test "splitByRe does not touch the caller's lastIndex" (fun () ->
         let regexp = [%re "/-/g"] in
         Js.Re.setLastIndex regexp 4;
@@ -382,9 +381,7 @@ let string_tests =
           [| "ant"; "bee"; "cat"; "dog"; "elk" |]);
     test "split unicode" (fun () ->
         (* an empty separator splits per UTF-16 code unit; "é" is one unit *)
-        assert_string_array
-          (Js.String.split ~sep:"" {js|héllo|js})
-          [| "h"; {js|é|js}; "l"; "l"; "o" |]);
+        assert_string_array (Js.String.split ~sep:"" {js|héllo|js}) [| "h"; {js|é|js}; "l"; "l"; "o" |]);
     test "split without separator" (fun () ->
         (* str.split(undefined) is [str], like in JavaScript *)
         assert_string_array (Js.String.split "abc") [| "abc" |];
@@ -402,12 +399,8 @@ let string_tests =
         assert_string_array (unsafe_splitByRe "has:no:match" [%re "/[,;]/"]) [| "has:no:match" |]);
     test "splitByRe with empty-match regex terminates" (fun () ->
         (* "abc".split(/x*/) = ["a", "b", "c"] *)
-        assert_string_option_array
-          (Js.String.splitByRe ~regexp:[%re "/x*/"] "abc")
-          [| Some "a"; Some "b"; Some "c" |];
-        assert_string_option_array
-          (Js.String.splitByRe ~regexp:[%re "/x*/g"] "abc")
-          [| Some "a"; Some "b"; Some "c" |]);
+        assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/x*/"] "abc") [| Some "a"; Some "b"; Some "c" |];
+        assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/x*/g"] "abc") [| Some "a"; Some "b"; Some "c" |]);
     test "splitByRe splices captures in" (fun () ->
         (* "a#b#:c".split(/(#)(:)?/) = ["a", "#", undefined, "b", "#", ":", "c"] *)
         assert_string_option_array
@@ -417,7 +410,9 @@ let string_tests =
         assert_string_option_array
           (Js.String.splitByRe ~regexp:[%re "/\\s*:\\s*/"] ~limit:3 "one: two: three: four")
           [| Some "one"; Some "two"; Some "three" |];
-        assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/\\s*:\\s*/"] ~limit:0 "one: two: three: four") [||];
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:[%re "/\\s*:\\s*/"] ~limit:0 "one: two: three: four")
+          [||];
         assert_string_option_array
           (Js.String.splitByRe ~regexp:[%re "/\\s*:\\s*/"] ~limit:8 "one: two: three: four")
           [| Some "one"; Some "two"; Some "three"; Some "four" |];

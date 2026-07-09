@@ -1,7 +1,7 @@
 (** Local-time semantics tests (parsing + LocalTZA/DST edges).
 
-    These tests pin the process timezone to Europe/Madrid via [Unix.putenv "TZ"], which OCaml's [Unix.localtime]
-    honours on glibc (it calls [localtime(3)], which re-reads TZ via tzset). Every test restores the previous TZ.
+    These tests pin the process timezone to Europe/Madrid via [Unix.putenv "TZ"], which OCaml's [Unix.localtime] honours
+    on glibc (it calls [localtime(3)], which re-reads TZ via tzset). Every test restores the previous TZ.
 
     Reference behavior is V8/SpiderMonkey/JSC (ES2016+):
     - ISO date-time without an offset ("2024-06-15T10:00") is LOCAL time;

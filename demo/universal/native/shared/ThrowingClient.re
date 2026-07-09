@@ -20,5 +20,7 @@ module Inner = {
 
 [@react.client.component]
 let make = () => {
-  <React.Suspense fallback={React.string("Loading...")}> <Inner /> </React.Suspense>;
+  <React.Suspense fallback={React.string("Loading...")}>
+    <Inner />
+  </React.Suspense>;
 };

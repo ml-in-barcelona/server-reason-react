@@ -212,9 +212,7 @@ let parse_offset_bare_hours_invalid () =
   assert_nan (Date.parseAsFloat "2024-06-15T10:00:00+05")
 
 let parse_offset_hour_24_invalid () = assert_nan (Date.parseAsFloat "2000-01-01T00:00:00+24:00")
-
 let parse_offset_2359 () = assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00+23:59") 946598460000.
-
 let parse_lowercase_z () = assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00z") 946684800000.
 let parse_lowercase_t () = assert_float_exact (Date.parseAsFloat "2000-01-01t00:00:00Z") 946684800000.
 
