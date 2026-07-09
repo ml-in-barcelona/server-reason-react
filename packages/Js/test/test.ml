@@ -758,6 +758,7 @@ let () =
          ("Date.ToString", Date_tests.To_string.tests);
          ("Date.Now", Date_tests.Now.tests);
          ("Date.Parse", Date_tests.Parse.tests);
+         ("Date.LocalTime", Date_tests.Local_time.tests);
          ("Date.ToISOString", Date_tests.To_iso_string.tests);
          ("Date.UTC", Date_tests.Utc.tests);
          (* Test262 - Number *)

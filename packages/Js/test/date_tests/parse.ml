@@ -161,6 +161,123 @@ let parse_invalid_second () =
   assert_nan (Date.parseAsFloat "2000-01-01T00:00:60Z")
 
 (* ===================================================================
+   Trailing garbage: the whole string must be consumed
+   =================================================================== *)
+
+let parse_garbage_after_z () = assert_nan (Date.parseAsFloat "2024-06-15T10:00:00Zgarbage")
+let parse_garbage_after_time () = assert_nan (Date.parseAsFloat "2024-06-15T10:00xyz")
+let parse_garbage_after_date () = assert_nan (Date.parseAsFloat "2024-06-15garbage")
+let parse_garbage_after_offset () = assert_nan (Date.parseAsFloat "2024-06-15T10:00+02:00junk")
+let parse_malformed_offset () = assert_nan (Date.parseAsFloat "2024-06-15T10:00+xx:00")
+let parse_legacy_garbage_word () = assert_nan (Date.parseAsFloat "Jan 1 2000 foo")
+let parse_legacy_malformed_gmt_offset () = assert_nan (Date.parseAsFloat "Jan 1 2000 00:00:00 GMT+xx")
+let parse_iso_dot_without_digits () = assert_nan (Date.parseAsFloat "2000-01-01T00:00:00.Z")
+
+(* ===================================================================
+   Date-only ISO forms stay UTC (ES2016+)
+   =================================================================== *)
+
+let parse_date_only_is_utc () =
+  (* "2024-06-15" is a date-only form: midnight UTC, in every timezone *)
+  assert_float_exact (Date.parseAsFloat "2024-06-15") 1718409600000.
+
+let parse_year_only_is_utc () = assert_float_exact (Date.parseAsFloat "2024") 1704067200000.
+let parse_year_month_is_utc () = assert_float_exact (Date.parseAsFloat "2024-06") 1717200000000.
+
+(* ===================================================================
+   ISO calendar overflow (V8 lets days overflow the month length; only
+   the grammar bounds 01-12 / 01-31 are enforced)
+   =================================================================== *)
+
+let parse_feb_29_non_leap () =
+  (* "2019-02-29" overflows to 2019-03-01 UTC, like V8 *)
+  assert_float_exact (Date.parseAsFloat "2019-02-29") 1551398400000.
+
+let parse_feb_29_leap () = assert_float_exact (Date.parseAsFloat "2020-02-29") 1582934400000.
+
+let parse_apr_31 () =
+  (* "2024-04-31" overflows to 2024-05-01 UTC, like V8 *)
+  assert_float_exact (Date.parseAsFloat "2024-04-31") 1714521600000.
+
+(* ===================================================================
+   Offset designator shapes (verified against V8)
+   =================================================================== *)
+
+let parse_offset_hhmm () =
+  (* ±hhmm without a colon is accepted *)
+  assert_float_exact (Date.parseAsFloat "2024-06-15T10:00:00+0500") 1718427600000.
+
+let parse_offset_bare_hours_invalid () =
+  (* a bare ±hh without minutes is rejected by V8 *)
+  assert_nan (Date.parseAsFloat "2024-06-15T10:00:00+05")
+
+let parse_offset_hour_24_invalid () = assert_nan (Date.parseAsFloat "2000-01-01T00:00:00+24:00")
+
+let parse_offset_2359 () = assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00+23:59") 946598460000.
+
+let parse_lowercase_z () = assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00z") 946684800000.
+let parse_lowercase_t () = assert_float_exact (Date.parseAsFloat "2000-01-01t00:00:00Z") 946684800000.
+
+(* ===================================================================
+   Legacy format details (verified against V8)
+   =================================================================== *)
+
+let parse_legacy_day_month_order () = assert_float_exact (Date.parseAsFloat "01 Jan 2000 00:00:00 GMT") 946684800000.
+let parse_legacy_utc_token () = assert_float_exact (Date.parseAsFloat "Jan 1 2000 00:00:00 UTC") 946684800000.
+let parse_legacy_ut_token () = assert_float_exact (Date.parseAsFloat "Jan 1 2000 00:00:00 UT") 946684800000.
+
+let parse_legacy_gmt_short_offsets () =
+  (* GMT+1 and GMT+01 mean one hour, like V8's legacy parser *)
+  assert_float_exact (Date.parseAsFloat "Jan 1 2000 00:00:00 GMT+1") 946681200000.;
+  assert_float_exact (Date.parseAsFloat "Jan 1 2000 00:00:00 GMT+01") 946681200000.;
+  assert_float_exact (Date.parseAsFloat "Jan 1 2000 00:00:00 GMT+01:00") 946681200000.
+
+let parse_legacy_fractional_seconds () =
+  assert_float_exact (Date.parseAsFloat "Jan 1 2000 00:00:00.500 GMT") 946684800500.
+
+let parse_legacy_single_digit_time () = assert_float_exact (Date.parseAsFloat "Jan 1 2000 0:0:0 GMT") 946684800000.
+let parse_legacy_gmt_without_time () = assert_float_exact (Date.parseAsFloat "Jan 1 2000 GMT") 946684800000.
+
+(* ===================================================================
+   Round-trips through the string formatters
+   =================================================================== *)
+
+let roundtrip_to_utc_string () =
+  (* fromString (toUTCString d) must give back the same timestamp
+     (toUTCString has second precision, so use a whole-second value) *)
+  let d = Date.fromFloat 946684800000. in
+  let reparsed = Date.fromString (Date.toUTCString d) in
+  assert_float_exact (Date.valueOf reparsed) (Date.valueOf d)
+
+let roundtrip_to_utc_string_before_epoch () =
+  let d = Date.fromFloat (-86400000.) in
+  let reparsed = Date.fromString (Date.toUTCString d) in
+  assert_float_exact (Date.valueOf reparsed) (Date.valueOf d)
+
+let roundtrip_to_utc_string_arbitrary () =
+  (* 2017-09-22T16:37:38Z *)
+  let d = Date.fromFloat 1506098258000. in
+  let reparsed = Date.fromString (Date.toUTCString d) in
+  assert_float_exact (Date.valueOf reparsed) (Date.valueOf d)
+
+let roundtrip_to_string () =
+  (* toString emits local time with an explicit GMT±hhmm offset
+     ("Sat Jan 01 2000 01:00:00 GMT+0100"), so it re-parses to the same
+     absolute timestamp in any timezone *)
+  let d = Date.fromFloat 946684800000. in
+  let reparsed = Date.fromString (Date.toString d) in
+  assert_float_exact (Date.valueOf reparsed) (Date.valueOf d)
+
+let roundtrip_to_string_arbitrary () =
+  let d = Date.fromFloat 1506098258000. in
+  let reparsed = Date.fromString (Date.toString d) in
+  assert_float_exact (Date.valueOf reparsed) (Date.valueOf d)
+
+let parse_rfc1123_utc_string () =
+  (* the exact toUTCString shape: weekday with comma, DD Mon YYYY order *)
+  assert_float_exact (Date.parseAsFloat "Sat, 01 Jan 2000 00:00:00 GMT") 946684800000.
+
+(* ===================================================================
    Test list
    =================================================================== *)
 
@@ -203,4 +320,43 @@ let tests =
     test "invalid: hour 25" parse_invalid_hour;
     test "invalid: minute 60" parse_invalid_minute;
     test "invalid: second 60" parse_invalid_second;
+    (* Trailing garbage *)
+    test "garbage after Z is NaN" parse_garbage_after_z;
+    test "garbage after time is NaN" parse_garbage_after_time;
+    test "garbage after date is NaN" parse_garbage_after_date;
+    test "garbage after offset is NaN" parse_garbage_after_offset;
+    test "malformed offset is NaN" parse_malformed_offset;
+    test "legacy garbage word is NaN" parse_legacy_garbage_word;
+    test "legacy malformed GMT offset is NaN" parse_legacy_malformed_gmt_offset;
+    test "dot without fraction digits is NaN" parse_iso_dot_without_digits;
+    (* Date-only forms are UTC *)
+    test "date-only ISO is UTC" parse_date_only_is_utc;
+    test "year-only ISO is UTC" parse_year_only_is_utc;
+    test "year-month ISO is UTC" parse_year_month_is_utc;
+    (* Calendar overflow *)
+    test "Feb 29 non-leap overflows to Mar 1" parse_feb_29_non_leap;
+    test "Feb 29 leap year is valid" parse_feb_29_leap;
+    test "Apr 31 overflows to May 1" parse_apr_31;
+    (* Offset designator shapes *)
+    test "offset +hhmm without colon" parse_offset_hhmm;
+    test "bare +hh offset is NaN" parse_offset_bare_hours_invalid;
+    test "offset hour 24 is NaN" parse_offset_hour_24_invalid;
+    test "offset +23:59" parse_offset_2359;
+    test "lowercase z designator" parse_lowercase_z;
+    test "lowercase t separator" parse_lowercase_t;
+    (* Legacy format details *)
+    test "legacy DD Mon YYYY order" parse_legacy_day_month_order;
+    test "legacy UTC token" parse_legacy_utc_token;
+    test "legacy UT token" parse_legacy_ut_token;
+    test "legacy short GMT offsets" parse_legacy_gmt_short_offsets;
+    test "legacy fractional seconds" parse_legacy_fractional_seconds;
+    test "legacy single-digit time fields" parse_legacy_single_digit_time;
+    test "legacy GMT without time" parse_legacy_gmt_without_time;
+    (* Round-trips *)
+    test "roundtrip toUTCString Y2K" roundtrip_to_utc_string;
+    test "roundtrip toUTCString before epoch" roundtrip_to_utc_string_before_epoch;
+    test "roundtrip toUTCString arbitrary" roundtrip_to_utc_string_arbitrary;
+    test "roundtrip toString Y2K" roundtrip_to_string;
+    test "roundtrip toString arbitrary" roundtrip_to_string_arbitrary;
+    test "RFC 1123 (toUTCString shape)" parse_rfc1123_utc_string;
   ]

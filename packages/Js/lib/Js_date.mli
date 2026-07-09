@@ -1,6 +1,9 @@
-(** JavaScript Date API *)
+(** JavaScript Date API.
 
-type t = float
+    [t] mirrors a JS Date object: a mutable box holding the time value (epoch milliseconds, or NaN for an Invalid
+    Date). Setters mutate the receiver and return the new time value, exactly like JS. *)
+
+type t
 
 val valueOf : t -> float
 val fromFloat : float -> t
@@ -8,6 +11,7 @@ val fromString : string -> t
 val make : ?year:float -> ?month:float -> ?date:float -> ?hours:float -> ?minutes:float -> ?seconds:float -> unit -> t
 val utc : year:float -> ?month:float -> ?date:float -> ?hours:float -> ?minutes:float -> ?seconds:float -> unit -> float
 val now : unit -> float
+val parse : string -> float
 val parseAsFloat : string -> float
 val getDate : t -> float
 val getDay : t -> float

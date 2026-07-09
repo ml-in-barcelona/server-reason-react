@@ -19,7 +19,8 @@ let return_date () =
   let d = Date.fromFloat 1506098258091. in
   let v = Js.Undefined.return d in
   let opt = Js.Undefined.toOption v in
-  assert_option (Alcotest.float 0.) "return Js.Date.t should be Some" opt (Some 1506098258091.)
+  assert_option (Alcotest.float 0.) "return Js.Date.t should be Some" (Option.map Date.valueOf opt)
+    (Some 1506098258091.)
 
 let empty_is_none () =
   let v : int Js.Undefined.t = Js.Undefined.empty in
@@ -35,7 +36,7 @@ let get_unsafe_date () =
   let d = Date.fromFloat 1506098258091. in
   let v = Js.Undefined.return d in
   let result = Js.Undefined.getUnsafe v in
-  assert_float_exact result 1506098258091.
+  assert_float_exact (Date.valueOf result) 1506098258091.
 
 let from_opt_some () =
   let v = Js.Undefined.fromOpt (Some 42) in
@@ -73,7 +74,7 @@ let pattern_match_return_date () =
   let d = Date.fromFloat 0. in
   let v = Js.Undefined.return d in
   match (v : Date.t Js.Undefined.t) with
-  | Some x -> assert_float_exact x 0.
+  | Some x -> assert_float_exact (Date.valueOf x) 0.
   | None -> Alcotest.fail "pattern match on return Js.Date.t should be Some"
 
 let pattern_match_empty () =
