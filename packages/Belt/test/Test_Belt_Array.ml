@@ -309,15 +309,8 @@ let suites =
             assert_string "lola" (Belt.Array.getUnsafe truncated 0));
         test "push unsupported in native" (fun () ->
             let values = [||] in
-            assert_bool true
-              (match (Belt.Array.push [@alert "-not_implemented"]) values 3 with
-              | `Do_not_use_Array_push_in_native -> true);
-            assert_bool true
-              (match (Belt.Array.push [@alert "-not_implemented"]) values 2 with
-              | `Do_not_use_Array_push_in_native -> true);
-            assert_bool true
-              (match (Belt.Array.push [@alert "-not_implemented"]) values 1 with
-              | `Do_not_use_Array_push_in_native -> true);
+            (* OCaml arrays are fixed-length: push raises instead of silently no-oping *)
+            assert_raises_any (fun () -> (Belt.Array.push [@alert "-not_implemented"]) values 3);
             assert_array Alcotest.int [||] values);
       ] );
   ]

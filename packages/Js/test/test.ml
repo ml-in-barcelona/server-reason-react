@@ -687,11 +687,15 @@ let dict_tests =
         let o = Js.Dict.empty () in
         Js.Dict.set o "foo" 36;
         assert_option_int (Js.Dict.get o "foo") (Some 36));
-    test "keys" (fun _ -> assert_string_array (Js.Dict.keys (long_obj ())) [| "bar"; "david"; "foo" |]);
-    test "keys duplicated" (fun _ -> assert_string_array (Js.Dict.keys (obj_duplicated ())) [| "bar"; "bar"; "foo" |]);
-    test "entries" (fun _ -> assert_int_dict_entries (Js.Dict.entries (obj ())) [| ("bar", 86); ("foo", 43) |]);
-    test "values" (fun _ -> assert_array_int (Js.Dict.values (obj ())) [| 86; 43 |]);
-    test "values duplicated" (fun _ -> assert_array_int (Js.Dict.values (obj_duplicated ())) [| 86; 1; 43 |]);
+    (* node: Object.keys({david:99,foo:43,bar:86}) = ['david','foo','bar'] — insertion order *)
+    test "keys" (fun _ -> assert_string_array (Js.Dict.keys (long_obj ())) [| "david"; "foo"; "bar" |]);
+    (* node: Object.keys({foo:43,bar:86,bar:1}) = ['foo','bar'] — duplicate keys collapse, first position kept *)
+    test "keys duplicated" (fun _ -> assert_string_array (Js.Dict.keys (obj_duplicated ())) [| "foo"; "bar" |]);
+    (* node: Object.entries({foo:43,bar:86}) = [['foo',43],['bar',86]] *)
+    test "entries" (fun _ -> assert_int_dict_entries (Js.Dict.entries (obj ())) [| ("foo", 43); ("bar", 86) |]);
+    test "values" (fun _ -> assert_array_int (Js.Dict.values (obj ())) [| 43; 86 |]);
+    (* node: Object.values({foo:43,bar:86,bar:1}) = [43,1] — last value wins *)
+    test "values duplicated" (fun _ -> assert_array_int (Js.Dict.values (obj_duplicated ())) [| 43; 1 |]);
     test "fromList - []" (fun _ -> assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromList [])) [||]);
     test "fromList" (fun _ ->
         assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromList [ ("x", 23); ("y", 46) ])) [| ("x", 23); ("y", 46) |]);
@@ -704,7 +708,8 @@ let dict_tests =
         let prices = Js.Dict.fromList [ ("pen", 1); ("book", 5); ("stapler", 7) ] in
         let discount price = price * 10 in
         let salePrices = Js.Dict.map ~f:discount prices in
-        assert_int_dict_entries (Js.Dict.entries salePrices) [| ("book", 50); ("stapler", 70); ("pen", 10) |]);
+        (* insertion order: pen, book, stapler *)
+        assert_int_dict_entries (Js.Dict.entries salePrices) [| ("pen", 10); ("book", 50); ("stapler", 70) |]);
   ]
 
 let promise_to_lwt (p : 'a Js.Promise.t) : 'a Lwt.t = Obj.magic p
@@ -855,7 +860,9 @@ let () =
          ("Melange.Js.Promise", Melange_tests.Js_promise.tests);
          ("Melange.Js.Re", Melange_tests.Js_re.tests);
          ("Melange.Js.Undefined", Melange_tests.Js_undefined.tests);
+         ("Melange.Js.Array.modern", Melange_tests.Js_array_modern.tests);
          ("Melange.Js.Nullable", Melange_tests.Js_nullable.tests);
+         ("Melange.Js.MapSet", Melange_tests.Js_map_set.tests);
          ("Melange.Js.Exn", Melange_tests.Js_exn.tests);
          ("Melange.Js.String", Melange_tests.Js_string.tests);
          ("Melange.Js.Date", Melange_tests.Js_date.tests);

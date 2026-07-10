@@ -208,4 +208,11 @@ let tests =
     test "patch is the identity (no undefined natively)" (fun () ->
         let v = J.parseExn {|{"a":[1,null]}|} in
         ok (J.patch v == v));
+    test "stringify preserves object key order (node)" (fun () ->
+        (* node: JSON.stringify(JSON.parse('{"z":1,"a":2,"m":3}')) = '{"z":1,"a":2,"m":3}' *)
+        assert_string (J.stringify (J.parseExn {|{"z":1,"a":2,"m":3}|})) {|{"z":1,"a":2,"m":3}|};
+        let d = Js.Dict.empty () in
+        Js.Dict.set d "z" (J.number 1.);
+        Js.Dict.set d "a" (J.number 2.);
+        assert_string (J.stringify (J.object_ d)) {|{"z":1,"a":2}|});
   ]

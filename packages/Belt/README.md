@@ -17,7 +17,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 
 | Module | 🟢 | ⚪️ | 🟠 | 🔴 | ➖ |
 | --- | --- | --- | --- | --- | --- |
-| [Belt.Array](#beltarray) | 44 | 35 | 3 | 0 | 0 |
+| [Belt.Array](#beltarray) | 46 | 35 | 0 | 1 | 0 |
 | [Belt.Float](#beltfloat) | 4 | 0 | 0 | 0 | 0 |
 | [Belt.HashMap](#belthashmap) | 8 | 14 | 0 | 0 | 0 |
 | [Belt.HashMap.Int](#belthashmapint) | 0 | 22 | 0 | 0 | 0 |
@@ -27,26 +27,26 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | [Belt.HashSet.String](#belthashsetstring) | 0 | 17 | 0 | 0 | 0 |
 | [Belt.Id](#beltid) | 2 | 5 | 0 | 0 | 0 |
 | [Belt.Int](#beltint) | 4 | 0 | 0 | 0 | 0 |
-| [Belt.List](#beltlist) | 49 | 34 | 3 | 0 | 0 |
-| [Belt.Map](#beltmap) | 11 | 44 | 1 | 0 | 0 |
-| [Belt.Map.Dict](#beltmapdict) | 3 | 49 | 1 | 0 | 0 |
-| [Belt.Map.Int](#beltmapint) | 4 | 48 | 1 | 0 | 0 |
-| [Belt.Map.String](#beltmapstring) | 0 | 52 | 1 | 0 | 0 |
-| [Belt.MutableMap](#beltmutablemap) | 0 | 44 | 1 | 0 | 0 |
-| [Belt.MutableMap.Int](#beltmutablemapint) | 0 | 43 | 1 | 0 | 0 |
-| [Belt.MutableMap.String](#beltmutablemapstring) | 0 | 43 | 1 | 0 | 0 |
-| [Belt.MutableQueue](#beltmutablequeue) | 12 | 7 | 2 | 0 | 0 |
-| [Belt.MutableSet](#beltmutableset) | 0 | 41 | 1 | 0 | 0 |
-| [Belt.MutableSet.Int](#beltmutablesetint) | 29 | 12 | 1 | 0 | 0 |
-| [Belt.MutableSet.String](#beltmutablesetstring) | 0 | 41 | 1 | 0 | 0 |
+| [Belt.List](#beltlist) | 52 | 34 | 0 | 0 | 0 |
+| [Belt.Map](#beltmap) | 11 | 45 | 0 | 0 | 0 |
+| [Belt.Map.Dict](#beltmapdict) | 3 | 50 | 0 | 0 | 0 |
+| [Belt.Map.Int](#beltmapint) | 4 | 49 | 0 | 0 | 0 |
+| [Belt.Map.String](#beltmapstring) | 0 | 53 | 0 | 0 | 0 |
+| [Belt.MutableMap](#beltmutablemap) | 0 | 45 | 0 | 0 | 0 |
+| [Belt.MutableMap.Int](#beltmutablemapint) | 0 | 44 | 0 | 0 | 0 |
+| [Belt.MutableMap.String](#beltmutablemapstring) | 0 | 44 | 0 | 0 | 0 |
+| [Belt.MutableQueue](#beltmutablequeue) | 14 | 7 | 0 | 0 | 0 |
+| [Belt.MutableSet](#beltmutableset) | 0 | 42 | 0 | 0 | 0 |
+| [Belt.MutableSet.Int](#beltmutablesetint) | 29 | 13 | 0 | 0 | 0 |
+| [Belt.MutableSet.String](#beltmutablesetstring) | 0 | 42 | 0 | 0 | 0 |
 | [Belt.MutableStack](#beltmutablestack) | 5 | 9 | 0 | 0 | 0 |
-| [Belt.Option](#beltoption) | 0 | 19 | 1 | 0 | 0 |
+| [Belt.Option](#beltoption) | 0 | 20 | 0 | 0 | 0 |
 | [Belt.Range](#beltrange) | 1 | 9 | 0 | 0 | 0 |
-| [Belt.Result](#beltresult) | 0 | 13 | 1 | 0 | 0 |
-| [Belt.Set](#beltset) | 2 | 39 | 1 | 0 | 0 |
-| [Belt.Set.Dict](#beltsetdict) | 2 | 36 | 1 | 0 | 0 |
-| [Belt.Set.Int](#beltsetint) | 25 | 13 | 1 | 0 | 0 |
-| [Belt.Set.String](#beltsetstring) | 0 | 38 | 1 | 0 | 0 |
+| [Belt.Result](#beltresult) | 0 | 14 | 0 | 0 | 0 |
+| [Belt.Set](#beltset) | 2 | 40 | 0 | 0 | 0 |
+| [Belt.Set.Dict](#beltsetdict) | 2 | 37 | 0 | 0 | 0 |
+| [Belt.Set.Int](#beltsetint) | 25 | 14 | 0 | 0 | 0 |
+| [Belt.Set.String](#beltsetstring) | 0 | 39 | 0 | 0 | 0 |
 | [Belt.SortArray](#beltsortarray) | 8 | 8 | 0 | 0 | 0 |
 | [Belt.SortArray.Int](#beltsortarrayint) | 1 | 7 | 0 | 0 | 0 |
 | [Belt.SortArray.String](#beltsortarraystring) | 0 | 8 | 0 | 0 | 0 |
@@ -78,7 +78,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `get` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `getBy` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `getByU` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `getIndexBy` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `getIndexByU` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
@@ -107,7 +107,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `mapWithIndexU` | ⚪️ |  |
 | `partition` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `partitionU` | ⚪️ |  |
-| `push` | 🟠 | Silent no-op returning a sentinel; OCaml arrays are fixed-length so elements cannot be appended (Melange mutates the array). |
+| `push` | 🔴 raises by design | OCaml arrays are fixed-length; raises (previously a silent no-op sentinel). Melange mutates the array. |
 | `range` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `rangeBy` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `reduce` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableSet.ml. |
@@ -121,7 +121,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `reverse` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `reverseInPlace` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `set` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
-| `setExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `setExn` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `setUnsafe` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `shuffle` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `shuffleInPlace` | ⚪️ |  |
@@ -345,13 +345,13 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `getAssocU` | ⚪️ |  |
 | `getBy` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `getByU` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `has` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `hasAssoc` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `hasAssocU` | ⚪️ |  |
 | `hasU` | ⚪️ |  |
 | `head` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
-| `headExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `headExn` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `keep` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `keepMap` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `keepMapU` | ⚪️ |  |
@@ -398,7 +398,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `sortU` | ⚪️ |  |
 | `splitAt` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `tail` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
-| `tailExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `tailExn` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `take` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
 | `toArray` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml. |
 | `unzip` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml. |
@@ -424,7 +424,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `fromArray` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MapSetDict.ml. |
 | `get` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MapSetDict.ml. |
 | `getData` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MapSetDict.ml. |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getId` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MapSetDict.ml. |
 | `getUndefined` | ⚪️ |  |
 | `getWithDefault` | ⚪️ |  |
@@ -485,7 +485,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `forEachU` | ⚪️ |  |
 | `fromArray` | ⚪️ |  |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `getWithDefault` | ⚪️ |  |
 | `has` | ⚪️ |  |
@@ -543,7 +543,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `forEachU` | ⚪️ |  |
 | `fromArray` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Map.ml. |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `getWithDefault` | ⚪️ |  |
 | `has` | ⚪️ |  |
@@ -601,7 +601,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `forEachU` | ⚪️ |  |
 | `fromArray` | ⚪️ |  |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `getWithDefault` | ⚪️ |  |
 | `has` | ⚪️ |  |
@@ -657,7 +657,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `forEachU` | ⚪️ |  |
 | `fromArray` | ⚪️ |  |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `getWithDefault` | ⚪️ |  |
 | `has` | ⚪️ |  |
@@ -707,7 +707,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `forEachU` | ⚪️ |  |
 | `fromArray` | ⚪️ |  |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `getWithDefault` | ⚪️ |  |
 | `has` | ⚪️ |  |
@@ -756,7 +756,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `forEachU` | ⚪️ |  |
 | `fromArray` | ⚪️ |  |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `getWithDefault` | ⚪️ |  |
 | `has` | ⚪️ |  |
@@ -804,10 +804,10 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `map` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableQueue.ml. |
 | `mapU` | ⚪️ |  |
 | `peek` | ⚪️ |  |
-| `peekExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `peekExn` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableQueue.ml. |
 | `peekUndefined` | ⚪️ |  |
 | `pop` | ⚪️ |  |
-| `popExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `popExn` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableQueue.ml. |
 | `popUndefined` | ⚪️ |  |
 | `reduce` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableQueue.ml. |
 | `reduceU` | ⚪️ |  |
@@ -833,7 +833,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `fromArray` | ⚪️ |  |
 | `fromSortedArrayUnsafe` | ⚪️ |  |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `has` | ⚪️ |  |
 | `intersect` | ⚪️ |  |
@@ -880,7 +880,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `fromArray` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableSet.ml. |
 | `fromSortedArrayUnsafe` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableSet.ml. |
 | `get` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableSet.ml. |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `has` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableSet.ml. |
 | `intersect` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableSet.ml. |
@@ -927,7 +927,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `fromArray` | ⚪️ |  |
 | `fromSortedArrayUnsafe` | ⚪️ |  |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `has` | ⚪️ |  |
 | `intersect` | ⚪️ |  |
@@ -987,7 +987,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `flatMapU` | ⚪️ |  |
 | `forEach` | ⚪️ |  |
 | `forEachU` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUnsafe` | ⚪️ |  |
 | `getWithDefault` | ⚪️ |  |
 | `isNone` | ⚪️ |  |
@@ -1025,7 +1025,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `eqU` | ⚪️ |  |
 | `flatMap` | ⚪️ |  |
 | `flatMapU` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getWithDefault` | ⚪️ |  |
 | `isError` | ⚪️ |  |
 | `isOk` | ⚪️ |  |
@@ -1051,7 +1051,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `fromSortedArrayUnsafe` | ⚪️ |  |
 | `get` | ⚪️ |  |
 | `getData` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MapSetDict.ml. |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getId` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `has` | ⚪️ |  |
@@ -1098,7 +1098,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `fromArray` | ⚪️ |  |
 | `fromSortedArrayUnsafe` | ⚪️ |  |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `has` | ⚪️ |  |
 | `intersect` | ⚪️ |  |
@@ -1142,7 +1142,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `fromArray` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_HashSetInt.ml. |
 | `fromSortedArrayUnsafe` | ⚪️ |  |
 | `get` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_SetInt.ml. |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `has` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_SetInt.ml. |
 | `intersect` | 🟢 | Ported Melange suite: packages/Belt/test/Test_Melange_Belt_SetInt.ml. |
@@ -1186,7 +1186,7 @@ Per-function status of the native `Belt` implementation against Melange 6.0.1-54
 | `fromArray` | ⚪️ |  |
 | `fromSortedArrayUnsafe` | ⚪️ |  |
 | `get` | ⚪️ |  |
-| `getExn` | 🟠 | Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md). |
+| `getExn` | ⚪️ |  |
 | `getUndefined` | ⚪️ |  |
 | `has` | ⚪️ |  |
 | `intersect` | ⚪️ |  |

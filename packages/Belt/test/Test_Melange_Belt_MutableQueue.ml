@@ -34,15 +34,13 @@ let suites =
             assert_int 4 (Q.popExn q);
             assert_array Alcotest.int [||] (Q.toArray q);
             assert_int 0 (Q.size q);
-            (* exception type diverges: native raises Js.Exn.Error (documented) *)
-            assert_raises_any (fun () -> Q.popExn q));
+            assert_raises_not_found (fun () -> Q.popExn q));
         test "popExn on singleton" (fun () ->
             let q = Q.make () in
             assert_int 1 (Q.popExn (q ++ 1));
-            (* exception type diverges: native raises Js.Exn.Error (documented) *)
-            assert_raises_any (fun () -> Q.popExn q);
+            assert_raises_not_found (fun () -> Q.popExn q);
             assert_int 2 (Q.popExn (q ++ 2));
-            assert_raises_any (fun () -> Q.popExn q);
+            assert_raises_not_found (fun () -> Q.popExn q);
             assert_int 0 (Q.size q));
         test "peekExn" (fun () ->
             let q = Q.make () in
@@ -55,9 +53,8 @@ let suites =
             assert_int 2 (Q.popExn q);
             assert_int 3 (Q.peekExn q);
             assert_int 3 (Q.popExn q);
-            (* exception type diverges: native raises Js.Exn.Error (documented) *)
-            assert_raises_any (fun () -> Q.peekExn q);
-            assert_raises_any (fun () -> Q.peekExn q));
+            assert_raises_not_found (fun () -> Q.peekExn q);
+            assert_raises_not_found (fun () -> Q.peekExn q));
         test "clear" (fun () ->
             let q = Q.make () in
             for i = 1 to 10 do
@@ -65,8 +62,7 @@ let suites =
             done;
             Q.clear q;
             assert_int 0 (Q.size q);
-            (* exception type diverges: native raises Js.Exn.Error (documented) *)
-            assert_raises_any (fun () -> Q.popExn q);
+            assert_raises_not_found (fun () -> Q.popExn q);
             assert_bool true (q = Q.make ());
             Q.add q 42;
             assert_int 42 (Q.popExn q));

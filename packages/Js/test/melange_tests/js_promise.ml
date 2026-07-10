@@ -7,6 +7,7 @@ open Helpers
 open Js.Promise
 
 let test title fn = Alcotest_lwt.test_case title `Quick (fun _switch () -> fn ())
+let test_sync title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let ok cond = assert_true "expected true" cond
 let fail _ = assert false
 let h = resolve ()
@@ -104,4 +105,9 @@ let tests =
     (* Mt.from_promise_suites *)
     test "twop Eq(x, 2)" (fun () -> twop |> then_ (fun x -> resolve @@ assert_int x 2));
     test "twop Neq(x, 3)" (fun () -> twop |> then_ (fun x -> resolve @@ ok (x <> 3)));
+    test_sync "race [||] stays pending like JS" (fun () ->
+        (* node: Promise.race([]) never settles *)
+        match Lwt.state (Js.Promise.race [||]) with
+        | Lwt.Sleep -> ()
+        | _ -> Alcotest.fail "expected a forever-pending promise");
   ]

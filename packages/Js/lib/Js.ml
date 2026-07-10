@@ -94,11 +94,14 @@ let typeof _ = notImplemented "Js" "typeof"
 
 (** {12 nested modules}*)
 
+type 'a iterator = 'a Js_iterator.t
+
 module Null = Js_null
 module Undefined = Js_undefined
 module Nullable = Js_nullable
 module Null_undefined = Nullable
 module Exn = Js_exn
+module Iterator = Js_iterator
 module Array = Js_array
 module Re = Js_re
 module String = Js_string

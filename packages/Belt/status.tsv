@@ -5,31 +5,8 @@
 #
 # All Belt *Exn accessors raise Js.Exn.Error where Melange raises
 # Not_found/Assert_failure, so exception catch sites diverge (audit/areas/belt-js.md).
-Belt.Array.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Array.setExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.List.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.List.headExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.List.tailExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Map.Dict.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Map.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Map.Int.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Map.String.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.MutableMap.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.MutableMap.Int.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.MutableMap.String.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.MutableQueue.peekExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.MutableQueue.popExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.MutableSet.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.MutableSet.Int.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.MutableSet.String.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Option.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Result.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Set.Dict.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Set.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Set.Int.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
-Belt.Set.String.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
 #
-Belt.Array.push	orange	Silent no-op returning a sentinel; OCaml arrays are fixed-length so elements cannot be appended (Melange mutates the array).
+Belt.Array.push	wontfix	OCaml arrays are fixed-length; raises (previously a silent no-op sentinel). Melange mutates the array.
 #
 # --- Verified by the ported Melange test suites ---
 Belt.Array.blit	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml.
@@ -256,3 +233,12 @@ Belt.SortArray.stableSortInPlaceBy	green	Ported Melange suite: packages/Belt/tes
 Belt.SortArray.strictlySortedLength	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_SortArray.ml.
 Belt.SortArray.union	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_SortArray.ml.
 Belt.SortArray.Int.stableSortInPlace	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_SortArray.ml.
+#
+# --- Verified by ported/authored suites (second pass) ---
+Belt.Array.getExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml.
+Belt.Array.setExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml.
+Belt.List.getExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml.
+Belt.List.headExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml.
+Belt.List.tailExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml.
+Belt.MutableQueue.peekExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableQueue.ml.
+Belt.MutableQueue.popExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableQueue.ml.

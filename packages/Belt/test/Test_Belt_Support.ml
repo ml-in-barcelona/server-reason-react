@@ -27,6 +27,12 @@ let assert_raises_any f = match f () with exception _ -> () | _ -> Alcotest.fail
 let assert_raises_js_error f =
   match f () with exception Js.Exn.Error _ -> () | _ -> Alcotest.fail "Expected Js.Exn.Error"
 
+let assert_raises_not_found f =
+  match f () with exception Stdlib.Not_found -> () | _ -> Alcotest.fail "Expected Not_found"
+
+let assert_raises_assert_failure f =
+  match f () with exception Stdlib.Assert_failure _ -> () | _ -> Alcotest.fail "Expected Assert_failure"
+
 let inclusive_range start finish = if finish < start then [||] else Array.init (finish - start + 1) (fun i -> start + i)
 let reverse_inclusive_range start finish = inclusive_range start finish |> Array.to_list |> List.rev |> Array.of_list
 let arithmetic_sum start finish = if finish < start then 0 else (start + finish) * (finish - start + 1) / 2

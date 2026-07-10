@@ -18,28 +18,28 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | Module | 🟢 | ⚪️ | 🟠 | 🔴 | ➖ |
 | --- | --- | --- | --- | --- | --- |
 | [Js](#js) | 0 | 12 | 0 | 1 | 10 |
-| [Js.Array](#jsarray) | 25 | 2 | 4 | 18 | 15 |
-| [Js.Bigint](#jsbigint) | 0 | 27 | 2 | 0 | 4 |
+| [Js.Array](#jsarray) | 39 | 2 | 4 | 19 | 0 |
+| [Js.Bigint](#jsbigint) | 2 | 27 | 0 | 0 | 4 |
 | [Js.Blob](#jsblob) | 0 | 0 | 0 | 0 | 7 |
 | [Js.Console](#jsconsole) | 0 | 0 | 23 | 0 | 0 |
 | [Js.Date](#jsdate) | 47 | 2 | 3 | 0 | 0 |
-| [Js.Dict](#jsdict) | 0 | 6 | 5 | 0 | 0 |
-| [Js.Exn](#jsexn) | 3 | 7 | 2 | 2 | 0 |
+| [Js.Dict](#jsdict) | 8 | 3 | 0 | 0 | 0 |
+| [Js.Exn](#jsexn) | 10 | 0 | 2 | 2 | 0 |
 | [Js.File](#jsfile) | 0 | 0 | 0 | 0 | 9 |
-| [Js.Float](#jsfloat) | 1 | 6 | 2 | 0 | 0 |
+| [Js.Float](#jsfloat) | 3 | 6 | 0 | 0 | 0 |
 | [Js.FormData](#jsformdata) | 0 | 4 | 0 | 0 | 8 |
-| [Js.Global](#jsglobal) | 1 | 4 | 7 | 0 | 0 |
-| [Js.Int](#jsint) | 0 | 6 | 1 | 0 | 0 |
-| [Js.Iterator](#jsiterator) | 0 | 0 | 0 | 0 | 3 |
-| [Js.Json](#jsjson) | 19 | 0 | 3 | 3 | 0 |
-| [Js.Map](#jsmap) | 0 | 0 | 0 | 0 | 13 |
+| [Js.Global](#jsglobal) | 2 | 4 | 6 | 0 | 0 |
+| [Js.Int](#jsint) | 1 | 6 | 0 | 0 | 0 |
+| [Js.Iterator](#jsiterator) | 3 | 1 | 0 | 0 | 0 |
+| [Js.Json](#jsjson) | 21 | 0 | 1 | 3 | 0 |
+| [Js.Map](#jsmap) | 13 | 0 | 0 | 0 | 0 |
 | [Js.Math](#jsmath) | 57 | 0 | 2 | 0 | 0 |
 | [Js.Null](#jsnull) | 8 | 3 | 0 | 0 | 0 |
 | [Js.Nullable](#jsnullable) | 6 | 4 | 1 | 0 | 0 |
 | [Js.Obj](#jsobj) | 0 | 4 | 0 | 0 | 0 |
-| [Js.Promise](#jspromise) | 3 | 8 | 1 | 0 | 0 |
+| [Js.Promise](#jspromise) | 4 | 8 | 0 | 0 | 0 |
 | [Js.Re](#jsre) | 17 | 2 | 0 | 0 | 0 |
-| [Js.Set](#jsset) | 0 | 0 | 0 | 0 | 11 |
+| [Js.Set](#jsset) | 11 | 0 | 0 | 0 | 0 |
 | [Js.String](#jsstring) | 33 | 0 | 6 | 1 | 1 |
 | [Js.Types](#jstypes) | 0 | 0 | 0 | 2 | 0 |
 | [Js.Undefined](#jsundefined) | 8 | 3 | 0 | 1 | 0 |
@@ -78,12 +78,12 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `at` | ➖ missing |  |
+| `at` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 | `concat` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `concatMany` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `copy` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `copyWithin` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
-| `entries` | ➖ missing |  |
+| `entries` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 | `every` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `everyi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `fill` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
@@ -92,12 +92,12 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `find` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `findIndex` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `findIndexi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
-| `findLast` | ➖ missing |  |
-| `findLastIndex` | ➖ missing |  |
-| `findLastIndexi` | ➖ missing |  |
-| `findLasti` | ➖ missing |  |
+| `findLast` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
+| `findLastIndex` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
+| `findLastIndexi` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
+| `findLasti` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 | `findi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
-| `flat` | ➖ missing |  |
+| `flat` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 | `forEach` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `forEachi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `from` | 🔴 raises by design | Requires JS iterables; array_like values cannot be constructed natively. |
@@ -106,7 +106,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `indexOf` | 🟠 | Negative ~start handling diverges from JS (audit/areas/belt-js.md). |
 | `isArray` | 🟠 | Always returns true; there is no runtime type information (Js_array.ml:10). |
 | `join` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
-| `keys` | ➖ missing |  |
+| `keys` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 | `lastIndexOf` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `lastIndexOfFrom` | 🟠 | Negative ~from handling diverges from JS (audit/areas/belt-js.md). |
 | `length` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
@@ -119,9 +119,9 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `reduceRight` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `reduceRighti` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `reducei` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
-| `removeCount` | ➖ missing |  |
+| `removeCount` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 | `removeCountInPlace` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
-| `removeFrom` | ➖ missing |  |
+| `removeFrom` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 | `removeFromInPlace` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `reverseInPlace` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `shift` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
@@ -132,16 +132,16 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `sortInPlaceWith` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `spliceInPlace` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `toLocaleString` | 🔴 stub | Planned. |
-| `toReversed` | ➖ missing |  |
-| `toSorted` | ➖ missing |  |
-| `toSortedWith` | ➖ missing |  |
-| `toSpliced` | ➖ missing |  |
+| `toReversed` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
+| `toSorted` | 🔴 raises by design | JS default comparator string-coerces elements (requires runtime type info); use toSortedWith. |
+| `toSortedWith` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
+| `toSpliced` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 | `toString` | 🔴 stub | Planned. |
 | `unsafe_get` | ⚪️ |  |
 | `unsafe_set` | ⚪️ |  |
 | `unshift` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `unshiftMany` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
-| `values` | ➖ missing |  |
+| `values` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 
 ## Js.Bigint
 
@@ -169,8 +169,8 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `neg` | ⚪️ |  |
 | `of_int` | ⚪️ | Not in Melange 6.0.1-54. |
 | `of_int64` | ⚪️ | Not in Melange 6.0.1-54. |
-| `of_string` | 🟠 | Rejects hex literals containing e/E digits (JS BigInt("0xE0") works) (Js_bigint.ml:56). Not in Melange 6.0.1-54. |
-| `of_string_exn` | 🟠 | Rejects hex literals containing e/E digits (JS BigInt("0xE0") works) (Js_bigint.ml:56). Not in Melange 6.0.1-54. |
+| `of_string` | 🟢 | test262-derived suite: packages/Js/test/bigint_tests (incl. hex e/E digits). Not in Melange 6.0.1-54. |
+| `of_string_exn` | 🟢 | test262-derived suite: packages/Js/test/bigint_tests (incl. hex e/E digits). Not in Melange 6.0.1-54. |
 | `pow` | ⚪️ | Not in Melange 6.0.1-54. |
 | `rem` | ⚪️ |  |
 | `shift_left` | ⚪️ | Not in Melange 6.0.1-54. |
@@ -197,29 +197,29 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `error` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `error2` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `error3` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `error4` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `errorMany` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `info` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `info2` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `info3` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `info4` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `infoMany` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `log` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `log2` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `log3` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `log4` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `logMany` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `timeEnd` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `timeStart` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `trace` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `warn` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `warn2` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `warn3` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `warn4` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
-| `warnMany` | 🟠 | Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature. |
+| `error` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `error2` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `error3` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `error4` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `errorMany` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `info` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `info2` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `info3` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `info4` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `infoMany` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `log` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `log2` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `log3` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `log4` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `logMany` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `timeEnd` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `timeStart` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `trace` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `warn` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `warn2` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `warn3` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `warn4` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
+| `warnMany` | 🟠 | Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API. |
 
 ## Js.Date
 
@@ -282,17 +282,17 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `empty` | ⚪️ |  |
-| `entries` | 🟠 | Iteration is Hashtbl bucket order, not JS insertion order. |
-| `fromArray` | 🟠 | Duplicate keys are retained (Hashtbl.add); JS objects overwrite (Js_dict.ml:31). |
-| `fromList` | 🟠 | Duplicate keys are retained (Hashtbl.add); JS objects overwrite (Js_dict.ml:25). |
-| `get` | ⚪️ |  |
-| `keys` | 🟠 | Iteration is Hashtbl bucket order, not JS insertion order. |
+| `empty` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_json.ml. |
+| `entries` | 🟢 | Insertion-ordered; node-cited tests in packages/Js/test/test.ml. |
+| `fromArray` | 🟢 | Insertion-ordered; node-cited tests in packages/Js/test/test.ml and melange_tests/js_dict.ml. |
+| `fromList` | 🟢 | Insertion-ordered; node-cited tests in packages/Js/test/test.ml and melange_tests/js_dict.ml. |
+| `get` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_json.ml. |
+| `keys` | 🟢 | Insertion-ordered; node-cited tests in packages/Js/test/test.ml. |
 | `map` | ⚪️ |  |
-| `set` | ⚪️ |  |
+| `set` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_json.ml. |
 | `unsafeDeleteKey` | ⚪️ |  |
 | `unsafeGet` | ⚪️ |  |
-| `values` | 🟠 | Iteration is Hashtbl bucket order, not JS insertion order. |
+| `values` | 🟢 | Insertion-ordered; node-cited tests in packages/Js/test/test.ml. |
 
 ## Js.Exn
 
@@ -304,13 +304,13 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `isCamlExceptionOrOpenVariant` | 🔴 raises by design | Requires JS runtime type tags. |
 | `message` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml. |
 | `name` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml. |
-| `raiseError` | ⚪️ |  |
-| `raiseEvalError` | ⚪️ |  |
-| `raiseRangeError` | ⚪️ |  |
-| `raiseReferenceError` | ⚪️ |  |
-| `raiseSyntaxError` | ⚪️ |  |
-| `raiseTypeError` | ⚪️ |  |
-| `raiseUriError` | ⚪️ |  |
+| `raiseError` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml. |
+| `raiseEvalError` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml. |
+| `raiseRangeError` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml. |
+| `raiseReferenceError` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml. |
+| `raiseSyntaxError` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml. |
+| `raiseTypeError` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml. |
+| `raiseUriError` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml. |
 | `stack` | 🟠 | Always None: native exceptions do not capture a JS-style stack trace. |
 
 ## Js.File
@@ -336,8 +336,8 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `isFinite` | ⚪️ |  |
 | `isInteger` | ⚪️ | Not in Melange 6.0.1-54. |
 | `isNaN` | ⚪️ |  |
-| `toExponential` | 🟠 | Without ~digits, returns Number.prototype.toString output ("123.456"); JS returns "1.23456e+2" (node). Found porting melange js_float_test.ml. |
-| `toFixed` | 🟠 | Values >= 1e21 print in positional notation; JS toFixed switches to exponential ("1.2e+21") (node). Found porting melange js_float_test.ml. |
+| `toExponential` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_float.ml. |
+| `toFixed` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_float.ml. |
 | `toPrecision` | ⚪️ |  |
 | `toString` | 🟢 | test262-derived suite: packages/Js/test/number_tests. |
 
@@ -369,7 +369,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `encodeURI` | ⚪️ |  |
 | `encodeURIComponent` | ⚪️ |  |
 | `parseFloat` | 🟢 | test262-derived suite: packages/Js/test/number_tests. Not in Melange 6.0.1-54. |
-| `parseInt` | 🟠 | Int-capped: huge values return nan where JS returns the float (audit/investigations/quickjs-divergence-status.md). Not in Melange 6.0.1-54. |
+| `parseInt` | 🟢 | test262-derived suite: packages/Js/test/number_tests (parse_int.ml). Not in Melange 6.0.1-54. |
 | `setInterval` | 🟠 | Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml. |
 | `setIntervalFloat` | 🟠 | Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml. |
 | `setTimeout` | 🟠 | Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml. |
@@ -382,7 +382,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `equal` | ⚪️ |  |
 | `max` | ⚪️ |  |
 | `min` | ⚪️ |  |
-| `toExponential` | 🟠 | Without ~digits, returns Number.prototype.toString output ("123456"); JS returns "1.23456e+5" (node). Found porting melange js_int_test.ml. |
+| `toExponential` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_int.ml. |
 | `toFloat` | ⚪️ |  |
 | `toPrecision` | ⚪️ |  |
 | `toString` | ⚪️ |  |
@@ -391,9 +391,10 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `next` | ➖ missing |  |
-| `toArray` | ➖ missing |  |
-| `toArrayWithMapper` | ➖ missing |  |
+| `make` | ⚪️ | Not in Melange 6.0.1-54. |
+| `next` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
+| `toArray` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
+| `toArrayWithMapper` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 
 ## Js.Json
 
@@ -420,28 +421,28 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `serializeExn` | 🔴 raises by design | Melange-internal raw serialization; requires the JS runtime. |
 | `string` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
 | `stringArray` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
-| `stringify` | 🟠 | Object key order is Js.Dict's Hashtbl order, not insertion order. |
+| `stringify` | 🟢 | Object key order follows insertion order; node-cited test in melange_tests/js_json.ml. |
 | `stringifyAny` | 🔴 raises by design | Requires JS runtime type information for arbitrary values. |
-| `stringifyWithSpace` | 🟠 | Object key order is Js.Dict's Hashtbl order, not insertion order. |
+| `stringifyWithSpace` | 🟢 | Object key order follows insertion order; node-cited test in melange_tests/js_json.ml. |
 | `test` | 🟠 | First argument narrowed to t; Melange accepts any value (no runtime type info natively). |
 
 ## Js.Map
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `clear` | ➖ missing |  |
-| `delete` | ➖ missing |  |
-| `entries` | ➖ missing |  |
-| `forEach` | ➖ missing |  |
-| `fromArray` | ➖ missing |  |
-| `get` | ➖ missing |  |
-| `has` | ➖ missing |  |
-| `keys` | ➖ missing |  |
-| `make` | ➖ missing |  |
-| `set` | ➖ missing |  |
-| `size` | ➖ missing |  |
-| `toArray` | ➖ missing |  |
-| `values` | ➖ missing |  |
+| `clear` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `delete` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `entries` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `forEach` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `fromArray` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `get` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `has` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `keys` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `make` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `set` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `size` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `toArray` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `values` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
 
 ## Js.Math
 
@@ -560,7 +561,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `all6` | ⚪️ |  |
 | `catch` | ⚪️ |  |
 | `make` | ⚪️ |  |
-| `race` | 🟠 | Raises on an empty array; JS returns a forever-pending promise. |
+| `race` | 🟢 | Ported Melange suite + node-cited empty-race case: packages/Js/test/melange_tests/js_promise.ml. |
 | `reject` | ⚪️ |  |
 | `resolve` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml. |
 | `then_` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml. |
@@ -593,17 +594,17 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `add` | ➖ missing |  |
-| `clear` | ➖ missing |  |
-| `delete` | ➖ missing |  |
-| `entries` | ➖ missing |  |
-| `forEach` | ➖ missing |  |
-| `fromArray` | ➖ missing |  |
-| `has` | ➖ missing |  |
-| `make` | ➖ missing |  |
-| `size` | ➖ missing |  |
-| `toArray` | ➖ missing |  |
-| `values` | ➖ missing |  |
+| `add` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `clear` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `delete` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `entries` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `forEach` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `fromArray` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `has` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `make` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `size` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `toArray` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
+| `values` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml. |
 
 ## Js.String
 

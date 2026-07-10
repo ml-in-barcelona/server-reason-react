@@ -42,11 +42,15 @@ type (+'a, +'e) promise
 
 val typeof : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
 
+type 'a iterator = 'a Js_iterator.t
+(** The type for JavaScript iterators *)
+
 module Null : module type of Js_null
 module Undefined : module type of Js_undefined
 module Nullable : module type of Js_nullable
 module Null_undefined = Nullable
 module Exn : module type of Js_exn
+module Iterator : module type of Js_iterator
 module Array : module type of Js_array
 module Re : module type of Js_re
 module String : module type of Js_string

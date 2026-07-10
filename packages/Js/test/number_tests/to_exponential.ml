@@ -11,10 +11,11 @@ open Helpers
    =================================================================== *)
 
 let basic_no_digits () =
-  (* Without fractionDigits, uses the minimum digits needed *)
-  assert_string (Number.toExponential 1.0) "1";
-  assert_string (Number.toExponential 123.0) "123";
-  assert_string (Number.toExponential 0.0) "0"
+  (* Without fractionDigits, uses the minimum digits needed.
+     node: (1).toExponential() = "1e+0"; (123).toExponential() = "1.23e+2"; (0).toExponential() = "0e+0" *)
+  assert_string (Number.toExponential 1.0) "1e+0";
+  assert_string (Number.toExponential 123.0) "1.23e+2";
+  assert_string (Number.toExponential 0.0) "0e+0"
 
 (* ===================================================================
    toExponential with fractionDigits

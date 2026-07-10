@@ -33,11 +33,9 @@ Js.Array.unshift	wontfix	OCaml arrays are fixed-length; in-place JS array mutati
 Js.Array.unshiftMany	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
 #
 # --- Js.Bigint ---
-Js.Bigint.of_string	orange	Rejects hex literals containing e/E digits (JS BigInt("0xE0") works) (Js_bigint.ml:56).
-Js.Bigint.of_string_exn	orange	Rejects hex literals containing e/E digits (JS BigInt("0xE0") works) (Js_bigint.ml:56).
 #
 # --- Js.Console ---
-Js.Console.*	orange	Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature.
+Js.Console.*	orange	Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API.
 #
 # --- Js.Date ---
 Js.Date.fromFloat	green	test262-derived suite: packages/Js/test/date_tests.
@@ -90,19 +88,12 @@ Js.Date.toLocaleDateString	orange	Aliased to toDateString; no locale handling (J
 Js.Date.toLocaleTimeString	orange	Aliased to toTimeString; no locale handling (Js_date.ml:325).
 #
 # --- Js.Dict ---
-Js.Dict.fromList	orange	Duplicate keys are retained (Hashtbl.add); JS objects overwrite (Js_dict.ml:25).
-Js.Dict.fromArray	orange	Duplicate keys are retained (Hashtbl.add); JS objects overwrite (Js_dict.ml:31).
-Js.Dict.entries	orange	Iteration is Hashtbl bucket order, not JS insertion order.
-Js.Dict.keys	orange	Iteration is Hashtbl bucket order, not JS insertion order.
-Js.Dict.values	orange	Iteration is Hashtbl bucket order, not JS insertion order.
 #
 # --- Js.Float ---
 Js.Float.toString	green	test262-derived suite: packages/Js/test/number_tests.
-Js.Float.toFixed	green	test262-derived suite: packages/Js/test/number_tests.
 #
 # --- Js.Global ---
 Js.Global.parseFloat	green	test262-derived suite: packages/Js/test/number_tests.
-Js.Global.parseInt	orange	Int-capped: huge values return nan where JS returns the float (audit/investigations/quickjs-divergence-status.md).
 Js.Global.setTimeout	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
 Js.Global.setTimeoutFloat	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
 Js.Global.setInterval	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
@@ -113,7 +104,6 @@ Js.Global.clearInterval	orange	Runs on the Lwt event loop: inert without a runni
 # --- Js.Nullable ---
 #
 # --- Js.Promise ---
-Js.Promise.race	orange	Raises on an empty array; JS returns a forever-pending promise.
 #
 # --- Js.Re ---
 Js.Re.exec	green	test262-derived suite: packages/Js/test/regexp_tests.
@@ -166,8 +156,6 @@ Js.Json.booleanArray	green	Ported Melange suite: packages/Js/test/melange_tests/
 Js.Json.objectArray	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
 Js.Json.patch	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
 Js.Json.test	orange	First argument narrowed to t; Melange accepts any value (no runtime type info natively).
-Js.Json.stringify	orange	Object key order is Js.Dict's Hashtbl order, not insertion order.
-Js.Json.stringifyWithSpace	orange	Object key order is Js.Dict's Hashtbl order, not insertion order.
 Js.Json.stringifyAny	wontfix	Requires JS runtime type information for arbitrary values.
 Js.Json.serializeExn	wontfix	Melange-internal raw serialization; requires the JS runtime.
 Js.Json.deserializeUnsafe	wontfix	Melange-internal raw deserialization; requires the JS runtime.
@@ -270,9 +258,6 @@ Js.Nullable.undefined	orange	null and undefined are both represented as None nat
 #
 #
 # --- Divergences found while porting the Melange test suites (assertions removed in the ports) ---
-Js.Int.toExponential	orange	Without ~digits, returns Number.prototype.toString output ("123456"); JS returns "1.23456e+5" (node). Found porting melange js_int_test.ml.
-Js.Float.toExponential	orange	Without ~digits, returns Number.prototype.toString output ("123.456"); JS returns "1.23456e+2" (node). Found porting melange js_float_test.ml.
-Js.Float.toFixed	orange	Values >= 1e21 print in positional notation; JS toFixed switches to exponential ("1.2e+21") (node). Found porting melange js_float_test.ml.
 #
 # --- Verified by the ported Melange test suites ---
 Js.Array.concat	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
@@ -340,3 +325,75 @@ Js.String.substring	green	Ported Melange suite: packages/Js/test/melange_tests/j
 Js.String.toLowerCase	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
 Js.String.toUpperCase	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
 Js.String.trim	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+#
+# --- Fixed divergences (now verified) ---
+Js.Global.parseInt	green	test262-derived suite: packages/Js/test/number_tests (parse_int.ml).
+Js.Promise.race	green	Ported Melange suite + node-cited empty-race case: packages/Js/test/melange_tests/js_promise.ml.
+Js.Bigint.of_string	green	test262-derived suite: packages/Js/test/bigint_tests (incl. hex e/E digits).
+Js.Bigint.of_string_exn	green	test262-derived suite: packages/Js/test/bigint_tests (incl. hex e/E digits).
+Js.Dict.fromList	green	Insertion-ordered; node-cited tests in packages/Js/test/test.ml and melange_tests/js_dict.ml.
+Js.Dict.fromArray	green	Insertion-ordered; node-cited tests in packages/Js/test/test.ml and melange_tests/js_dict.ml.
+Js.Dict.entries	green	Insertion-ordered; node-cited tests in packages/Js/test/test.ml.
+Js.Dict.keys	green	Insertion-ordered; node-cited tests in packages/Js/test/test.ml.
+Js.Dict.values	green	Insertion-ordered; node-cited tests in packages/Js/test/test.ml.
+Js.Json.stringify	green	Object key order follows insertion order; node-cited test in melange_tests/js_json.ml.
+Js.Json.stringifyWithSpace	green	Object key order follows insertion order; node-cited test in melange_tests/js_json.ml.
+Js.Int.toExponential	green	Ported Melange suite: packages/Js/test/melange_tests/js_int.ml.
+Js.Float.toExponential	green	Ported Melange suite: packages/Js/test/melange_tests/js_float.ml.
+Js.Float.toFixed	green	Ported Melange suite: packages/Js/test/melange_tests/js_float.ml.
+#
+# --- Js.Array modern additions ---
+Js.Array.toSorted	wontfix	JS default comparator string-coerces elements (requires runtime type info); use toSortedWith.
+#
+# --- Verified by ported/authored suites (second pass) ---
+Js.Array.at	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.entries	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.findLast	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.findLastIndex	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.findLastIndexi	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.findLasti	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.flat	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.keys	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.removeCount	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.removeFrom	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.toReversed	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.toSortedWith	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.toSpliced	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Array.values	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Dict.empty	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_json.ml.
+Js.Dict.get	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_json.ml.
+Js.Dict.set	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_json.ml.
+Js.Exn.raiseError	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml.
+Js.Exn.raiseEvalError	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml.
+Js.Exn.raiseRangeError	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml.
+Js.Exn.raiseReferenceError	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml.
+Js.Exn.raiseSyntaxError	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml.
+Js.Exn.raiseTypeError	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml.
+Js.Exn.raiseUriError	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_exn.ml.
+Js.Iterator.next	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Iterator.toArray	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Iterator.toArrayWithMapper	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
+Js.Map.clear	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.delete	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.entries	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.forEach	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.fromArray	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.get	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.has	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.keys	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.make	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.set	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.size	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.toArray	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Map.values	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.add	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.clear	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.delete	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.entries	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.forEach	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.fromArray	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.has	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.make	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.size	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.toArray	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+Js.Set.values	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.

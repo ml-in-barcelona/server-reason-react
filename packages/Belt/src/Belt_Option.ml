@@ -1,8 +1,8 @@
 let getExn = function
   | Some x -> x
   | None ->
-      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-      Js.Exn.raiseError error
+      (* Melange raises Not_found here *)
+      raise Stdlib.Not_found
 
 let mapWithDefaultU opt default f = match opt with Some x -> f x | None -> default
 let mapWithDefault opt default f = mapWithDefaultU opt default (fun x -> f x)

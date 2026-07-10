@@ -1,12 +1,6 @@
 type t = int
 
-let toExponential ?digits int =
-  let f = Stdlib.float_of_int int in
-  match digits with
-  | None -> Quickjs.Number.Prototype.to_string f
-  | Some d ->
-      if d < 0 || d > 100 then raise (Invalid_argument "toExponential() digits argument must be between 0 and 100")
-      else Quickjs.Number.Prototype.to_exponential d f
+let toExponential ?digits int = Js_float.toExponential ?digits (Stdlib.float_of_int int)
 
 let toPrecision ?digits int =
   let f = Stdlib.float_of_int int in

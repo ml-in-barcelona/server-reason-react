@@ -3,8 +3,8 @@ type ('a, 'b) t = ('a, 'b) result = Ok of 'a | Error of 'b
 let getExn = function
   | Ok x -> x
   | Error _ ->
-      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-      Js.Exn.raiseError error
+      (* Melange raises Not_found here *)
+      raise Stdlib.Not_found
 
 let mapWithDefaultU opt default f = match opt with Ok x -> f x | Error _ -> default
 let mapWithDefault opt default f = mapWithDefaultU opt default (fun x -> f x)

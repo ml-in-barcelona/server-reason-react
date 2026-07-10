@@ -74,7 +74,7 @@ let rec getUndefined (n : t) (x : value) =
 
 let rec getExn (n : t) (x : value) =
   match N.toOpt n with
-  | None -> Js.Exn.raiseError "File \"../others/internal_set.cppo.ml\", line 90, characters 14-20"
+  | None -> raise Stdlib.Not_found (* like Melange *)
   | Some t ->
       let v = N.value t in
       if x = v then v else getExn (if x < v then N.left t else N.right t) x

@@ -26,6 +26,32 @@ let shift _ = Js_internal.notImplemented "Js.Array" "shift"
 let unshift ~value:_ _ = Js_internal.notImplemented "Js.Array" "unshift"
 let unshiftMany ~values:_ _ = Js_internal.notImplemented "Js.Array" "unshiftMany"
 
+(* Copying functions (ES2023) *)
+let flat arr = Stdlib.Array.concat (Stdlib.Array.to_list arr)
+
+let toReversed arr =
+  let len = Stdlib.Array.length arr in
+  Stdlib.Array.init len (fun i -> arr.(len - 1 - i))
+
+(* JS default sort coerces elements to strings, which requires runtime type info *)
+let toSorted _ = Js_internal.notImplemented "Js.Array" "toSorted"
+
+let toSortedWith ~f arr =
+  let copy = Stdlib.Array.copy arr in
+  (* JS Array.prototype.sort is required to be stable since ES2019 *)
+  Stdlib.Array.stable_sort f copy;
+  copy
+
+let toSpliced ~start ~remove ~add arr =
+  let len = Stdlib.Array.length arr in
+  let actual_start = if start < 0 then Stdlib.max (len + start) 0 else Stdlib.min start len in
+  let skip = Stdlib.min (Stdlib.max remove 0) (len - actual_start) in
+  Stdlib.Array.concat
+    [ Stdlib.Array.sub arr 0 actual_start; add; Stdlib.Array.sub arr (actual_start + skip) (len - actual_start - skip) ]
+
+let removeFrom ~start arr = toSpliced ~start ~remove:(Stdlib.Array.length arr) ~add:[||] arr
+let removeCount ~start ~count arr = toSpliced ~start ~remove:count ~add:[||] arr
+
 (* Accessor functions *)
 let concat ~other:second first = Stdlib.Array.append first second
 let concatMany ~arrays arr = Stdlib.Array.concat (arr :: Stdlib.Array.to_list arrays)
@@ -40,6 +66,11 @@ let join ?sep arr =
   match sep with
   | None -> Stdlib.Array.to_list arr |> String.concat ","
   | Some sep -> Stdlib.Array.to_list arr |> String.concat sep
+
+let at ~index arr =
+  let len = Stdlib.Array.length arr in
+  let k = if index < 0 then len + index else index in
+  if k >= 0 && k < len then Some arr.(k) else None
 
 let lastIndexOf ~value arr =
   let rec aux idx = if idx < 0 then -1 else if arr.(idx) = value then idx else aux (idx - 1) in
@@ -95,6 +126,25 @@ let findIndex ~f arr =
   let rec aux idx = if idx >= len then -1 else if f arr.(idx) then idx else aux (idx + 1) in
   aux 0
 
+let findLast ~f arr =
+  let rec aux idx = if idx < 0 then None else if f arr.(idx) then Some arr.(idx) else aux (idx - 1) in
+  aux (Stdlib.Array.length arr - 1)
+
+let findLasti ~f arr =
+  let rec aux idx = if idx < 0 then None else if f arr.(idx) idx then Some arr.(idx) else aux (idx - 1) in
+  aux (Stdlib.Array.length arr - 1)
+
+let findLastIndex ~f arr =
+  let rec aux idx = if idx < 0 then -1 else if f arr.(idx) then idx else aux (idx - 1) in
+  aux (Stdlib.Array.length arr - 1)
+
+let findLastIndexi ~f arr =
+  let rec aux idx = if idx < 0 then -1 else if f arr.(idx) idx then idx else aux (idx - 1) in
+  aux (Stdlib.Array.length arr - 1)
+
+let entries arr = Js_iterator.make (Seq.mapi (fun i v -> (i, v)) (Stdlib.Array.to_seq arr))
+let keys arr = Js_iterator.make (Seq.init (Stdlib.Array.length arr) (fun i -> i))
+let values arr = Js_iterator.make (Stdlib.Array.to_seq arr)
 let forEach ~f arr = Stdlib.Array.iter f arr
 let forEachi ~f arr = Stdlib.Array.iteri (fun i a -> f a i) arr
 let map ~f arr = Stdlib.Array.map f arr

@@ -65,8 +65,8 @@ let peekUndefined q =
 let peekExn q =
   match Js.nullToOption (first q) with
   | None ->
-      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-      Js.Exn.raiseError error
+      (* Melange raises Not_found here *)
+      raise Stdlib.Not_found
   | Some v -> content v
 
 let pop q =
@@ -85,8 +85,8 @@ let pop q =
 let popExn q =
   match Js.nullToOption (first q) with
   | None ->
-      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-      Js.Exn.raiseError error
+      (* Melange raises Not_found here *)
+      raise Stdlib.Not_found
   | Some x ->
       let next = next x in
       if next = Js.null then (

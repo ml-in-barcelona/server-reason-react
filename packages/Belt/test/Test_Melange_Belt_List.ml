@@ -167,11 +167,10 @@ let suites =
             assert_option Alcotest.int (Some 0) (N.head length_10_id);
             assert_option (Alcotest.list Alcotest.int) (N.drop length_10_id 1) (N.tail length_10_id);
             assert_option Alcotest.int None (N.head []);
-            (* exception type diverges: native raises Js.Exn.Error (documented) *)
-            assert_raises_any (fun () -> N.headExn []);
-            assert_raises_any (fun () -> N.tailExn []);
-            assert_raises_any (fun () -> N.getExn [ 0; 1 ] (-1));
-            assert_raises_any (fun () -> N.getExn [ 0; 1 ] 2);
+            assert_raises_not_found (fun () -> N.headExn []);
+            assert_raises_not_found (fun () -> N.tailExn []);
+            assert_raises_not_found (fun () -> N.getExn [ 0; 1 ] (-1));
+            assert_raises_not_found (fun () -> N.getExn [ 0; 1 ] 2);
             assert_int_list [ 0; 1 ] (N.map [ 0; 1 ] (fun i -> N.getExn [ 0; 1 ] i));
             assert_int 1 (N.headExn [ 1 ]);
             assert_int_list [] (N.tailExn [ 1 ]));

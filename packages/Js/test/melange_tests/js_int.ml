@@ -10,7 +10,9 @@ let throws fn = match fn () with exception _ -> () | _ -> Alcotest.fail "expecte
 
 let tests =
   [
-    (* DIVERGENCE: Js.Int.toExponential (no ~digits): native returns "123456", JS returns "1.23456e+5" (node) *)
+    test "toExponential without digits" (fun () ->
+        (* melange js_int_test.ml; node: (123456).toExponential() = "1.23456e+5" *)
+        assert_string (Js.Int.toExponential 123456) "1.23456e+5");
     test "toExponentialWithPrecision - digits:2" (fun () -> assert_string (toExponential 123456 ~digits:2) "1.23e+5");
     test "toExponentialWithPrecision - digits:4" (fun () -> assert_string (toExponential 123456 ~digits:4) "1.2346e+5");
     test "toExponentialWithPrecision - digits:20" (fun () ->

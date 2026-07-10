@@ -594,7 +594,7 @@ val truncateToLengthUnsafe : 'a t -> int -> 'a t
 val initU : int -> ((int -> 'a)[@bs]) -> 'a t
 val init : int -> (int -> 'a) -> 'a t
 
-val push : 'a t -> 'a -> [ `Do_not_use_Array_push_in_native ]
+val push : 'a t -> 'a -> unit
 [@@alert not_implemented "is not implemented in native under server-reason-react.belt"]
-(** Native-only sentinel value for the JavaScript [push] operation. OCaml arrays are fixed length and cannot grow in
-    place like JavaScript arrays. Use a copy-based helper instead when you need to append on native. *)
+(** OCaml arrays are fixed length and cannot grow in place like JavaScript arrays: raises at runtime. Use a copy-based
+    helper instead when you need to append on native. *)

@@ -173,4 +173,8 @@ let tests =
     (* From int64 *)
     test "from_int64: large positive" from_int64_large;
     test "from_int64: large negative" from_int64_negative;
+    test "hex literals containing e/E digits" (fun () ->
+        (* node: BigInt("0xE0") = 224n; BigInt("0xeF") = 239n *)
+        assert_string (BigInt.to_string (BigInt.of_string_exn "0xE0")) "224";
+        assert_string (BigInt.to_string (BigInt.of_string_exn "0xeF")) "239");
   ]

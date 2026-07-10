@@ -47,11 +47,38 @@ val unshift : value:'a -> 'a t -> int
 val unshiftMany : values:'a t -> 'a t -> int
 [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
 
+val flat : 'a t t -> 'a t
+(** flattens the given array of arrays one level deep. (ES2019) *)
+
+val toReversed : 'a t -> 'a t
+(** returns a new array with the elements in reversed order. (ES2023) *)
+
+val toSorted : 'a t -> 'a t
+[@@alert not_implemented "is not implemented in native under server-reason-react.js"]
+(** the JS default comparator coerces elements to strings, which requires runtime type info. Use {!toSortedWith}
+    instead. *)
+
+val toSortedWith : f:('a -> 'a -> int) -> 'a t -> 'a t
+(** returns a new array with the elements sorted in ascending order. (ES2023) *)
+
+val toSpliced : start:int -> remove:int -> add:'a t -> 'a t -> 'a t
+(** returns a new array with some elements removed and/or replaced at a given index. (ES2023) *)
+
+val removeFrom : start:int -> 'a t -> 'a t
+(** returns a new array with elements removed starting at the [start] index. (ES2023) *)
+
+val removeCount : start:int -> count:int -> 'a t -> 'a t
+(** returns a new array with [count] elements removed starting at the [start] index. (ES2023) *)
+
 val concat : other:'a t -> 'a t -> 'a t
 val concatMany : arrays:'a t t -> 'a t -> 'a t
 val includes : value:'a -> 'a t -> bool
 val indexOf : value:'a -> ?start:int -> 'a t -> int
 val join : ?sep:string -> string t -> string
+
+val at : index:int -> 'a t -> 'a option
+(** returns the element at the given index. Negative indices count back from the end of the array. (ES2022) *)
+
 val lastIndexOf : value:'a -> 'a t -> int
 val lastIndexOfFrom : value:'a -> start:int -> 'a t -> int
 val slice : ?start:int -> ?end_:int -> 'a t -> 'a t
@@ -69,6 +96,13 @@ val findi : f:('a -> int -> bool) -> 'a t -> 'a Js_internal.nullable
 val find : f:('a -> bool) -> 'a t -> 'a Js_internal.nullable
 val findIndexi : f:('a -> int -> bool) -> 'a t -> int
 val findIndex : f:('a -> bool) -> 'a t -> int
+val findLast : f:('a -> bool) -> 'a t -> 'a option
+val findLasti : f:('a -> int -> bool) -> 'a t -> 'a option
+val findLastIndex : f:('a -> bool) -> 'a t -> int
+val findLastIndexi : f:('a -> int -> bool) -> 'a t -> int
+val entries : 'a t -> (int * 'a) Js_iterator.t
+val keys : 'a t -> int Js_iterator.t
+val values : 'a t -> 'a Js_iterator.t
 val forEach : f:('a -> unit) -> 'a t -> unit
 val forEachi : f:('a -> int -> unit) -> 'a t -> unit
 val map : f:('a -> 'b) -> 'a t -> 'b t

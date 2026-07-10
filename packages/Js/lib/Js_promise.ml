@@ -47,6 +47,9 @@ let all6 (a, b, c, d, e, f) =
   let%lwt res_f = f in
   Lwt.return (res_a, res_b, res_c, res_d, res_e, res_f)
 
-let race (promises : 'a t array) : 'a t = Lwt.pick (Stdlib.Array.to_list promises)
+(* Promise.race([]) returns a forever-pending promise in JS. *)
+let race (promises : 'a t array) : 'a t =
+  if Stdlib.Array.length promises = 0 then Stdlib.fst (Lwt.task ()) else Lwt.pick (Stdlib.Array.to_list promises)
+
 let then_ p fn = Lwt.bind fn p
 let catch (handler : exn -> 'a t) (promise : 'a t) : 'a t = Lwt.catch (fun () -> promise) handler

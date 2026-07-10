@@ -178,12 +178,10 @@ let rec checkInvariantInternal (v : _ t) =
   | Some n ->
       let l, r = (left n, right n) in
       let diff = treeHeight l - treeHeight r in
-      if Stdlib.not (diff <= 2 && diff >= -2) then
-        let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-        Js.Exn.raiseError error
-      else (
-        checkInvariantInternal l;
-        checkInvariantInternal r)
+      (* Melange uses assert here (Assert_failure) *)
+      assert (diff <= 2 && diff >= -2);
+      checkInvariantInternal l;
+      checkInvariantInternal r
 
 let rec fillArray n i arr =
   let l, v, r = (left n, value n, right n) in
@@ -382,8 +380,8 @@ let rec getUndefined (n : _ t) x ~cmp =
 let rec getExn (n : _ t) x ~cmp =
   match toOpt n with
   | None ->
-      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-      Js.Exn.raiseError error
+      (* Melange raises Not_found here *)
+      raise Stdlib.Not_found
   | Some t ->
       let v = value t in
       let c = (Belt_Id.getCmpInternal cmp) x v in

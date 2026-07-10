@@ -11,8 +11,8 @@ let head x = match x with [] -> None | x :: _ -> Some x
 let headExn x =
   match x with
   | [] ->
-      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-      Js.Exn.raiseError error
+      (* Melange raises Not_found here *)
+      raise Stdlib.Not_found
   | x :: _ -> x
 
 let tail x = match x with [] -> None | _ :: xs -> Some xs
@@ -20,8 +20,8 @@ let tail x = match x with [] -> None | _ :: xs -> Some xs
 let tailExn x =
   match x with
   | [] ->
-      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-      Js.Exn.raiseError error
+      (* Melange raises Not_found here *)
+      raise Stdlib.Not_found
   | _ :: t -> t
 
 let add xs x = x :: xs
@@ -31,15 +31,15 @@ let rec nthAuxAssert x n =
   match x with
   | h :: t -> if n = 0 then h else nthAuxAssert t (n - 1)
   | _ ->
-      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-      Js.Exn.raiseError error
+      (* Melange raises Not_found here *)
+      raise Stdlib.Not_found
 
 let get x n = if n < 0 then None else nthAux x n
 
 let getExn x n =
   if n < 0 then
-    let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-    Js.Exn.raiseError error
+    (* Melange raises Not_found here *)
+    raise Stdlib.Not_found
   else nthAuxAssert x n
 
 let rec partitionAux p cell precX precY =

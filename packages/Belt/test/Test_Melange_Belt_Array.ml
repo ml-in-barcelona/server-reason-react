@@ -42,15 +42,13 @@ let suites =
             assert_option Alcotest.int None (A.get v 3);
             assert_option Alcotest.int None (A.get v (-1)));
         test "getExn" (fun () ->
-            (* exception type diverges: native raises Js.Exn.Error (documented) *)
-            assert_raises_any (fun () -> A.getExn [| 0; 1 |] (-1));
-            assert_raises_any (fun () -> A.getExn [| 0; 1 |] 2);
+            assert_raises_assert_failure (fun () -> A.getExn [| 0; 1 |] (-1));
+            assert_raises_assert_failure (fun () -> A.getExn [| 0; 1 |] 2);
             let f = A.getExn [| 0; 1 |] in
             assert_pair Alcotest.int Alcotest.int (0, 1) (f 0, f 1));
         test "set and setExn" (fun () ->
-            (* exception type diverges: native raises Js.Exn.Error (documented) *)
-            assert_raises_any (fun () -> A.setExn [| 0; 1 |] (-1) 0);
-            assert_raises_any (fun () -> A.setExn [| 0; 1 |] 2 0);
+            assert_raises_assert_failure (fun () -> A.setExn [| 0; 1 |] (-1) 0);
+            assert_raises_assert_failure (fun () -> A.setExn [| 0; 1 |] 2 0);
             assert_bool false (A.set [| 1; 2 |] 2 0);
             let v = [| 1; 2 |] in
             assert_bool true (A.set v 0 0);

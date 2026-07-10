@@ -9,9 +9,8 @@ let getUndefined arr i = if i >= 0 && i < length arr then Js.Undefined.return (g
 let get arr i = if i >= 0 && i < length arr then Some (getUnsafe arr i) else None
 
 let getExn arr i =
-  (if Stdlib.not (i >= 0 && i < length arr) then
-     let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-     Js.Exn.raiseError error);
+  (* Melange uses assert here (Assert_failure) *)
+  assert (i >= 0 && i < length arr);
   getUnsafe arr i
 
 let set arr i v =
@@ -21,10 +20,8 @@ let set arr i v =
   else false
 
 let setExn arr i v =
-  if Stdlib.not (i >= 0 && i < length arr) then begin
-    let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-    Js.Exn.raiseError error
-  end;
+  (* Melange uses assert here (Assert_failure) *)
+  assert (i >= 0 && i < length arr);
   setUnsafe arr i v
 
 let makeUninitialized len = Array.make len Js.undefined
@@ -405,4 +402,7 @@ let joinWithU a sep toString =
 let joinWith a sep toString = joinWithU a sep (fun x -> toString x)
 let initU n f = Stdlib.Array.init n f
 let init n f = initU n (fun i -> f i)
-let push _arr _i = `Do_not_use_Array_push_in_native
+
+(* OCaml arrays are fixed-length: JS Array.prototype.push cannot be
+   implemented. Raising is safer than the previous silent no-op sentinel. *)
+let push _arr _i = Js.notImplemented "Belt.Array" "push"

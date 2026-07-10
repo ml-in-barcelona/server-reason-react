@@ -51,9 +51,6 @@ let of_string_exn s =
   if s = "+" || s = "-" then failwith "BigInt: cannot convert sign-only string";
   (* Check for null character *)
   if String.contains s '\x00' then failwith "BigInt: invalid character";
-  (* Check for decimal point or scientific notation *)
-  if String.contains s '.' then failwith "BigInt: cannot have decimal point";
-  if String.contains s 'e' || String.contains s 'E' then failwith "BigInt: cannot use scientific notation";
   (* Determine sign and starting position *)
   let negative = len > 0 && String.get s 0 = '-' in
   let has_sign = len > 0 && (String.get s 0 = '-' || String.get s 0 = '+') in
