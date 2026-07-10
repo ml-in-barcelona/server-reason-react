@@ -1,0 +1,153 @@
+# Hand-maintained status annotations for the generated README.md.
+# Format: <Module.fn | Module.*> <TAB> <green|orange|wontfix|planned> <TAB> <note>
+#   green   — implemented and verified by tests whose expectations cite a JS source.
+#   orange  — implemented with a known behavioral divergence (note required).
+#   wontfix — raising stub kept by design (note required).
+#   planned — raising stub with a specific plan (note replaces the default "Planned.").
+# The generator (scripts/status/generate_status_readme.sh) hard-fails if an
+# entry contradicts the code (e.g. green on a raising stub).
+#
+# --- Js (top-level) ---
+Js.typeof	wontfix	Requires JS runtime type tags.
+#
+# --- Js.Array ---
+Js.Array.isArray	orange	Always returns true; there is no runtime type information (Js_array.ml:10).
+Js.Array.includes	orange	Uses OCaml structural equality; JS SameValueZero differs (NaN, object identity).
+Js.Array.indexOf	orange	Negative ~start handling diverges from JS (audit/areas/belt-js.md).
+Js.Array.lastIndexOfFrom	orange	Negative ~from handling diverges from JS (audit/areas/belt-js.md).
+Js.Array.from	wontfix	Requires JS iterables; array_like values cannot be constructed natively.
+Js.Array.fromMap	wontfix	Requires JS iterables; array_like values cannot be constructed natively.
+Js.Array.copyWithin	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.fill	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.pop	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.push	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.pushMany	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.reverseInPlace	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.shift	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.sortInPlace	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.sortInPlaceWith	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.spliceInPlace	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.removeFromInPlace	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.removeCountInPlace	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.unshift	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+Js.Array.unshiftMany	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
+#
+# --- Js.Bigint ---
+Js.Bigint.of_string	orange	Rejects hex literals containing e/E digits (JS BigInt("0xE0") works) (Js_bigint.ml:56).
+Js.Bigint.of_string_exn	orange	Rejects hex literals containing e/E digits (JS BigInt("0xE0") works) (Js_bigint.ml:56).
+#
+# --- Js.Console ---
+Js.Console.*	orange	Silent no-op on the server; interface narrowed to strings vs Melange's polymorphic signature.
+#
+# --- Js.Date ---
+Js.Date.fromFloat	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.fromString	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getDate	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getDay	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getFullYear	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getHours	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getMilliseconds	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getMinutes	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getMonth	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getSeconds	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getTime	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getTimezoneOffset	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getUTCDate	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getUTCDay	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getUTCFullYear	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getUTCHours	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getUTCMilliseconds	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getUTCMinutes	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getUTCMonth	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.getUTCSeconds	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.make	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.now	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setDate	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setFullYear	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setHours	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setMilliseconds	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setMinutes	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setMonth	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setSeconds	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setTime	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setUTCDate	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setUTCFullYear	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setUTCHours	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setUTCMilliseconds	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setUTCMinutes	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setUTCMonth	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.setUTCSeconds	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.toDateString	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.toISOString	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.toJSON	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.toJSONUnsafe	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.toString	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.toTimeString	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.toUTCString	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.valueOf	green	test262-derived suite: packages/Js/test/date_tests.
+Js.Date.toLocaleString	orange	Aliased to toString; no locale handling (Js_date.ml:323).
+Js.Date.toLocaleDateString	orange	Aliased to toDateString; no locale handling (Js_date.ml:324).
+Js.Date.toLocaleTimeString	orange	Aliased to toTimeString; no locale handling (Js_date.ml:325).
+#
+# --- Js.Dict ---
+Js.Dict.fromList	orange	Duplicate keys are retained (Hashtbl.add); JS objects overwrite (Js_dict.ml:25).
+Js.Dict.fromArray	orange	Duplicate keys are retained (Hashtbl.add); JS objects overwrite (Js_dict.ml:31).
+Js.Dict.entries	orange	Iteration is Hashtbl bucket order, not JS insertion order.
+Js.Dict.keys	orange	Iteration is Hashtbl bucket order, not JS insertion order.
+Js.Dict.values	orange	Iteration is Hashtbl bucket order, not JS insertion order.
+#
+# --- Js.Float ---
+Js.Float.toString	green	test262-derived suite: packages/Js/test/number_tests.
+Js.Float.toFixed	green	test262-derived suite: packages/Js/test/number_tests.
+#
+# --- Js.Global ---
+Js.Global.parseFloat	green	test262-derived suite: packages/Js/test/number_tests.
+Js.Global.parseInt	orange	Int-capped: huge values return nan where JS returns the float (audit/investigations/quickjs-divergence-status.md).
+Js.Global.setTimeout	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
+Js.Global.setTimeoutFloat	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
+Js.Global.setInterval	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
+Js.Global.setIntervalFloat	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
+Js.Global.clearTimeout	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
+Js.Global.clearInterval	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
+#
+# --- Js.Nullable ---
+Js.Nullable.bind	orange	Signature is 'b t -> ('b -> 'b) -> 'b t; Melange is 'a t -> ('a -> 'b) -> 'b t.
+#
+# --- Js.Promise ---
+Js.Promise.race	orange	Raises on an empty array; JS returns a forever-pending promise.
+#
+# --- Js.Re ---
+Js.Re.exec	green	test262-derived suite: packages/Js/test/regexp_tests.
+Js.Re.test	green	test262-derived suite: packages/Js/test/regexp_tests.
+Js.Re.fromString	green	test262-derived suite: packages/Js/test/regexp_tests.
+Js.Re.fromStringWithFlags	green	test262-derived suite: packages/Js/test/regexp_tests.
+Js.Re.flags	green	test262-derived suite: packages/Js/test/regexp_tests.
+Js.Re.dotAll	green	test262-derived suite: packages/Js/test/regexp_tests.
+Js.Re.global	green	test262-derived suite: packages/Js/test/regexp_tests.
+Js.Re.ignoreCase	green	test262-derived suite: packages/Js/test/regexp_tests.
+Js.Re.multiline	green	test262-derived suite: packages/Js/test/regexp_tests.
+Js.Re.unicode	green	test262-derived suite: packages/Js/test/regexp_tests.
+#
+# --- Js.String ---
+Js.String.normalize	green	test262-derived suite: packages/Js/test/string_tests.
+Js.String.search	green	test262-derived suite: packages/Js/test/string_tests.
+#
+# --- Js.Types ---
+Js.Types.test	wontfix	Requires JS runtime type tags.
+Js.Types.classify	wontfix	Requires JS runtime type tags.
+#
+# --- Js.Vector (legacy: removed in Melange 6; scheduled for deletion) ---
+Js.Vector.filterInPlace	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.empty	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.pushBack	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.copy	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.memByRef	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.iter	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.iteri	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.toList	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.map	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.mapi	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.foldLeft	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.foldRight	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.init	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+Js.Vector.append	wontfix	Legacy module removed in Melange 6; scheduled for deletion.

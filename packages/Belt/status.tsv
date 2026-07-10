@@ -1,0 +1,32 @@
+# Hand-maintained status annotations for the generated README.md.
+# Format: <Module.fn | Module.*> <TAB> <green|orange|wontfix|planned> <TAB> <note>
+# See packages/Js/status.tsv for the legend. The generator hard-fails if an
+# entry contradicts the code.
+#
+# All Belt *Exn accessors raise Js.Exn.Error where Melange raises
+# Not_found/Assert_failure, so exception catch sites diverge (audit/areas/belt-js.md).
+Belt.Array.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Array.setExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.List.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.List.headExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.List.tailExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Map.Dict.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Map.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Map.Int.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Map.String.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.MutableMap.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.MutableMap.Int.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.MutableMap.String.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.MutableQueue.peekExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.MutableQueue.popExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.MutableSet.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.MutableSet.Int.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.MutableSet.String.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Option.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Result.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Set.Dict.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Set.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Set.Int.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+Belt.Set.String.getExn	orange	Raises Js.Exn.Error; Melange raises Not_found/Assert_failure — catch sites diverge (audit/areas/belt-js.md).
+#
+Belt.Array.push	orange	Silent no-op returning a sentinel; OCaml arrays are fixed-length so elements cannot be appended (Melange mutates the array).

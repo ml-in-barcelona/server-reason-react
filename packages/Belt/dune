@@ -1,0 +1,14 @@
+(rule
+ (targets README.md)
+ (mode promote)
+ (aliases readme runtest)
+ (deps
+  ../../scripts/status/generate_status_readme.sh
+  status.tsv
+  melange-surface.tsv
+  (glob_files src/*.ml)
+  (glob_files src/*.mli))
+ (action
+  (with-stdout-to
+   README.md
+   (run sh ../../scripts/status/generate_status_readme.sh Belt src))))
