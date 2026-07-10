@@ -104,3 +104,21 @@ val as_int_n : int -> t -> t
 
 val as_uint_n : int -> t -> t
 (** [as_uint_n bits x] wraps [x] to an unsigned integer of [bits] bits. Equivalent to JavaScript's BigInt.asUintN. *)
+
+val asIntN : precision:int -> t -> t
+(** [asIntN ~precision bigint] truncates to the [precision] least significant bits as a signed integer, like
+    JavaScript's BigInt.asIntN. *)
+
+val asUintN : precision:int -> t -> t
+(** [asUintN ~precision bigint] truncates to the [precision] least significant bits as an unsigned integer, like
+    JavaScript's BigInt.asUintN. *)
+
+type toLocaleStringOptions = { style : string; currency : string }
+
+val toLocaleString : locale:string -> ?options:toLocaleStringOptions -> t -> string
+(** No ICU on the server: ignores [locale] and [options] and returns the plain decimal representation. *)
+
+val make : 'a -> t
+[@@alert not_implemented "is not implemented in native under server-reason-react.js"]
+(** Melange's [make] coerces any value (number, string, boolean) through the JS BigInt constructor, which requires
+    runtime type information. Use [of_int], [of_int64] or [of_string] instead. *)

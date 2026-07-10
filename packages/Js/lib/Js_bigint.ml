@@ -183,3 +183,14 @@ let as_int_n bits x =
     let wrapped = Z.erem x modulus in
     (* If wrapped >= 2^(bits-1), subtract 2^bits to get negative *)
     if Z.compare wrapped half >= 0 then Z.sub wrapped modulus else wrapped
+
+(* Melange-named API (js_bigint.ml, melange 6.0.1-54) *)
+let asIntN ~precision x = as_int_n precision x
+let asUintN ~precision x = as_uint_n precision x
+
+type toLocaleStringOptions = { style : string; currency : string }
+
+(* No ICU on the server: ignores the locale and options, returns the plain
+   decimal representation like toString. *)
+let toLocaleString ~locale:_ ?options:_ x = toString x
+let make _ = Js_internal.notImplemented "Js.Bigint" "make"

@@ -19,7 +19,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | --- | --- | --- | --- | --- | --- |
 | [Js](#js) | 0 | 12 | 0 | 1 | 10 |
 | [Js.Array](#jsarray) | 39 | 2 | 4 | 19 | 0 |
-| [Js.Bigint](#jsbigint) | 2 | 27 | 0 | 0 | 4 |
+| [Js.Bigint](#jsbigint) | 4 | 27 | 1 | 1 | 0 |
 | [Js.Blob](#jsblob) | 0 | 0 | 0 | 0 | 7 |
 | [Js.Console](#jsconsole) | 0 | 0 | 23 | 0 | 0 |
 | [Js.Date](#jsdate) | 47 | 2 | 3 | 0 | 0 |
@@ -149,8 +149,8 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | --- | --- | --- |
 | `abs` | ⚪️ | Not in Melange 6.0.1-54. |
 | `add` | ⚪️ |  |
-| `asIntN` | ➖ missing |  |
-| `asUintN` | ➖ missing |  |
+| `asIntN` | 🟢 | node-cited test: packages/Js/test/bigint_tests/constructor.ml. |
+| `asUintN` | 🟢 | node-cited test: packages/Js/test/bigint_tests/constructor.ml. |
 | `as_int_n` | ⚪️ | Not in Melange 6.0.1-54. |
 | `as_uint_n` | ⚪️ | Not in Melange 6.0.1-54. |
 | `compare` | ⚪️ | Not in Melange 6.0.1-54. |
@@ -164,7 +164,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `logor` | ⚪️ | Not in Melange 6.0.1-54. |
 | `logxor` | ⚪️ | Not in Melange 6.0.1-54. |
 | `lt` | ⚪️ | Not in Melange 6.0.1-54. |
-| `make` | ➖ missing |  |
+| `make` | 🔴 raises by design | Coerces arbitrary values through the JS BigInt constructor; requires runtime type information. Use of_int/of_int64/of_string. |
 | `mul` | ⚪️ |  |
 | `neg` | ⚪️ |  |
 | `of_int` | ⚪️ | Not in Melange 6.0.1-54. |
@@ -176,7 +176,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `shift_left` | ⚪️ | Not in Melange 6.0.1-54. |
 | `shift_right` | ⚪️ | Not in Melange 6.0.1-54. |
 | `sub` | ⚪️ |  |
-| `toLocaleString` | ➖ missing |  |
+| `toLocaleString` | 🟠 | Ignores the locale and options (no ICU on the server); returns the plain decimal representation. |
 | `toString` | ⚪️ |  |
 | `to_float` | ⚪️ | Not in Melange 6.0.1-54. |
 | `to_string` | ⚪️ | Not in Melange 6.0.1-54. |

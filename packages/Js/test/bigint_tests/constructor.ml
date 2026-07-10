@@ -177,4 +177,9 @@ let tests =
         (* node: BigInt("0xE0") = 224n; BigInt("0xeF") = 239n *)
         assert_string (BigInt.to_string (BigInt.of_string_exn "0xE0")) "224";
         assert_string (BigInt.to_string (BigInt.of_string_exn "0xeF")) "239");
+    test "melange-named API: asIntN/asUintN/toLocaleString" (fun () ->
+        (* node: BigInt.asIntN(8, 255n) = -1n; BigInt.asUintN(8, -1n) = 255n; (255n).toLocaleString("en-US") = "255" *)
+        assert_string (BigInt.to_string (BigInt.asIntN ~precision:8 (BigInt.of_int 255))) "-1";
+        assert_string (BigInt.to_string (BigInt.asUintN ~precision:8 (BigInt.of_int (-1)))) "255";
+        assert_string (BigInt.toLocaleString ~locale:"en-US" (BigInt.of_int 255)) "255");
   ]

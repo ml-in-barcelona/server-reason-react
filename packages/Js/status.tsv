@@ -397,3 +397,9 @@ Js.Set.make	green	Ported Melange suite / node-cited: packages/Js/test/melange_te
 Js.Set.size	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
 Js.Set.toArray	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
 Js.Set.values	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
+#
+# --- Js.Bigint melange-named API ---
+Js.Bigint.asIntN	green	node-cited test: packages/Js/test/bigint_tests/constructor.ml.
+Js.Bigint.asUintN	green	node-cited test: packages/Js/test/bigint_tests/constructor.ml.
+Js.Bigint.toLocaleString	orange	Ignores the locale and options (no ICU on the server); returns the plain decimal representation.
+Js.Bigint.make	wontfix	Coerces arbitrary values through the JS BigInt constructor; requires runtime type information. Use of_int/of_int64/of_string.
