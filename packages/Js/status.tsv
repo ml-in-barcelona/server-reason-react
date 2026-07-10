@@ -103,15 +103,14 @@ Js.Float.toFixed	green	test262-derived suite: packages/Js/test/number_tests.
 # --- Js.Global ---
 Js.Global.parseFloat	green	test262-derived suite: packages/Js/test/number_tests.
 Js.Global.parseInt	orange	Int-capped: huge values return nan where JS returns the float (audit/investigations/quickjs-divergence-status.md).
-Js.Global.setTimeout	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
-Js.Global.setTimeoutFloat	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
-Js.Global.setInterval	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
-Js.Global.setIntervalFloat	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
-Js.Global.clearTimeout	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
-Js.Global.clearInterval	planned	Planned: Lwt-based implementation (fires on the running Lwt main loop).
+Js.Global.setTimeout	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
+Js.Global.setTimeoutFloat	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
+Js.Global.setInterval	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
+Js.Global.setIntervalFloat	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
+Js.Global.clearTimeout	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
+Js.Global.clearInterval	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
 #
 # --- Js.Nullable ---
-Js.Nullable.bind	orange	Signature is 'b t -> ('b -> 'b) -> 'b t; Melange is 'a t -> ('a -> 'b) -> 'b t.
 #
 # --- Js.Promise ---
 Js.Promise.race	orange	Raises on an empty array; JS returns a forever-pending promise.
@@ -131,10 +130,143 @@ Js.Re.unicode	green	test262-derived suite: packages/Js/test/regexp_tests.
 # --- Js.String ---
 Js.String.normalize	green	test262-derived suite: packages/Js/test/string_tests.
 Js.String.search	green	test262-derived suite: packages/Js/test/string_tests.
+Js.String.make	wontfix	Requires JS String() coercion of arbitrary values.
+Js.String.localeCompare	orange	Byte-wise comparison; no locale-aware collation (ICU) on the server.
+Js.String.toLocaleLowerCase	orange	Aliased to toLowerCase; no locale handling.
+Js.String.toLocaleUpperCase	orange	Aliased to toUpperCase; no locale handling.
+Js.String.anchor	green	node-cited test in packages/Js/test/test.ml.
+Js.String.link	green	node-cited test in packages/Js/test/test.ml.
+Js.String.unsafeReplaceBy0	green	node-cited tests in packages/Js/test/test.ml.
+Js.String.unsafeReplaceBy1	orange	Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml.
+Js.String.unsafeReplaceBy2	orange	Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml.
+Js.String.unsafeReplaceBy3	orange	Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml.
 #
 # --- Js.Types ---
 Js.Types.test	wontfix	Requires JS runtime type tags.
 Js.Types.classify	wontfix	Requires JS runtime type tags.
+#
+# --- Js.Json ---
+Js.Json.classify	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.parseExn	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.decodeString	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.decodeNumber	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.decodeObject	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.decodeArray	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.decodeBoolean	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.decodeNull	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.null	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.string	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.number	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.boolean	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.object_	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.array	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.stringArray	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.numberArray	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.booleanArray	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.objectArray	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.patch	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
+Js.Json.test	orange	First argument narrowed to t; Melange accepts any value (no runtime type info natively).
+Js.Json.stringify	orange	Object key order is Js.Dict's Hashtbl order, not insertion order.
+Js.Json.stringifyWithSpace	orange	Object key order is Js.Dict's Hashtbl order, not insertion order.
+Js.Json.stringifyAny	wontfix	Requires JS runtime type information for arbitrary values.
+Js.Json.serializeExn	wontfix	Melange-internal raw serialization; requires the JS runtime.
+Js.Json.deserializeUnsafe	wontfix	Melange-internal raw deserialization; requires the JS runtime.
+#
+# --- Js.Math ---
+Js.Math._E	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math._LN2	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math._LN10	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math._LOG2E	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math._LOG10E	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math._PI	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math._SQRT1_2	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math._SQRT2	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.abs_int	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.abs_float	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.acos	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.acosh	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.asin	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.asinh	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.atan	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.atanh	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.atan2	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.cbrt	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.unsafe_ceil_int	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.ceil_int	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.ceil_float	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.clz32	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.cos	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.cosh	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.exp	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.expm1	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.unsafe_floor_int	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.floor_int	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.floor_float	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.fround	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.hypot	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.hypotMany	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.imul	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.log	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.log1p	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.log10	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.log2	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.max_int	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.max_float	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.maxMany_float	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.min_int	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.min_float	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.minMany_float	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.pow_float	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.random	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.random_int	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.unsafe_round	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.round	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.sign_int	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.sign_float	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.sin	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.sinh	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.sqrt	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.tan	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.tanh	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.unsafe_trunc	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.trunc	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.maxMany_int	orange	Empty array returns min_int; JS Math.max() returns -Infinity. Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+Js.Math.minMany_int	orange	Empty array returns max_int; JS Math.min() returns Infinity. Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
+#
+# --- Js.Exn ---
+Js.Exn.asJsExn	green	Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml.
+Js.Exn.message	green	Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml.
+Js.Exn.name	green	Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml.
+Js.Exn.stack	orange	Always None: native exceptions do not capture a JS-style stack trace.
+Js.Exn.fileName	orange	Always None: native exceptions do not carry a file name.
+Js.Exn.anyToExnInternal	wontfix	Requires JS runtime type tags.
+Js.Exn.isCamlExceptionOrOpenVariant	wontfix	Requires JS runtime type tags.
+#
+# --- Js.Null / Js.Undefined / Js.Nullable ---
+Js.Null.toOption	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
+Js.Null.return	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
+Js.Null.empty	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
+Js.Null.getExn	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
+Js.Null.bind	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
+Js.Null.map	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
+Js.Null.iter	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
+Js.Null.fromOption	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
+Js.Undefined.toOption	green	Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml.
+Js.Undefined.return	green	Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml.
+Js.Undefined.empty	green	Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml.
+Js.Undefined.getExn	green	Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml.
+Js.Undefined.bind	green	Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml.
+Js.Undefined.map	green	Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml.
+Js.Undefined.iter	green	Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml.
+Js.Undefined.fromOption	green	Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml.
+Js.Undefined.testAny	wontfix	Requires JS runtime type tags: nothing is undefined natively.
+Js.Nullable.isNullable	green	Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml.
+Js.Nullable.return	green	Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml.
+Js.Nullable.null	green	Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml.
+Js.Nullable.map	green	Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml.
+Js.Nullable.bind	green	Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml.
+Js.Nullable.iter	green	Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml.
+Js.Nullable.undefined	orange	null and undefined are both represented as None natively.
 #
 # --- Js.Vector (legacy: removed in Melange 6; scheduled for deletion) ---
 Js.Vector.filterInPlace	wontfix	Legacy module removed in Melange 6; scheduled for deletion.

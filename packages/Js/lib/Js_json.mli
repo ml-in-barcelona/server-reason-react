@@ -1,4 +1,4 @@
-(* Efficient JSON encoding using JavaScript API *)
+(** JSON encoding/decoding with JSON.parse / JSON.stringify semantics *)
 
 type t
 
@@ -19,29 +19,38 @@ type tagged_t =
   | JSONObject of t Js_dict.t
   | JSONArray of t array
 
-val classify : t -> tagged_t [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val test : 'a -> bool [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val decodeString : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val decodeNumber : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val decodeObject : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val decodeArray : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val decodeBoolean : t -> 'a [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val decodeNull : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val parseExn : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val stringifyAny : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val null : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val string : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val number : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val boolean : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val object_ : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val array : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val stringArray : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val numberArray : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val booleanArray : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val objectArray : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val stringify : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val stringifyWithSpace : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val patch : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
+val classify : t -> tagged_t
+
+val test : t -> 'b kind -> bool
+(** Note: Melange's [test] accepts any ['a]; natively the first argument is narrowed to [t] because values carry no
+    runtime type information. *)
+
+val decodeString : t -> string option
+val decodeNumber : t -> float option
+val decodeObject : t -> t Js_dict.t option
+val decodeArray : t -> t array option
+val decodeBoolean : t -> bool option
+val decodeNull : t -> 'a Js_null.t option
+
+val parseExn : string -> t
+(** @raise Js_exn.SyntaxError if the string is not valid JSON. *)
+
+val stringifyAny : 'a -> string option
+[@@alert not_implemented "is not implemented in native under server-reason-react.js"]
+
+val null : t
+val string : string -> t
+val number : float -> t
+val boolean : bool -> t
+val object_ : t Js_dict.t -> t
+val array : t array -> t
+val stringArray : string array -> t
+val numberArray : float array -> t
+val booleanArray : bool array -> t
+val objectArray : t Js_dict.t array -> t
+val stringify : t -> string
+val stringifyWithSpace : t -> int -> string
+val patch : t -> t
 val serializeExn : t -> string [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
 
 val deserializeUnsafe : string -> 'a

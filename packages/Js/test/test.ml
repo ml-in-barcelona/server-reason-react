@@ -300,37 +300,33 @@ let string_tests =
         Js.Re.setLastIndex regexp 4;
         ignore (Js.String.splitByRe ~regexp "a-b-c");
         assert_int (Js.Re.lastIndex regexp) 4);
+    (* unsafeReplaceBy examples come from the Melange documentation; expected
+       strings are node's output for the equivalent String.prototype.replace
+       calls (the doc example for unsafeReplaceBy0 has a typo: node returns
+       "bEAUtIfUl vOwEls", with the "i" uppercased too). *)
     test "unsafeReplaceBy0" (fun () ->
-        (* let str = "beautiful vowels" in
-           let re = [%re "/[aeiou]/g"] in
-           let matchFn matchPart offset wholeString =
-             Js.String.toUpperCase matchPart
-           in
-
-           let replaced = Js.String.unsafeReplaceBy0 re matchFn str in
-
-           assert_string replaced "bEAUtifUl vOwEls" *)
-        ());
+        let str = "beautiful vowels" in
+        let matchFn matchPart _offset _wholeString = Js.String.toUpperCase matchPart in
+        let replaced = Js.String.unsafeReplaceBy0 ~regexp:[%re "/[aeiou]/g"] ~f:matchFn str in
+        assert_string replaced "bEAUtIfUl vOwEls");
     test "unsafeReplaceBy1" (fun () ->
-        (* let str = "increment 23" in
-           let re = [%re "/increment (\\d+)/g"] in
-           let matchFn matchPart p1 offset wholeString =
-             wholeString ^ " is " ^ string_of_int (int_of_string p1 + 1)
-           in
-
-           let replaced = Js.String.unsafeReplaceBy1 re matchFn str in
-           assert_string replaced "increment 23 is 24" *)
-        ());
+        let str = "increment 23" in
+        let matchFn _matchPart p1 _offset wholeString = wholeString ^ " is " ^ string_of_int (int_of_string p1 + 1) in
+        let replaced = Js.String.unsafeReplaceBy1 ~regexp:[%re "/increment (\\d+)/g"] ~f:matchFn str in
+        assert_string replaced "increment 23 is 24");
     test "unsafeReplaceBy2" (fun () ->
-        (* let str = "7 times 6" in
-           let re = [%re "/(\\d+) times (\\d+)/"] in
-           let matchFn matchPart p1 p2 offset wholeString =
-             string_of_int (int_of_string p1 * int_of_string p2)
-           in
-
-           let replaced = Js.String.unsafeReplaceBy2 re matchFn str in
-           assert_string replaced "42" *)
-        ());
+        let str = "7 times 6" in
+        let matchFn _matchPart p1 p2 _offset _wholeString = string_of_int (int_of_string p1 * int_of_string p2) in
+        let replaced = Js.String.unsafeReplaceBy2 ~regexp:[%re "/(\\d+) times (\\d+)/"] ~f:matchFn str in
+        assert_string replaced "42");
+    test "unsafeReplaceBy0 offset is a UTF-16 index" (fun () ->
+        (* "a😀b".replace(/b/, (m, offset) => String(offset)) = "a😀3" (node) *)
+        let replaced =
+          Js.String.unsafeReplaceBy0 ~regexp:[%re "/b/"]
+            ~f:(fun _ offset _ -> string_of_int offset)
+            "a\xF0\x9F\x98\x80b"
+        in
+        assert_string replaced "a\xF0\x9F\x98\x803");
     test "search" (fun () ->
         assert_int (Js.String.search ~regexp:[%re "/\\d+/"] "testing 1 2 3") 8;
         assert_int (Js.String.search ~regexp:[%re "/\\d+/"] "no numbers") (-1));
@@ -476,6 +472,14 @@ let string_tests =
         assert_string (Js.String.trim "\u{FEFF}x\u{FEFF}") "x";
         (* U+180E (Mongolian vowel separator) is not whitespace since Unicode 6.3 *)
         assert_string (Js.String.trim "\u{180E}x\u{180E}") "\u{180E}x\u{180E}");
+    test "anchor" (fun () ->
+        (* node: anchor with a double quote in the name escapes it as &quot; *)
+        assert_string (Js.String.anchor ~name:"bar\"baz" "foo") "<a name=\"bar&quot;baz\">foo</a>");
+    test "link" (fun () ->
+        (* node: link wraps in an <a href> tag, expected output verified in node *)
+        assert_string
+          (Js.String.link ~href:"https://x.com?a=1&b=2" "click")
+          "<a href=\"https://x.com?a=1&b=2\">click</a>");
     test "anchor" (fun () ->
         (* assert_string
            (anchor "page1" "Page One")
@@ -836,7 +840,15 @@ let () =
   @@ Alcotest_lwt.run "Js"
        [
          ("Js.Global", global_tests);
+         ("Js.Global.timers", Melange_tests.Js_global_timers.tests);
          ("Js.Math", math_tests);
+         (* Ported from Melange's test suite (jscomp/test) *)
+         ("Melange.Js.Math", Melange_tests.Js_math.tests);
+         ("Melange.Js.Json", Melange_tests.Js_json.tests);
+         ("Melange.Js.Null", Melange_tests.Js_null.tests);
+         ("Melange.Js.Undefined", Melange_tests.Js_undefined.tests);
+         ("Melange.Js.Nullable", Melange_tests.Js_nullable.tests);
+         ("Melange.Js.Exn", Melange_tests.Js_exn.tests);
          ("Js.Promise", promise_tests);
          ("Js.Float", float_tests);
          ("Js.String", string_tests);

@@ -24,25 +24,25 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | [Js.Console](#jsconsole) | 0 | 0 | 23 | 0 | 0 |
 | [Js.Date](#jsdate) | 45 | 4 | 3 | 0 | 0 |
 | [Js.Dict](#jsdict) | 0 | 6 | 5 | 0 | 0 |
-| [Js.Exn](#jsexn) | 0 | 7 | 0 | 7 | 0 |
+| [Js.Exn](#jsexn) | 3 | 7 | 2 | 2 | 0 |
 | [Js.File](#jsfile) | 0 | 0 | 0 | 0 | 9 |
 | [Js.Float](#jsfloat) | 2 | 7 | 0 | 0 | 0 |
 | [Js.FormData](#jsformdata) | 0 | 4 | 0 | 0 | 8 |
-| [Js.Global](#jsglobal) | 1 | 4 | 1 | 6 | 0 |
+| [Js.Global](#jsglobal) | 1 | 4 | 7 | 0 | 0 |
 | [Js.Int](#jsint) | 0 | 7 | 0 | 0 | 0 |
 | [Js.Iterator](#jsiterator) | 0 | 0 | 0 | 0 | 3 |
-| [Js.Json](#jsjson) | 0 | 0 | 0 | 25 | 0 |
+| [Js.Json](#jsjson) | 19 | 0 | 3 | 3 | 0 |
 | [Js.Map](#jsmap) | 0 | 0 | 0 | 0 | 13 |
-| [Js.Math](#jsmath) | 0 | 14 | 0 | 45 | 0 |
-| [Js.Null](#jsnull) | 0 | 8 | 0 | 3 | 1 |
-| [Js.Nullable](#jsnullable) | 0 | 9 | 1 | 0 | 1 |
+| [Js.Math](#jsmath) | 57 | 0 | 2 | 0 | 0 |
+| [Js.Null](#jsnull) | 8 | 3 | 0 | 0 | 0 |
+| [Js.Nullable](#jsnullable) | 6 | 4 | 1 | 0 | 0 |
 | [Js.Obj](#jsobj) | 0 | 4 | 0 | 0 | 0 |
 | [Js.Promise](#jspromise) | 0 | 11 | 1 | 0 | 0 |
 | [Js.Re](#jsre) | 10 | 9 | 0 | 0 | 0 |
 | [Js.Set](#jsset) | 0 | 0 | 0 | 0 | 11 |
-| [Js.String](#jsstring) | 2 | 28 | 0 | 10 | 1 |
+| [Js.String](#jsstring) | 5 | 28 | 6 | 1 | 1 |
 | [Js.Types](#jstypes) | 0 | 0 | 0 | 2 | 0 |
-| [Js.Undefined](#jsundefined) | 0 | 7 | 0 | 5 | 1 |
+| [Js.Undefined](#jsundefined) | 8 | 3 | 0 | 1 | 0 |
 | [Js.Vector](#jsvector) | 0 | 6 | 0 | 14 | 0 |
 | [Js.WeakMap](#jsweakmap) | 0 | 0 | 0 | 0 | 5 |
 | [Js.WeakSet](#jsweakset) | 0 | 0 | 0 | 0 | 4 |
@@ -299,12 +299,12 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `anyToExnInternal` | 🔴 stub | Planned. |
-| `asJsExn` | 🔴 stub | Planned. |
-| `fileName` | 🔴 stub | Planned. |
-| `isCamlExceptionOrOpenVariant` | 🔴 stub | Planned. |
-| `message` | 🔴 stub | Planned. |
-| `name` | 🔴 stub | Planned. |
+| `anyToExnInternal` | 🔴 raises by design | Requires JS runtime type tags. |
+| `asJsExn` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml. |
+| `fileName` | 🟠 | Always None: native exceptions do not carry a file name. |
+| `isCamlExceptionOrOpenVariant` | 🔴 raises by design | Requires JS runtime type tags. |
+| `message` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml. |
+| `name` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml. |
 | `raiseError` | ⚪️ |  |
 | `raiseEvalError` | ⚪️ |  |
 | `raiseRangeError` | ⚪️ |  |
@@ -312,7 +312,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `raiseSyntaxError` | ⚪️ |  |
 | `raiseTypeError` | ⚪️ |  |
 | `raiseUriError` | ⚪️ |  |
-| `stack` | 🔴 stub | Planned. |
+| `stack` | 🟠 | Always None: native exceptions do not capture a JS-style stack trace. |
 
 ## Js.File
 
@@ -363,18 +363,18 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `clearInterval` | 🔴 stub | Planned: Lwt-based implementation (fires on the running Lwt main loop). |
-| `clearTimeout` | 🔴 stub | Planned: Lwt-based implementation (fires on the running Lwt main loop). |
+| `clearInterval` | 🟠 | Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml. |
+| `clearTimeout` | 🟠 | Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml. |
 | `decodeURI` | ⚪️ |  |
 | `decodeURIComponent` | ⚪️ |  |
 | `encodeURI` | ⚪️ |  |
 | `encodeURIComponent` | ⚪️ |  |
 | `parseFloat` | 🟢 | test262-derived suite: packages/Js/test/number_tests. Not in Melange 6.0.1-54. |
 | `parseInt` | 🟠 | Int-capped: huge values return nan where JS returns the float (audit/investigations/quickjs-divergence-status.md). Not in Melange 6.0.1-54. |
-| `setInterval` | 🔴 stub | Planned: Lwt-based implementation (fires on the running Lwt main loop). |
-| `setIntervalFloat` | 🔴 stub | Planned: Lwt-based implementation (fires on the running Lwt main loop). |
-| `setTimeout` | 🔴 stub | Planned: Lwt-based implementation (fires on the running Lwt main loop). |
-| `setTimeoutFloat` | 🔴 stub | Planned: Lwt-based implementation (fires on the running Lwt main loop). |
+| `setInterval` | 🟠 | Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml. |
+| `setIntervalFloat` | 🟠 | Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml. |
+| `setTimeout` | 🟠 | Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml. |
+| `setTimeoutFloat` | 🟠 | Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml. |
 
 ## Js.Int
 
@@ -400,31 +400,31 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `array` | 🔴 stub | Planned. |
-| `boolean` | 🔴 stub | Planned. |
-| `booleanArray` | 🔴 stub | Planned. |
-| `classify` | 🔴 stub | Planned. |
-| `decodeArray` | 🔴 stub | Planned. |
-| `decodeBoolean` | 🔴 stub | Planned. |
-| `decodeNull` | 🔴 stub | Planned. |
-| `decodeNumber` | 🔴 stub | Planned. |
-| `decodeObject` | 🔴 stub | Planned. |
-| `decodeString` | 🔴 stub | Planned. |
-| `deserializeUnsafe` | 🔴 stub | Planned. |
-| `null` | 🔴 stub | Planned. |
-| `number` | 🔴 stub | Planned. |
-| `numberArray` | 🔴 stub | Planned. |
-| `objectArray` | 🔴 stub | Planned. |
-| `object_` | 🔴 stub | Planned. |
-| `parseExn` | 🔴 stub | Planned. |
-| `patch` | 🔴 stub | Planned. Not in Melange 6.0.1-54. |
-| `serializeExn` | 🔴 stub | Planned. |
-| `string` | 🔴 stub | Planned. |
-| `stringArray` | 🔴 stub | Planned. |
-| `stringify` | 🔴 stub | Planned. |
-| `stringifyAny` | 🔴 stub | Planned. |
-| `stringifyWithSpace` | 🔴 stub | Planned. |
-| `test` | 🔴 stub | Planned. |
+| `array` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `boolean` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `booleanArray` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `classify` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `decodeArray` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `decodeBoolean` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `decodeNull` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `decodeNumber` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `decodeObject` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `decodeString` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `deserializeUnsafe` | 🔴 raises by design | Melange-internal raw deserialization; requires the JS runtime. |
+| `null` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `number` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `numberArray` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `objectArray` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `object_` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `parseExn` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `patch` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. Not in Melange 6.0.1-54. |
+| `serializeExn` | 🔴 raises by design | Melange-internal raw serialization; requires the JS runtime. |
+| `string` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `stringArray` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_json.ml. |
+| `stringify` | 🟠 | Object key order is Js.Dict's Hashtbl order, not insertion order. |
+| `stringifyAny` | 🔴 raises by design | Requires JS runtime type information for arbitrary values. |
+| `stringifyWithSpace` | 🟠 | Object key order is Js.Dict's Hashtbl order, not insertion order. |
+| `test` | 🟠 | First argument narrowed to t; Melange accepts any value (no runtime type info natively). |
 
 ## Js.Map
 
@@ -448,98 +448,97 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `_E` | ⚪️ |  |
-| `_LN10` | ⚪️ |  |
-| `_LN2` | ⚪️ |  |
-| `_LOG10E` | ⚪️ |  |
-| `_LOG2E` | ⚪️ |  |
-| `_PI` | ⚪️ |  |
-| `_SQRT1_2` | ⚪️ |  |
-| `_SQRT2` | ⚪️ |  |
-| `abs_float` | 🔴 stub | Planned. |
-| `abs_int` | 🔴 stub | Planned. |
-| `acos` | 🔴 stub | Planned. |
-| `acosh` | 🔴 stub | Planned. |
-| `asin` | 🔴 stub | Planned. |
-| `asinh` | 🔴 stub | Planned. |
-| `atan` | 🔴 stub | Planned. |
-| `atan2` | 🔴 stub | Planned. |
-| `atanh` | 🔴 stub | Planned. |
-| `cbrt` | 🔴 stub | Planned. |
-| `ceil_float` | 🔴 stub | Planned. |
-| `ceil_int` | 🔴 stub | Planned. |
-| `clz32` | 🔴 stub | Planned. |
-| `cos` | ⚪️ |  |
-| `cosh` | 🔴 stub | Planned. |
-| `exp` | 🔴 stub | Planned. |
-| `expm1` | 🔴 stub | Planned. |
-| `floor_float` | 🔴 stub | Planned. |
-| `floor_int` | 🔴 stub | Planned. |
-| `fround` | 🔴 stub | Planned. |
-| `hypot` | 🔴 stub | Planned. |
-| `hypotMany` | 🔴 stub | Planned. |
-| `imul` | 🔴 stub | Planned. |
-| `log` | 🔴 stub | Planned. |
-| `log10` | 🔴 stub | Planned. |
-| `log1p` | 🔴 stub | Planned. |
-| `log2` | 🔴 stub | Planned. |
-| `maxMany_float` | 🔴 stub | Planned. |
-| `maxMany_int` | 🔴 stub | Planned. |
-| `max_float` | ⚪️ |  |
-| `max_int` | ⚪️ |  |
-| `minMany_float` | 🔴 stub | Planned. |
-| `minMany_int` | 🔴 stub | Planned. |
-| `min_float` | ⚪️ |  |
-| `min_int` | ⚪️ |  |
-| `pow_float` | 🔴 stub | Planned. |
-| `random` | 🔴 stub | Planned. |
-| `random_int` | 🔴 stub | Planned. |
-| `round` | 🔴 stub | Planned. |
-| `sign_float` | 🔴 stub | Planned. |
-| `sign_int` | 🔴 stub | Planned. |
-| `sin` | ⚪️ |  |
-| `sinh` | 🔴 stub | Planned. |
-| `sqrt` | 🔴 stub | Planned. |
-| `tan` | 🔴 stub | Planned. |
-| `tanh` | 🔴 stub | Planned. |
-| `trunc` | 🔴 stub | Planned. |
-| `unsafe_ceil_int` | 🔴 stub | Planned. |
-| `unsafe_floor_int` | 🔴 stub | Planned. |
-| `unsafe_round` | 🔴 stub | Planned. |
-| `unsafe_trunc` | 🔴 stub | Planned. |
+| `_E` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `_LN10` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `_LN2` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `_LOG10E` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `_LOG2E` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `_PI` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `_SQRT1_2` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `_SQRT2` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `abs_float` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `abs_int` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `acos` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `acosh` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `asin` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `asinh` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `atan` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `atan2` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `atanh` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `cbrt` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `ceil_float` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `ceil_int` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `clz32` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `cos` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `cosh` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `exp` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `expm1` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `floor_float` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `floor_int` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `fround` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `hypot` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `hypotMany` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `imul` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `log` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `log10` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `log1p` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `log2` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `maxMany_float` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `maxMany_int` | 🟠 | Empty array returns min_int; JS Math.max() returns -Infinity. Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `max_float` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `max_int` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `minMany_float` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `minMany_int` | 🟠 | Empty array returns max_int; JS Math.min() returns Infinity. Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `min_float` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `min_int` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `pow_float` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `random` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `random_int` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `round` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `sign_float` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `sign_int` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `sin` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `sinh` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `sqrt` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `tan` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `tanh` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `trunc` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `unsafe_ceil_int` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `unsafe_floor_int` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `unsafe_round` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
+| `unsafe_trunc` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_math.ml. |
 
 ## Js.Null
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `bind` | 🔴 stub | Planned. |
-| `empty` | ⚪️ |  |
+| `bind` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_null.ml. |
+| `empty` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_null.ml. |
 | `fromOpt` | ⚪️ | Not in Melange 6.0.1-54. |
-| `fromOption` | ⚪️ |  |
+| `fromOption` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_null.ml. |
 | `from_opt` | ⚪️ | Not in Melange 6.0.1-54. |
-| `getExn` | 🔴 stub | Planned. |
+| `getExn` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_null.ml. |
 | `getUnsafe` | ⚪️ |  |
-| `iter` | 🔴 stub | Planned. |
-| `map` | ➖ missing |  |
-| `return` | ⚪️ |  |
-| `test` | ⚪️ | Not in Melange 6.0.1-54. |
-| `toOption` | ⚪️ |  |
+| `iter` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_null.ml. |
+| `map` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_null.ml. |
+| `return` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_null.ml. |
+| `toOption` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_null.ml. |
 
 ## Js.Nullable
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `bind` | 🟠 | Signature is 'b t -> ('b -> 'b) -> 'b t; Melange is 'a t -> ('a -> 'b) -> 'b t. |
+| `bind` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml. |
 | `fromOption` | ⚪️ |  |
 | `from_opt` | ⚪️ | Not in Melange 6.0.1-54. |
-| `isNullable` | ⚪️ |  |
-| `iter` | ⚪️ |  |
-| `map` | ➖ missing |  |
-| `null` | ⚪️ |  |
-| `return` | ⚪️ |  |
+| `isNullable` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml. |
+| `iter` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml. |
+| `map` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml. |
+| `null` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml. |
+| `return` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml. |
 | `toOption` | ⚪️ |  |
 | `to_opt` | ⚪️ | Not in Melange 6.0.1-54. |
-| `undefined` | ⚪️ |  |
+| `undefined` | 🟠 | null and undefined are both represented as None natively. |
 
 ## Js.Obj
 
@@ -611,7 +610,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `anchor` | 🔴 stub | Planned. |
+| `anchor` | 🟢 | node-cited test in packages/Js/test/test.ml. |
 | `charAt` | ⚪️ |  |
 | `charCodeAt` | ⚪️ |  |
 | `codePointAt` | ⚪️ |  |
@@ -627,9 +626,9 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `indexOf` | ⚪️ |  |
 | `lastIndexOf` | ⚪️ |  |
 | `length` | ⚪️ |  |
-| `link` | 🔴 stub | Planned. |
-| `localeCompare` | 🔴 stub | Planned. |
-| `make` | 🔴 stub | Planned. |
+| `link` | 🟢 | node-cited test in packages/Js/test/test.ml. |
+| `localeCompare` | 🟠 | Byte-wise comparison; no locale-aware collation (ICU) on the server. |
+| `make` | 🔴 raises by design | Requires JS String() coercion of arbitrary values. |
 | `match_` | ⚪️ |  |
 | `normalize` | 🟢 | test262-derived suite: packages/Js/test/string_tests. |
 | `repeat` | ⚪️ |  |
@@ -642,15 +641,15 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `startsWith` | ⚪️ |  |
 | `substr` | ⚪️ |  |
 | `substring` | ⚪️ |  |
-| `toLocaleLowerCase` | 🔴 stub | Planned. |
-| `toLocaleUpperCase` | 🔴 stub | Planned. |
+| `toLocaleLowerCase` | 🟠 | Aliased to toLowerCase; no locale handling. |
+| `toLocaleUpperCase` | 🟠 | Aliased to toUpperCase; no locale handling. |
 | `toLowerCase` | ⚪️ |  |
 | `toUpperCase` | ⚪️ |  |
 | `trim` | ⚪️ |  |
-| `unsafeReplaceBy0` | 🔴 stub | Planned. |
-| `unsafeReplaceBy1` | 🔴 stub | Planned. |
-| `unsafeReplaceBy2` | 🔴 stub | Planned. |
-| `unsafeReplaceBy3` | 🔴 stub | Planned. |
+| `unsafeReplaceBy0` | 🟢 | node-cited tests in packages/Js/test/test.ml. |
+| `unsafeReplaceBy1` | 🟠 | Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml. |
+| `unsafeReplaceBy2` | 🟠 | Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml. |
+| `unsafeReplaceBy3` | 🟠 | Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml. |
 | `unsafeToArrayLike` | ➖ missing |  |
 
 ## Js.Types
@@ -664,19 +663,18 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `bind` | 🔴 stub | Planned. |
-| `empty` | ⚪️ |  |
+| `bind` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
+| `empty` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
 | `fromOpt` | ⚪️ | Not in Melange 6.0.1-54. |
-| `fromOption` | ⚪️ |  |
+| `fromOption` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
 | `from_opt` | ⚪️ | Not in Melange 6.0.1-54. |
-| `getExn` | 🔴 stub | Planned. |
+| `getExn` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
 | `getUnsafe` | ⚪️ |  |
-| `iter` | 🔴 stub | Planned. |
-| `map` | ➖ missing |  |
-| `return` | ⚪️ |  |
-| `test` | 🔴 stub | Planned. Not in Melange 6.0.1-54. |
-| `testAny` | 🔴 stub | Planned. |
-| `toOption` | ⚪️ |  |
+| `iter` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
+| `map` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
+| `return` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
+| `testAny` | 🔴 raises by design | Requires JS runtime type tags: nothing is undefined natively. |
+| `toOption` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
 
 ## Js.Vector
 

@@ -41,7 +41,9 @@ let lastIndexOf ~search ?start str =
   | None -> Quickjs.String.Prototype.last_index_of search str
   | Some start -> Quickjs.String.Prototype.last_index_of_from search start str
 
-let localeCompare ~other:_ _ = Js_internal.notImplemented "Js.String" "localeCompare"
+(* No locale-aware collation (ICU) on the server: byte-wise comparison.
+   Diverges from JS for case-mixed and non-ASCII strings. *)
+let localeCompare ~other str = Stdlib.float_of_int (Stdlib.compare (Stdlib.String.compare str other) 0)
 
 (* Removes the given flag from a JavaScript flags string, e.g. [remove_flag 'g' "gi"] is ["i"]. *)
 let remove_flag flag flags =
@@ -149,12 +151,14 @@ let is_full_unicode regexp =
   let flags = Js_re.flags regexp in
   Stdlib.String.contains flags 'u' || Stdlib.String.contains flags 'v'
 
-let replaceByRe ~regexp ~replacement str =
+(* Shared driver for RegExp.prototype[Symbol.replace] (ECMA-262 22.2.6.11).
+   [compute] produces the replacement text for one match; it receives the
+   captures, the UTF-16 index of the match start, and the byte range of the
+   match within [str]. *)
+let replace_driver ~regexp str ~compute =
   let str_byte_length = Stdlib.String.length str in
-  let add_replacement buf ~matches ~match_start_byte ~match_end_byte =
-    let prefix = Stdlib.String.sub str 0 match_start_byte in
-    let suffix = Stdlib.String.sub str match_end_byte (str_byte_length - match_end_byte) in
-    Buffer.add_string buf (process_replacement ~replacement ~matches ~prefix ~suffix)
+  let add_replacement buf ~matches ~match_start ~match_start_byte ~match_end_byte =
+    Buffer.add_string buf (compute ~matches ~match_start ~match_start_byte ~match_end_byte)
   in
   if Js_re.global regexp then (
     (* RegExp.prototype[Symbol.replace] (ECMA-262 22.2.6.11): with the global
@@ -175,7 +179,7 @@ let replaceByRe ~regexp ~replacement str =
           let match_start_byte = Quickjs.String.byte_index_of_utf16 str match_start in
           let match_end_byte = Quickjs.String.byte_index_of_utf16 str match_end in
           Buffer.add_string buf (Stdlib.String.sub str !previous_end_byte (match_start_byte - !previous_end_byte));
-          add_replacement buf ~matches:(Js_re.captures result) ~match_start_byte ~match_end_byte;
+          add_replacement buf ~matches:(Js_re.captures result) ~match_start ~match_start_byte ~match_end_byte;
           previous_end_byte := match_end_byte;
           if match_end = match_start then Js_re.setLastIndex regexp (advance_string_index str match_start unicode);
           loop ()
@@ -201,14 +205,39 @@ let replaceByRe ~regexp ~replacement str =
         let match_end_byte = Quickjs.String.byte_index_of_utf16 str match_end in
         let buf = Buffer.create str_byte_length in
         Buffer.add_string buf (Stdlib.String.sub str 0 match_start_byte);
-        add_replacement buf ~matches ~match_start_byte ~match_end_byte;
+        add_replacement buf ~matches ~match_start ~match_start_byte ~match_end_byte;
         Buffer.add_string buf (Stdlib.String.sub str match_end_byte (str_byte_length - match_end_byte));
         Buffer.contents buf
 
-let unsafeReplaceBy0 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy0"
-let unsafeReplaceBy1 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy1"
-let unsafeReplaceBy2 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy2"
-let unsafeReplaceBy3 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy3"
+let replaceByRe ~regexp ~replacement str =
+  let str_byte_length = Stdlib.String.length str in
+  replace_driver ~regexp str ~compute:(fun ~matches ~match_start:_ ~match_start_byte ~match_end_byte ->
+      let prefix = Stdlib.String.sub str 0 match_start_byte in
+      let suffix = Stdlib.String.sub str match_end_byte (str_byte_length - match_end_byte) in
+      process_replacement ~replacement ~matches ~prefix ~suffix)
+
+(* The unsafeReplaceByN functions pass the matched text, the first N capture
+   groups, the UTF-16 offset of the match, and the whole string to [f]. Like
+   JavaScript, a capture group that did not participate in the match is passed
+   as an "empty" value; Melange leaks [undefined], natively it is [""]. *)
+let capture matches n =
+  if n >= Stdlib.Array.length matches then "" else match Stdlib.Array.get matches n with Some c -> c | None -> ""
+
+let unsafeReplaceBy0 ~regexp ~f str =
+  replace_driver ~regexp str ~compute:(fun ~matches ~match_start ~match_start_byte:_ ~match_end_byte:_ ->
+      f (capture matches 0) match_start str)
+
+let unsafeReplaceBy1 ~regexp ~f str =
+  replace_driver ~regexp str ~compute:(fun ~matches ~match_start ~match_start_byte:_ ~match_end_byte:_ ->
+      f (capture matches 0) (capture matches 1) match_start str)
+
+let unsafeReplaceBy2 ~regexp ~f str =
+  replace_driver ~regexp str ~compute:(fun ~matches ~match_start ~match_start_byte:_ ~match_end_byte:_ ->
+      f (capture matches 0) (capture matches 1) (capture matches 2) match_start str)
+
+let unsafeReplaceBy3 ~regexp ~f str =
+  replace_driver ~regexp str ~compute:(fun ~matches ~match_start ~match_start_byte:_ ~match_end_byte:_ ->
+      f (capture matches 0) (capture matches 1) (capture matches 2) (capture matches 3) match_start str)
 
 let search ~regexp str =
   (* RegExp.prototype[Symbol.search] (ECMA-262 22.2.6.12): search from 0 and
@@ -328,9 +357,21 @@ let substring ?start ?end_ str =
   | Some start, Some end_ -> Quickjs.String.Prototype.substring ~start ~end_ str
 
 let toLowerCase str = Quickjs.String.Prototype.to_lower_case str
-let toLocaleLowerCase _ = Js_internal.notImplemented "Js.String" "toLocaleLowerCase"
+
+(* Locale-insensitive: aliased to toLowerCase (no ICU on the server). *)
+let toLocaleLowerCase str = Quickjs.String.Prototype.to_lower_case str
 let toUpperCase str = Quickjs.String.Prototype.to_upper_case str
-let toLocaleUpperCase _ = Js_internal.notImplemented "Js.String" "toLocaleUpperCase"
+
+(* Locale-insensitive: aliased to toUpperCase (no ICU on the server). *)
+let toLocaleUpperCase str = Quickjs.String.Prototype.to_upper_case str
 let trim str = Quickjs.String.Prototype.trim str
-let anchor ~name:_ _ = Js_internal.notImplemented "Js.String" "anchor"
-let link ~href:_ _ = Js_internal.notImplemented "Js.String" "link"
+
+(* String.prototype.anchor/link (ECMA-262 B.2.2, CreateHTML): double quotes
+   in the attribute value are replaced with &quot;. *)
+let escape_html_attribute value =
+  let buf = Buffer.create (Stdlib.String.length value) in
+  Stdlib.String.iter (fun c -> if c = '"' then Buffer.add_string buf "&quot;" else Buffer.add_char buf c) value;
+  Buffer.contents buf
+
+let anchor ~name str = "<a name=\"" ^ escape_html_attribute name ^ "\">" ^ str ^ "</a>"
+let link ~href str = "<a href=\"" ^ escape_html_attribute href ^ "\">" ^ str ^ "</a>"

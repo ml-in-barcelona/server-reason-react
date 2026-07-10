@@ -1,17 +1,45 @@
 (** Contains functions available in the global scope ([window] in a browser context) *)
 
-type intervalId
+(* Timers are scheduled on the Lwt event loop: callbacks only fire while an
+   Lwt main loop is running (Lwt_main.run, Dream, etc.), which every
+   server-reason-react deployment does. Like node, an exception raised inside
+   a timer callback reaches Lwt.async_exception_hook and terminates the
+   process by default. JS timers clamp negative delays to 0. *)
+
+type intervalId = unit Lwt.t
 (** Identify an interval started by {! setInterval} *)
 
-type timeoutId
+type timeoutId = unit Lwt.t
 (** Identify timeout started by {! setTimeout} *)
 
-let clearInterval _intervalId = Js_internal.notImplemented "Js.Global" "clearInterval"
-let clearTimeout _timeoutId = Js_internal.notImplemented "Js.Global" "clearTimeout"
-let setInterval ~f:_ _ = Js_internal.notImplemented "Js.Global" "setInterval"
-let setIntervalFloat ~f:_ _ = Js_internal.notImplemented "Js.Global" "setInterval"
-let setTimeout ~f:_ _ = Js_internal.notImplemented "Js.Global" "setTimeout"
-let setTimeoutFloat ~f:_ _ = Js_internal.notImplemented "Js.Global" "setTimeout"
+let sleep_seconds_of_millis millis = if millis <= 0. then 0. else millis /. 1000.
+
+let start_timeout ~f millis : timeoutId =
+  let task =
+    let%lwt () = Lwt_unix.sleep (sleep_seconds_of_millis millis) in
+    f ();
+    Lwt.return_unit
+  in
+  Lwt.async (fun () -> Lwt.catch (fun () -> task) (function Lwt.Canceled -> Lwt.return_unit | exn -> raise exn));
+  task
+
+let start_interval ~f millis : intervalId =
+  let delay = sleep_seconds_of_millis millis in
+  let rec loop () =
+    let%lwt () = Lwt_unix.sleep delay in
+    f ();
+    loop ()
+  in
+  let task = loop () in
+  Lwt.async (fun () -> Lwt.catch (fun () -> task) (function Lwt.Canceled -> Lwt.return_unit | exn -> raise exn));
+  task
+
+let clearInterval (intervalId : intervalId) = Lwt.cancel intervalId
+let clearTimeout (timeoutId : timeoutId) = Lwt.cancel timeoutId
+let setInterval ~f millis : intervalId = start_interval ~f (Stdlib.float_of_int millis)
+let setIntervalFloat ~f millis : intervalId = start_interval ~f millis
+let setTimeout ~f millis : timeoutId = start_timeout ~f (Stdlib.float_of_int millis)
+let setTimeoutFloat ~f millis : timeoutId = start_timeout ~f millis
 
 module URI = struct
   let int_of_hex_opt str = try Some (Scanf.sscanf str "%x%!" (fun x -> x)) with _ -> None

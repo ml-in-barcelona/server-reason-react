@@ -6,11 +6,12 @@ let empty = None
 external toOption : 'a t -> 'a option = "%identity"
 external fromOpt : 'a option -> 'a t = "%identity"
 
-let getExn _ = Js_internal.notImplemented "Js.Undefined" "getExn"
+(* Melange raises a JS Error with this exact message. *)
+let getExn f = match toOption f with None -> Js_exn.raiseError "Js.Undefined.getExn" | Some x -> x
 let getUnsafe a = match toOption a with None -> assert false | Some a -> a
-let bind _ _ = Js_internal.notImplemented "Js.Undefined" "bind"
-let iter _ _ = Js_internal.notImplemented "Js.Undefined" "iter"
+let map ~f x = match toOption x with None -> empty | Some x -> return (f x)
+let bind ~f x = match toOption x with None -> empty | Some x -> f x
+let iter ~f x = match toOption x with None -> () | Some x -> f x
 let testAny _ = Js_internal.notImplemented "Js.Undefined" "testAny"
-let test _ = Js_internal.notImplemented "Js.Undefined" "test"
 let fromOption = fromOpt
 let from_opt = fromOpt
