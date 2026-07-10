@@ -844,11 +844,21 @@ let () =
          ("Js.Math", math_tests);
          (* Ported from Melange's test suite (jscomp/test) *)
          ("Melange.Js.Math", Melange_tests.Js_math.tests);
+         ("Melange.Js.Array", Melange_tests.Js_array.tests);
          ("Melange.Js.Json", Melange_tests.Js_json.tests);
+         ("Melange.Js.Dict", Melange_tests.Js_dict.tests);
+         ("Melange.Js.Obj", Melange_tests.Js_obj.tests);
+         ("Melange.Js.Global", Melange_tests.Js_global.tests);
+         ("Melange.Js.Int", Melange_tests.Js_int.tests);
+         ("Melange.Js.Float", Melange_tests.Js_float.tests);
          ("Melange.Js.Null", Melange_tests.Js_null.tests);
+         ("Melange.Js.Promise", Melange_tests.Js_promise.tests);
+         ("Melange.Js.Re", Melange_tests.Js_re.tests);
          ("Melange.Js.Undefined", Melange_tests.Js_undefined.tests);
          ("Melange.Js.Nullable", Melange_tests.Js_nullable.tests);
          ("Melange.Js.Exn", Melange_tests.Js_exn.tests);
+         ("Melange.Js.String", Melange_tests.Js_string.tests);
+         ("Melange.Js.Date", Melange_tests.Js_date.tests);
          ("Js.Promise", promise_tests);
          ("Js.Float", float_tests);
          ("Js.String", string_tests);

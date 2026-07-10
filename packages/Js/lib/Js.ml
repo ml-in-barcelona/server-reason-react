@@ -111,11 +111,9 @@ module Json = Js_json
 module Math = Js_math
 module Obj = Js_obj
 module Typed_array = Js_typed_array
-module TypedArray2 = Js_typed_array2
 module Float = Js_float
 module Int = Js_int
 module Bigint = Js_bigint
-module Vector = Js_vector
 module Console = Js_console
 
 let log = Console.log

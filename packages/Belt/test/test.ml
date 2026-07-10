@@ -7,5 +7,10 @@ let () =
    @ Test_Belt_SortArray_Int.suites @ Test_Belt_SortArray_String.suites @ Test_Belt_MutableMap.suites
    @ Test_Belt_MutableMap_Int.suites @ Test_Belt_MutableMap_String.suites @ Test_Belt_MutableSet.suites
    @ Test_Belt_MutableSet_Int.suites @ Test_Belt_MutableSet_String.suites @ Test_Belt_HashMap.suites
-   @ Test_Belt_HashMap_Int.suites @ Test_Belt_HashMap_String.suites @ Test_Belt_HashSet_Int.suites
-   @ Test_Belt_HashSet_String.suites @ Test_Belt_MutableQueue.suites @ Test_Belt_MutableStack.suites)
+   @ Test_Belt_HashMap_Int.suites @ Test_Belt_HashMap_String.suites @ Test_Melange_Belt_Array.suites
+   @ Test_Melange_Belt_List.suites @ Test_Belt_HashSet_Int.suites @ Test_Melange_Belt_Map.suites
+   @ Test_Melange_Belt_MapSetDict.suites @ Test_Melange_Belt_SetInt.suites @ Test_Melange_Belt_MutableSet.suites
+   @ Test_Belt_HashSet_String.suites @ Test_Belt_MutableQueue.suites @ Test_Melange_Belt_MutableQueue.suites
+   @ Test_Melange_Belt_MutableStack.suites @ Test_Melange_Belt_SortArray.suites @ Test_Melange_Belt_HashMap.suites
+   @ Test_Melange_Belt_HashSetInt.suites @ Test_Melange_Belt_Float.suites @ Test_Melange_Belt_Int.suites
+   @ Test_Belt_MutableStack.suites)

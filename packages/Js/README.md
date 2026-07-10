@@ -18,18 +18,18 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | Module | 🟢 | ⚪️ | 🟠 | 🔴 | ➖ |
 | --- | --- | --- | --- | --- | --- |
 | [Js](#js) | 0 | 12 | 0 | 1 | 10 |
-| [Js.Array](#jsarray) | 0 | 27 | 4 | 18 | 15 |
+| [Js.Array](#jsarray) | 25 | 2 | 4 | 18 | 15 |
 | [Js.Bigint](#jsbigint) | 0 | 27 | 2 | 0 | 4 |
 | [Js.Blob](#jsblob) | 0 | 0 | 0 | 0 | 7 |
 | [Js.Console](#jsconsole) | 0 | 0 | 23 | 0 | 0 |
-| [Js.Date](#jsdate) | 45 | 4 | 3 | 0 | 0 |
+| [Js.Date](#jsdate) | 47 | 2 | 3 | 0 | 0 |
 | [Js.Dict](#jsdict) | 0 | 6 | 5 | 0 | 0 |
 | [Js.Exn](#jsexn) | 3 | 7 | 2 | 2 | 0 |
 | [Js.File](#jsfile) | 0 | 0 | 0 | 0 | 9 |
-| [Js.Float](#jsfloat) | 2 | 7 | 0 | 0 | 0 |
+| [Js.Float](#jsfloat) | 1 | 6 | 2 | 0 | 0 |
 | [Js.FormData](#jsformdata) | 0 | 4 | 0 | 0 | 8 |
 | [Js.Global](#jsglobal) | 1 | 4 | 7 | 0 | 0 |
-| [Js.Int](#jsint) | 0 | 7 | 0 | 0 | 0 |
+| [Js.Int](#jsint) | 0 | 6 | 1 | 0 | 0 |
 | [Js.Iterator](#jsiterator) | 0 | 0 | 0 | 0 | 3 |
 | [Js.Json](#jsjson) | 19 | 0 | 3 | 3 | 0 |
 | [Js.Map](#jsmap) | 0 | 0 | 0 | 0 | 13 |
@@ -37,13 +37,12 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | [Js.Null](#jsnull) | 8 | 3 | 0 | 0 | 0 |
 | [Js.Nullable](#jsnullable) | 6 | 4 | 1 | 0 | 0 |
 | [Js.Obj](#jsobj) | 0 | 4 | 0 | 0 | 0 |
-| [Js.Promise](#jspromise) | 0 | 11 | 1 | 0 | 0 |
-| [Js.Re](#jsre) | 10 | 9 | 0 | 0 | 0 |
+| [Js.Promise](#jspromise) | 3 | 8 | 1 | 0 | 0 |
+| [Js.Re](#jsre) | 17 | 2 | 0 | 0 | 0 |
 | [Js.Set](#jsset) | 0 | 0 | 0 | 0 | 11 |
-| [Js.String](#jsstring) | 5 | 28 | 6 | 1 | 1 |
+| [Js.String](#jsstring) | 33 | 0 | 6 | 1 | 1 |
 | [Js.Types](#jstypes) | 0 | 0 | 0 | 2 | 0 |
 | [Js.Undefined](#jsundefined) | 8 | 3 | 0 | 1 | 0 |
-| [Js.Vector](#jsvector) | 0 | 6 | 0 | 14 | 0 |
 | [Js.WeakMap](#jsweakmap) | 0 | 0 | 0 | 0 | 5 |
 | [Js.WeakSet](#jsweakset) | 0 | 0 | 0 | 0 | 4 |
 
@@ -80,55 +79,55 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | Function | Status | Notes |
 | --- | --- | --- |
 | `at` | ➖ missing |  |
-| `concat` | ⚪️ |  |
-| `concatMany` | ⚪️ |  |
-| `copy` | ⚪️ |  |
+| `concat` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `concatMany` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `copy` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `copyWithin` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `entries` | ➖ missing |  |
-| `every` | ⚪️ |  |
-| `everyi` | ⚪️ |  |
+| `every` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `everyi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `fill` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
-| `filter` | ⚪️ |  |
-| `filteri` | ⚪️ |  |
-| `find` | ⚪️ |  |
-| `findIndex` | ⚪️ |  |
-| `findIndexi` | ⚪️ |  |
+| `filter` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `filteri` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `find` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `findIndex` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `findIndexi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `findLast` | ➖ missing |  |
 | `findLastIndex` | ➖ missing |  |
 | `findLastIndexi` | ➖ missing |  |
 | `findLasti` | ➖ missing |  |
-| `findi` | ⚪️ |  |
+| `findi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `flat` | ➖ missing |  |
-| `forEach` | ⚪️ |  |
-| `forEachi` | ⚪️ |  |
+| `forEach` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `forEachi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `from` | 🔴 raises by design | Requires JS iterables; array_like values cannot be constructed natively. |
 | `fromMap` | 🔴 raises by design | Requires JS iterables; array_like values cannot be constructed natively. |
 | `includes` | 🟠 | Uses OCaml structural equality; JS SameValueZero differs (NaN, object identity). |
 | `indexOf` | 🟠 | Negative ~start handling diverges from JS (audit/areas/belt-js.md). |
 | `isArray` | 🟠 | Always returns true; there is no runtime type information (Js_array.ml:10). |
-| `join` | ⚪️ |  |
+| `join` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `keys` | ➖ missing |  |
-| `lastIndexOf` | ⚪️ |  |
+| `lastIndexOf` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `lastIndexOfFrom` | 🟠 | Negative ~from handling diverges from JS (audit/areas/belt-js.md). |
-| `length` | ⚪️ |  |
-| `map` | ⚪️ |  |
-| `mapi` | ⚪️ |  |
+| `length` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `map` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `mapi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `pop` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `push` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `pushMany` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
-| `reduce` | ⚪️ |  |
-| `reduceRight` | ⚪️ |  |
-| `reduceRighti` | ⚪️ |  |
-| `reducei` | ⚪️ |  |
+| `reduce` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `reduceRight` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `reduceRighti` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `reducei` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `removeCount` | ➖ missing |  |
 | `removeCountInPlace` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `removeFrom` | ➖ missing |  |
 | `removeFromInPlace` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `reverseInPlace` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `shift` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
-| `slice` | ⚪️ |  |
-| `some` | ⚪️ |  |
-| `somei` | ⚪️ |  |
+| `slice` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `some` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
+| `somei` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `sortInPlace` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `sortInPlaceWith` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
 | `spliceInPlace` | 🔴 raises by design | OCaml arrays are fixed-length; in-place JS array mutation is unsupported. |
@@ -249,7 +248,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `make` | 🟢 | test262-derived suite: packages/Js/test/date_tests. |
 | `now` | 🟢 | test262-derived suite: packages/Js/test/date_tests. |
 | `parse` | ⚪️ | Not in Melange 6.0.1-54. |
-| `parseAsFloat` | ⚪️ |  |
+| `parseAsFloat` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_date.ml. |
 | `setDate` | 🟢 | test262-derived suite: packages/Js/test/date_tests. |
 | `setFullYear` | 🟢 | test262-derived suite: packages/Js/test/date_tests. |
 | `setHours` | 🟢 | test262-derived suite: packages/Js/test/date_tests. |
@@ -276,7 +275,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `toString` | 🟢 | test262-derived suite: packages/Js/test/date_tests. |
 | `toTimeString` | 🟢 | test262-derived suite: packages/Js/test/date_tests. |
 | `toUTCString` | 🟢 | test262-derived suite: packages/Js/test/date_tests. |
-| `utc` | ⚪️ |  |
+| `utc` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_date.ml. |
 | `valueOf` | 🟢 | test262-derived suite: packages/Js/test/date_tests. |
 
 ## Js.Dict
@@ -337,8 +336,8 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `isFinite` | ⚪️ |  |
 | `isInteger` | ⚪️ | Not in Melange 6.0.1-54. |
 | `isNaN` | ⚪️ |  |
-| `toExponential` | ⚪️ |  |
-| `toFixed` | 🟢 | test262-derived suite: packages/Js/test/number_tests. |
+| `toExponential` | 🟠 | Without ~digits, returns Number.prototype.toString output ("123.456"); JS returns "1.23456e+2" (node). Found porting melange js_float_test.ml. |
+| `toFixed` | 🟠 | Values >= 1e21 print in positional notation; JS toFixed switches to exponential ("1.2e+21") (node). Found porting melange js_float_test.ml. |
 | `toPrecision` | ⚪️ |  |
 | `toString` | 🟢 | test262-derived suite: packages/Js/test/number_tests. |
 
@@ -383,7 +382,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `equal` | ⚪️ |  |
 | `max` | ⚪️ |  |
 | `min` | ⚪️ |  |
-| `toExponential` | ⚪️ |  |
+| `toExponential` | 🟠 | Without ~digits, returns Number.prototype.toString output ("123456"); JS returns "1.23456e+5" (node). Found porting melange js_int_test.ml. |
 | `toFloat` | ⚪️ |  |
 | `toPrecision` | ⚪️ |  |
 | `toString` | ⚪️ |  |
@@ -554,7 +553,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | Function | Status | Notes |
 | --- | --- | --- |
 | `all` | ⚪️ |  |
-| `all2` | ⚪️ |  |
+| `all2` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml. |
 | `all3` | ⚪️ |  |
 | `all4` | ⚪️ |  |
 | `all5` | ⚪️ |  |
@@ -563,14 +562,14 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `make` | ⚪️ |  |
 | `race` | 🟠 | Raises on an empty array; JS returns a forever-pending promise. |
 | `reject` | ⚪️ |  |
-| `resolve` | ⚪️ |  |
-| `then_` | ⚪️ |  |
+| `resolve` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml. |
+| `then_` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml. |
 
 ## Js.Re
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `captures` | ⚪️ |  |
+| `captures` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_re.ml. |
 | `dotAll` | 🟢 | test262-derived suite: packages/Js/test/regexp_tests. Not in Melange 6.0.1-54. |
 | `exec` | 🟢 | test262-derived suite: packages/Js/test/regexp_tests. |
 | `flags` | 🟢 | test262-derived suite: packages/Js/test/regexp_tests. |
@@ -580,13 +579,13 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `group` | ⚪️ | Not in Melange 6.0.1-54. |
 | `groups` | ⚪️ | Not in Melange 6.0.1-54. |
 | `ignoreCase` | 🟢 | test262-derived suite: packages/Js/test/regexp_tests. |
-| `index` | ⚪️ |  |
-| `input` | ⚪️ |  |
-| `lastIndex` | ⚪️ |  |
+| `index` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_re.ml. |
+| `input` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_re.ml. |
+| `lastIndex` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_re.ml. |
 | `multiline` | 🟢 | test262-derived suite: packages/Js/test/regexp_tests. |
-| `setLastIndex` | ⚪️ |  |
-| `source` | ⚪️ |  |
-| `sticky` | ⚪️ |  |
+| `setLastIndex` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_re.ml. |
+| `source` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_re.ml. |
+| `sticky` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_re.ml. |
 | `test` | 🟢 | test262-derived suite: packages/Js/test/regexp_tests. |
 | `unicode` | 🟢 | test262-derived suite: packages/Js/test/regexp_tests. |
 
@@ -611,41 +610,41 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | Function | Status | Notes |
 | --- | --- | --- |
 | `anchor` | 🟢 | node-cited test in packages/Js/test/test.ml. |
-| `charAt` | ⚪️ |  |
-| `charCodeAt` | ⚪️ |  |
-| `codePointAt` | ⚪️ |  |
-| `concat` | ⚪️ |  |
-| `concatMany` | ⚪️ |  |
-| `endsWith` | ⚪️ |  |
-| `fromCharCode` | ⚪️ |  |
-| `fromCharCodeMany` | ⚪️ |  |
-| `fromCodePoint` | ⚪️ |  |
-| `fromCodePointMany` | ⚪️ |  |
-| `get` | ⚪️ |  |
-| `includes` | ⚪️ |  |
-| `indexOf` | ⚪️ |  |
-| `lastIndexOf` | ⚪️ |  |
-| `length` | ⚪️ |  |
+| `charAt` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `charCodeAt` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `codePointAt` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `concat` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `concatMany` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `endsWith` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `fromCharCode` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `fromCharCodeMany` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `fromCodePoint` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `fromCodePointMany` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `get` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `includes` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `indexOf` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `lastIndexOf` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `length` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
 | `link` | 🟢 | node-cited test in packages/Js/test/test.ml. |
 | `localeCompare` | 🟠 | Byte-wise comparison; no locale-aware collation (ICU) on the server. |
 | `make` | 🔴 raises by design | Requires JS String() coercion of arbitrary values. |
-| `match_` | ⚪️ |  |
+| `match_` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
 | `normalize` | 🟢 | test262-derived suite: packages/Js/test/string_tests. |
-| `repeat` | ⚪️ |  |
-| `replace` | ⚪️ |  |
-| `replaceByRe` | ⚪️ |  |
+| `repeat` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `replace` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `replaceByRe` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
 | `search` | 🟢 | test262-derived suite: packages/Js/test/string_tests. |
-| `slice` | ⚪️ |  |
-| `split` | ⚪️ |  |
-| `splitByRe` | ⚪️ |  |
-| `startsWith` | ⚪️ |  |
-| `substr` | ⚪️ |  |
-| `substring` | ⚪️ |  |
+| `slice` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `split` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `splitByRe` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `startsWith` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `substr` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `substring` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
 | `toLocaleLowerCase` | 🟠 | Aliased to toLowerCase; no locale handling. |
 | `toLocaleUpperCase` | 🟠 | Aliased to toUpperCase; no locale handling. |
-| `toLowerCase` | ⚪️ |  |
-| `toUpperCase` | ⚪️ |  |
-| `trim` | ⚪️ |  |
+| `toLowerCase` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `toUpperCase` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
+| `trim` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_string.ml. |
 | `unsafeReplaceBy0` | 🟢 | node-cited tests in packages/Js/test/test.ml. |
 | `unsafeReplaceBy1` | 🟠 | Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml. |
 | `unsafeReplaceBy2` | 🟠 | Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml. |
@@ -675,31 +674,6 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `return` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
 | `testAny` | 🔴 raises by design | Requires JS runtime type tags: nothing is undefined natively. |
 | `toOption` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_undefined.ml. |
-
-## Js.Vector
-
-| Function | Status | Notes |
-| --- | --- | --- |
-| `append` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `copy` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `empty` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `filterInPlace` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `foldLeft` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `foldRight` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `get` | ⚪️ | Not in Melange 6.0.1-54. |
-| `init` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `iter` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `iteri` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `length` | ⚪️ | Not in Melange 6.0.1-54. |
-| `make` | ⚪️ | Not in Melange 6.0.1-54. |
-| `map` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `mapi` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `memByRef` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `pushBack` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `set` | ⚪️ | Not in Melange 6.0.1-54. |
-| `toList` | 🔴 raises by design | Legacy module removed in Melange 6; scheduled for deletion. Not in Melange 6.0.1-54. |
-| `unsafe_get` | ⚪️ | Not in Melange 6.0.1-54. |
-| `unsafe_set` | ⚪️ | Not in Melange 6.0.1-54. |
 
 ## Js.WeakMap
 

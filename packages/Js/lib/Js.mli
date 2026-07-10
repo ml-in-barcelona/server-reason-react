@@ -59,11 +59,9 @@ module Json : module type of Js_json
 module Math : module type of Js_math
 module Obj : module type of Js_obj
 module Typed_array : module type of Js_typed_array
-module TypedArray2 : module type of Js_typed_array2
 module Float : module type of Js_float
 module Int : module type of Js_int
 module Bigint : module type of Js_bigint
-module Vector : module type of Js_vector
 module Console : module type of Js_console
 
 val log : string -> unit

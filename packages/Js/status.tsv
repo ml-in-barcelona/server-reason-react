@@ -268,18 +268,75 @@ Js.Nullable.bind	green	Ported Melange suite: packages/Js/test/melange_tests/js_n
 Js.Nullable.iter	green	Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml.
 Js.Nullable.undefined	orange	null and undefined are both represented as None natively.
 #
-# --- Js.Vector (legacy: removed in Melange 6; scheduled for deletion) ---
-Js.Vector.filterInPlace	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.empty	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.pushBack	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.copy	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.memByRef	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.iter	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.iteri	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.toList	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.map	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.mapi	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.foldLeft	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.foldRight	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.init	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
-Js.Vector.append	wontfix	Legacy module removed in Melange 6; scheduled for deletion.
+#
+# --- Divergences found while porting the Melange test suites (assertions removed in the ports) ---
+Js.Int.toExponential	orange	Without ~digits, returns Number.prototype.toString output ("123456"); JS returns "1.23456e+5" (node). Found porting melange js_int_test.ml.
+Js.Float.toExponential	orange	Without ~digits, returns Number.prototype.toString output ("123.456"); JS returns "1.23456e+2" (node). Found porting melange js_float_test.ml.
+Js.Float.toFixed	orange	Values >= 1e21 print in positional notation; JS toFixed switches to exponential ("1.2e+21") (node). Found porting melange js_float_test.ml.
+#
+# --- Verified by the ported Melange test suites ---
+Js.Array.concat	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.concatMany	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.copy	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.every	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.everyi	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.filter	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.filteri	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.find	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.findIndex	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.findIndexi	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.findi	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.forEach	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.forEachi	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.join	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.lastIndexOf	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.length	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.map	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.mapi	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.reduce	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.reduceRight	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.reduceRighti	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.reducei	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.slice	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.some	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Array.somei	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
+Js.Date.parseAsFloat	green	Ported Melange suite: packages/Js/test/melange_tests/js_date.ml.
+Js.Date.utc	green	Ported Melange suite: packages/Js/test/melange_tests/js_date.ml.
+Js.Promise.all2	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.resolve	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.then_	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
+Js.Re.captures	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
+Js.Re.index	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
+Js.Re.input	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
+Js.Re.lastIndex	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
+Js.Re.setLastIndex	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
+Js.Re.source	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
+Js.Re.sticky	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
+Js.String.charAt	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.charCodeAt	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.codePointAt	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.concat	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.concatMany	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.endsWith	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.fromCharCode	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.fromCharCodeMany	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.fromCodePoint	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.fromCodePointMany	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.get	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.includes	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.indexOf	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.lastIndexOf	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.length	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.match_	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.repeat	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.replace	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.replaceByRe	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.slice	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.split	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.splitByRe	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.startsWith	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.substr	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.substring	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.toLowerCase	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.toUpperCase	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
+Js.String.trim	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
