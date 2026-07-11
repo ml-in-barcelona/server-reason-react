@@ -117,8 +117,8 @@ belt_out="$root/packages/Belt/melange-surface.tsv"
     esac
     # belt_HashMapString -> Belt.HashMap.String, belt_MapDict -> Belt.Map.Dict, etc.
     mod=$(echo "$base" | sed 's/^belt_//')
-    mod=$(echo "$mod" | sed \
-      -e 's/^\(HashMap\|HashSet\|MutableMap\|MutableSet\|SortArray\|Map\|Set\)\(Int\|String\|Dict\)$/\1.\2/')
+    mod=$(echo "$mod" | sed -E \
+      -e 's/^(HashMap|HashSet|MutableMap|MutableSet|SortArray|Map|Set)(Int|String|Dict)$/\1.\2/')
     values=$(extract_values "$f")
     if [ -n "$values" ]; then
       echo "$values" | while read -r name; do

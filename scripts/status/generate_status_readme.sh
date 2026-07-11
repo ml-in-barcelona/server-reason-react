@@ -53,9 +53,9 @@ module_of_file() {
         Belt) echo "Belt"; return ;;
         Belt_internal*) echo ""; return ;;
       esac
-      echo "$base" | sed \
+      echo "$base" | sed -E \
         -e 's/^Belt_//' \
-        -e 's/^\(HashMap\|HashSet\|MutableMap\|MutableSet\|SortArray\|Map\|Set\)\(Int\|String\|Dict\)$/\1.\2/' \
+        -e 's/^(HashMap|HashSet|MutableMap|MutableSet|SortArray|Map|Set)(Int|String|Dict)$/\1.\2/' \
         -e 's/^/Belt./'
       ;;
   esac
