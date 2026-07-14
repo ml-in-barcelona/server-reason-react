@@ -34,7 +34,12 @@
   ; Library dependencies
   (uucp (>= 16.0.0))
   (ppxlib (>= 0.36.0))
-  (quickjs (>= 0.4.2))
+  ; quickjs 0.5.0 is a breaking release (RegExp.exec returns match_result
+  ; option, captures are string option array, UTF-16 indices) and Js_re/
+  ; Js_string are written against that API. 0.x minors are breaking, so
+  ; keep an upper bound to protect published releases (see the
+  ; server-reason-react.0.4.1 + quickjs.0.5.0 opam-repository incident).
+  (quickjs (and (>= 0.5.0) (< 0.6.0)))
   (lwt (>= 5.9.2))
   (lwt_ppx (>= 2.1.0))
   (uri (>= 4.2.0))

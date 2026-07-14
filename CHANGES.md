@@ -2,6 +2,7 @@
 
 ## 0.5.0
 
+* Require `quickjs >= 0.5.0 & < 0.6.0`: `Js.Re` and `Js.String` are built on quickjs 0.5.0's breaking API (`RegExp.exec` returns `match_result option`, captures are `string option array`, indices are UTF-16 code units) by @davesnx
 * Complete `Js.Bigint`'s Melange-named API: `asIntN`/`asUintN` (labeled wrappers over `as_int_n`/`as_uint_n`), `toLocaleString` (plain decimal, no ICU) and `make` (unsupported: needs JS runtime coercion) by @davesnx
 * Fix `Belt` `*Exn` exception types to match Melange: `Belt.Option/List/Result/Map*/Set*/MutableMap*/MutableSet*/MutableQueue` `getExn`/`headExn`/`tailExn`/`peekExn`/`popExn` now raise `Not_found` and `Belt.Array.getExn`/`setExn` raise `Assert_failure` (previously all raised `Js.Exn.Error` with a fake file path, so universal `try ... with Not_found` handlers caught on the client but crashed on the server). `Belt.Array.push` now raises (with a compile-time alert) instead of silently returning a sentinel by @davesnx
 * Rewrite `Js.Dict` to preserve JS object key order: iteration (`entries`/`keys`/`values`) follows insertion order, duplicate keys in `fromList`/`fromArray` collapse (first position, last value) like JS object literals, and `Js.Json.stringify` consequently serializes objects in insertion order (previously Hashtbl bucket order with duplicates retained) by @davesnx
