@@ -3,7 +3,8 @@ FROM ocaml/opam:ubuntu-22.04-ocaml-5.4 AS builder
 RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends curl git libev-dev libssl-dev && \
     sudo apt-get remove -y nodejs npm && sudo apt-get autoremove -y
 
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && \
+# Node 22: npm@latest (>= 12) requires node >= 22
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && \
     sudo apt-get update && \
     sudo apt-get install -y --no-install-recommends nodejs && \
     sudo npm install -g npm@latest
