@@ -28,11 +28,21 @@ let tests =
         Lwt.return_unit);
     test "setInterval fires repeatedly until cleared" (fun () ->
         let count = ref 0 in
-        let id = Js.Global.setInterval ~f:(fun () -> incr count) 10 in
-        let%lwt () = Lwt_unix.sleep 0.055 in
+        let repeated, wake_repeated = Lwt.wait () in
+        let id =
+          Js.Global.setInterval
+            ~f:(fun () ->
+              incr count;
+              if !count = 2 then Lwt.wakeup_later wake_repeated ())
+            10
+        in
+        let timeout =
+          let%lwt () = Lwt_unix.sleep 1. in
+          Alcotest.failf "interval only fired %d time(s)" !count
+        in
+        let%lwt () = Lwt.pick [ repeated; timeout ] in
         Js.Global.clearInterval id;
         let fired = !count in
-        Alcotest.(check bool) (Printf.sprintf "fired repeatedly (%d)" fired) true (fired >= 2);
         let%lwt () = Lwt_unix.sleep 0.03 in
         Alcotest.(check int) "no more callbacks after clearInterval" fired !count;
         Lwt.return_unit);
