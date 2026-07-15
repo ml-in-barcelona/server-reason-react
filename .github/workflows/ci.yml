@@ -58,8 +58,6 @@ jobs:
         with:
           node-version: '20'
 
-      # Pin before installing deps: quickjs 0.5.0 is not yet published to
-      # opam-repository, so dependency resolution needs the pin to see it.
       - name: Pin dependencies
         run: make pin
 

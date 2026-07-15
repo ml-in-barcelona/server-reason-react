@@ -1213,23 +1213,16 @@ let classify_element ~(fiber : Fiber.t) ~tag ~attributes =
 let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
-  (* Static carries HTML prerendered at compile time (the PPX fast path). The model walk below
-     hoists any <title>/<meta>/<link>/async <script> in the subtree into the fiber — but the
-     prerendered bytes still contain them at their original position. When that happens, use the
-     walked HTML (byte-identical markup with the hoistables nulled) to avoid emitting them twice. *)
+  (* Static carries HTML prerendered at compile time (ppx optimization). The model walk below hoists any <title>/<meta>/<link>/async <script> in the subtree into the fiber — but the prerendered bytes still contain them at their original position. When that happens, use the walked HTML to avoid emitting them twice. *)
   | Static { prerendered; original } ->
       let hoisted_before = fiber.hoisted_count in
       let%lwt html, model = render_element_to_html ~fiber ~debug_info original in
       if fiber.hoisted_count = hoisted_before then Lwt.return (Html.raw prerendered, model) else Lwt.return (html, model)
-  (* Writer subtrees can contain components below the prerendered markup. The emit closure
-     (ReactDOM.write_to_buffer) raises on client components and renders Suspense without boundary
-     markers, while the model walk below renders the subtree correctly anyway — use the walk for
-     both halves. *)
+  (* Writer subtrees can contain components below the prerendered markup. We render the original tree instead of the prerendered *)
   | Writer { original; _ } -> render_element_to_html ~fiber ~debug_info (original ())
   | Text s -> Lwt.return (Html.string s, `String (Model.escape_string_value s))
   | Int i -> Lwt.return (Html.string (Int.to_string i), `Int i)
-  (* HTML stringifies numbers the way JavaScript does ("2", not "2."); the
-     model keeps the raw JSON number. *)
+  (* HTML stringifies numbers the way JavaScript does while the model keeps the raw JSON number. *)
   | Float f -> Lwt.return (Html.string (Js.Float.toString f), Model.float_to_json f)
   | Fragment children -> render_element_to_html ~fiber ~debug_info children
   | List list -> elements_to_html ~fiber ~debug_info list
@@ -1279,8 +1272,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
             let%lwt html, model = render_element_to_html ~fiber ~debug_info fallback in
             Lwt.return (html, Some model)
       in
-      (* The outlined suspense symbol row must be pushed before any row that
-         references it (see Model.suspense_tag). *)
+      (* The outlined suspense symbol row must be pushed before any row that references it (see Model.suspense_tag). *)
       let tag = Model.suspense_tag ~context ~to_chunk:model_to_chunk in
       try%lwt
         let promise = render_element_to_html ~fiber ~debug_info children in
@@ -1325,9 +1317,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
   | Lower_case_element { key; tag; attributes; children } ->
       render_lower_case_element ~fiber ~debug_info ~key ~tag ~attributes ~children ()
 
-(* The HTML-path twin of Model.attach_debug_info/outline_with_debug_ref: the first component attaches its debug rows
-   to the root row (id 0, embedded in the shell); nested components are outlined into their own model row with a D
-   ref while their HTML stays inline. *)
+(* The HTML-path twin of Model.attach_debug_info/outline_with_debug_ref: the first component attaches its debug rows to the root row (id 0, embedded in the shell); nested components are outlined into their own model row with a D ref while their HTML stays inline. *)
 and continue_with_debug_html ~(fiber : Fiber.t) ~name ~debug_info element =
   if not fiber.debug then render_element_to_html ~fiber ~debug_info element
   else
