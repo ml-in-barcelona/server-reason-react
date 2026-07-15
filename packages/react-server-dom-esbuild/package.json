@@ -14,7 +14,7 @@
     "directory": "packages/react-server-dom-esbuild"
   },
   "dependencies": {
-    "@pedrobslisboa/react-client": "^19.1.0",
+    "@ml-in-barcelona/react-client": "file:../react-client/dist",
     "esbuild": "^0.21.4"
   }
 }

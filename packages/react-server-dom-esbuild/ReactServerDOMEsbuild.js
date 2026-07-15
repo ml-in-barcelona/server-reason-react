@@ -15,19 +15,28 @@
  * - **react-server-dom-webpack**: https://github.com/facebook/react/blob/5c56b873efb300b4d1afc4ba6f16acf17e4e5800/packages/react-server-dom-webpack/src/ReactFlightWebpackPlugin.js#L156-L194
  * - **react-server-dom-parcel**: https://github.com/facebook/react/pull/31725
  *
- * ## Why `@pedrobslisboa/react-client`?
+ * ## Where does `@ml-in-barcelona/react-client` come from?
  *
- * React's `react-client` package (which provides the Flight protocol deserializer)
- * is an internal package that is NOT published to npm by the React team.
- * It is only consumed internally by React's own bundler integrations (webpack, parcel, esm).
+ * React's `react-client` package (which provides the client deserializer)
+ * is NOT published to npm — it's consumed only internally by React's own bundler
+ * integrations (webpack, parcel, esm, ...)
  *
- * Since server-reason-react needs a custom esbuild integration, and `react-client`
- * is the intended extension point (via the `$$$config` injection pattern), Pedro
- * (a core contributor to server-reason-react) republished the package under
- * `@pedrobslisboa/react-client` so this project can use the Flight client factory directly.
+ * So the sibling `packages/react-client` builds it from React's source (pinned as a submodule)
+ * and commits React's own build output — flight.js plus the development and production cjs
+ * builds, unbundled — which dune installs as a package directory. See its README.md.
+ *
+ * Consumers depend on it by path into the opam switch:
+ *
+ *   "@ml-in-barcelona/react-client": "file:<switch>/lib/server-reason-react/react-client"
+ *
+ * so the bare specifier below is resolved by their bundler from node_modules. That keeps
+ * dedupe the resolver's job: one entry in node_modules, one Flight client instance. It also
+ * leaves the dev/production choice to them — flight.js switches on process.env.NODE_ENV, so
+ * their bundler keeps one build (63KB in production) and drops the other. `react` is a peer
+ * dependency and stays a plain require, so the app's React is the only one.
  */
 
-import ReactClientFlight from "@pedrobslisboa/react-client/flight";
+import ReactClientFlight from "@ml-in-barcelona/react-client";
 
 const isDebug = false;
 

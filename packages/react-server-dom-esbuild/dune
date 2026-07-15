@@ -1,3 +1,8 @@
+; `make install-npm` installs the `file:` dependency on @ml-in-barcelona/react-client here as a
+; symlink into packages/react-client — keep dune from scanning through it.
+
+(data_only_dirs node_modules)
+
 (library
  (name ReactServerDOMEsbuild)
  (modules ReactServerDOMEsbuild)

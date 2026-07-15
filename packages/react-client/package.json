@@ -1,0 +1,16 @@
+{
+  "name": "react-client-build",
+  "description": "Build script for React's unpublished react-client package. Not the package itself — the generated output is dist/, whose package.json is the manifest consumers see. Run `make react-client-generate` to regenerate it from the pinned React submodule.",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/ml-in-barcelona/server-reason-react",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ml-in-barcelona/server-reason-react.git",
+    "directory": "packages/react-client"
+  },
+  "scripts": {
+    "react-client-generate": "node build-react-client.cjs"
+  }
+}

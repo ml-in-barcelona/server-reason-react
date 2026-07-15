@@ -1,3 +1,10 @@
+; Keep dune from scanning node_modules: it holds a symlink to packages/react-client/dist (the
+; `file:` dependency on @ml-in-barcelona/react-client), and any dune file reachable through such a
+; symlink would be read a second time — duplicating its stanzas and conflicting on install
+; targets. The tree is still available to `(source_tree node_modules)` below.
+
+(data_only_dirs node_modules)
+
 (env
  (_
   (env-vars

@@ -1,0 +1,20 @@
+{
+  "name": "@ml-in-barcelona/react-client",
+  "version": "19.1.0",
+  "description": "React's Flight client (react-client/flight), built from React at the commit pinned by server-reason-react's submodule. React does not publish react-client; this is not part of React's public API and its shape may change between React releases.",
+  "license": "MIT",
+  "private": true,
+  "homepage": "https://github.com/ml-in-barcelona/server-reason-react",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ml-in-barcelona/server-reason-react.git",
+    "directory": "packages/react-client"
+  },
+  "main": "./flight.js",
+  "exports": {
+    ".": "./flight.js"
+  },
+  "peerDependencies": {
+    "react": "^19.1.0"
+  }
+}
