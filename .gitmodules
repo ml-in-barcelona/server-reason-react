@@ -1,0 +1,4 @@
+[submodule "vendor/react"]
+	path = packages/react-client/react
+	url = https://github.com/facebook/react.git
+	shallow = true

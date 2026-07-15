@@ -70,6 +70,15 @@ install-npm:
 pin: ## Pin dependencies
 	opam pin add quickjs "git+https://github.com/ml-in-barcelona/quickjs.ml.git#82e6830060fcfa56f400417e39fbb4328bf7e265" -y
 
+.PHONY: submodules
+submodules: ## Check out the vendored React submodule (only needed to regenerate react-client.js)
+	git submodule update --init packages/react-client/react
+	git config push.recurseSubmodules no
+
+.PHONY: react-client-generate
+react-client-generate: submodules ## Regenerate packages/react-client/react-client.js from the vendored React submodule
+	cd packages/react-client && npm install && npm run react-client-generate
+
 .PHONY: init
 init: setup-githooks create-switch pin install install-npm ## Create a local dev enviroment
 

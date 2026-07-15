@@ -5,8 +5,7 @@ RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends curl 
 
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && \
     sudo apt-get update && \
-    sudo apt-get install -y --no-install-recommends nodejs && \
-    sudo npm install -g npm@latest
+    sudo apt-get install -y --no-install-recommends nodejs
 
 RUN sudo ln -sf /usr/bin/opam-2.5 /usr/bin/opam && opam init --reinit -n
 

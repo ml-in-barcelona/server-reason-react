@@ -1,9 +1,11 @@
+(copy_files ../react-client/react-client.js)
+
 (library
  (name ReactServerDOMEsbuild)
  (modules ReactServerDOMEsbuild)
  (modes melange)
  (public_name server-reason-react.react-server-dom-esbuild)
  (libraries reason-react melange-webapi melange-fetch)
- (melange.runtime_deps ReactServerDOMEsbuild.js)
+ (melange.runtime_deps ReactServerDOMEsbuild.js react-client.js)
  (preprocess
   (pps melange.ppx)))
