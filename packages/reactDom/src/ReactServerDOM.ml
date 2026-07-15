@@ -1063,8 +1063,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
   | Static { prerendered; _ } -> Lwt.return (Html.raw prerendered)
-  (* Writer subtrees can contain client components/Suspense below the prerendered markup, which the
-     emit closure (ReactDOM.write_to_buffer) cannot serialize — walk the original tree instead. *)
+  (* Writer subtrees can contain client components/Suspense below the prerendered markup, which the emit closure (ReactDOM.write_to_buffer) cannot serialize — walk the original tree instead. *)
   | Writer { original; _ } -> client_to_html ~fiber (original ())
   | Text text -> Lwt.return (Html.string text)
   | Int i -> Lwt.return (Html.string (Int.to_string i))
