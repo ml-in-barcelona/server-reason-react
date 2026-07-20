@@ -1,0 +1,19 @@
+{
+  "name": "@ml-in-barcelona/react-client",
+  "description": "React's Flight client (react-client/flight) built from the vendored React submodule and bundled into a single file for server-reason-react's esbuild integration. Not published; the generated react-client.js is committed.",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/ml-in-barcelona/server-reason-react",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ml-in-barcelona/server-reason-react.git",
+    "directory": "packages/react-client"
+  },
+  "scripts": {
+    "react-client-generate": "node build-react-client.cjs"
+  },
+  "dependencies": {
+    "esbuild": "^0.21.4"
+  }
+}
