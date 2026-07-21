@@ -209,10 +209,6 @@ let is_react_custom_attribute_name = function
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning" | "suppressHydrationWarning" -> true
   | _ -> false
 
-(* An attribute is emittable into a [Writer.emit] body iff its kind has a
-   well-defined buffer-write shape mirroring
-   [ReactDOM.write_attribute_to_buffer], and its name is not one the
-   runtime discards. *)
 let attr_is_emittable (info : attr_render_info) =
   (not info.is_event) && is_lowerable_kind info.kind && not (is_react_custom_attribute_name info.html_name)
 
@@ -277,12 +273,6 @@ let extract_static_style expr =
       Some (Buffer.contents buf)
 
 let analyze_attributes ~tag_name attrs =
-  (* Walk left-to-right, accumulating static HTML into [static_buf] between
-     dynamic slots. On hitting a dynamic/optional attr we flush the buffer
-     into a [Static_str] part, then append a [Dynamic_attr_slot] part.
-     On success we return the coalesced part list; on any lowerability
-     failure we return [`Failed] (caller maps to [Validation_failed] then
-     [Cannot_optimize]). *)
   let parts = ref [] in
   let static_buf = Buffer.create 64 in
   let has_dynamic = ref false in
@@ -360,10 +350,6 @@ let analyze_child (expr : expression) : static_part =
               | None -> (
                   match extract_react_int_arg expr with Some e -> Dynamic_int e | None -> Dynamic_element expr))))
 
-(* Caller [analyze_element] always runs [coalesce_static_parts] on the
-   combined [open_tag; ...children...; close_tag] list, so returning
-   un-coalesced children here just means the merge happens once downstream
-   instead of twice. *)
 (* Two consecutive parts that both touch a text edge need a [<!-- -->]
    separator between them in [renderToString] output. Such a pair can't be
    merged into a prerendered string (the separator is mode-dependent), so
@@ -391,13 +377,6 @@ let analyze_children children =
       else if not has_element_dynamic then All_string_dynamic parts
       else Mixed_children parts
 
-(* Build the ordered [static_part list] for a lower-case element whose
-   attributes are partly dynamic. [attr_parts] is the output of
-   [analyze_attributes] in [Mixed_attrs]: an alternating sequence of
-   [Static_str] (literal attribute runs) and [Dynamic_attr_slot] (runtime
-   holes). We wrap it between the opening "<tag" and closing ">" (or " />"
-   for self-closing tags), then append the children parts and the closing
-   tag. *)
 let mixed_attrs_parts ~tag_name ~is_self_closing ~children_parts attr_parts =
   let open_prefix = static_markup (Printf.sprintf "<%s" tag_name) in
   if is_self_closing then open_prefix :: (attr_parts @ [ static_markup " />" ])

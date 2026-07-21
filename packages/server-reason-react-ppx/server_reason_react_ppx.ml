@@ -480,9 +480,8 @@ type compile_time_textness = Ct_text | Ct_markup | Ct_unknown
    [static_part list]. Writes the static skeleton inline; each dynamic hole
    becomes a [Buffer.add_*] / escape / attribute-emission call that runs at
    render time with no intermediate allocation. Shared by the
-   [Needs_string_concat] and [Needs_buffer] tiers — both produce the same
-   emit function; the tier distinction is informational only, used for
-   future analysis work.
+   [Needs_string_concat] and [Needs_buffer] tiers, which produce the same
+   emit function; the tier names only record what the analysis found.
 
    Text-separator protocol ([renderToString] parity, required for
    hydration): adjacent text nodes must be delimited by [<!-- -->] when
@@ -510,23 +509,22 @@ let emit_parts_emit_fn ~loc parts =
           let value_ty = attr_value_core_type ~loc info.kind in
           [%expr match ([%e expr] : [%t value_ty] option) with None -> () | Some v -> [%e write_some]]
   in
-  (* Textness of the state after a part runs. [Dynamic_attr_slot] lives
-     inside the open tag and doesn't touch the child text run. *)
+  (* [Dynamic_attr_slot] lives inside the open tag: it doesn't touch the
+     child text run. *)
   let after_part state = function
     | Static_str { ends_text; _ } -> if ends_text then Ct_text else Ct_markup
     | Dynamic_string _ | Dynamic_int _ -> Ct_text
     | Dynamic_element _ -> Ct_unknown
     | Dynamic_attr_slot _ -> state
   in
-  (* Does the part begin with a text node (so it may need a separator)? *)
   let begins_with_text = function
     | Static_str { starts_text; _ } -> starts_text
     | Dynamic_string _ | Dynamic_int _ -> true
     | Dynamic_element _ | Dynamic_attr_slot _ -> false
   in
-  (* Prepass: is the [prev_text] ref ever read? It is read when a
-     text-beginning part or a [Dynamic_element] hole runs while the
-     compile-time state is [Ct_unknown]. *)
+  (* Prepass: the [prev_text] ref is read when a text-beginning part or a
+     [Dynamic_element] hole runs while the compile-time state is
+     [Ct_unknown]. When that never happens, skip declaring the ref. *)
   let prev_text_ref_needed =
     let rec loop state = function
       | [] -> false
@@ -627,10 +625,9 @@ let rewrite_lowercase ~loc tag_name args children =
       let original = generate_create_element ~loc ~tag_name ~key ~props ~children in
       [%expr React.Static { prerendered = [%e html_expr]; original = [%e original] }]
   | Static_analysis.Needs_string_concat parts | Static_analysis.Needs_buffer parts ->
-      (* Emit a [Buffer.t -> unit] that writes directly into the caller's
+      (* Emit a [Buffer.t -> separators:bool -> unit] that writes directly into the caller's
          buffer. Avoids the N-per-subtree [Buffer.create] + [Buffer.contents]
-         that a [Static] wrapping would cost. At render time the renderer
-         just calls [emit buf].
+         that a [Static] wrapping would cost.
 
          [original] is a thunk that rebuilds the variant-tree on demand for
          [cloneElement] / RSC; zero-alloc unless called. *)
@@ -1172,13 +1169,9 @@ let expand_make_binding binding react_element_variant_wrapping =
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
   let binding_expr = transform_fun_body_expression binding_with_unit react_element_variant_wrapping in
-  (* Builds an AST node for the modified `make` function *)
   let name = ppat_var ~loc:ghost_loc { txt = get_function_name binding; loc = ghost_loc } in
   let key_arg = Optional "key" in
-  let default_value =
-    (* default_value = None means there's no default *)
-    None
-  in
+  let default_value = None in
   let underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
   let core_type = [%type: string option] in
   let key_pattern = ppat_constraint ~loc underscore core_type in

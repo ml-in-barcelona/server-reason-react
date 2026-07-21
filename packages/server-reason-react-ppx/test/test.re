@@ -641,11 +641,11 @@ let server_function_reference_form_data_and_args = () => {
 };
 
 /* Text-separator protocol: renderToString must delimit adjacent text nodes
-   with <!-- --> (react-dom parity — hydration splits merged text nodes at
-   those comments), renderToStaticMarkup must not. These shapes go through
-   the PPX static-analysis fast path (React.Static / React.Writer), which
-   used to drop the separators (ahrefs/WEB-844: hydration error #418 on
-   every element with adjacent text children). */
+   with <!-- --> so hydration can split the merged text nodes back apart
+   (react-dom parity), renderToStaticMarkup must not. These shapes go
+   through the PPX static-analysis fast path (React.Static / React.Writer),
+   which used to drop the separators (ahrefs/WEB-844: hydration error #418
+   on every element with adjacent text children). */
 
 let text_separator_static_literals = () => {
   let el = <span> {React.string("beyond")} {React.string(" ")} </span>;

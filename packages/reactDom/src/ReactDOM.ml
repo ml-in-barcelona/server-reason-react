@@ -159,27 +159,12 @@ let write_text_node buf (element : React.element) =
   | Float f -> Buffer.add_string buf (Js.Float.toString f)
   | _ -> raise (Invalid_argument "write_text_node expects a Text, Int or Float element")
 
-(* The sync renderers below take [buf] as a positional argument on every
-   mutually-recursive function instead of partially applying it. Partial
-   applications like [render_element ~buf] allocate a fresh closure per
-   parent node, which compounds linearly on wide trees (see
-   benchmark/perf-work/PERF_NEXT.md, H1). Full applications allocate
-   nothing. *)
-(* The single synchronous tree renderer. Serves both public modes and the
-   PPX [React.Writer] fast path:
-
-   - [separators]: when true, adjacent text nodes are delimited with
-     [<!-- -->] exactly like react-dom's [renderToString] (hydration splits
-     merged text nodes at those comments); [renderToStaticMarkup] semantics
-     pass false.
-   - [doctype]: when true, a leading [<html>] element gets a
-     [<!DOCTYPE html>] prepended. Top-level renders pass true; [Writer]
-     emit bodies pass false (the PPX bakes the doctype into the prerendered
-     chunk itself).
-   - [prev_text]: whether the previously emitted sibling ended with a text
-     node. The result reports the same for this element, so callers (the
-     PPX emit bodies in particular) can chain writes across static chunks
-     and dynamic holes. *)
+(* The sync tree walker behind renderToString, renderToStaticMarkup and the
+   ppx Writer fast path. [separators] and [prev_text] are documented on
+   [write_element_to_buffer] in the mli; [doctype] is false for Writer emit
+   bodies because the ppx bakes the doctype into its prerendered chunks.
+   [buf] stays positional on every recursive function: partial applications
+   allocate a closure per parent node (benchmark/perf-work/PERF_NEXT.md, H1). *)
 let render_tree buf ~separators ~doctype ~prev_text element : bool =
   (* Render-scoped and monotonic (true until the first emitting node), so a
      single ref is simpler than threading it alongside [prev_text]. *)
@@ -189,8 +174,7 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
     | Empty -> prev_text
     | Static { prerendered; _ } ->
         doctype_pending := false;
-        (* Prerendered chunks are complete elements: they end the current
-           text run, like the [Lower_case_element] case below. *)
+        (* Prerendered chunks are complete elements: they end the current text run *)
         Buffer.add_string buf prerendered;
         false
     | Writer { emit; _ } ->
@@ -324,12 +308,10 @@ let render_to_buffer ~mode buf element =
   let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
   ()
 
-(* Threaded String-mode write used by PPX-generated [React.Writer] emit
-   bodies; see [render_tree] for the parameter protocol. *)
+(* Threaded String-mode write used by the ppx [React.Writer] emit bodies *)
 let write_element_to_buffer buf ~separators ~prev_text element : bool =
   render_tree buf ~separators ~doctype:false ~prev_text element
 
-(* Markup-mode write: no text separators, matching [renderToStaticMarkup]. *)
 let write_to_buffer buf element =
   let (_ : bool) = render_tree buf ~separators:false ~doctype:false ~prev_text:false element in
   ()
@@ -459,15 +441,13 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
     | Empty -> Lwt.return ()
     | Static { prerendered; _ } ->
         should_add_doctype := false;
-        (* Prerendered chunks are complete elements: they end the current text run. *)
         previous_node_was_text := false;
         Buffer.add_string buf prerendered;
         Lwt.return ()
     | Writer { emit; _ } ->
         should_add_doctype := false;
         previous_node_was_text := false;
-        (* The stream renderer has [renderToString] semantics: hydration
-           relies on the [<!-- -->] text separators. *)
+        (* [renderToString] hydration relies on the [<!-- -->] text separators *)
         emit buf ~separators:true;
         Lwt.return ()
     | Client_component { import_module; _ } ->
