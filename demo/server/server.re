@@ -50,6 +50,15 @@ let server =
           ),
         )
       ),
+      getAndPost(Routes.styleOrderHydration, _request =>
+        Dream.html(
+          ReactDOM.renderToString(
+            <Document script="/static/demo/StyleOrderHydrate.re.js">
+              <StyleOrderRepro />
+            </Document>,
+          ),
+        )
+      ),
       getAndPost(Routes.renderToStream, Pages.Comments.handler),
       getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
       getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
