@@ -19,7 +19,8 @@ let bench label iterations f =
 let make_static () : React.element = React.Static { prerendered = "<div>foo</div>"; original = React.Empty }
 
 let make_writer () : React.element =
-  React.Writer { emit = (fun b -> Buffer.add_string b "<div>foo</div>"); original = (fun () -> React.Empty) }
+  React.Writer
+    { emit = (fun b ~separators:_ -> Buffer.add_string b "<div>foo</div>"); original = (fun () -> React.Empty) }
 
 (* Workload that mirrors WideTree500: construct 500 fresh elements and
    render into a SHARED buffer (simulating being inside a parent emit). *)

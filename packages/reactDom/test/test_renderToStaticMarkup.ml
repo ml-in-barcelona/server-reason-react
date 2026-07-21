@@ -373,9 +373,7 @@ let async_component () =
     ()
   in
   Alcotest.check_raises "Expected invalid argument"
-    (Invalid_argument
-       "Async components can't be rendered to static markup, since rendering is synchronous. Please use \
-        `renderToStream` instead.")
+    (Invalid_argument "Async components can't be rendered synchronously. Please use `renderToStream` instead.")
     raises
 
 let test title fn =

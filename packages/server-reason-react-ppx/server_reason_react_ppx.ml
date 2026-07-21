@@ -417,37 +417,37 @@ let emit_attr_value_write ~loc ~info ~value_expr =
   (* Wrap a value-writing sub-expression with the ` name="…"` skeleton. *)
   let quoted inner =
     [%expr
-      Buffer.add_char b ' ';
-      Buffer.add_string b [%e name_expr];
-      Buffer.add_string b "=\"";
+      Buffer.add_char __buf ' ';
+      Buffer.add_string __buf [%e name_expr];
+      Buffer.add_string __buf "=\"";
       [%e inner];
-      Buffer.add_char b '"']
+      Buffer.add_char __buf '"']
   in
   match info.kind with
-  | DomProps.String -> quoted [%expr ReactDOM.escape_to_buffer b ([%e value_expr] : string)]
+  | DomProps.String -> quoted [%expr ReactDOM.escape_to_buffer __buf ([%e value_expr] : string)]
   | DomProps.Int ->
       (* [string_of_int] allocates a small short-lived string, but measures
          ~15% faster per write than [Printf.bprintf b "%d"], whose
          CamlinternalFormat dispatch outweighs the allocation it saves. *)
-      quoted [%expr Buffer.add_string b (Stdlib.string_of_int ([%e value_expr] : int))]
+      quoted [%expr Buffer.add_string __buf (Stdlib.string_of_int ([%e value_expr] : int))]
   | DomProps.Bool ->
       (* Matches [Bool (name, _, true) -> " " ^ name] / [false -> nothing]. *)
       [%expr
         if ([%e value_expr] : bool) then begin
-          Buffer.add_char b ' ';
-          Buffer.add_string b [%e name_expr]
+          Buffer.add_char __buf ' ';
+          Buffer.add_string __buf [%e name_expr]
         end]
   | DomProps.BooleanishString ->
-      quoted [%expr Buffer.add_string b (if ([%e value_expr] : bool) then "true" else "false")]
+      quoted [%expr Buffer.add_string __buf (if ([%e value_expr] : bool) then "true" else "false")]
   | DomProps.Style ->
       (* Mirrors [ReactDOM.write_attribute_to_buffer]'s [Style] case exactly:
          serialize the style, then HTML-escape the result (so a quoted value
          such as a [font-family] cannot break out of the [style="…"] attribute),
          byte-identical output. *)
       [%expr
-        Buffer.add_string b " style=\"";
-        ReactDOM.escape_to_buffer b (ReactDOM.Style.to_string ([%e value_expr] : ReactDOM.Style.t));
-        Buffer.add_char b '"']
+        Buffer.add_string __buf " style=\"";
+        ReactDOM.escape_to_buffer __buf (ReactDOM.Style.to_string ([%e value_expr] : ReactDOM.Style.t));
+        Buffer.add_char __buf '"']
   | DomProps.Float | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
       (* Unreachable: [is_lowerable_kind] rejects these kinds before we ever
          reach emission. Fail loud at compile time if the invariant breaks. *)
@@ -471,12 +471,28 @@ let attr_value_core_type ~loc (kind : DomProps.attributeType) =
       (* Unreachable for the same reason as [emit_attr_value_write]. *)
       Location.raise_errorf ~loc "internal PPX error: attribute kind not lowerable but reached emission"
 
-(* Emit the [Buffer.t -> unit] body for a [static_part list]. Writes the
-   static skeleton inline; each dynamic hole becomes a [Buffer.add_*] /
-   escape / attribute-emission call that runs at render time with no
-   intermediate allocation. Shared by the [Needs_string_concat] and
-   [Needs_buffer] tiers — both produce the same emit function; the tier
-   distinction is informational only, used for future analysis work. *)
+(* Compile-time knowledge of whether the previously emitted node ended
+   inside a text run. [Ct_unknown] appears only after a [Dynamic_element]
+   hole, whose content is decided at render time. *)
+type compile_time_textness = Ct_text | Ct_markup | Ct_unknown
+
+(* Emit the [Buffer.t -> separators:bool -> unit] body for a
+   [static_part list]. Writes the static skeleton inline; each dynamic hole
+   becomes a [Buffer.add_*] / escape / attribute-emission call that runs at
+   render time with no intermediate allocation. Shared by the
+   [Needs_string_concat] and [Needs_buffer] tiers — both produce the same
+   emit function; the tier distinction is informational only, used for
+   future analysis work.
+
+   Text-separator protocol ([renderToString] parity, required for
+   hydration): adjacent text nodes must be delimited by [<!-- -->] when
+   [separators] is true. The walk threads a compile-time textness state:
+   when both sides of a boundary are known, the separator is emitted behind
+   a plain [if separators] check (or not at all); when the left side is a
+   [Dynamic_element] hole the generated code threads a [prev_text] ref,
+   assigned from [ReactDOM.write_element_to_buffer]'s result. The ref is
+   only read while the compile-time state is [Ct_unknown], so static parts
+   and string holes never need to update it. *)
 let emit_parts_emit_fn ~loc parts =
   let open Static_analysis in
   (* Emit one [Dynamic_attr_slot] hole. For optional slots we peek through
@@ -494,20 +510,94 @@ let emit_parts_emit_fn ~loc parts =
           let value_ty = attr_value_core_type ~loc info.kind in
           [%expr match ([%e expr] : [%t value_ty] option) with None -> () | Some v -> [%e write_some]]
   in
+  (* Textness of the state after a part runs. [Dynamic_attr_slot] lives
+     inside the open tag and doesn't touch the child text run. *)
+  let after_part state = function
+    | Static_str { ends_text; _ } -> if ends_text then Ct_text else Ct_markup
+    | Dynamic_string _ | Dynamic_int _ -> Ct_text
+    | Dynamic_element _ -> Ct_unknown
+    | Dynamic_attr_slot _ -> state
+  in
+  (* Does the part begin with a text node (so it may need a separator)? *)
+  let begins_with_text = function
+    | Static_str { starts_text; _ } -> starts_text
+    | Dynamic_string _ | Dynamic_int _ -> true
+    | Dynamic_element _ | Dynamic_attr_slot _ -> false
+  in
+  (* Prepass: is the [prev_text] ref ever read? It is read when a
+     text-beginning part or a [Dynamic_element] hole runs while the
+     compile-time state is [Ct_unknown]. *)
+  let prev_text_ref_needed =
+    let rec loop state = function
+      | [] -> false
+      | part :: rest ->
+          let reads_ref =
+            match part with Dynamic_element _ -> state = Ct_unknown | _ -> begins_with_text part && state = Ct_unknown
+          in
+          reads_ref || loop (after_part state part) rest
+    in
+    loop Ct_markup parts
+  in
+  let separator ~state =
+    match state with
+    | Ct_markup -> None
+    | Ct_text -> Some [%expr if __separators then Buffer.add_string __buf "<!-- -->"]
+    | Ct_unknown -> Some [%expr if !__prev_text && __separators then Buffer.add_string __buf "<!-- -->"]
+  in
+  let uses_separators = ref false in
   let writes =
-    List.map parts ~f:(fun part ->
-        match part with
-        | Static_str s -> [%expr Buffer.add_string b [%e estring ~loc s]]
-        | Dynamic_string e ->
-            let loc = e.pexp_loc in
-            [%expr ReactDOM.escape_to_buffer b [%e e]]
-        | Dynamic_int e ->
-            let loc = e.pexp_loc in
-            [%expr Buffer.add_string b (Stdlib.string_of_int [%e e])]
-        | Dynamic_element e ->
-            let loc = e.pexp_loc in
-            [%expr ReactDOM.write_to_buffer b [%e e]]
-        | Dynamic_attr_slot { info; expr; is_optional } -> write_attr_slot ~info ~expr ~is_optional)
+    let rec loop state = function
+      | [] -> []
+      | part :: rest ->
+          let maybe_separator =
+            if begins_with_text part then (
+              let sep = separator ~state in
+              if Option.is_some sep then uses_separators := true;
+              sep)
+            else None
+          in
+          let write =
+            match part with
+            | Static_str { html; _ } when String.length html = 0 ->
+                (* Nothing to write: an empty text chunk only participates
+                   in the text-run tracking (compile-time state). *)
+                None
+            | Static_str { html; _ } -> Some [%expr Buffer.add_string __buf [%e estring ~loc html]]
+            | Dynamic_string e ->
+                let loc = e.pexp_loc in
+                Some [%expr ReactDOM.escape_to_buffer __buf [%e e]]
+            | Dynamic_int e ->
+                let loc = e.pexp_loc in
+                Some [%expr Buffer.add_string __buf (Stdlib.string_of_int [%e e])]
+            | Dynamic_element e ->
+                let loc = e.pexp_loc in
+                uses_separators := true;
+                let prev_text_arg =
+                  match state with
+                  | Ct_text -> [%expr true]
+                  | Ct_markup -> [%expr false]
+                  | Ct_unknown -> [%expr !__prev_text]
+                in
+                if prev_text_ref_needed then
+                  Some
+                    [%expr
+                      __prev_text :=
+                        ReactDOM.write_element_to_buffer __buf ~separators:__separators ~prev_text:[%e prev_text_arg]
+                          [%e e]]
+                else
+                  Some
+                    [%expr
+                      let (_ : bool) =
+                        ReactDOM.write_element_to_buffer __buf ~separators:__separators ~prev_text:[%e prev_text_arg]
+                          [%e e]
+                      in
+                      ()]
+            | Dynamic_attr_slot { info; expr; is_optional } -> Some (write_attr_slot ~info ~expr ~is_optional)
+          in
+          let stmts = List.filter_map ~f:(fun x -> x) [ maybe_separator; write ] in
+          stmts @ loop (after_part state part) rest
+    in
+    loop Ct_markup parts
   in
   let body =
     List.fold_right writes ~init:[%expr ()] ~f:(fun w acc ->
@@ -515,7 +605,15 @@ let emit_parts_emit_fn ~loc parts =
           [%e w];
           [%e acc]])
   in
-  [%expr fun b -> [%e body]]
+  let body =
+    if prev_text_ref_needed then
+      [%expr
+        let __prev_text = ref false in
+        [%e body]]
+    else body
+  in
+  if !uses_separators then [%expr fun __buf ~separators:__separators -> [%e body]]
+  else [%expr fun __buf ~separators:_ -> [%e body]]
 
 let rewrite_lowercase ~loc tag_name args children =
   let key =
@@ -537,7 +635,7 @@ let rewrite_lowercase ~loc tag_name args children =
          [original] is a thunk that rebuilds the variant-tree on demand for
          [cloneElement] / RSC; zero-alloc unless called. *)
       let parts_with_doctype =
-        match tag_name with "html" -> Static_analysis.Static_str "<!DOCTYPE html>" :: parts | _ -> parts
+        match tag_name with "html" -> Static_analysis.static_markup "<!DOCTYPE html>" :: parts | _ -> parts
       in
       let emit_fn = emit_parts_emit_fn ~loc parts_with_doctype in
       let original_tree = generate_create_element ~loc ~tag_name ~key ~props ~children in

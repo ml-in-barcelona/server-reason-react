@@ -601,10 +601,14 @@ and element =
   | Int of int
   | Float of float
   | Static of { prerendered : string; original : element }
-  | Writer of { emit : Buffer.t -> unit; original : unit -> element }
+  | Writer of { emit : Buffer.t -> separators:bool -> unit; original : unit -> element }
       (** Subtree with static skeleton + dynamic string/int/float/element holes. [emit] writes directly into the
           caller's buffer, avoiding the intermediate buffer + Buffer.contents allocation that a [Static] wrapping would
           require.
+
+          [separators] tells the emit function whether adjacent text nodes must be delimited with an [<!-- -->] comment,
+          matching react-dom: [renderToString] needs the delimiters so hydration can split merged text nodes,
+          [renderToStaticMarkup] must not emit them.
 
           [original] is a thunk that rebuilds the variant-tree form on-demand for [cloneElement] / RSC consumers. Same
           name as [Static.original] for symmetry; this variant's version is lazy. Emitted by the PPX for the

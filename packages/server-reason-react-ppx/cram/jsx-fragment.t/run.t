@@ -10,10 +10,19 @@
     React.fragment(
       React.list([
         React.Writer({
-          emit: b => {
-            Buffer.add_string(b, "<div>");
-            ReactDOM.write_to_buffer(b, foo);
-            Buffer.add_string(b, "</div>");
+          emit: (__buf, ~separators as __separators) => {
+            Buffer.add_string(__buf, "<div>");
+            {
+              let (_: bool) =
+                ReactDOM.write_element_to_buffer(
+                  __buf,
+                  ~separators=__separators,
+                  ~prev_text=false,
+                  foo,
+                );
+              ();
+            };
+            Buffer.add_string(__buf, "</div>");
             ();
           },
           original: () => React.createElement("div", [], [foo]),
@@ -54,10 +63,10 @@
                     React.fragment(
                       React.list([
                         React.Writer({
-                          emit: b => {
-                            Buffer.add_string(b, "<div>");
-                            ReactDOM.escape_to_buffer(b, "First " ++ name);
-                            Buffer.add_string(b, "</div>");
+                          emit: (__buf, ~separators as _) => {
+                            Buffer.add_string(__buf, "<div>");
+                            ReactDOM.escape_to_buffer(__buf, "First " ++ name);
+                            Buffer.add_string(__buf, "</div>");
                             ();
                           },
                           original: () =>

@@ -10,17 +10,17 @@ even when a user type in scope shadows `None`. Both the `emit` fast path and the
     React.Writer
       {
         emit =
-          (fun b ->
-            Buffer.add_string b "<a";
-            Buffer.add_char b ' ';
-            Buffer.add_string b "class";
-            Buffer.add_string b "=\"";
-            ReactDOM.escape_to_buffer b (fst x : string);
-            Buffer.add_char b '"';
-            Buffer.add_string b " style=\"";
-            ReactDOM.escape_to_buffer b
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<a";
+            Buffer.add_char __buf ' ';
+            Buffer.add_string __buf "class";
+            Buffer.add_string __buf "=\"";
+            ReactDOM.escape_to_buffer __buf (fst x : string);
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf " style=\"";
+            ReactDOM.escape_to_buffer __buf
               (ReactDOM.Style.to_string (snd x : ReactDOM.Style.t));
-            Buffer.add_char b '"';
+            Buffer.add_char __buf '"';
             (match
                (match disabled with
                 | true -> None
@@ -29,12 +29,12 @@ even when a user type in scope shadows `None`. Both the `emit` fast path and the
              with
             | None -> ()
             | Some v ->
-                Buffer.add_char b ' ';
-                Buffer.add_string b "href";
-                Buffer.add_string b "=\"";
-                ReactDOM.escape_to_buffer b (v : string);
-                Buffer.add_char b '"');
-            Buffer.add_string b ">x</a>";
+                Buffer.add_char __buf ' ';
+                Buffer.add_string __buf "href";
+                Buffer.add_string __buf "=\"";
+                ReactDOM.escape_to_buffer __buf (v : string);
+                Buffer.add_char __buf '"');
+            Buffer.add_string __buf ">x</a>";
             ());
         original =
           (fun () ->

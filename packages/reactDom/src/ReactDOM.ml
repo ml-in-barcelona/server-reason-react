@@ -165,224 +165,174 @@ let write_text_node buf (element : React.element) =
    parent node, which compounds linearly on wide trees (see
    benchmark/perf-work/PERF_NEXT.md, H1). Full applications allocate
    nothing. *)
-let render_to_buffer ~mode buf element =
-  let add_separator_between_text_nodes = mode = String in
-  let previous_node_was_text = ref false in
-  let should_add_doctype = ref true in
+(* The single synchronous tree renderer. Serves both public modes and the
+   PPX [React.Writer] fast path:
 
-  let rec render_element buf (element : React.element) =
+   - [separators]: when true, adjacent text nodes are delimited with
+     [<!-- -->] exactly like react-dom's [renderToString] (hydration splits
+     merged text nodes at those comments); [renderToStaticMarkup] semantics
+     pass false.
+   - [doctype]: when true, a leading [<html>] element gets a
+     [<!DOCTYPE html>] prepended. Top-level renders pass true; [Writer]
+     emit bodies pass false (the PPX bakes the doctype into the prerendered
+     chunk itself).
+   - [prev_text]: whether the previously emitted sibling ended with a text
+     node. The result reports the same for this element, so callers (the
+     PPX emit bodies in particular) can chain writes across static chunks
+     and dynamic holes. *)
+let render_tree buf ~separators ~doctype ~prev_text element : bool =
+  (* Render-scoped and monotonic (true until the first emitting node), so a
+     single ref is simpler than threading it alongside [prev_text]. *)
+  let doctype_pending = ref doctype in
+  let rec render buf prev_text (element : React.element) : bool =
     match element with
-    | Empty -> ()
+    | Empty -> prev_text
     | Static { prerendered; _ } ->
-        should_add_doctype := false;
-        Buffer.add_string buf prerendered
+        doctype_pending := false;
+        (* Prerendered chunks are complete elements: they end the current
+           text run, like the [Lower_case_element] case below. *)
+        Buffer.add_string buf prerendered;
+        false
     | Writer { emit; _ } ->
-        should_add_doctype := false;
-        emit buf
+        doctype_pending := false;
+        emit buf ~separators;
+        false
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
-             ("Client components can't be rendered on the server via renderToString or renderToStaticMarkup. Please \
-               use the React server components API instead. module: " ^ import_module))
+             ("Client components can't be rendered synchronously on the server. Please use the React server components \
+               API instead. module: " ^ import_module))
     | Provider { children; push; _ } ->
         let pop = push () in
-        render_element buf children;
-        pop ()
-    | Consumer children -> render_element buf children
-    | Fragment children -> render_element buf children
-    | List list -> render_children_list buf list
-    | Array arr -> render_children_array buf arr
-    | Upper_case_component (_, component) -> render_upper_case_component buf component
+        let ends_text = render buf prev_text children in
+        pop ();
+        ends_text
+    | Consumer children -> render buf prev_text children
+    | Fragment children -> render buf prev_text children
+    | List list -> render_children_list buf prev_text list
+    | Array arr -> render_children_array buf prev_text arr
+    | Upper_case_component (_, component) -> render_upper_case_component buf prev_text component
     | Async_component (_name, _component) ->
         raise
-          (Invalid_argument
-             "Async components can't be rendered to static markup, since rendering is synchronous. Please use \
-              `renderToStream` instead.")
-    | Lower_case_element { key = _; tag; attributes; children } -> render_lower_case buf tag attributes children
+          (Invalid_argument "Async components can't be rendered synchronously. Please use `renderToStream` instead.")
+    | Lower_case_element { key = _; tag; attributes; children } ->
+        render_lower_case buf tag attributes children;
+        false
     | (Text _ | Int _ | Float _) as text_node ->
-        let is_previous_text_node = !previous_node_was_text in
-        previous_node_was_text := true;
-        if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string buf "<!-- -->";
+        if prev_text && separators then Buffer.add_string buf "<!-- -->";
         write_text_node buf text_node;
-        should_add_doctype := false
+        doctype_pending := false;
+        true
     | Suspense { key = _; children; fallback } -> (
         let suspense_inner_buf = Buffer.create 128 in
-        match render_element suspense_inner_buf children with
-        | () ->
+        match render suspense_inner_buf prev_text children with
+        | ends_text ->
             Buffer.add_string buf "<!--$-->";
             Buffer.add_buffer buf suspense_inner_buf;
-            Buffer.add_string buf "<!--/$-->"
+            Buffer.add_string buf "<!--/$-->";
+            ends_text
         | exception _e ->
             Buffer.add_string buf "<!--$!-->";
-            render_element buf (Option.value fallback ~default:React.null);
-            Buffer.add_string buf "<!--/$-->")
-  and render_upper_case_component buf component =
+            let ends_text = render buf prev_text (Option.value fallback ~default:React.null) in
+            Buffer.add_string buf "<!--/$-->";
+            ends_text)
+  and render_upper_case_component buf prev_text component =
     let saved_ctx = !React.current_tree_context in
     React.reset_component_id_state saved_ctx;
     match component () with
     | result -> (
         let did_use_id = React.check_did_render_id_hook () in
         if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-        match render_element buf result with
-        | () -> React.current_tree_context := saved_ctx
+        match render buf prev_text result with
+        | ends_text ->
+            React.current_tree_context := saved_ctx;
+            ends_text
         | exception exn ->
             React.current_tree_context := saved_ctx;
             raise exn)
     | exception exn ->
         React.current_tree_context := saved_ctx;
         raise exn
-  and render_children_list buf list =
+  and render_children_list buf prev_text list =
     match list with
-    | [] -> ()
-    | [ single ] -> render_element buf single
+    | [] -> prev_text
+    | [ single ] -> render buf prev_text single
     | _ -> (
         let saved_ctx = !React.current_tree_context in
         let total = List.length list in
-        let rec go i = function
-          | [] -> ()
+        let rec go i prev_text = function
+          | [] -> prev_text
           | el :: rest ->
               React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-              render_element buf el;
-              go (i + 1) rest
+              let prev_text = render buf prev_text el in
+              go (i + 1) prev_text rest
         in
-        match go 0 list with
-        | () -> React.current_tree_context := saved_ctx
+        match go 0 prev_text list with
+        | ends_text ->
+            React.current_tree_context := saved_ctx;
+            ends_text
         | exception exn ->
             React.current_tree_context := saved_ctx;
             raise exn)
-  and render_children_array buf arr =
+  and render_children_array buf prev_text arr =
     let total = Array.length arr in
-    if total = 0 then ()
-    else if total = 1 then render_element buf (Array.unsafe_get arr 0)
+    if total = 0 then prev_text
+    else if total = 1 then render buf prev_text (Array.unsafe_get arr 0)
     else
       let saved_ctx = !React.current_tree_context in
-      match
-        for i = 0 to total - 1 do
+      let rec go i prev_text =
+        if i = total then prev_text
+        else begin
           React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-          render_element buf (Array.unsafe_get arr i)
-        done
-      with
-      | () -> React.current_tree_context := saved_ctx
+          go (i + 1) (render buf prev_text (Array.unsafe_get arr i))
+        end
+      in
+      match go 0 prev_text with
+      | ends_text ->
+          React.current_tree_context := saved_ctx;
+          ends_text
       | exception exn ->
           React.current_tree_context := saved_ctx;
           raise exn
   and render_lower_case buf tag attributes children =
     if Html.is_self_closing_tag tag then (
-      should_add_doctype := false;
-      if add_separator_between_text_nodes then previous_node_was_text := false;
+      doctype_pending := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
       let _ = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_string buf " />")
     else
-      let doctype = !should_add_doctype in
-      should_add_doctype := false;
-      if add_separator_between_text_nodes then previous_node_was_text := false;
+      let doctype = !doctype_pending in
+      doctype_pending := false;
       if tag = "html" && doctype then Buffer.add_string buf "<!DOCTYPE html>";
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
       let inner_html = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_char buf '>';
-      (match inner_html with Some html -> Buffer.add_string buf html | None -> render_children_list buf children);
+      (match inner_html with
+      | Some html -> Buffer.add_string buf html
+      | None ->
+          let (_ : bool) = render_children_list buf false children in
+          ());
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
-      Buffer.add_char buf '>';
-      if add_separator_between_text_nodes then previous_node_was_text := false
+      Buffer.add_char buf '>'
   in
-  render_element buf element
+  render buf prev_text element
 
+let render_to_buffer ~mode buf element =
+  let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
+  ()
+
+(* Threaded String-mode write used by PPX-generated [React.Writer] emit
+   bodies; see [render_tree] for the parameter protocol. *)
+let write_element_to_buffer buf ~separators ~prev_text element : bool =
+  render_tree buf ~separators ~doctype:false ~prev_text element
+
+(* Markup-mode write: no text separators, matching [renderToStaticMarkup]. *)
 let write_to_buffer buf element =
-  let rec render buf (element : React.element) =
-    match element with
-    | Empty -> ()
-    | Static { prerendered; _ } -> Buffer.add_string buf prerendered
-    | Writer { emit; _ } -> emit buf
-    | Client_component { import_module; _ } ->
-        raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
-    | Provider { children; push; _ } ->
-        let pop = push () in
-        render buf children;
-        pop ()
-    | Consumer children -> render buf children
-    | Fragment children -> render buf children
-    | List list -> render_children_list buf list
-    | Array arr -> render_children_array buf arr
-    | Upper_case_component (_, component) -> render_upper_case_component buf component
-    | Async_component (_name, _component) ->
-        raise (Invalid_argument "Async components can't be rendered synchronously via write_to_buffer.")
-    | Lower_case_element { key = _; tag; attributes; children } ->
-        if Html.is_self_closing_tag tag then (
-          Buffer.add_char buf '<';
-          Buffer.add_string buf tag;
-          let _ = write_attributes_and_extract_inner_html buf attributes in
-          Buffer.add_string buf " />")
-        else (
-          Buffer.add_char buf '<';
-          Buffer.add_string buf tag;
-          let inner_html = write_attributes_and_extract_inner_html buf attributes in
-          Buffer.add_char buf '>';
-          (match inner_html with Some html -> Buffer.add_string buf html | None -> render_children_list buf children);
-          Buffer.add_string buf "</";
-          Buffer.add_string buf tag;
-          Buffer.add_char buf '>')
-    | (Text _ | Int _ | Float _) as text_node -> write_text_node buf text_node
-    | Suspense { children; fallback; _ } -> (
-        let suspense_inner_buf = Buffer.create 128 in
-        match render suspense_inner_buf children with
-        | () -> Buffer.add_buffer buf suspense_inner_buf
-        | exception _e -> render buf (Option.value fallback ~default:React.null))
-  and render_upper_case_component buf component =
-    let saved_ctx = !React.current_tree_context in
-    React.reset_component_id_state saved_ctx;
-    match component () with
-    | result -> (
-        let did_use_id = React.check_did_render_id_hook () in
-        if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-        match render buf result with
-        | () -> React.current_tree_context := saved_ctx
-        | exception exn ->
-            React.current_tree_context := saved_ctx;
-            raise exn)
-    | exception exn ->
-        React.current_tree_context := saved_ctx;
-        raise exn
-  and render_children_list buf list =
-    match list with
-    | [] -> ()
-    | [ single ] -> render buf single
-    | _ -> (
-        let saved_ctx = !React.current_tree_context in
-        let total = List.length list in
-        let rec go i = function
-          | [] -> ()
-          | el :: rest ->
-              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-              render buf el;
-              go (i + 1) rest
-        in
-        match go 0 list with
-        | () -> React.current_tree_context := saved_ctx
-        | exception exn ->
-            React.current_tree_context := saved_ctx;
-            raise exn)
-  and render_children_array buf arr =
-    let total = Array.length arr in
-    if total = 0 then ()
-    else if total = 1 then render buf (Array.unsafe_get arr 0)
-    else
-      let saved_ctx = !React.current_tree_context in
-      match
-        for i = 0 to total - 1 do
-          React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-          render buf (Array.unsafe_get arr i)
-        done
-      with
-      | () -> React.current_tree_context := saved_ctx
-      | exception exn ->
-          React.current_tree_context := saved_ctx;
-          raise exn
-  in
-  render buf element
+  let (_ : bool) = render_tree buf ~separators:false ~doctype:false ~prev_text:false element in
+  ()
 
 let escape_to_buffer = Html.escape
 
@@ -509,11 +459,16 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
     | Empty -> Lwt.return ()
     | Static { prerendered; _ } ->
         should_add_doctype := false;
+        (* Prerendered chunks are complete elements: they end the current text run. *)
+        previous_node_was_text := false;
         Buffer.add_string buf prerendered;
         Lwt.return ()
     | Writer { emit; _ } ->
         should_add_doctype := false;
-        emit buf;
+        previous_node_was_text := false;
+        (* The stream renderer has [renderToString] semantics: hydration
+           relies on the [<!-- -->] text separators. *)
+        emit buf ~separators:true;
         Lwt.return ()
     | Client_component { import_module; _ } ->
         raise

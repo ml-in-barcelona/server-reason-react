@@ -41,6 +41,15 @@ val getDangerouslyInnerHtml : React.JSX.prop list -> string option
 (** getDangerouslyInnerHtml returns the value of the dangerouslySetInnerHTML prop if it exists, otherwise None. *)
 
 val write_to_buffer : Buffer.t -> React.element -> unit
+(** Markup-mode write: renders the element into the buffer without [<!-- -->] text separators, matching
+    [renderToStaticMarkup]. *)
+
+val write_element_to_buffer : Buffer.t -> separators:bool -> prev_text:bool -> React.element -> bool
+(** Threaded String-mode write used by PPX-generated [React.Writer] emit bodies. [prev_text] says whether the previously
+    written sibling ended with a text node; the result reports the same for this element. When [separators] is true,
+    adjacent text nodes are delimited with [<!-- -->] like [renderToString] does, so hydration can split the merged text
+    nodes back apart. *)
+
 val escape_to_buffer : Buffer.t -> string -> unit
 
 (** {2 The rest of the API is there for compatibility with ReactDOM's reason-react} *)

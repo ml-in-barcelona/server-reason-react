@@ -80,19 +80,23 @@
                 React.Writer
                   {
                     emit =
-                      (fun b ->
-                        Buffer.add_string b "<div";
-                        Buffer.add_char b ' ';
-                        Buffer.add_string b "class";
-                        Buffer.add_string b "=\"";
-                        ReactDOM.escape_to_buffer b (className : string);
-                        Buffer.add_char b '"';
-                        Buffer.add_string b ">";
-                        ReactDOM.write_to_buffer b
-                          (match children with
-                          | None -> React.null
-                          | ((Some c) [@explicit_arity]) -> c);
-                        Buffer.add_string b "</div>";
+                      (fun __buf ~separators:__separators ->
+                        Buffer.add_string __buf "<div";
+                        Buffer.add_char __buf ' ';
+                        Buffer.add_string __buf "class";
+                        Buffer.add_string __buf "=\"";
+                        ReactDOM.escape_to_buffer __buf (className : string);
+                        Buffer.add_char __buf '"';
+                        Buffer.add_string __buf ">";
+                        (let (_ : bool) =
+                           ReactDOM.write_element_to_buffer __buf
+                             ~separators:__separators ~prev_text:false
+                             (match children with
+                             | None -> React.null
+                             | ((Some c) [@explicit_arity]) -> c)
+                         in
+                         ());
+                        Buffer.add_string __buf "</div>";
                         ());
                     original =
                       (fun () ->

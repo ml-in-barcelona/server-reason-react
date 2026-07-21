@@ -18,13 +18,27 @@ type attr_render_info = { html_name : string; is_boolean : bool; kind : DomProps
    runtime expression. [~is_optional] distinguishes [?foo] (expression is an
    [option]) from [foo={...}] (expression is the unwrapped value). The
    emission side uses [kind] from [info] to pick the right runtime
-   serialization. *)
+   serialization.
+
+   [Static_str] carries text-edge metadata so the emission side can place
+   the [<!-- -->] separators that [renderToString] requires between
+   adjacent text nodes (react-dom parity: hydration splits merged text
+   nodes at those comments). [starts_text]/[ends_text] say whether the
+   chunk begins/ends inside a text node rather than markup. A chunk with
+   empty [html] can still be text on both edges: an empty [React.string]
+   child participates in text-run tracking like the runtime renderer's
+   [Text ""] does. *)
 type static_part =
-  | Static_str of string
+  | Static_str of { html : string; starts_text : bool; ends_text : bool }
   | Dynamic_string of expression
   | Dynamic_int of expression
   | Dynamic_element of expression
   | Dynamic_attr_slot of { info : attr_render_info; expr : expression; is_optional : bool }
+
+(* Markup chunks (tags, attributes) never merge with a neighbouring text
+   node; text chunks (rendered text children) do. *)
+let static_markup html = Static_str { html; starts_text = false; ends_text = false }
+let static_text html = Static_str { html; starts_text = true; ends_text = true }
 
 type parsed_attr =
   | Static_attr of attr_render_info * static_attr_value
@@ -51,8 +65,15 @@ type element_analysis =
   | Needs_buffer of static_part list
   | Cannot_optimize
 
+(* Merge adjacent static chunks, except across a text→text boundary: those
+   two chunks must stay separate so the emission side can put the
+   mode-conditional [<!-- -->] separator between them ([renderToString]
+   emits it, [renderToStaticMarkup] doesn't, so it can't be baked into the
+   merged string). *)
 let rec coalesce_static_parts = function
-  | Static_str a :: Static_str b :: rest -> coalesce_static_parts (Static_str (a ^ b) :: rest)
+  | Static_str a :: Static_str b :: rest when not (a.ends_text && b.starts_text) ->
+      coalesce_static_parts
+        (Static_str { html = a.html ^ b.html; starts_text = a.starts_text; ends_text = b.ends_text } :: rest)
   | x :: rest -> x :: coalesce_static_parts rest
   | [] -> []
 
@@ -100,12 +121,6 @@ let extract_react_text_literal expr =
 
 let extract_react_int_literal expr =
   match extract_react_int_arg expr with Some arg -> extract_literal_int arg | None -> None
-
-let extract_unsafe_literal expr =
-  match expr.pexp_desc with
-  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Ldot (Lident "Html", "raw"); _ }; _ }, [ (Nolabel, arg) ]) ->
-      extract_literal_string arg
-  | _ -> None
 
 let extract_static_attr_value expr =
   match extract_literal_string expr with
@@ -273,7 +288,8 @@ let analyze_attributes ~tag_name attrs =
   let has_dynamic = ref false in
   let flush_static () =
     if Buffer.length static_buf > 0 then begin
-      parts := Static_str (Buffer.contents static_buf) :: !parts;
+      (* Attribute runs live inside the open tag: markup on both edges. *)
+      parts := static_markup (Buffer.contents static_buf) :: !parts;
       Buffer.clear static_buf
     end
   in
@@ -324,33 +340,42 @@ let analyze_attributes ~tag_name attrs =
    Sequential [match] avoids allocating a closure list per child (the
    earlier [List.find_map] form allocated 8 thunks + 8 cons cells). *)
 let analyze_child (expr : expression) : static_part =
-  match extract_unsafe_literal expr with
-  | Some s -> Static_str s
+  match extract_react_text_literal expr with
+  | Some s -> static_text (escape_html s)
   | None -> (
-      match extract_react_text_literal expr with
-      | Some s -> Static_str (escape_html s)
+      match extract_literal_string expr with
+      | Some s -> static_text (escape_html s)
       | None -> (
-          match extract_literal_string expr with
-          | Some s -> Static_str (escape_html s)
+          match extract_react_int_literal expr with
+          | Some i -> static_text (string_of_int i)
           | None -> (
-              match extract_react_int_literal expr with
-              | Some i -> Static_str (string_of_int i)
-              | None -> (
-                  (* [React.float] children stay on the variant-tree path
+              (* [React.float] children stay on the variant-tree path
                      ([Dynamic_element]): their HTML stringification is
                      JavaScript number formatting ([Js.Float.toString], "2"
                      not "2."), which lives in ReactDOM and is not
                      addressable from emitted user code — same reasoning as
                      [Float] attributes in [is_lowerable_kind]. *)
-                  match extract_react_string_arg expr with
-                  | Some e -> Dynamic_string e
-                  | None -> (
-                      match extract_react_int_arg expr with Some e -> Dynamic_int e | None -> Dynamic_element expr)))))
+              match extract_react_string_arg expr with
+              | Some e -> Dynamic_string e
+              | None -> (
+                  match extract_react_int_arg expr with Some e -> Dynamic_int e | None -> Dynamic_element expr))))
 
 (* Caller [analyze_element] always runs [coalesce_static_parts] on the
    combined [open_tag; ...children...; close_tag] list, so returning
    un-coalesced children here just means the merge happens once downstream
    instead of twice. *)
+(* Two consecutive parts that both touch a text edge need a [<!-- -->]
+   separator between them in [renderToString] output. Such a pair can't be
+   merged into a prerendered string (the separator is mode-dependent), so
+   children containing one are kept as parts and take the Writer tier. *)
+let has_adjacent_text parts =
+  let rec loop = function
+    | Static_str a :: (Static_str b :: _ as rest) -> (a.ends_text && b.starts_text) || loop rest
+    | _ :: rest -> loop rest
+    | [] -> false
+  in
+  loop parts
+
 let analyze_children children =
   match children with
   | None -> No_children
@@ -359,9 +384,9 @@ let analyze_children children =
       let parts = List.map analyze_child children in
       let all_static = List.for_all (function Static_str _ -> true | _ -> false) parts in
       let has_element_dynamic = List.exists (function Dynamic_element _ -> true | _ -> false) parts in
-      if all_static then (
+      if all_static && not (has_adjacent_text parts) then (
         let buf = Buffer.create 128 in
-        List.iter (function Static_str s -> Buffer.add_string buf s | _ -> ()) parts;
+        List.iter (function Static_str { html; _ } -> Buffer.add_string buf html | _ -> ()) parts;
         All_static_children (Buffer.contents buf))
       else if not has_element_dynamic then All_string_dynamic parts
       else Mixed_children parts
@@ -374,11 +399,11 @@ let analyze_children children =
    for self-closing tags), then append the children parts and the closing
    tag. *)
 let mixed_attrs_parts ~tag_name ~is_self_closing ~children_parts attr_parts =
-  let open_prefix = Static_str (Printf.sprintf "<%s" tag_name) in
-  if is_self_closing then open_prefix :: (attr_parts @ [ Static_str " />" ])
+  let open_prefix = static_markup (Printf.sprintf "<%s" tag_name) in
+  if is_self_closing then open_prefix :: (attr_parts @ [ static_markup " />" ])
   else
-    let close_tag = Static_str (Printf.sprintf "</%s>" tag_name) in
-    open_prefix :: (attr_parts @ (Static_str ">" :: (children_parts @ [ close_tag ])))
+    let close_tag = static_markup (Printf.sprintf "</%s>" tag_name) in
+    open_prefix :: (attr_parts @ (static_markup ">" :: (children_parts @ [ close_tag ])))
 
 let analyze_element ~tag_name ~attrs ~children =
   let attrs_result = analyze_attributes ~tag_name attrs in
@@ -398,12 +423,12 @@ let analyze_element ~tag_name ~attrs ~children =
   | All_static attrs_html, All_string_dynamic parts ->
       let open_tag = Printf.sprintf "<%s%s>" tag_name attrs_html in
       let close_tag = Printf.sprintf "</%s>" tag_name in
-      let all_parts = Static_str open_tag :: (parts @ [ Static_str close_tag ]) in
+      let all_parts = static_markup open_tag :: (parts @ [ static_markup close_tag ]) in
       Needs_string_concat (coalesce_static_parts all_parts)
   | All_static attrs_html, Mixed_children parts ->
       let open_tag = Printf.sprintf "<%s%s>" tag_name attrs_html in
       let close_tag = Printf.sprintf "</%s>" tag_name in
-      let all_parts = Static_str open_tag :: (parts @ [ Static_str close_tag ]) in
+      let all_parts = static_markup open_tag :: (parts @ [ static_markup close_tag ]) in
       Needs_buffer (coalesce_static_parts all_parts)
   | Mixed_attrs attr_parts, No_children ->
       let parts =
@@ -411,8 +436,12 @@ let analyze_element ~tag_name ~attrs ~children =
       in
       Needs_buffer (coalesce_static_parts parts)
   | Mixed_attrs attr_parts, All_static_children children_html ->
+      (* [All_static_children] guarantees no internal text→text adjacency,
+         and [mixed_attrs_parts] wraps the chunk between the ">" and
+         "</tag>" markup chunks, so its outer edges can never form a text
+         run with a neighbour: markup metadata is exact here. *)
       let parts =
-        mixed_attrs_parts ~tag_name ~is_self_closing:false ~children_parts:[ Static_str children_html ] attr_parts
+        mixed_attrs_parts ~tag_name ~is_self_closing:false ~children_parts:[ static_markup children_html ] attr_parts
       in
       Needs_buffer (coalesce_static_parts parts)
   | Mixed_attrs attr_parts, All_string_dynamic children_parts | Mixed_attrs attr_parts, Mixed_children children_parts ->

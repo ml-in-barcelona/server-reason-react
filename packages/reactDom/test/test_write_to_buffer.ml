@@ -89,7 +89,8 @@ let upper_case_component () =
   assert_string (write app) "<div>component</div>"
 
 let suspense_success () =
-  (* On success, write_to_buffer renders children without suspense markers *)
+  (* Suspense renders with the same boundary markers as the tree renderer:
+     write_to_buffer output must be byte-identical to renderToStaticMarkup. *)
   let el =
     React.Suspense
       {
@@ -98,10 +99,12 @@ let suspense_success () =
         fallback = Some (React.createElement "div" [] [ React.string "loading" ]);
       }
   in
-  assert_string (write el) "<div>ok</div>"
+  assert_string (write el) "<!--$--><div>ok</div><!--/$-->";
+  assert_string (write el) (ReactDOM.renderToStaticMarkup el)
 
 let suspense_fallback_on_error () =
-  (* On error, write_to_buffer renders fallback without suspense markers *)
+  (* On error, the fallback renders inside the error boundary markers,
+     byte-identical to the tree renderer. *)
   let el =
     React.Suspense
       {
@@ -110,7 +113,8 @@ let suspense_fallback_on_error () =
         fallback = Some (React.createElement "div" [] [ React.string "fallback" ]);
       }
   in
-  assert_string (write el) "<div>fallback</div>"
+  assert_string (write el) "<!--$!--><div>fallback</div><!--/$-->";
+  assert_string (write el) (ReactDOM.renderToStaticMarkup el)
 
 let static_element () =
   let original = React.createElement "div" [] [ React.string "Hello" ] in
@@ -155,7 +159,7 @@ let async_component_raises () =
     ()
   in
   Alcotest.check_raises "Expected invalid argument"
-    (Invalid_argument "Async components can't be rendered synchronously via write_to_buffer.")
+    (Invalid_argument "Async components can't be rendered synchronously. Please use `renderToStream` instead.")
     raises
 
 let context () =
@@ -199,8 +203,8 @@ let tests =
     test "list children" list_children;
     test "array children" array_children;
     test "upper case component" upper_case_component;
-    test "suspense success renders without markers" suspense_success;
-    test "suspense fallback renders without markers" suspense_fallback_on_error;
+    test "suspense success matches renderToStaticMarkup" suspense_success;
+    test "suspense fallback matches renderToStaticMarkup" suspense_fallback_on_error;
     test "static element" static_element;
     test "event attributes ignored" event_attributes_ignored;
     test "ref attributes ignored" ref_attributes_ignored;

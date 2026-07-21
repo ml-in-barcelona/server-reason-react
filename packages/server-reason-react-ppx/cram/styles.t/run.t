@@ -4,18 +4,18 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.Writer
     {
       emit =
-        (fun b ->
-          Buffer.add_string b "<div";
-          Buffer.add_char b ' ';
-          Buffer.add_string b "class";
-          Buffer.add_string b "=\"";
-          ReactDOM.escape_to_buffer b (fst x : string);
-          Buffer.add_char b '"';
-          Buffer.add_string b " style=\"";
-          ReactDOM.escape_to_buffer b
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
+          Buffer.add_char __buf ' ';
+          Buffer.add_string __buf "class";
+          Buffer.add_string __buf "=\"";
+          ReactDOM.escape_to_buffer __buf (fst x : string);
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf " style=\"";
+          ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string (snd x : ReactDOM.Style.t));
-          Buffer.add_char b '"';
-          Buffer.add_string b "></div>";
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf "></div>";
           ());
       original =
         (fun () ->
@@ -32,30 +32,30 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.Writer
     {
       emit =
-        (fun b ->
-          Buffer.add_string b "<div";
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
           (match
              (match x with None -> None | Some x -> Some (fst x)
                : string option)
            with
           | None -> ()
           | Some v ->
-              Buffer.add_char b ' ';
-              Buffer.add_string b "class";
-              Buffer.add_string b "=\"";
-              ReactDOM.escape_to_buffer b (v : string);
-              Buffer.add_char b '"');
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "class";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           (match
              (match x with None -> None | Some x -> Some (snd x)
                : ReactDOM.Style.t option)
            with
           | None -> ()
           | Some v ->
-              Buffer.add_string b " style=\"";
-              ReactDOM.escape_to_buffer b
+              Buffer.add_string __buf " style=\"";
+              ReactDOM.escape_to_buffer __buf
                 (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
-              Buffer.add_char b '"');
-          Buffer.add_string b "></div>";
+              Buffer.add_char __buf '"');
+          Buffer.add_string __buf "></div>";
           ());
       original =
         (fun () ->
@@ -82,18 +82,18 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.Writer
     {
       emit =
-        (fun b ->
-          Buffer.add_string b "<div";
-          Buffer.add_char b ' ';
-          Buffer.add_string b "class";
-          Buffer.add_string b "=\"";
-          ReactDOM.escape_to_buffer b (fst x ^ " " ^ "lola" : string);
-          Buffer.add_char b '"';
-          Buffer.add_string b " style=\"";
-          ReactDOM.escape_to_buffer b
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
+          Buffer.add_char __buf ' ';
+          Buffer.add_string __buf "class";
+          Buffer.add_string __buf "=\"";
+          ReactDOM.escape_to_buffer __buf (fst x ^ " " ^ "lola" : string);
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf " style=\"";
+          ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string (snd x : ReactDOM.Style.t));
-          Buffer.add_char b '"';
-          Buffer.add_string b "></div>";
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf "></div>";
           ());
       original =
         (fun () ->
@@ -112,15 +112,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.Writer
     {
       emit =
-        (fun b ->
-          Buffer.add_string b "<div";
-          Buffer.add_char b ' ';
-          Buffer.add_string b "class";
-          Buffer.add_string b "=\"";
-          ReactDOM.escape_to_buffer b (fst x : string);
-          Buffer.add_char b '"';
-          Buffer.add_string b " style=\"";
-          ReactDOM.escape_to_buffer b
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
+          Buffer.add_char __buf ' ';
+          Buffer.add_string __buf "class";
+          Buffer.add_string __buf "=\"";
+          ReactDOM.escape_to_buffer __buf (fst x : string);
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf " style=\"";
+          ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string
                (ReactDOM.Style.combine
                   (("background-color", "backgroundColor", "gainsboro")
@@ -128,8 +128,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     : ReactDOM.Style.t)
                   (snd x)
                  : ReactDOM.Style.t));
-          Buffer.add_char b '"';
-          Buffer.add_string b "></div>";
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf "></div>";
           ());
       original =
         (fun () ->
@@ -153,15 +153,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.Writer
     {
       emit =
-        (fun b ->
-          Buffer.add_string b "<div";
-          Buffer.add_char b ' ';
-          Buffer.add_string b "class";
-          Buffer.add_string b "=\"";
-          ReactDOM.escape_to_buffer b (fst x ^ " " ^ "lola" : string);
-          Buffer.add_char b '"';
-          Buffer.add_string b " style=\"";
-          ReactDOM.escape_to_buffer b
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
+          Buffer.add_char __buf ' ';
+          Buffer.add_string __buf "class";
+          Buffer.add_string __buf "=\"";
+          ReactDOM.escape_to_buffer __buf (fst x ^ " " ^ "lola" : string);
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf " style=\"";
+          ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string
                (ReactDOM.Style.combine
                   (("background-color", "backgroundColor", "gainsboro")
@@ -169,8 +169,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     : ReactDOM.Style.t)
                   (snd x)
                  : ReactDOM.Style.t));
-          Buffer.add_char b '"';
-          Buffer.add_string b "></div>";
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf "></div>";
           ());
       original =
         (fun () ->
@@ -196,28 +196,28 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.Writer
     {
       emit =
-        (fun b ->
-          Buffer.add_string b "<div";
-          Buffer.add_char b ' ';
-          Buffer.add_string b "class";
-          Buffer.add_string b "=\"";
-          ReactDOM.escape_to_buffer b
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
+          Buffer.add_char __buf ' ';
+          Buffer.add_string __buf "class";
+          Buffer.add_string __buf "=\"";
+          ReactDOM.escape_to_buffer __buf
             (match match x with None -> None | Some x -> Some (fst x) with
              | None -> "lola"
              | Some x -> x ^ " " ^ "lola"
               : string);
-          Buffer.add_char b '"';
+          Buffer.add_char __buf '"';
           (match
              (match x with None -> None | Some x -> Some (snd x)
                : ReactDOM.Style.t option)
            with
           | None -> ()
           | Some v ->
-              Buffer.add_string b " style=\"";
-              ReactDOM.escape_to_buffer b
+              Buffer.add_string __buf " style=\"";
+              ReactDOM.escape_to_buffer __buf
                 (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
-              Buffer.add_char b '"');
-          Buffer.add_string b "></div>";
+              Buffer.add_char __buf '"');
+          Buffer.add_string __buf "></div>";
           ());
       original =
         (fun () ->
@@ -248,21 +248,21 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.Writer
     {
       emit =
-        (fun b ->
-          Buffer.add_string b "<div";
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
           (match
              (match x with None -> None | Some x -> Some (fst x)
                : string option)
            with
           | None -> ()
           | Some v ->
-              Buffer.add_char b ' ';
-              Buffer.add_string b "class";
-              Buffer.add_string b "=\"";
-              ReactDOM.escape_to_buffer b (v : string);
-              Buffer.add_char b '"');
-          Buffer.add_string b " style=\"";
-          ReactDOM.escape_to_buffer b
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "class";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
+          Buffer.add_string __buf " style=\"";
+          ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string
                (match match x with None -> None | Some x -> Some (snd x) with
                 | None ->
@@ -276,8 +276,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                         : ReactDOM.Style.t)
                       x
                  : ReactDOM.Style.t));
-          Buffer.add_char b '"';
-          Buffer.add_string b "></div>";
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf "></div>";
           ());
       original =
         (fun () ->
@@ -314,19 +314,19 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.Writer
     {
       emit =
-        (fun b ->
-          Buffer.add_string b "<div";
-          Buffer.add_char b ' ';
-          Buffer.add_string b "class";
-          Buffer.add_string b "=\"";
-          ReactDOM.escape_to_buffer b
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
+          Buffer.add_char __buf ' ';
+          Buffer.add_string __buf "class";
+          Buffer.add_string __buf "=\"";
+          ReactDOM.escape_to_buffer __buf
             (match match x with None -> None | Some x -> Some (fst x) with
              | None -> "lola"
              | Some x -> x ^ " " ^ "lola"
               : string);
-          Buffer.add_char b '"';
-          Buffer.add_string b " style=\"";
-          ReactDOM.escape_to_buffer b
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf " style=\"";
+          ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string
                (match match x with None -> None | Some x -> Some (snd x) with
                 | None ->
@@ -340,8 +340,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                         : ReactDOM.Style.t)
                       x
                  : ReactDOM.Style.t));
-          Buffer.add_char b '"';
-          Buffer.add_string b "></div>";
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf "></div>";
           ());
       original =
         (fun () ->

@@ -640,6 +640,214 @@ let server_function_reference_form_data_and_args = () => {
   };
 };
 
+/* Text-separator protocol: renderToString must delimit adjacent text nodes
+   with <!-- --> (react-dom parity — hydration splits merged text nodes at
+   those comments), renderToStaticMarkup must not. These shapes go through
+   the PPX static-analysis fast path (React.Static / React.Writer), which
+   used to drop the separators (ahrefs/WEB-844: hydration error #418 on
+   every element with adjacent text children). */
+
+let text_separator_static_literals = () => {
+  let el = <span> {React.string("beyond")} {React.string(" ")} </span>;
+  assert_string(
+    ReactDOM.renderToString(el),
+    {|<span>beyond<!-- --> </span>|},
+  );
+  assert_string(ReactDOM.renderToStaticMarkup(el), {|<span>beyond </span>|});
+};
+
+let text_separator_dynamic_strings = () => {
+  let a = "beyond";
+  let b = " ";
+  let el = <span> {React.string(a)} {React.string(b)} </span>;
+  assert_string(
+    ReactDOM.renderToString(el),
+    {|<span>beyond<!-- --> </span>|},
+  );
+  assert_string(ReactDOM.renderToStaticMarkup(el), {|<span>beyond </span>|});
+};
+
+let text_separator_static_then_dynamic = () => {
+  let b = "dynamic";
+  let el = <span> {React.string("static")} {React.string(b)} </span>;
+  assert_string(
+    ReactDOM.renderToString(el),
+    {|<span>static<!-- -->dynamic</span>|},
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(el),
+    {|<span>staticdynamic</span>|},
+  );
+};
+
+let text_separator_int_children = () => {
+  let n = 2;
+  let el = <span> {React.int(1)} {React.int(n)} </span>;
+  assert_string(ReactDOM.renderToString(el), {|<span>1<!-- -->2</span>|});
+  assert_string(ReactDOM.renderToStaticMarkup(el), {|<span>12</span>|});
+};
+
+let text_separator_element_breaks_run = () => {
+  let a = "a";
+  let el = <span> {React.string(a)} <i /> {React.string("b")} </span>;
+  assert_string(ReactDOM.renderToString(el), {|<span>a<i></i>b</span>|});
+  assert_string(
+    ReactDOM.renderToStaticMarkup(el),
+    {|<span>a<i></i>b</span>|},
+  );
+};
+
+module Text_separator_msg = {
+  [@react.component]
+  let make = (~text) => React.string(text);
+};
+
+let text_separator_component_holes = () => {
+  /* Two adjacent component holes both rendering text: the runtime threads
+     the text state across the holes (prev_text ref). */
+  let el =
+    <span>
+      <Text_separator_msg text="a" />
+      <Text_separator_msg text="b" />
+    </span>;
+  assert_string(ReactDOM.renderToString(el), {|<span>a<!-- -->b</span>|});
+  assert_string(ReactDOM.renderToStaticMarkup(el), {|<span>ab</span>|});
+};
+
+let text_separator_component_then_text = () => {
+  /* Component hole ending with text followed by a text child. */
+  let el = <span> <Text_separator_msg text="a" /> {React.string("b")} </span>;
+  assert_string(ReactDOM.renderToString(el), {|<span>a<!-- -->b</span>|});
+  assert_string(ReactDOM.renderToStaticMarkup(el), {|<span>ab</span>|});
+};
+
+module Text_separator_heading = {
+  /* The ahrefs.com LandingHero H1 shape: a component whose children mix a
+     text run and a trailing element, passed as a single dynamic hole into
+     a static-optimizable wrapper. The adjacency lives inside the hole's
+     subtree, exercising write_element_to_buffer's internal threading. */
+  [@react.component]
+  let make = (~children) => <span className="text"> children </span>;
+};
+
+let text_separator_inside_single_hole = () => {
+  let children =
+    React.list([React.string("beyond"), React.string(" "), <i />]);
+  let el =
+    <h1 className="heading">
+      <Text_separator_heading> children </Text_separator_heading>
+    </h1>;
+  assert_string(
+    ReactDOM.renderToString(el),
+    {|<h1 class="heading"><span class="text">beyond<!-- --> <i></i></span></h1>|},
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(el),
+    {|<h1 class="heading"><span class="text">beyond <i></i></span></h1>|},
+  );
+};
+
+let text_separator_empty_strings = () => {
+  /* Empty text nodes participate in the text run like the tree renderer's
+     Text "": they emit nothing but still delimit. */
+  let empty = "";
+  let static_empty = <span> {React.string("")} {React.string("a")} </span>;
+  let dynamic_empty =
+    <span> {React.string(empty)} {React.string("a")} </span>;
+  let tree =
+    React.createElement("span", [], [React.string(""), React.string("a")]);
+  assert_string(
+    ReactDOM.renderToString(static_empty),
+    ReactDOM.renderToString(tree),
+  );
+  assert_string(
+    ReactDOM.renderToString(dynamic_empty),
+    ReactDOM.renderToString(tree),
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(static_empty),
+    ReactDOM.renderToStaticMarkup(tree),
+  );
+};
+
+module Text_separator_wrapped = {
+  [@react.component]
+  let make = (~text) => <b> {React.string(text)} </b>;
+};
+
+let text_separator_component_ending_in_element = () => {
+  /* A component hole ending with an element followed by text: no separator
+     (the threaded state must come back as markup, not text). */
+  let el =
+    <span> <Text_separator_wrapped text="a" /> {React.string("b")} </span>;
+  assert_string(ReactDOM.renderToString(el), {|<span><b>a</b>b</span>|});
+};
+
+let text_separator_float_holes = () => {
+  /* Float children stay on the variant-tree path (Dynamic_element); their
+     text runs must still thread through the holes. */
+  let f = 1.5;
+  let el = <span> {React.float(f)} {React.string("x")} </span>;
+  assert_string(ReactDOM.renderToString(el), {|<span>1.5<!-- -->x</span>|});
+  assert_string(ReactDOM.renderToStaticMarkup(el), {|<span>1.5x</span>|});
+};
+
+let text_separator_stream = () => {
+  /* renderToStream has renderToString semantics: Writer subtrees must emit
+     the separators there too. */
+  let a = "a";
+  let el = <span> {React.string(a)} {React.string("b")} </span>;
+  let%lwt (stream, _abort) = ReactDOM.renderToStream(el);
+  let%lwt content = Lwt_stream.to_list(stream);
+  assert_string(
+    Stdlib.String.concat("", content),
+    {|<span>a<!-- -->b</span>|},
+  );
+  Lwt.return();
+};
+
+let suspense_markers_inside_optimized_subtree = () => {
+  /* Suspense boundaries inside a Writer-optimized subtree must keep their
+     <!--$--> hydration markers and match the tree renderer byte-for-byte
+     (the write fast path used to drop them). */
+  let content = <div> {React.string("ok")} </div>;
+  let suspense =
+    <React.Suspense fallback={<span> {React.string("loading")} </span>}>
+      content
+    </React.Suspense>;
+  let optimized = <section> suspense </section>;
+  let tree = React.createElement("section", [], [suspense]);
+  assert_string(
+    ReactDOM.renderToString(optimized),
+    {|<section><!--$--><div>ok</div><!--/$--></section>|},
+  );
+  assert_string(
+    ReactDOM.renderToString(optimized),
+    ReactDOM.renderToString(tree),
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(optimized),
+    ReactDOM.renderToStaticMarkup(tree),
+  );
+};
+
+let text_separator_matches_unoptimized_tree = () => {
+  /* The optimized Writer/Static output must be byte-identical to the
+     variant-tree renderer's output for the same children. */
+  let a = "beyond";
+  let optimized = <span> {React.string(a)} {React.string(" ")} </span>;
+  let tree =
+    React.createElement("span", [], [React.string(a), React.string(" ")]);
+  assert_string(
+    ReactDOM.renderToString(optimized),
+    ReactDOM.renderToString(tree),
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(optimized),
+    ReactDOM.renderToStaticMarkup(tree),
+  );
+};
+
 let styles_attribute = () => {
   let styles = (
     "some-class-name",
@@ -881,6 +1089,41 @@ Alcotest_lwt.run(
     test("context", context),
     test("context_2", context_2),
     test("multiple_contexts", multiple_contexts),
+    test("text_separator_static_literals", text_separator_static_literals),
+    test("text_separator_dynamic_strings", text_separator_dynamic_strings),
+    test(
+      "text_separator_static_then_dynamic",
+      text_separator_static_then_dynamic,
+    ),
+    test("text_separator_int_children", text_separator_int_children),
+    test(
+      "text_separator_element_breaks_run",
+      text_separator_element_breaks_run,
+    ),
+    test("text_separator_component_holes", text_separator_component_holes),
+    test(
+      "text_separator_component_then_text",
+      text_separator_component_then_text,
+    ),
+    test(
+      "text_separator_inside_single_hole",
+      text_separator_inside_single_hole,
+    ),
+    test(
+      "text_separator_matches_unoptimized_tree",
+      text_separator_matches_unoptimized_tree,
+    ),
+    test(
+      "suspense_markers_inside_optimized_subtree",
+      suspense_markers_inside_optimized_subtree,
+    ),
+    test("text_separator_empty_strings", text_separator_empty_strings),
+    test(
+      "text_separator_component_ending_in_element",
+      text_separator_component_ending_in_element,
+    ),
+    test("text_separator_float_holes", text_separator_float_holes),
+    test_lwt("text_separator_stream", text_separator_stream),
     test("styles_attribute", styles_attribute),
     test("styles_attribute_optional", styles_attribute_optional),
     test("styles_attribute_optional_some", styles_attribute_optional_some),
