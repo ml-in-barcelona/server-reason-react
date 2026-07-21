@@ -7,7 +7,6 @@ let singlePageRSC = "/demo/singlePageRSC";
 let dummyRouterRSC = "/demo/dummyRouterRSC";
 let dummyRouterRSCNoSSR = "/demo/dummyRouterRSC?ssr=false";
 let router = "/demo/router";
-let styleOrderHydration = "/demo/styleOrderHydration";
 
 let links = [|
   (
@@ -44,11 +43,6 @@ let links = [|
     "dummyRouterRSC - without SSR",
     "The same demo as dummyRouterRSC but without SSR. It SSR the shell of the page (head, body, etc), but not the app itself.",
     dummyRouterRSCNoSSR,
-  ),
-  (
-    "styleOrderHydration",
-    "Minimal reproduction of a hydration mismatch (React #418) when inline-style CSS custom properties serialize in a different order on the server than on the client, as styled-ppx's CSS-extraction runtime surfaced (ahrefs/WEB-844). Must hydrate clean.",
-    styleOrderHydration,
   ),
   (
     "nestedRouterRSC",
