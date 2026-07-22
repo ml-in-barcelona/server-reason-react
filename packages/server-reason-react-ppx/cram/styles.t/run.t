@@ -4,8 +4,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.createElement "div"
     (Stdlib.List.filter_map Stdlib.Fun.id
        [
-         Some (React.JSX.String ("class", "className", (fst x : string)));
-         Some (React.JSX.Style (snd x : ReactDOM.Style.t));
+         Some
+           (React.JSX.String ("class", "className", (CSS.className x : string)));
+         Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
        ])
     []
   ;;
@@ -14,12 +15,13 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     (Stdlib.List.filter_map Stdlib.Fun.id
        [
          (match
-            (match x with None -> None | Some x -> Some (fst x) : string option)
+            (match x with None -> None | Some x -> Some (CSS.className x)
+              : string option)
           with
          | None -> None
          | Some v -> Some (React.JSX.String ("class", "className", v)));
          (match
-            (match x with None -> None | Some x -> Some (snd x)
+            (match x with None -> None | Some x -> Some (CSS.styles x)
               : ReactDOM.Style.t option)
           with
          | None -> None
@@ -33,8 +35,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
        [
          Some
            (React.JSX.String
-              ("class", "className", (fst x ^ " " ^ "lola" : string)));
-         Some (React.JSX.Style (snd x : ReactDOM.Style.t));
+              ("class", "className", (CSS.className x ^ " " ^ "lola" : string)));
+         Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
        ])
     []
   ;;
@@ -42,14 +44,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   React.createElement "div"
     (Stdlib.List.filter_map Stdlib.Fun.id
        [
-         Some (React.JSX.String ("class", "className", (fst x : string)));
+         Some
+           (React.JSX.String ("class", "className", (CSS.className x : string)));
          Some
            (React.JSX.Style
               (ReactDOM.Style.combine
                  (("background-color", "backgroundColor", "gainsboro")
                   :: ([] : (string * string * string) list)
                    : ReactDOM.Style.t)
-                 (snd x)
+                 (CSS.styles x)
                 : ReactDOM.Style.t));
        ])
     []
@@ -60,14 +63,14 @@ We need to output ML syntax here, otherwise refmt could not parse it.
        [
          Some
            (React.JSX.String
-              ("class", "className", (fst x ^ " " ^ "lola" : string)));
+              ("class", "className", (CSS.className x ^ " " ^ "lola" : string)));
          Some
            (React.JSX.Style
               (ReactDOM.Style.combine
                  (("background-color", "backgroundColor", "gainsboro")
                   :: ([] : (string * string * string) list)
                    : ReactDOM.Style.t)
-                 (snd x)
+                 (CSS.styles x)
                 : ReactDOM.Style.t));
        ])
     []
@@ -80,12 +83,14 @@ We need to output ML syntax here, otherwise refmt could not parse it.
            (React.JSX.String
               ( "class",
                 "className",
-                (match match x with None -> None | Some x -> Some (fst x) with
+                (match
+                   match x with None -> None | Some x -> Some (CSS.className x)
+                 with
                  | None -> "lola"
                  | Some x -> x ^ " " ^ "lola"
                   : string) ));
          (match
-            (match x with None -> None | Some x -> Some (snd x)
+            (match x with None -> None | Some x -> Some (CSS.styles x)
               : ReactDOM.Style.t option)
           with
          | None -> None
@@ -98,13 +103,16 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     (Stdlib.List.filter_map Stdlib.Fun.id
        [
          (match
-            (match x with None -> None | Some x -> Some (fst x) : string option)
+            (match x with None -> None | Some x -> Some (CSS.className x)
+              : string option)
           with
          | None -> None
          | Some v -> Some (React.JSX.String ("class", "className", v)));
          Some
            (React.JSX.Style
-              (match match x with None -> None | Some x -> Some (snd x) with
+              (match
+                 match x with None -> None | Some x -> Some (CSS.styles x)
+               with
                | None ->
                    (("background-color", "backgroundColor", "gainsboro")
                     :: ([] : (string * string * string) list)
@@ -127,13 +135,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
            (React.JSX.String
               ( "class",
                 "className",
-                (match match x with None -> None | Some x -> Some (fst x) with
+                (match
+                   match x with None -> None | Some x -> Some (CSS.className x)
+                 with
                  | None -> "lola"
                  | Some x -> x ^ " " ^ "lola"
                   : string) ));
          Some
            (React.JSX.Style
-              (match match x with None -> None | Some x -> Some (snd x) with
+              (match
+                 match x with None -> None | Some x -> Some (CSS.styles x)
+               with
                | None ->
                    (("background-color", "backgroundColor", "gainsboro")
                     :: ([] : (string * string * string) list)
@@ -156,46 +168,49 @@ In Melange mode (-js), ~styles is only expanded on lowercase (DOM) tags.
 Module-qualified components like Foo.Bar keep ~styles as a regular prop (not expanded).
   $ rm -f output.ml temp.ml
   $ ../ppx.sh --output ml -js input.re
-  div ~className:(fst x) ~style:(snd x) ~children:[] () [@JSX];;
+  div ~className:(CSS.className x) ~style:(CSS.styles x) ~children:[] () [@JSX];;
   
   div
-    ?className:(match x with None -> None | Some x -> Some (fst x))
-    ?style:(match x with None -> None | Some x -> Some (snd x))
-    ~children:[] () [@JSX]
-  ;;
-  
-  div ~className:(fst x ^ " " ^ "lola") ~style:(snd x) ~children:[] () [@JSX];;
-  
-  div ~className:(fst x)
-    ~style:
-      (ReactDOM.Style.combine
-         (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
-         (snd x))
+    ?className:(match x with None -> None | Some x -> Some (CSS.className x))
+    ?style:(match x with None -> None | Some x -> Some (CSS.styles x))
     ~children:[] () [@JSX]
   ;;
   
   div
-    ~className:(fst x ^ " " ^ "lola")
+    ~className:(CSS.className x ^ " " ^ "lola")
+    ~style:(CSS.styles x) ~children:[] () [@JSX]
+  ;;
+  
+  div ~className:(CSS.className x)
     ~style:
       (ReactDOM.Style.combine
          (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
-         (snd x))
+         (CSS.styles x))
+    ~children:[] () [@JSX]
+  ;;
+  
+  div
+    ~className:(CSS.className x ^ " " ^ "lola")
+    ~style:
+      (ReactDOM.Style.combine
+         (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+         (CSS.styles x))
     ~children:[] () [@JSX]
   ;;
   
   div
     ~className:
-      (match match x with None -> None | Some x -> Some (fst x) with
+      (match match x with None -> None | Some x -> Some (CSS.className x) with
       | None -> "lola"
       | Some x -> x ^ " " ^ "lola")
-    ?style:(match x with None -> None | Some x -> Some (snd x))
+    ?style:(match x with None -> None | Some x -> Some (CSS.styles x))
     ~children:[] () [@JSX]
   ;;
   
   div
-    ?className:(match x with None -> None | Some x -> Some (fst x))
+    ?className:(match x with None -> None | Some x -> Some (CSS.className x))
     ~style:
-      (match match x with None -> None | Some x -> Some (snd x) with
+      (match match x with None -> None | Some x -> Some (CSS.styles x) with
       | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
       | Some x ->
           ReactDOM.Style.combine
@@ -206,11 +221,11 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
   
   div
     ~className:
-      (match match x with None -> None | Some x -> Some (fst x) with
+      (match match x with None -> None | Some x -> Some (CSS.className x) with
       | None -> "lola"
       | Some x -> x ^ " " ^ "lola")
     ~style:
-      (match match x with None -> None | Some x -> Some (snd x) with
+      (match match x with None -> None | Some x -> Some (CSS.styles x) with
       | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
       | Some x ->
           ReactDOM.Style.combine
