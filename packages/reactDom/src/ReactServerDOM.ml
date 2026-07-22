@@ -200,9 +200,7 @@ module Stream = struct
         context.written_server_references <- (key, index) :: context.written_server_references;
         index
 
-  (* Well-known symbols (e.g. react.suspense) are outlined once per stream and
-     referenced by row id, mirroring React's writtenSymbols map. Stores the
-     formatted "$<hex>" reference so repeated boundaries allocate nothing. *)
+  (* Well-known symbols (e.g. react.suspense) are outlined once per stream and referenced by row id. Stores the formatted "$<hex>" reference so repeated boundaries allocate nothing. *)
   let push_symbol ~context ~symbol ~reference_of_index make_chunk =
     match Hashtbl.find_opt context.written_symbols symbol with
     | Some reference -> reference
@@ -212,11 +210,7 @@ module Stream = struct
         Hashtbl.replace context.written_symbols symbol reference;
         reference
 
-  (* An asynchronous task row: the id is allocated BEFORE [make_chunk] runs
-     (React's createTask does request.nextChunkId++ up front), so rows pushed
-     while the task's payload is serialized get later ids. The row is written
-     when the promise resolves — unless the stream was aborted/closed in the
-     meantime, in which case the chunk is dropped. *)
+  (* An asynchronous task row: the id is allocated BEFORE [make_chunk] runs so rows pushed while the task's payload is serialized get later ids. The row is written when the promise resolves — unless the stream was aborted/closed in the meantime, in which case the chunk is dropped. *)
   let push_task ~kind make_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
@@ -228,20 +222,16 @@ module Stream = struct
         context.pending_rows <- List.filter (fun (i, _) -> i <> index) context.pending_rows;
         if not context.closed then (
           context.push (to_chunk index);
-          (* Rows deferred during this row's serialization flush right after it,
-             and may register new pending work, so flush before the close check. *)
+          (* Rows deferred during this row's serialization flush right after it, and may register new pending work, so flush before the close check. *)
           flush_deferred ~context;
           if context.pending = 0 then close context);
         Lwt.return ());
     index
 
-  (* An async row of the RSC payload (a lazy element, a promise passed as prop, or the root task) with no placeholder
-     in the flushed HTML. Tracked in [pending_rows] so an abort/timeout can reject its client-side reference with an
-     error row. *)
+  (* An async row of the RSC payload (a lazy element, a promise passed as prop, or the root task) with no placeholder in the flushed HTML. Tracked in [pending_rows] so an abort/timeout can reject its client-side reference with an error row. *)
   let push_async make_chunk ~context = push_task ~kind:`Model_row make_chunk ~context
 
-  (* The async HTML content of a Suspense boundary whose placeholder (<template id="B:n">) and fallback were already
-     flushed. Tracked in [pending_rows] so an abort/timeout can emit a $RX client-render instruction for it. *)
+  (* The async HTML content of a Suspense boundary whose placeholder (<template id="B:n">) and fallback were already flushed. Tracked in [pending_rows] so an abort/timeout can emit a $RX client-render instruction for it. *)
   let push_boundary_async make_chunk ~context = push_task ~kind:`Boundary make_chunk ~context
 
   let make ?(initial_index = 0) ?(pending = 0) () =
@@ -304,8 +294,7 @@ module Fiber = struct
   type t = {
     context : Html.element Stream.t;
     env : env;
-    (* Whether to emit debug-info rows (name/owner/stack) for components into the inlined RSC payload, like
-       render_model's ~debug *)
+    (* Whether to emit debug-info rows (name/owner/stack) for components into the inlined RSC payload *)
     debug : bool;
     filter_stack_frame : string -> string -> bool;
     (* root_tag stores the tag of the first lower case element visited, useful to know if the root element is an html tag *)
@@ -320,9 +309,7 @@ module Fiber = struct
     mutable inside_head : bool;
     (* inside_body tracks whether we're currently processing elements inside a <body> element *)
     mutable inside_body : bool;
-    (* Monotonic count of hoistable elements encountered (before dedup). Lets the Static/Writer
-       branches detect that a prerendered subtree contained hoistables, whose raw HTML would
-       otherwise render them a second time at their original position. *)
+    (* Monotonic count of hoistable elements encountered (before dedup). Lets the Static/Writer branches detect that a prerendered subtree contained hoistables, whose raw HTML would otherwise render them a second time at their original position. *)
     mutable hoisted_count : int;
     (* html_attributes collects the attributes of the <html> tag for document reconstruction *)
     mutable html_attributes : Html.attribute_list;
@@ -382,20 +369,15 @@ module Model = struct
   let error_value id = Printf.sprintf "$Z%x" id
   let action_value id = Printf.sprintf "$F%x" id
 
-  (* User strings starting with '$' are escaped with an extra '$' because bare
-     "$..." strings are reference syntax on decode. Mirrors escapeStringValue
-     in React's ReactFlightServer.js: only a leading '$' matters. Internally
-     generated references ("$L1", "$Sreact.suspense", "$@2", ...) are written
-     directly and must never go through this function. *)
+  (* User strings starting with '$' are escaped with an extra '$' mirrors escapeStringValue in React's ReactFlightServer.js *)
   let escape_string_value value =
     if String.length value > 0 && String.unsafe_get value 0 = '$' then "$" ^ value else value
 
-  (* JSON.stringify prints integral floats without a decimal part (2.0 -> 2) while
-     Yojson prints `Float 2.0 as "2.0", so integral floats are emitted as ints. *)
+  (* JSON.stringify prints integral floats without a decimal part (2.0 -> 2) while Yojson prints `Float 2.0 as "2.0", so integral floats are emitted as ints. *)
   (* 2^53: the largest range where every integer is exactly representable (ocamlopt does not fold [2. ** 53.]) *)
   let max_safe_integer = 9007199254740992.
 
-  (* Values JSON can't represent cross the wire as React's special strings
+  (* JSON values can't represent cross the wire as React's special strings
      ($NaN, $Infinity, $-Infinity, $-0); integral floats within the exact
      range collapse to ints; everything else is printed by [write_json]
      below the way JavaScript stringifies numbers. *)
@@ -434,8 +416,7 @@ module Model = struct
         Buffer.add_char buf '}'
     | (`String _ | `Int _ | `Bool _ | `Null) as scalar -> Yojson.Basic.write_json buf scalar
 
-  (* Normalize a user-provided JSON model: escape every string value (not object
-     keys) and print numbers the way JavaScript stringifies them. *)
+  (* Normalize a user-provided JSON model: escape every string value (not object keys) and print numbers the way JavaScript stringifies them. *)
   let rec map_sharing f = function
     | [] -> []
     | x :: rest as list ->
@@ -467,9 +448,7 @@ module Model = struct
   let action_to_json (action : _ Runtime.server_function) =
     `Assoc [ ("id", `String (escape_string_value action.id)); ("bound", `Null) ]
 
-  (* Outlines a server function as its own {"id","bound"} row (deduplicated on
-     physical identity, mirroring React's writtenServerReferences) and returns
-     the "$F<hexid>" reference. *)
+  (* Outlines a server function as its own {"id","bound"} row (deduplicated on physical identity, mirroring React's writtenServerReferences) and returns the "$F<hexid>" reference. *)
   let outline_server_function ~context ~to_chunk fn =
     let index =
       Stream.push_server_reference ~context ~key:(Physical_key.make fn) (to_chunk (Value (action_to_json fn)))
@@ -480,26 +459,24 @@ module Model = struct
     match prop with
     (* We ignore the HTML name, and only use the JSX name *)
     | Bool (_, key, value) -> Some (key, `Bool value)
-    (* Booleanish props are stringified in HTML attributes only; the Flight
-       payload keeps the raw JSON boolean, like React. *)
+    (* Booleanish props are stringified in HTML attributes only; the Flight payload keeps the raw JSON boolean. *)
     | BooleanishString (_, key, value) -> Some (key, `Bool value)
     (* We exclude 'key' from props, since it's outside of the props object *)
-    | React.JSX.String (_, key, _) when key = "key" -> None
-    | React.JSX.String (_, key, value) -> Some (key, `String (escape_string_value value))
-    | React.JSX.Int (_, key, value) -> Some (key, `Int value)
-    | React.JSX.Float (_, key, value) -> Some (key, float_to_json value)
-    | React.JSX.Style value -> Some ("style", style_to_json value)
-    | React.JSX.DangerouslyInnerHtml html ->
+    | String (_, key, _) when key = "key" -> None
+    | String (_, key, value) -> Some (key, `String (escape_string_value value))
+    | Int (_, key, value) -> Some (key, `Int value)
+    | Float (_, key, value) -> Some (key, float_to_json value)
+    | Style value -> Some ("style", style_to_json value)
+    | DangerouslyInnerHtml html ->
         Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String (escape_string_value html)) ])
-    | React.JSX.Ref _ -> None
-    | React.JSX.Event _ -> None
-    | React.JSX.Action _ -> None
+    | Ref _ -> None
+    | Event _ -> None
+    | Action _ -> None
 
   let props_to_json props = List.filter_map prop_to_json props
   let chunk_ref_or_null = function None -> `Null | Some idx -> `String (ref_value idx)
 
-  (* React element tuple. In prod React emits the 4-tuple ["$", type, key, props]; in dev it appends the debug
-     fields [debugOwner, debugStack, validated]. *)
+  (* React element tuple. In prod it's a 4-tuple ["$", type, key, props]; in dev it appends the debug fields [debugOwner, debugStack, validated]. *)
   let node ~env ~tag ?(key = None) ~props ?(owner = None) children : json =
     let key = match key with None -> `Null | Some key -> `String key in
     let props =
@@ -573,8 +550,7 @@ module Model = struct
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
-  (* Hint rows are id-less; the payload is plain JSON.stringify output, never
-     $-escaped (React's emitHint stringifies outside the flight serializer). *)
+  (* Hint rows are id-less; the payload is plain JSON.stringify output, never $-escaped (React's emitHint stringifies outside the flight serializer). *)
   let hint_to_chunk code payload =
     let buf = Buffer.create 64 in
     Buffer.add_string buf ":H";
@@ -610,12 +586,12 @@ module Model = struct
     let debug_info_idx = Stream.push ~context (to_chunk (Value chunk)) in
     (debug_info_idx, owner_idx)
 
-  (* [debug_info] carries the (debug row id, owner row id) attached by the
-     closest component above, so nested rows can reference their owner. [None]
-     means no component has attached debug rows yet (the root row, id 0, owns
-     the next one). *)
   let rec element_to_payload ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame) ?debug_info ~context
       ~to_chunk ~env element =
+    (* ~debug_info carries the (debug row id, owner row id) attached by the
+       closest component above, so nested rows can reference their owner. [None]
+       means no component has attached debug rows yet (the root row, id 0, owns
+       the next one). *)
     let emit_debug_info ~name ~debug_info =
       emit_debug_info_row ~filter_stack_frame ~context ~to_chunk ~name ~debug_info
     in
@@ -648,8 +624,7 @@ module Model = struct
       | Int i -> `Int i
       | Float f -> float_to_json f
       | Lower_case_element { key; tag; attributes; children } ->
-          (* Action props are serialized directly to JSON here (instead of being rewritten
-             into String props) so the internal "$F<id>" reference is not $$-escaped. *)
+          (* Action props are serialized directly to JSON here (instead of being rewritten into String props) so the internal "$F<id>" reference is not $$-escaped. *)
           let props =
             List.filter_map
               (fun (prop : React.JSX.prop) ->
@@ -686,9 +661,7 @@ module Model = struct
           | exception exn ->
               React.current_tree_context := saved_ctx;
               let error = exn_to_error exn in
-              (* A sync throw below the task root is outlined ("$L<id>"); the
-                 E row flushes after the row being serialized (see
-                 Stream.push_deferred). *)
+              (* A sync throw below the task root is outlined ("$L<id>"); the E row flushes after the row being serialized *)
               let index = Stream.push_deferred ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index))
       | Async_component (name, component) -> (
@@ -736,9 +709,7 @@ module Model = struct
               let index = Stream.push_async (fun () -> promise) ~context in
               `String (lazy_value index))
       | Suspense { key; children; fallback } ->
-          (* Row order mirrors React: the outlined symbol row is pushed first,
-             then rows produced by the children (props are serialized in
-             {children, fallback} order), then rows produced by the fallback. *)
+          (* The outlined symbol row is pushed first, then rows produced by the children (props are serialized in {children, fallback} order), then rows produced by the fallback. *)
           let tag = suspense_tag ~context ~to_chunk in
           let children = turn_element_into_payload ~context ~debug_info children in
           let fallback = Option.map (turn_element_into_payload ~context ~debug_info) fallback in
@@ -747,8 +718,7 @@ module Model = struct
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
           let client_props = models_to_payload ~context ~to_chunk ~env props in
-          (* Client references are lazy references ("$L<id>"): the client must not
-             block on the module row, it resolves it when the chunk loads. *)
+          (* Client references are lazy references ("$L<id>"): the client must not block on the module row, it resolves it when the chunk loads. *)
           node ~env ~tag:(lazy_value index) ~key ~props:client_props []
       | Provider { children; push; _ } ->
           let pop = push () in
@@ -1206,24 +1176,22 @@ let classify_element ~(fiber : Fiber.t) ~tag ~attributes =
     | "title" | "meta" | "link" -> Hoistable_meta
     | _ -> Regular
 
-(* [debug_info] mirrors Model.element_to_payload's: the (debug row id, owner row id) pair attached by the closest
-   component above, so nested rows can reference their owner. [None] until the first component attaches its debug
-   rows to the root row. Threaded as a plain argument (not fiber state) because sibling subtrees render
-   concurrently. *)
 let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
-  (* Static carries HTML prerendered at compile time (ppx optimization). The model walk below hoists any <title>/<meta>/<link>/async <script> in the subtree into the fiber — but the prerendered bytes still contain them at their original position. When that happens, use the walked HTML to avoid emitting them twice. *)
   | Static { prerendered; original } ->
+      (* Static carries HTML prerendered at compile time (ppx optimization). The model walk below hoists any <title>/<meta>/<link>/async <script> in the subtree into the fiber — but the prerendered bytes still contain them at their original position. When that happens, use the walked HTML to avoid emitting them twice. *)
       let hoisted_before = fiber.hoisted_count in
       let%lwt html, model = render_element_to_html ~fiber ~debug_info original in
       if fiber.hoisted_count = hoisted_before then Lwt.return (Html.raw prerendered, model) else Lwt.return (html, model)
-  (* Writer subtrees can contain components below the prerendered markup. We render the original tree instead of the prerendered *)
-  | Writer { original; _ } -> render_element_to_html ~fiber ~debug_info (original ())
+  | Writer { original; _ } ->
+      (* Writer subtrees can contain components below the prerendered markup. We render the original tree instead of the prerendered *)
+      render_element_to_html ~fiber ~debug_info (original ())
   | Text s -> Lwt.return (Html.string s, `String (Model.escape_string_value s))
   | Int i -> Lwt.return (Html.string (Int.to_string i), `Int i)
-  (* HTML stringifies numbers the way JavaScript does while the model keeps the raw JSON number. *)
-  | Float f -> Lwt.return (Html.string (Js.Float.toString f), Model.float_to_json f)
+  | Float f ->
+      (* HTML stringifies numbers the way JavaScript does while the model keeps the raw JSON number. *)
+      Lwt.return (Html.string (Js.Float.toString f), Model.float_to_json f)
   | Fragment children -> render_element_to_html ~fiber ~debug_info children
   | List list -> elements_to_html ~fiber ~debug_info list
   | Array arr -> elements_to_html ~fiber ~debug_info (Array.to_list arr)
@@ -1700,11 +1668,9 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
             Lwt.pick
               [
                 subscription;
-                (* On timeout, mirror react-dom's abort: emit a $RX client-render instruction per still-pending
-                   Suspense boundary (the client flips each boundary to errored and retries rendering it there), then
-                   close the stream. The $RX scripts are written straight into the subscriber's buffer since the
-                   stream subscription is about to be cancelled by Lwt.pick. Closing sets [closed], which guards the
-                   async pushes of boundary promises that resolve later. *)
+                (* On timeout, emit a $RX client-render instruction per still-pending Suspense boundary (the client flips each boundary to errored and retries rendering it there), then close the stream.
+
+                  The $RX scripts are written straight into the subscriber's buffer since the stream subscription is about to be cancelled by Lwt.pick. Closing sets [closed], which guards the async pushes of boundary promises that resolve later. *)
                 (let%lwt () = Lwt_unix.sleep seconds in
                  if not context.closed then (
                    let pending_boundaries =
@@ -1715,9 +1681,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
                    in
                    let pending_rows = List.sort compare (List.map fst context.pending_rows) in
                    context.pending_rows <- [];
-                   (* Reject every still-pending row of the RSC payload (lazy elements, promises passed as props and
-                      the content of pending Suspense boundaries) with an error row so the client-side $L/$@
-                      references settle instead of hanging forever, mirroring React Flight's abort. *)
+                   (* Reject every still-pending row of the RSC payload (lazy elements, promises passed as props and the content of pending Suspense boundaries) with an error row so the client-side $L/$@ references settle instead of hanging forever. *)
                    List.iter
                      (fun index ->
                        Buffer.add_string buf (Html.to_string (model_to_chunk (Error (env, timeout_error)) index)))
@@ -1746,8 +1710,7 @@ let create_action_response ?env ?debug ?filter_stack_frame ?subscribe response =
   React.Cache.with_request_cache_async (fun () ->
       Model.create_action_response ?env ?debug ?filter_stack_frame ?subscribe response)
 
-(* Reply decoding: deserialize client-to-server action arguments.
-   Handles React's special $-prefixed string encoding from processReply/encodeReply.
+(* Reply decoding: deserialize client-to-server action arguments. Handles React's special $-prefixed string encoding from processReply/encodeReply.
    Reference: https://github.com/facebook/react/blob/main/packages/react-server/src/ReactFlightReplyServer.js
 
    All supported prefixes:
@@ -1775,9 +1738,7 @@ let create_action_response ?env ?debug ?filter_stack_frame ?subscribe response =
      $R/$r → ReadableStream (streaming)
      $X/$x → AsyncIterable/AsyncIterator (streaming)
 
-   Unknown $-prefixed strings are treated as outlined model references when FormData
-   is available, or as Null otherwise. React's processReply escapes all user strings
-   starting with $ to $$, so unrecognized prefixes indicate protocol-level references. *)
+   Unknown $-prefixed strings are treated as outlined model references when FormData is available, or as Null otherwise. React's processReply escapes all user strings starting with $ to $$, so unrecognized prefixes indicate protocol-level references. *)
 
 (* Convert a hex-encoded part ID to a decimal FormData key.
    React's processReply references use hex encoding, while FormData entries
@@ -1806,20 +1767,16 @@ let resolve_raw_from_formdata formData hex_id =
 
 let unsupported name = Error (Printf.sprintf "decodeReply: %s is not supported" name)
 
-(* Decode context groups the optional parameters threaded through the mutually recursive
-   decode functions, avoiding repeated ?formData ?temporaryReferences on every signature. *)
 type decode_ctx = { formData : Js.FormData.t option; temporaryReferences : (string -> json option) option }
 
-(* Recursively decode a JSON value, resolving React's $-prefixed special strings.
-   When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved
-   by looking up the corresponding FormData entry and recursively decoding it. *)
+(* Recursively decode a JSON value, resolving $-prefixed special strings. When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved by looking up the corresponding FormData entry and recursively decoding it. *)
 let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
   match json with
   | `String value when String.length value >= 2 && String.get value 0 = '$' -> (
       let len = String.length value in
       let rest = String.sub value 2 (len - 2) in
       match String.get value 1 with
-      (* Escaped user string: drop only the escaping '$', like React's value.slice(1) *)
+      (* Escaped user string: drop only the escaping '$' *)
       | '$' -> Ok (`String (String.sub value 1 (len - 1)))
       | 'u' -> Ok `Null
       | 'K' -> Ok `Null
@@ -1884,9 +1841,7 @@ and resolve_outlined ctx type_name hex_id =
       let resolved = resolve_from_formdata fd hex_id in
       decode_value ctx resolved
 
-(* Maps are serialized as [[key, value], ...].
-   If all keys are strings, converts to Assoc for ergonomic use with Melange_json decoders.
-   Otherwise preserves the List of pairs representation. *)
+(* Maps are serialized as [[key, value], ...]. If all keys are strings, converts to Assoc for ergonomic use with Melange_json decoders. Otherwise preserves the List of pairs representation. *)
 and decode_outlined_map ctx hex_id =
   match resolve_outlined ctx "Map ($Q)" hex_id with
   | Error _ as err -> err

@@ -1,7 +1,4 @@
-(** JavaScript Date API.
-
-    [t] mirrors a JS Date object: a mutable box holding the time value (epoch milliseconds, or NaN for an Invalid Date).
-    Setters mutate the receiver and return the new time value, exactly like JS. *)
+(** JavaScript Date API. *)
 
 type t
 

@@ -1,9 +1,8 @@
-(* Server-side implementation of the JavaScript Date API (Melange's [Js.Date]).
+(* Server-side implementation of the JavaScript Date API. Melange's [Js.Date] *)
 
-   [t] mirrors a JS Date object: a mutable box holding the time value (epoch
+(* [t] mirrors a JS Date object: a mutable box holding the time value (epoch
    milliseconds, or NaN for an Invalid Date). Setters mutate the receiver and
-   return the new time value, exactly like JS. *)
-
+   return the new time value. *)
 type t = { mutable time : float }
 
 let ms_per_second = 1000.
@@ -217,9 +216,6 @@ let make ?year ?month ?date ?hours ?minutes ?seconds () =
       { time = time_clip (local_to_utc (make_date ~day:d ~time)) }
 
 let fromFloat ms = { time = time_clip ms }
-
-(* ==== Getters =========================================================== *)
-
 let valueOf t = t.time
 let getTime t = t.time
 let getUTCFullYear t = year_from_time t.time
@@ -239,8 +235,6 @@ let getMinutes t = min_from_time (utc_to_local t.time)
 let getSeconds t = sec_from_time (utc_to_local t.time)
 let getMilliseconds t = ms_from_time (utc_to_local t.time)
 let getTimezoneOffset t = if Float.is_nan t.time then nan else -.tz_offset_at_utc t.time /. ms_per_minute
-
-(* ==== Formatters ======================================================== *)
 
 let pad n i =
   let s = string_of_int (abs i) in
