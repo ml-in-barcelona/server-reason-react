@@ -1,0 +1,3 @@
+(executable
+ (name regex_scaling)
+ (libraries quickjs server-reason-react.js unix))

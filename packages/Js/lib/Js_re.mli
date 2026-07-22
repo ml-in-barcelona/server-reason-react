@@ -22,6 +22,19 @@ val exec : str:string -> t -> result option
 val test : str:string -> t -> bool
 val captures : result -> string Js_internal.nullable array
 
+module Prepared : sig
+  type input
+  type match_
+
+  val make : string -> input
+  val exec : input -> t -> match_ option
+  val captures : match_ -> string Js_internal.nullable array
+  val range : match_ -> int * int
+  val byte_range : input -> start:int -> end_:int -> (int * int) option
+  val substring : input -> start:int -> end_:int -> string
+  val advance_index : input -> unicode:bool -> int -> int
+end
+
 val groups : result -> (string * string option) list
 (** Returns all named capture groups as a list of (name, value) pairs. The value is [None] when the group did not
     participate in the match. *)

@@ -37,6 +37,19 @@ let setLastIndex : t -> int -> unit = Quickjs.RegExp.set_last_index
 let exec : str:string -> t -> result option = fun ~str rex -> Quickjs.RegExp.exec rex str
 let test : str:string -> t -> bool = fun ~str regex -> Quickjs.RegExp.test regex str
 
+module Prepared = struct
+  type input = Quickjs.RegExp.prepared_input
+  type match_ = Quickjs.RegExp.prepared_match
+
+  let make = Quickjs.RegExp.prepare_input
+  let exec input regexp = Quickjs.RegExp.exec_prepared regexp input
+  let captures match_ = match_.Quickjs.RegExp.result.captures
+  let range match_ = match_.Quickjs.RegExp.range.utf16
+  let byte_range = Quickjs.RegExp.prepared_byte_range
+  let substring = Quickjs.RegExp.prepared_substring
+  let advance_index = Quickjs.RegExp.prepared_advance_index
+end
+
 (* Named capture groups *)
 let groups : result -> (string * string option) list = fun result -> result.Quickjs.RegExp.groups
 let group : string -> result -> string option = Quickjs.RegExp.group

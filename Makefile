@@ -68,9 +68,8 @@ install-npm:
 
 .PHONY: pin
 pin: ## Pin dependencies
-	# TODO: drop this pin once quickjs 0.5.0 is published to opam-repository
-	# (https://github.com/ocaml/opam-repository/pull/30212)
-	opam pin add quickjs.0.5.0 "git+https://github.com/ml-in-barcelona/quickjs.ml.git#0.5.0" -y
+	# TODO: drop this pin once quickjs 0.5.1 is published to opam-repository
+	opam pin add quickjs.0.5.1 "git+https://github.com/ml-in-barcelona/quickjs.ml.git#0.5.1" -y
 
 .PHONY: init
 init: setup-githooks create-switch pin install install-npm ## Create a local dev enviroment

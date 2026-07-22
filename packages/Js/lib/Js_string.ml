@@ -72,14 +72,16 @@ let normalize ?(form = `NFC) str =
 let repeat ~count str = Quickjs.String.Prototype.repeat count str
 let replace ~search ~replacement str = Quickjs.String.Prototype.replace search replacement str
 
+let add_source_range buf ~prepared ~source ~start ~end_ =
+  match Js_re.Prepared.byte_range prepared ~start ~end_ with
+  | Some (start_byte, end_byte) -> Buffer.add_substring buf source start_byte (end_byte - start_byte)
+  | None -> Buffer.add_string buf (Js_re.Prepared.substring prepared ~start ~end_)
+
 (* Expands the replacement patterns of String.prototype.replace ($$, $&, $`,
-   $', $1..$99) as specified by GetSubstitution (ECMA-262 22.1.3.20.1).
-   [matches] is the captures array (entry 0 is the full match); [prefix] and
-   [suffix] are the portions of the original string before and after the
-   match. *)
-let process_replacement ~replacement ~matches ~prefix ~suffix =
+   $', $1..$99) directly into [buf], as specified by GetSubstitution
+   (ECMA-262 22.1.3.20.1). *)
+let process_replacement ~buf ~prepared ~source ~source_length ~replacement ~matches ~match_start ~match_end =
   let len = Stdlib.String.length replacement in
-  let buf = Buffer.create len in
   let i = ref 0 in
   while !i < len do
     if replacement.[!i] = '$' && !i + 1 < len then (
@@ -96,11 +98,11 @@ let process_replacement ~replacement ~matches ~prefix ~suffix =
           i := !i + 2
       | '`' ->
           (* $` -> portion before the match *)
-          Buffer.add_string buf prefix;
+          add_source_range buf ~prepared ~source ~start:0 ~end_:match_start;
           i := !i + 2
       | '\'' ->
           (* $' -> portion after the match *)
-          Buffer.add_string buf suffix;
+          add_source_range buf ~prepared ~source ~start:match_end ~end_:source_length;
           i := !i + 2
       | '0' .. '9' ->
           (* $n or $nn -> capturing group *)
@@ -132,33 +134,34 @@ let process_replacement ~replacement ~matches ~prefix ~suffix =
     else (
       Buffer.add_char buf replacement.[!i];
       incr i)
-  done;
-  Buffer.contents buf
-
-(* AdvanceStringIndex (ECMA-262 22.2.7.3): the position after [index], in
-   UTF-16 code units. With the unicode flag, an index pointing at the high
-   surrogate of a surrogate pair advances past the whole code point. *)
-let advance_string_index str index unicode =
-  if not unicode then index + 1
-  else
-    let is_high c = c >= 0xD800 && c <= 0xDBFF in
-    let is_low c = c >= 0xDC00 && c <= 0xDFFF in
-    match (Quickjs.String.Prototype.char_code_at index str, Quickjs.String.Prototype.char_code_at (index + 1) str) with
-    | Some high, Some low when is_high high && is_low low -> index + 2
-    | _ -> index + 1
+  done
 
 let is_full_unicode regexp =
   let flags = Js_re.flags regexp in
   Stdlib.String.contains flags 'u' || Stdlib.String.contains flags 'v'
 
 (* Shared driver for RegExp.prototype[Symbol.replace] (ECMA-262 22.2.6.11).
-   [compute] produces the replacement text for one match; it receives the
-   captures, the UTF-16 index of the match start, and the byte range of the
-   match within [str]. *)
-let replace_driver ~regexp str ~compute =
+   Global matches are collected before replacements are evaluated, so callback
+   mutations of lastIndex cannot affect which matches are replaced. *)
+let replace_driver ~regexp str ~add_replacement =
   let str_byte_length = Stdlib.String.length str in
-  let add_replacement buf ~matches ~match_start ~match_start_byte ~match_end_byte =
-    Buffer.add_string buf (compute ~matches ~match_start ~match_start_byte ~match_end_byte)
+  let str_length = Quickjs.String.Prototype.length str in
+  let prepared = Js_re.Prepared.make str in
+  let render matches =
+    match matches with
+    | [] -> str
+    | _ ->
+        let buf = Buffer.create str_byte_length in
+        let previous_end = ref 0 in
+        Stdlib.List.iter
+          (fun match_ ->
+            let match_start, match_end = Js_re.Prepared.range match_ in
+            add_source_range buf ~prepared ~source:str ~start:!previous_end ~end_:match_start;
+            add_replacement buf ~prepared ~source_length:str_length ~match_ ~match_start ~match_end;
+            previous_end := match_end)
+          matches;
+        add_source_range buf ~prepared ~source:str ~start:!previous_end ~end_:str_length;
+        Buffer.contents buf
   in
   if Js_re.global regexp then (
     (* RegExp.prototype[Symbol.replace] (ECMA-262 22.2.6.11): with the global
@@ -168,53 +171,28 @@ let replace_driver ~regexp str ~compute =
        lastIndex to 0, as in JavaScript. *)
     Js_re.setLastIndex regexp 0;
     let unicode = is_full_unicode regexp in
-    let buf = Buffer.create str_byte_length in
-    let previous_end_byte = ref 0 in
-    let rec loop () =
-      match Js_re.exec ~str regexp with
-      | None -> ()
-      | Some result ->
-          let match_start = Js_re.index result in
-          let match_end = Js_re.lastIndex regexp in
-          let match_start_byte = Quickjs.String.byte_index_of_utf16 str match_start in
-          let match_end_byte = Quickjs.String.byte_index_of_utf16 str match_end in
-          Buffer.add_string buf (Stdlib.String.sub str !previous_end_byte (match_start_byte - !previous_end_byte));
-          add_replacement buf ~matches:(Js_re.captures result) ~match_start ~match_start_byte ~match_end_byte;
-          previous_end_byte := match_end_byte;
-          if match_end = match_start then Js_re.setLastIndex regexp (advance_string_index str match_start unicode);
-          loop ()
+    let rec collect acc =
+      match Js_re.Prepared.exec prepared regexp with
+      | None -> Stdlib.List.rev acc
+      | Some match_ ->
+          let match_start, match_end = Js_re.Prepared.range match_ in
+          if match_end = match_start then
+            Js_re.setLastIndex regexp (Js_re.Prepared.advance_index prepared ~unicode match_start);
+          collect (match_ :: acc)
     in
-    loop ();
-    Buffer.add_string buf (Stdlib.String.sub str !previous_end_byte (str_byte_length - !previous_end_byte));
-    Buffer.contents buf)
+    render (collect []))
   else
     (* Without the global flag only the first match is replaced. exec is used
        directly on the caller's regexp so sticky (y) lastIndex semantics are
        preserved. *)
-    match Js_re.exec ~str regexp with
+    match Js_re.Prepared.exec prepared regexp with
     | None -> str
-    | Some result ->
-        let matches = Js_re.captures result in
-        let matched = Stdlib.Array.get matches 0 |> Stdlib.Option.value ~default:"" in
-        let match_start = Js_re.index result in
-        (* The UTF-16 length of the matched text is used to find the match end:
-           it is stable even when the engine substitutes U+FFFD for unpaired
-           surrogates (both occupy one UTF-16 unit). *)
-        let match_end = match_start + Quickjs.String.Prototype.length matched in
-        let match_start_byte = Quickjs.String.byte_index_of_utf16 str match_start in
-        let match_end_byte = Quickjs.String.byte_index_of_utf16 str match_end in
-        let buf = Buffer.create str_byte_length in
-        Buffer.add_string buf (Stdlib.String.sub str 0 match_start_byte);
-        add_replacement buf ~matches ~match_start ~match_start_byte ~match_end_byte;
-        Buffer.add_string buf (Stdlib.String.sub str match_end_byte (str_byte_length - match_end_byte));
-        Buffer.contents buf
+    | Some match_ -> render [ match_ ]
 
 let replaceByRe ~regexp ~replacement str =
-  let str_byte_length = Stdlib.String.length str in
-  replace_driver ~regexp str ~compute:(fun ~matches ~match_start:_ ~match_start_byte ~match_end_byte ->
-      let prefix = Stdlib.String.sub str 0 match_start_byte in
-      let suffix = Stdlib.String.sub str match_end_byte (str_byte_length - match_end_byte) in
-      process_replacement ~replacement ~matches ~prefix ~suffix)
+  replace_driver ~regexp str ~add_replacement:(fun buf ~prepared ~source_length ~match_ ~match_start ~match_end ->
+      process_replacement ~buf ~prepared ~source:str ~source_length ~replacement
+        ~matches:(Js_re.Prepared.captures match_) ~match_start ~match_end)
 
 (* The unsafeReplaceByN functions pass the matched text, the first N capture
    groups, the UTF-16 offset of the match, and the whole string to [f]. Like
@@ -224,20 +202,24 @@ let capture matches n =
   if n >= Stdlib.Array.length matches then "" else match Stdlib.Array.get matches n with Some c -> c | None -> ""
 
 let unsafeReplaceBy0 ~regexp ~f str =
-  replace_driver ~regexp str ~compute:(fun ~matches ~match_start ~match_start_byte:_ ~match_end_byte:_ ->
-      f (capture matches 0) match_start str)
+  replace_driver ~regexp str ~add_replacement:(fun buf ~prepared:_ ~source_length:_ ~match_ ~match_start ~match_end:_ ->
+      Buffer.add_string buf (f (capture (Js_re.Prepared.captures match_) 0) match_start str))
 
 let unsafeReplaceBy1 ~regexp ~f str =
-  replace_driver ~regexp str ~compute:(fun ~matches ~match_start ~match_start_byte:_ ~match_end_byte:_ ->
-      f (capture matches 0) (capture matches 1) match_start str)
+  replace_driver ~regexp str ~add_replacement:(fun buf ~prepared:_ ~source_length:_ ~match_ ~match_start ~match_end:_ ->
+      let matches = Js_re.Prepared.captures match_ in
+      Buffer.add_string buf (f (capture matches 0) (capture matches 1) match_start str))
 
 let unsafeReplaceBy2 ~regexp ~f str =
-  replace_driver ~regexp str ~compute:(fun ~matches ~match_start ~match_start_byte:_ ~match_end_byte:_ ->
-      f (capture matches 0) (capture matches 1) (capture matches 2) match_start str)
+  replace_driver ~regexp str ~add_replacement:(fun buf ~prepared:_ ~source_length:_ ~match_ ~match_start ~match_end:_ ->
+      let matches = Js_re.Prepared.captures match_ in
+      Buffer.add_string buf (f (capture matches 0) (capture matches 1) (capture matches 2) match_start str))
 
 let unsafeReplaceBy3 ~regexp ~f str =
-  replace_driver ~regexp str ~compute:(fun ~matches ~match_start ~match_start_byte:_ ~match_end_byte:_ ->
-      f (capture matches 0) (capture matches 1) (capture matches 2) (capture matches 3) match_start str)
+  replace_driver ~regexp str ~add_replacement:(fun buf ~prepared:_ ~source_length:_ ~match_ ~match_start ~match_end:_ ->
+      let matches = Js_re.Prepared.captures match_ in
+      Buffer.add_string buf
+        (f (capture matches 0) (capture matches 1) (capture matches 2) (capture matches 3) match_start str))
 
 let search ~regexp str =
   (* RegExp.prototype[Symbol.search] (ECMA-262 22.2.6.12): search from 0 and
@@ -289,13 +271,10 @@ let splitByRe ~regexp ?limit str =
     let splitter = Js_re.fromStringWithFlags (Js_re.source regexp) ~flags in
     let unicode = is_full_unicode regexp in
     let size = Quickjs.String.Prototype.length str in
-    if size = 0 then match Js_re.exec ~str splitter with Some _ -> [||] | None -> [| Some str |]
+    let prepared = Js_re.Prepared.make str in
+    if size = 0 then match Js_re.Prepared.exec prepared splitter with Some _ -> [||] | None -> [| Some str |]
     else
-      let substring_between start_u16 end_u16 =
-        let start_byte = Quickjs.String.byte_index_of_utf16 str start_u16 in
-        let end_byte = Quickjs.String.byte_index_of_utf16 str end_u16 in
-        Stdlib.String.sub str start_byte (end_byte - start_byte)
-      in
+      let substring_between start_u16 end_u16 = Js_re.Prepared.substring prepared ~start:start_u16 ~end_:end_u16 in
       let out = ref [] in
       let count = ref 0 in
       let exception Limit_reached in
@@ -308,22 +287,22 @@ let splitByRe ~regexp ?limit str =
       let reached_limit =
         try
           let rec loop () =
-            match Js_re.exec ~str splitter with
+            match Js_re.Prepared.exec prepared splitter with
             | None -> ()
-            | Some result ->
-                let match_start = Js_re.index result in
+            | Some match_ ->
+                let match_start, match_end = Js_re.Prepared.range match_ in
                 (* The loop in the spec only probes positions before the end of
                    the string: a match starting at the very end is ignored. *)
                 if match_start < size then
-                  let match_end = Stdlib.min (Js_re.lastIndex splitter) size in
+                  let match_end = Stdlib.min match_end size in
                   if match_end = !segment_start then (
                     (* Empty match at the current segment start: no split here,
                        advance and keep searching. *)
-                    Js_re.setLastIndex splitter (advance_string_index str match_start unicode);
+                    Js_re.setLastIndex splitter (Js_re.Prepared.advance_index prepared ~unicode match_start);
                     loop ())
                   else (
                     push (Some (substring_between !segment_start match_start));
-                    let captures = Js_re.captures result in
+                    let captures = Js_re.Prepared.captures match_ in
                     for i = 1 to Stdlib.Array.length captures - 1 do
                       push (Stdlib.Array.get captures i)
                     done;

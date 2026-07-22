@@ -287,6 +287,12 @@ let string_tests =
         assert_string (Js.String.replaceByRe "abc" ~regexp:[%re "/b/"] ~replacement:"$9") "a$9c");
     test "replaceByRe with $` on the original string" (fun () ->
         assert_string (Js.String.replaceByRe "abcdef" ~regexp:[%re "/cd/"] ~replacement:"<$`>") "ab<ab>ef");
+    test "replaceByRe writes multibyte prefix and suffix references" (fun () ->
+        assert_string
+          (Js.String.replaceByRe {js|ébéb|js} ~regexp:[%re "/b/g"] ~replacement:"[$`|$'|$&]")
+          {js|é[é|éb|b]é[ébé||b]|js});
+    test "replaceByRe handles a match that splits a surrogate pair" (fun () ->
+        assert_string (Js.String.replaceByRe {js|😀|js} ~regexp:(Js.Re.fromString "\\uD83D") ~replacement:"X") {js|X�|js});
     test "replaceByRe sticky non-global starts at lastIndex" (fun () ->
         let regexp = [%re "/b/y"] in
         Js.Re.setLastIndex regexp 1;
@@ -309,6 +315,20 @@ let string_tests =
         let matchFn matchPart _offset _wholeString = Js.String.toUpperCase matchPart in
         let replaced = Js.String.unsafeReplaceBy0 ~regexp:[%re "/[aeiou]/g"] ~f:matchFn str in
         assert_string replaced "bEAUtIfUl vOwEls");
+    test "unsafeReplaceBy0 callback cannot change global match collection" (fun () ->
+        let regexp = [%re "/./g"] in
+        let offsets = ref [] in
+        let replaced =
+          Js.String.unsafeReplaceBy0 ~regexp
+            ~f:(fun matched offset _ ->
+              offsets := offset :: !offsets;
+              Js.Re.setLastIndex regexp 99;
+              Js.String.toUpperCase matched)
+            "ab"
+        in
+        assert_string replaced "AB";
+        Alcotest.check (Alcotest.list Alcotest.int) "callback offsets" [ 0; 1 ] (Stdlib.List.rev !offsets);
+        assert_int (Js.Re.lastIndex regexp) 99);
     test "unsafeReplaceBy1" (fun () ->
         let str = "increment 23" in
         let matchFn _matchPart p1 _offset wholeString = wholeString ^ " is " ^ string_of_int (int_of_string p1 + 1) in
@@ -397,6 +417,10 @@ let string_tests =
         (* "abc".split(/x*/) = ["a", "b", "c"] *)
         assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/x*/"] "abc") [| Some "a"; Some "b"; Some "c" |];
         assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/x*/g"] "abc") [| Some "a"; Some "b"; Some "c" |]);
+    test "splitByRe handles a separator that splits a surrogate pair" (fun () ->
+        assert_string_option_array
+          (Js.String.splitByRe ~regexp:(Js.Re.fromString "\\uD83D") {js|😀|js})
+          [| Some ""; Some {js|�|js} |]);
     test "splitByRe splices captures in" (fun () ->
         (* "a#b#:c".split(/(#)(:)?/) = ["a", "#", undefined, "b", "#", ":", "c"] *)
         assert_string_option_array
