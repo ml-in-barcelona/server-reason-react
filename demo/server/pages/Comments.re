@@ -111,7 +111,7 @@ let handler = _request => {
       };
 
       let%lwt (stream, _abort) =
-        ReactDOM.renderToStream(<Document> <Page /> </Document>);
+        ReactDOM.renderToStream(~env=`Dev, <Document> <Page /> </Document>);
 
       Lwt_stream.iter_s(pipe, stream);
     },

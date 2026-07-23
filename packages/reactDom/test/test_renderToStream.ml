@@ -133,7 +133,7 @@ let suspense_with_always_throwing () =
   let prev = Printexc.backtrace_status () in
   Printexc.record_backtrace false;
   let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Dev (React.Upper_case_component ("app", app)) in
   Printexc.record_backtrace prev;
   assert_stream stream
     [ "<!--$!--><template data-msg=\"Failure(&quot;always throwing&quot;)\n\"></template>Loading...<!--/$-->" ]
@@ -249,7 +249,7 @@ let suspense_with_nested_suspense_with_error () =
            ())
       ()
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Dev (React.Upper_case_component ("app", app)) in
   Printexc.record_backtrace prev;
   assert_stream stream
     [
@@ -466,7 +466,7 @@ let with_async_exception_hook fn =
 let abort_with_pending_boundaries () =
   let%lwt (first_chunk, remaining), async_exceptions =
     with_async_exception_hook (fun () ->
-        let%lwt stream, abort = ReactDOM.renderToStream (abort_app ()) in
+        let%lwt stream, abort = ReactDOM.renderToStream ~env:`Dev (abort_app ()) in
         let%lwt first_chunk = Lwt_stream.get stream in
         (* Abort while both boundaries are still pending *)
         abort ();
@@ -783,10 +783,19 @@ let suspense_with_failed_promise () =
       ~children:(React.Async_component ("failing_async", fun () -> Lwt.fail (Failure "async failure")))
       ()
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Dev (React.Upper_case_component ("app", app)) in
   Printexc.record_backtrace prev;
   assert_stream stream
     [ "<!--$!--><template data-msg=\"Failure(&quot;async failure&quot;)\n\"></template>Error fallback<!--/$-->" ]
+
+let suspense_with_failed_promise_default_env_is_prod () =
+  let app () =
+    mk_suspense ~fallback:(React.string "Error fallback")
+      ~children:(React.Async_component ("failing_async", fun () -> Lwt.fail (Failure "async failure")))
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<!--$!--><template></template>Error fallback<!--/$-->" ]
 
 let fragment_in_stream () =
   let app () =
@@ -947,6 +956,7 @@ let tests =
     test "static_element_in_stream" static_element_in_stream;
     test "client_component_error_in_stream" client_component_error_in_stream;
     test "suspense_with_failed_promise" suspense_with_failed_promise;
+    test "suspense_with_failed_promise_default_env_is_prod" suspense_with_failed_promise_default_env_is_prod;
     test "fragment_in_stream" fragment_in_stream;
     test "list_in_stream" list_in_stream;
     test "array_in_stream" array_in_stream;

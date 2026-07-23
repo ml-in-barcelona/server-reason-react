@@ -886,11 +886,11 @@ module Model = struct
         let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env model in
         match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream)
 
-  let render ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
+  let render ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
     React.reset_id_rendering ?prefix:identifier_prefix ();
     run_stream ~env ~debug ?filter_stack_frame ?subscribe model
 
-  let create_action_response ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe response =
+  let create_action_response ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe response =
     let%lwt response =
       try%lwt response
       with exn ->
@@ -1590,7 +1590,7 @@ let create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScr
     bootstrap_modules_nodes;
   ]
 
-let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame)
+let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame)
     ?timeout ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent ?bootstrapScripts
     ?bootstrapModules ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
@@ -1700,10 +1700,10 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
       in
       Lwt.return (Html.to_string html, subscribe))
 
-let render_model_value ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe model =
+let render_model_value ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe model =
   React.Cache.with_request_cache_async (fun () -> Model.render ~env ~debug ?filter_stack_frame ?subscribe model)
 
-let render_model ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe model =
+let render_model ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe model =
   render_model_value ~env ~debug ?filter_stack_frame ?subscribe (React.Model.Element model)
 
 let create_action_response ?env ?debug ?filter_stack_frame ?subscribe response =

@@ -610,7 +610,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
     await_unhandled_suspensions := true;
     render_element element
 
-let renderToStream ?(env = `Dev) ?identifier_prefix element =
+let renderToStream ?(env = `Prod) ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
   React.Cache.with_request_cache_async (fun () ->
       let stream, push_to_stream, close = Push_stream.make () in

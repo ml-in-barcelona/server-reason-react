@@ -1,5 +1,9 @@
 # Changes
 
+## Unreleased
+
+* Breaking: `ReactDOM.renderToStream`, `ReactServerDOM.render_html`, `ReactServerDOM.render_model`, `ReactServerDOM.render_model_value` and `ReactServerDOM.create_action_response` now default `?env` to `` `Prod`` instead of `` `Dev``, so component error messages and backtraces are no longer serialized into the HTML/RSC payload unless explicitly requested. Pass ``~env:`Dev`` to restore the previous behavior by @davesnx
+
 ## 0.5.1
 
 * Require `quickjs >= 0.5.1 & < 0.6.0`: global `Js.String.replaceByRe`/`unsafeReplaceBy*`/`splitByRe` operations now prepare the regexp input once instead of copying and converting it for every match, making ordinary dense global replacements and splits linear in input plus output size. Replacement rendering writes source ranges directly without repeated UTF-16 rescans or eager prefix/suffix copies, callback replacements collect matches before invoking callbacks like JavaScript, and matches that split a surrogate pair produce U+FFFD rather than slicing the wrong UTF-8 bytes by @davesnx
