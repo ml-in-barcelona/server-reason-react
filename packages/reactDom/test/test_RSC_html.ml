@@ -1141,7 +1141,7 @@ let timeout_emits_client_render_instruction_per_pending_boundary () =
       ]
   in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~timeout:0.02 app in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~env:`Dev ~progressive_chunk_size:1 ~timeout:0.02 app in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -1211,7 +1211,7 @@ let timeout_rejects_pending_promise_prop_row () =
       }
   in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~timeout:0.02 app in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~env:`Dev ~progressive_chunk_size:1 ~timeout:0.02 app in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
