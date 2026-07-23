@@ -223,6 +223,68 @@ let cache_error_same_instance () =
           Alcotest.(check bool) "is original exception" true (e1 == original_exn)
       | _ -> Alcotest.fail "expected exceptions to be captured")
 
+let cache_arg_containing_closure_does_not_crash () =
+  let calls = ref 0 in
+  let cached =
+    React.cache (fun (f : int -> int) ->
+        calls := !calls + 1;
+        f 1)
+  in
+  let g = fun x -> x + 1 in
+  let h = fun x -> x + 2 in
+  React.Cache.with_request_cache (fun () ->
+      ignore (cached g);
+      ignore (cached h);
+      ignore (cached g);
+      (* many distinct closures so a structural store would collide buckets
+         and raise "compare: functional value" *)
+      for i = 3 to 22 do
+        ignore (cached (fun x -> x + i))
+      done);
+  assert_int !calls 22
+
+type cache_record = { a : int; b : string }
+
+let cache_structurally_equal_records_miss () =
+  let calls = ref 0 in
+  let cached =
+    React.cache (fun (record : cache_record) ->
+        calls := !calls + 1;
+        record.a + String.length record.b)
+  in
+  (* [Sys.opaque_identity] prevents the compiler from statically sharing the
+     two structurally-equal records: the test needs distinct allocations *)
+  let make_record () = { a = Sys.opaque_identity 1; b = "one" } in
+  React.Cache.with_request_cache (fun () ->
+      ignore (cached (make_record ()));
+      ignore (cached (make_record ())));
+  assert_int !calls 2
+
+let cache_same_record_hits () =
+  let calls = ref 0 in
+  let cached =
+    React.cache (fun (record : cache_record) ->
+        calls := !calls + 1;
+        record.a + String.length record.b)
+  in
+  let record = { a = 1; b = "one" } in
+  React.Cache.with_request_cache (fun () ->
+      ignore (cached record);
+      ignore (cached record));
+  assert_int !calls 1
+
+let cache_float_args_hit_by_value () =
+  let calls = ref 0 in
+  let cached =
+    React.cache (fun value ->
+        calls := !calls + 1;
+        value +. 1.)
+  in
+  React.Cache.with_request_cache (fun () ->
+      ignore (cached 1.5);
+      ignore (cached 1.5));
+  assert_int !calls 1
+
 let lwt_test title fn = Alcotest.test_case title `Quick (fun () -> Lwt_main.run (fn ()))
 
 let cache_async_hits_within_request () =
@@ -342,6 +404,10 @@ let tests =
       test "cache errors mixed with success" cache_error_mixed_with_success;
       test "cache errors reset between requests" cache_error_resets_between_requests;
       test "cache errors same instance" cache_error_same_instance;
+      test "cache arg containing closure does not crash" cache_arg_containing_closure_does_not_crash;
+      test "cache structurally equal records miss" cache_structurally_equal_records_miss;
+      test "cache same record hits" cache_same_record_hits;
+      test "cache float args hit by value" cache_float_args_hit_by_value;
       lwt_test "cache async hits within request" cache_async_hits_within_request;
       lwt_test "cache async resets between requests" cache_async_resets_between_requests;
       lwt_test "cache async concurrent isolation" cache_async_concurrent_isolation;
