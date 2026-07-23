@@ -159,6 +159,30 @@ let () =
       measure_benchmark_lwt ~name:"rsc/table/500" (fun () ->
           let%lwt html, _subscribe = ReactServerDOM.render_html (Table.Table500.make (Table.Table500.makeProps ())) in
           Lwt.return html);
+      measure_benchmark_lwt ~name:"streaming/renderToStream/wide100" (fun () ->
+          let%lwt stream, _abort =
+            ReactDOM.renderToStream ~env:`Prod (WideTree.Wide100.make (WideTree.Wide100.makeProps ()))
+          in
+          Lwt_stream.iter (fun _ -> ()) stream);
+      measure_benchmark_lwt ~name:"streaming/renderToStream/suspense" (fun () ->
+          let%lwt stream, _abort =
+            ReactDOM.renderToStream ~env:`Prod (SuspenseTree.make (SuspenseTree.makeProps ()))
+          in
+          Lwt_stream.iter (fun _ -> ()) stream);
+      measure_benchmark_lwt ~name:"rsc/render_html/wide100" (fun () ->
+          let%lwt _shell, subscribe =
+            ReactServerDOM.render_html ~env:`Prod (WideTree.Wide100.make (WideTree.Wide100.makeProps ()))
+          in
+          subscribe (fun _ -> Lwt.return ()));
+      measure_benchmark_lwt ~name:"rsc/render_html/suspense" (fun () ->
+          let%lwt _shell, subscribe =
+            ReactServerDOM.render_html ~env:`Prod (SuspenseTree.make (SuspenseTree.makeProps ()))
+          in
+          subscribe (fun _ -> Lwt.return ()));
+      measure_benchmark_lwt ~name:"rsc/render_model/wide100" (fun () ->
+          ReactServerDOM.render_model ~env:`Prod
+            ~subscribe:(fun _ -> Lwt.return ())
+            (WideTree.Wide100.make (WideTree.Wide100.makeProps ())));
     ]
   in
 
