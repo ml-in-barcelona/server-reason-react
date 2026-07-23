@@ -311,6 +311,8 @@ module Fiber = struct
     mutable inside_body : bool;
     (* Monotonic count of hoistable elements encountered (before dedup). Lets the Static/Writer branches detect that a prerendered subtree contained hoistables, whose raw HTML would otherwise render them a second time at their original position. *)
     mutable hoisted_count : int;
+    (* Whether reconstruct_document already consumed the fiber's head-collection. Hoistables encountered afterwards (late-resolving Suspense boundaries) must render in place inside the boundary chunk instead of being pushed into a head nobody reads again. *)
+    mutable shell_flushed : bool;
     (* html_attributes collects the attributes of the <html> tag for document reconstruction *)
     mutable html_attributes : Html.attribute_list;
   }
@@ -1366,8 +1368,11 @@ and handle_hoistable_element ~fiber ~debug_info ~key ~tag ~attributes ~children 
   let html_props = ReactDOM.attributes_to_html attributes in
   let%lwt children_html, children_model = elements_to_html ~fiber ~debug_info children in
   let html = create_html_node ~html_props ~children_html in
-  on_push ~fiber html;
-  Lwt.return (Html.null, create_model children_model)
+  (* Once the shell flushed, the head-collection is never read again: render the hoistable in place so it streams inside the boundary completion chunk (and $RC moves it into the document). *)
+  if fiber.shell_flushed then Lwt.return (Html.Node html, create_model children_model)
+  else (
+    on_push ~fiber html;
+    Lwt.return (Html.null, create_model children_model))
 
 and process_attributes ~context ?form_action_id attributes =
   let html_props =
@@ -1621,6 +1626,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
           inside_head = false;
           inside_body = false;
           hoisted_count = 0;
+          shell_flushed = false;
         }
       in
       let%lwt root_html, root_model = render_element_to_html ~fiber ~debug_info:None element in
@@ -1638,6 +1644,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
         create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ()
       in
       let html = reconstruct_document ~fiber ~root_html ~user_scripts ~skip_root:skipRoot in
+      fiber.shell_flushed <- true;
       let subscribe fn =
         let buf = Buffer.create progressive_chunk_size in
         let flush () =
