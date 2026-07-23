@@ -74,3 +74,5 @@ _esy
 
 .direnv/
 demo/.running/*
+.vercel
+.env*

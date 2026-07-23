@@ -38,20 +38,21 @@ RUN sudo npm install
 WORKDIR /app
 COPY . .
 RUN sudo chown -R opam:opam /app && opam exec -- dune build @demo --profile=dev
-RUN opam clean -a -c -s --logs && rm -rf /home/opam/opam-repository
 
-FROM ocaml/opam:ubuntu-22.04-ocaml-5.4
+# Slim runtime: the demo server is a native binary, no opam switch needed
+FROM ubuntu:22.04
 
-RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends libev4 libssl3 && \
-    sudo rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libev4 libssl3 libgmp10 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY --from=builder --chown=opam:opam /home/opam/.opam /home/opam/.opam
-COPY --from=builder --chown=opam:opam /app /app
+# The server resolves assets relative to the cwd: ./_build/default/demo/...
+COPY --from=builder /app/_build/default/demo/server/server.exe _build/default/demo/server/server.exe
+COPY --from=builder /app/_build/default/demo/output.css _build/default/demo/output.css
+COPY --from=builder /app/_build/default/demo/client/app _build/default/demo/client/app
 
-ENV PATH="/home/opam/.opam/5.4/bin:${PATH}"
+ENV SERVER_INTERFACE=0.0.0.0
 
-EXPOSE 8080
-
-CMD ["opam", "exec", "--switch", "5.4", "--", "_build/default/demo/server/server.exe"]
+# Listens on $PORT (defaults to 8080), provided by Vercel at runtime
+CMD ["/app/_build/default/demo/server/server.exe"]

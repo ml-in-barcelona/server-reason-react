@@ -1,0 +1,12 @@
+**/_build
+**/_opam
+_opam*
+**/node_modules
+.git
+benchmark/
+arch/
+compare/
+documentation/
+**/.merlin
+*.install
+*.log

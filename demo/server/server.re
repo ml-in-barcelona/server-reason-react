@@ -75,4 +75,15 @@ let interface = {
   };
 };
 
-Dream.run(~port=8080, ~interface, server);
+let port = {
+  switch (Sys.getenv_opt("PORT")) {
+  | Some(env) =>
+    switch (int_of_string_opt(env)) {
+    | Some(port) => port
+    | None => failwith("PORT must be a number, got: " ++ env)
+    }
+  | None => 8080
+  };
+};
+
+Dream.run(~port, ~interface, server);

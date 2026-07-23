@@ -27,6 +27,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: Dockerfile.vercel
           push: false
           tags: server-reason-react:${{ github.sha }}
           cache-from: type=gha

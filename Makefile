@@ -170,8 +170,8 @@ current_hash = $(shell git rev-parse HEAD | cut -c1-7)
 
 .PHONY: docker-build
 docker-build: ## docker build
-	DOCKER_BUILDKIT=0 docker build . --tag "$(container_name):$(current_hash)" --platform linux/amd64
+	docker build . --file Dockerfile.vercel --tag "$(container_name):$(current_hash)" --platform linux/amd64
 
 .PHONY: docker-run
 docker-run: ## docker run
-	@docker run -d --platform linux/amd64 $(container_name):$(current_hash)
+	@docker run --rm -p 8080:8080 -e PORT=8080 --platform linux/amd64 $(container_name):$(current_hash)
