@@ -98,6 +98,25 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
         run: make bench-json
 
+      - name: Restore benchmark baseline
+        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
+        uses: actions/cache@v4
+        with:
+          path: benchmark-cache
+          key: benchmark-baseline-${{ github.run_id }}
+          restore-keys: benchmark-baseline-
+
+      - name: Compare benchmarks against main
+        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0' && github.event_name == 'pull_request'
+        run: node scripts/compare-benchmarks.mjs bench_results.json benchmark-cache/benchmark-data.json > benchmark-comment.md
+
+      - name: Comment benchmark results on PR
+        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0' && github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: benchmarks
+          path: benchmark-comment.md
+
       - name: Store benchmark result
         if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
         uses: benchmark-action/github-action-benchmark@v1
@@ -106,10 +125,9 @@ jobs:
           tool: 'customBiggerIsBetter'
           output-file-path: bench_results.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: ${{ github.ref == 'refs/heads/main' }}
-          gh-pages-branch: gh-pages
-          benchmark-data-dir-path: dev/bench
-          comment-always: true
+          external-data-json-path: benchmark-cache/benchmark-data.json
+          save-data-file: ${{ github.event_name != 'pull_request' }}
+          summary-always: true
           fail-on-alert: true
           comment-on-alert: true
           alert-comment-cc-users: '@davesnx'
