@@ -1,8 +1,4 @@
-/* Scenario: Suspense Tree
-      Multiple Suspense boundaries whose async components resolve immediately
-      (Lwt.return based, no sleeps) so benchmarks measure render cost only.
-      Purpose: Exercise the streaming/RSC Suspense machinery
-   */
+/* Async sections resolve via Lwt.return on purpose: the benchmark measures render cost, not waiting. */
 
 module Item = {
   [@react.component]
@@ -33,21 +29,17 @@ module AsyncSection = {
 };
 
 module Boundaries3 = {
+  let section = (~label, ~offset) =>
+    <React.Suspense fallback={<span> {React.string(label)} </span>}>
+      <AsyncSection offset />
+    </React.Suspense>;
+
   [@react.component]
   let make = () => {
     <div className="grid gap-4 p-4">
-      <React.Suspense
-        fallback={<span> {React.string("Loading section 1")} </span>}>
-        <AsyncSection offset=0 />
-      </React.Suspense>
-      <React.Suspense
-        fallback={<span> {React.string("Loading section 2")} </span>}>
-        <AsyncSection offset=10 />
-      </React.Suspense>
-      <React.Suspense
-        fallback={<span> {React.string("Loading section 3")} </span>}>
-        <AsyncSection offset=20 />
-      </React.Suspense>
+      {section(~label="Loading section 1", ~offset=0)}
+      {section(~label="Loading section 2", ~offset=10)}
+      {section(~label="Loading section 3", ~offset=20)}
     </div>;
   };
 };
