@@ -352,6 +352,7 @@ type stream_context = {
   close : unit -> unit;
   mutable closed : bool;
   mutable has_rc_script_been_injected : bool;
+  mutable has_rx_script_been_injected : bool;
   mutable boundary_id : int;
   mutable suspense_id : int;
   mutable waiting : int;
@@ -385,12 +386,15 @@ let abort_error_message =
   "Switched to client rendering because the server rendering aborted due to:\n\n\
    The render was aborted by the server without a reason."
 
-let write_inline_client_render_boundary_script buf ~env ~include_definition boundary_id =
+let render_error_message exn =
+  "Switched to client rendering because the server rendering errored:\n\n" ^ Printexc.to_string exn
+
+let write_inline_client_render_boundary_script buf ~env ~include_definition ~message boundary_id =
   let rx_call =
     (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
     match env with
     | `Prod -> Printf.sprintf {|$RX("B:%i","")|} boundary_id
-    | `Dev -> Printf.sprintf {|$RX("B:%i","","%s")|} boundary_id (Html.escape_for_inline_script abort_error_message)
+    | `Dev -> Printf.sprintf {|$RX("B:%i","","%s")|} boundary_id (Html.escape_for_inline_script message)
   in
   Buffer.add_string buf "<script>";
   if include_definition then (
@@ -542,24 +546,39 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
                 stream_context.pending_boundaries <- current_boundary_id :: stream_context.pending_boundaries;
 
                 Lwt.async (fun () ->
-                    let%lwt _ = promise in
-                    let async_buf = Buffer.create 512 in
-                    let%lwt () = render_to_buffer ~env ~stream_context async_buf children in
-                    stream_context.waiting <- stream_context.waiting - 1;
-                    stream_context.pending_boundaries <-
-                      List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
-                    if not stream_context.closed then (
-                      let inner_html = Buffer.contents async_buf in
-                      Buffer.clear async_buf;
-                      write_suspense_resolved_element async_buf ~id:current_suspense_id inner_html;
-                      stream_context.push (Buffer.contents async_buf);
-                      Buffer.clear async_buf;
-                      write_inline_complete_boundary_script async_buf stream_context.has_rc_script_been_injected
-                        current_boundary_id current_suspense_id;
-                      stream_context.push (Buffer.contents async_buf);
-                      stream_context.has_rc_script_been_injected <- true;
-                      if stream_context.waiting = 0 then close_stream stream_context);
-                    Lwt.return ());
+                    try%lwt
+                      let%lwt _ = promise in
+                      let async_buf = Buffer.create 512 in
+                      let%lwt () = render_to_buffer ~env ~stream_context async_buf children in
+                      stream_context.waiting <- stream_context.waiting - 1;
+                      stream_context.pending_boundaries <-
+                        List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
+                      if not stream_context.closed then (
+                        let inner_html = Buffer.contents async_buf in
+                        Buffer.clear async_buf;
+                        write_suspense_resolved_element async_buf ~id:current_suspense_id inner_html;
+                        stream_context.push (Buffer.contents async_buf);
+                        Buffer.clear async_buf;
+                        write_inline_complete_boundary_script async_buf stream_context.has_rc_script_been_injected
+                          current_boundary_id current_suspense_id;
+                        stream_context.push (Buffer.contents async_buf);
+                        stream_context.has_rc_script_been_injected <- true;
+                        if stream_context.waiting = 0 then close_stream stream_context);
+                      Lwt.return ()
+                    with exn ->
+                      (* Mirrors react-dom: a boundary that fails after its fallback flushed is client-rendered via $RX. *)
+                      stream_context.waiting <- stream_context.waiting - 1;
+                      stream_context.pending_boundaries <-
+                        List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
+                      if not stream_context.closed then (
+                        let error_buf = Buffer.create 256 in
+                        write_inline_client_render_boundary_script error_buf ~env
+                          ~include_definition:(not stream_context.has_rx_script_been_injected)
+                          ~message:(render_error_message exn) current_boundary_id;
+                        stream_context.push (Buffer.contents error_buf);
+                        stream_context.has_rx_script_been_injected <- true;
+                        if stream_context.waiting = 0 then close_stream stream_context);
+                      Lwt.return ());
 
                 write_suspense_fallback buf ~boundary_id:current_boundary_id fallback_html;
                 Lwt.return ())
@@ -626,6 +645,7 @@ let renderToStream ?(env = `Dev) ?identifier_prefix element =
           boundary_id = 0;
           suspense_id = 0;
           has_rc_script_been_injected = false;
+          has_rx_script_been_injected = false;
           pending_boundaries = [];
         }
       in
@@ -639,10 +659,13 @@ let renderToStream ?(env = `Dev) ?identifier_prefix element =
           | [] -> ()
           | pending_boundaries ->
               stream_context.pending_boundaries <- [];
-              List.iteri
-                (fun i boundary_id ->
+              List.iter
+                (fun boundary_id ->
                   let buf = Buffer.create 256 in
-                  write_inline_client_render_boundary_script buf ~env ~include_definition:(i = 0) boundary_id;
+                  write_inline_client_render_boundary_script buf ~env
+                    ~include_definition:(not stream_context.has_rx_script_been_injected)
+                    ~message:abort_error_message boundary_id;
+                  stream_context.has_rx_script_been_injected <- true;
                   stream_context.push (Buffer.contents buf))
                 pending_boundaries);
           close_stream stream_context)
