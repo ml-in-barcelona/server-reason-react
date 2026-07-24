@@ -1365,15 +1365,7 @@ let skip_root_omits_html_content () =
 let contains_substring str sub =
   match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
 
-let count_occurrences hay needle =
-  let len = String.length needle in
-  let rec aux acc start =
-    match String.index_from_opt hay start needle.[0] with
-    | None -> acc
-    | Some i ->
-        if i + len <= String.length hay && String.sub hay i len = needle then aux (acc + 1) (i + 1) else aux acc (i + 1)
-  in
-  if String.length hay = 0 || String.length needle = 0 then 0 else aux 0 0
+let count_occurrences hay needle = List.length (Str.split_delim (Str.regexp_string needle) hay) - 1
 
 let collect_chunks app =
   let subscribed_elements = ref [] in
