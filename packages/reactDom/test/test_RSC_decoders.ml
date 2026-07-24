@@ -357,11 +357,6 @@ let decodeFormDataReply_blob_missing_entry () =
 
 (* Hostile payload hardening *)
 
-let string_contains ~needle haystack =
-  let n = String.length needle and h = String.length haystack in
-  let rec aux i = i + n <= h && (String.equal (String.sub haystack i n) needle || aux (i + 1)) in
-  aux 0
-
 let decode_outlined_result ~entries ~root_json =
   let formData = Js.FormData.make () in
   List.iter (fun (k, v) -> Js.FormData.append formData k (`String v)) entries;
@@ -371,23 +366,23 @@ let decode_outlined_result ~entries ~root_json =
 let decode_rejects_self_referential_outlined_entry () =
   let result = decode_outlined_result ~entries:[ ("1", "\"$Q1\"") ] ~root_json:"[\"$Q1\"]" in
   let msg = unwrap_error result in
-  if not (string_contains ~needle:"cyclic" msg) then
-    Alcotest.fail (Printf.sprintf "expected error containing \"cyclic\", got %S" msg)
+  if not (String.starts_with ~prefix:"decodeReply: cyclic" msg) then
+    Alcotest.fail (Printf.sprintf "expected cyclic reference error, got %S" msg)
 
 let decode_rejects_mutually_referential_entries () =
   let result = decode_outlined_result ~entries:[ ("1", "\"$W2\""); ("2", "\"$W1\"") ] ~root_json:"[\"$W1\"]" in
   let msg = unwrap_error result in
-  if not (string_contains ~needle:"cyclic" msg) then
-    Alcotest.fail (Printf.sprintf "expected error containing \"cyclic\", got %S" msg)
+  if not (String.starts_with ~prefix:"decodeReply: cyclic" msg) then
+    Alcotest.fail (Printf.sprintf "expected cyclic reference error, got %S" msg)
 
 let decode_rejects_malformed_outlined_entry () =
   let result = decode_outlined_result ~entries:[ ("1", "{not json") ] ~root_json:"[\"$Q1\"]" in
   let msg = unwrap_error result in
-  if not (string_contains ~needle:"invalid JSON" msg) then
-    Alcotest.fail (Printf.sprintf "expected error containing \"invalid JSON\", got %S" msg)
+  if not (String.starts_with ~prefix:"decodeReply: invalid JSON" msg) then
+    Alcotest.fail (Printf.sprintf "expected invalid JSON error, got %S" msg)
 
 let decode_rejects_deeply_nested_body () =
-  (* A valid, deeply nested array as the single argument. The only assertion is totality: no exception may escape the result contract — either Ok or Error is acceptable. *)
+  (* Only asserts totality: no exception may escape. *)
   let depth = 200_000 in
   let body = String.concat "" [ "["; String.make depth '['; "1"; String.make depth ']'; "]" ] in
   match ReactServerDOM.decodeReply body with Ok _ -> () | Error _ -> ()

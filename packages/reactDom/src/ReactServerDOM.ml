@@ -1839,7 +1839,7 @@ and decode_assoc ctx pairs =
   in
   aux [] pairs
 
-(* Resolve an outlined FormData entry and decode it, guarding against reference cycles. Both `resolve_outlined` and the unknown-prefix fallback normalize their hex id to the decimal FormData key so cycles cannot escape the guard through an alternate spelling of the same entry. *)
+(* The cycle check keys on the decimal FormData key, not the hex id, so alternate hex spellings of the same entry (e.g. "1" vs "01") cannot evade the guard. *)
 and resolve_and_decode_outlined ctx fd hex_id =
   let entry_key = Option.value (hex_to_formdata_key hex_id) ~default:hex_id in
   if List.mem entry_key ctx.resolving then
