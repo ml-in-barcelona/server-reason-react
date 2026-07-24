@@ -67,8 +67,6 @@ let suspense_fallback_on_error () =
   assert_string html "<!--$!--><div>fallback</div><!--/$-->"
 
 let context_default_survives_provider_child_throw () =
-  (* A throw under a Provider is swallowed by the Suspense boundary; the
-     Provider's popped value must not leak into later renders. *)
   let context = React.createContext "default" in
   let first =
     React.Suspense

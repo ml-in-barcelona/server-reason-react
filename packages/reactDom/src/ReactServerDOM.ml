@@ -344,6 +344,16 @@ let map_children_with_tree_context f children =
       React.current_tree_context := saved_ctx;
       results
 
+let with_provider_value ~push ~async_key ~async_value fn =
+  let pop = push () in
+  try%lwt
+    let%lwt result = Lwt.with_value async_key (Some async_value) fn in
+    pop ();
+    Lwt.return result
+  with exn ->
+    pop ();
+    Lwt.reraise exn
+
 module Model = struct
   type chunk = Value of json | Debug_ref of json | Component_ref of json | Error of env * React.error
 
@@ -722,9 +732,8 @@ module Model = struct
           node ~env ~tag:(lazy_value index) ~key ~props:client_props []
       | Provider { children; push; async_key; async_value } ->
           let pop = push () in
-          (* [with_value] must span the synchronous serialization: async
-             components below capture the Lwt storage when their promises are
-             created inside it, which happens after this frame's [pop]. *)
+          (* [with_value] must span the sync serialization: async components below capture the Lwt storage when
+             their promises are created inside it — after this frame's pop. *)
           Fun.protect ~finally:pop (fun () ->
               Lwt.with_value async_key (Some async_value) (fun () ->
                   turn_element_into_payload ~context ~debug_info children))
@@ -804,15 +813,8 @@ module Model = struct
       | Writer { original; _ } -> go ~debug_info (original ())
       | Fragment children -> go ~debug_info children
       | Consumer children -> go ~debug_info children
-      | Provider { children; push; async_key; async_value } -> (
-          let pop = push () in
-          try%lwt
-            let%lwt payload = Lwt.with_value async_key (Some async_value) (fun () -> go ~debug_info children) in
-            pop ();
-            Lwt.return payload
-          with exn ->
-            pop ();
-            Lwt.reraise exn)
+      | Provider { children; push; async_key; async_value } ->
+          with_provider_value ~push ~async_key ~async_value (fun () -> go ~debug_info children)
       | (Upper_case_component _ | Async_component _) when debug && Option.is_some debug_info ->
           (* In debug mode only the FIRST component attaches its debug rows to
              the root row; components further down are outlined with their own
@@ -1128,15 +1130,8 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
            hydrating client to client-render it. *)
         Lwt.return (html_suspense_client_render ~env:fiber.env ~exn ~fallback:fallback_html))
   | Client_component { client; _ } -> client_to_html ~fiber client
-  | Provider { children; push; async_key; async_value } -> (
-      let pop = push () in
-      try%lwt
-        let%lwt result = Lwt.with_value async_key (Some async_value) (fun () -> client_to_html ~fiber children) in
-        pop ();
-        Lwt.return result
-      with exn ->
-        pop ();
-        Lwt.reraise exn)
+  | Provider { children; push; async_key; async_value } ->
+      with_provider_value ~push ~async_key ~async_value (fun () -> client_to_html ~fiber children)
   | Consumer children -> client_to_html ~fiber children
 
 and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children ~form_action_id =
@@ -1283,17 +1278,8 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
         let index = Stream.push ~context to_chunk in
         let html = html_suspense_placeholder ~fallback:html_fallback index in
         Lwt.return (html, Model.suspense_placeholder ~env:fiber.env ~tag ~key ~fallback:model_fallback index))
-  | Provider { children; push; async_key; async_value } -> (
-      let pop = push () in
-      try%lwt
-        let%lwt result =
-          Lwt.with_value async_key (Some async_value) (fun () -> render_element_to_html ~fiber ~debug_info children)
-        in
-        pop ();
-        Lwt.return result
-      with exn ->
-        pop ();
-        Lwt.reraise exn)
+  | Provider { children; push; async_key; async_value } ->
+      with_provider_value ~push ~async_key ~async_value (fun () -> render_element_to_html ~fiber ~debug_info children)
   | Consumer children -> render_element_to_html ~fiber ~debug_info children
   | Lower_case_element { key; tag; attributes; children } ->
       render_lower_case_element ~fiber ~debug_info ~key ~tag ~attributes ~children ()

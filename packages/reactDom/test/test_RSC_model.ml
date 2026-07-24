@@ -1139,8 +1139,7 @@ let nested_context () =
   Lwt.return ()
 
 let async_component_under_provider_reads_provider_value () =
-  (* The async body resumes after the Provider's sync serialization finished;
-     useContext must still see the Provider's value via Lwt storage. *)
+  (* The Suspense keeps the Provider below the root chain, whose serializer awaits children before popping. *)
   let context = React.createContext "default" in
   let async_reader =
     React.Async_component
@@ -1165,8 +1164,8 @@ let async_component_under_provider_reads_provider_value () =
   Lwt.return ()
 
 let context_default_survives_provider_child_throw_in_model () =
-  (* A component throwing on the root chain propagates through the Provider
-     frame; the pop must still run so later renders see the default. *)
+  (* The throw must sit on the root chain: the payload serializer catches component throws before they reach a
+     Provider frame. *)
   let context = React.createContext "default" in
   let app =
     mk_context context ~value:"provided"
