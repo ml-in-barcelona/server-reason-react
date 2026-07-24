@@ -38,22 +38,15 @@ module SearchParams = {
     List.filter(((key, _value)) => key != string, t);
   };
 
-  let set = (t, newKey, newValue) => {
-    let (rev, replaced) =
-      List.fold_left(
-        ((acc, replaced), (key, value)) =>
-          if (key == newKey) {
-            replaced
-              ? (acc, replaced) : ([(key, [newValue]), ...acc], true);
-          } else {
-            ([(key, value), ...acc], replaced);
-          },
-        ([], false),
-        t,
-      );
-    let t = List.rev(rev);
-    replaced ? t : List.append(t, [(newKey, [newValue])]);
-  };
+  let rec set = (t, newKey, newValue) =>
+    switch (t) {
+    | [] => [(newKey, [newValue])]
+    | [(key, _), ...rest] when key == newKey => [
+        (key, [newValue]),
+        ...delete(rest, newKey),
+      ]
+    | [pair, ...rest] => [pair, ...set(rest, newKey, newValue)]
+    };
 
   let forEach = (t, fn) => {
     List.iter(
