@@ -1368,7 +1368,6 @@ let flight_hints_emit_hint_rows () =
       ( "app",
         fun () ->
           ReactDOM.preload ~href:"/style.css" ~as_:"style";
-          (* Same hint twice: dedup keeps one H row per key per request. *)
           ReactDOM.preload ~href:"/style.css" ~as_:"style";
           React.createElement "span" [] [ React.string "hi" ] )
   in

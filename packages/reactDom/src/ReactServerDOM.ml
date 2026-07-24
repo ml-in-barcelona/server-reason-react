@@ -948,8 +948,6 @@ let payload_to_html_chunk payload =
     (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>" (Html.escape_attribute_value payload))
 
 let model_to_chunk model index = payload_to_html_chunk (Model.to_chunk model index)
-
-(* The render_html stream carries Html.element chunks, so hint rows get the same data-payload script wrapping as model rows. *)
 let hint_row_to_html_chunk code payload = payload_to_html_chunk (Model.hint_to_chunk code payload)
 
 let boundary_to_chunk html index =
@@ -1614,8 +1612,8 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
       let hint_sink { Flight_hints.dedup_key; code; payload } =
         Stream.push_hint ~context ~dedup_key (hint_row_to_html_chunk code payload)
       in
-      (* The sink must span the root walk AND the subscribe construction: boundary tasks created during the root walk
-         carry the Lwt storage into their resumptions, so hints emitted from late-resolving boundaries still land. *)
+      (* Installed before boundary tasks are created so their Lwt resumptions carry the sink: hints from
+         late-resolving boundaries still land. *)
       Flight_hints.with_sink hint_sink @@ fun () ->
       let fiber : Fiber.t =
         {
