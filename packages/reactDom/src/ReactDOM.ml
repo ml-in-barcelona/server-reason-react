@@ -215,8 +215,7 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
             Buffer.add_buffer buf suspense_inner_buf;
             Buffer.add_string buf "<!--/$-->";
             ends_text
-        (* Renderer misuse errors (Invalid_argument) and fatal exceptions must surface;
-           component bugs still degrade to an errored boundary like react-dom. *)
+        (* Misuse and fatal exns must surface; component bugs degrade to an errored boundary like react-dom. *)
         | exception (Invalid_argument _ as misuse) -> raise misuse
         | exception ((Stack_overflow | Out_of_memory | Assert_failure _) as fatal) -> raise fatal
         | exception _e ->

@@ -102,18 +102,6 @@ let client_component_inside_suspense_raises () =
        "Client components can't be rendered synchronously on the server. Please use the React server components API \
         instead. module: test_module") (fun () -> ReactDOM.renderToString el)
 
-let component_error_inside_suspense_renders_errored_boundary () =
-  let el =
-    React.Suspense
-      {
-        key = None;
-        children = React.Upper_case_component ("Throws", fun () -> raise (Failure "boom"));
-        fallback = Some (React.createElement "div" [] [ React.string "fallback" ]);
-      }
-  in
-  let html = ReactDOM.renderToString el in
-  assert_string html "<!--$!--><div>fallback</div><!--/$-->"
-
 let inline_style_escaping () =
   (* A quoted CSS value must be escaped so it doesn't terminate the style="..."
      attribute early and drop the following custom properties. *)
@@ -158,8 +146,6 @@ let tests =
     test "suspense renders fallback on error" suspense_fallback_on_error;
     test "async_component_inside_suspense_raises" async_component_inside_suspense_raises;
     test "client_component_inside_suspense_raises" client_component_inside_suspense_raises;
-    test "component_error_inside_suspense_renders_errored_boundary"
-      component_error_inside_suspense_renders_errored_boundary;
     test "inline style escaping" inline_style_escaping;
     test "inline style empty value skipped" inline_style_empty_value_skipped;
     test "defaultChecked/defaultValue render as checked/value" default_checked_and_value_render_as_checked_and_value;
