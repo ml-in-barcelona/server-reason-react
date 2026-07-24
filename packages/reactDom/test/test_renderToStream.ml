@@ -788,9 +788,6 @@ let suspense_with_failed_promise () =
   assert_stream stream
     [ "<!--$!--><template data-msg=\"Failure(&quot;async failure&quot;)\n\"></template>Error fallback<!--/$-->" ]
 
-(* The promise is still sleeping when the shell flushes (the fallback goes out), then rejects: the boundary must flip
-   to client rendering via $RX instead of escaping into Lwt.async_exception_hook (which would kill the process) or
-   leaving the stream open forever. *)
 let late_failing_app () =
   mk_suspense ~fallback:(React.string "Loading")
     ~children:
@@ -831,7 +828,6 @@ let suspense_rejects_after_flush_in_prod () =
   (match first_chunk with
   | Some chunk -> assert_string chunk "<!--$?--><template id=\"B:0\"></template>Loading<!--/$-->"
   | None -> Alcotest.fail "Expected the shell chunk with the fallback");
-  (* In production only the digest is passed to $RX, no error detail *)
   assert_list Alcotest.string remaining
     [
       "<script>$RX=function(b,c,d,e,f){var \

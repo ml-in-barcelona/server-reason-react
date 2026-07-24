@@ -566,8 +566,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
                         if stream_context.waiting = 0 then close_stream stream_context);
                       Lwt.return ()
                     with exn ->
-                      (* The boundary's promise rejected (or the re-render raised) after the fallback was flushed:
-                         mirror react-dom by flipping the boundary to client rendering with a $RX instruction. *)
+                      (* Mirrors react-dom: a boundary that fails after its fallback flushed is client-rendered via $RX. *)
                       stream_context.waiting <- stream_context.waiting - 1;
                       stream_context.pending_boundaries <-
                         List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
