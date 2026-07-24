@@ -943,10 +943,12 @@ let client_render_boundary_to_chunk ~env ~message ~include_definition index =
 let client_render_error_message exn =
   "Switched to client rendering because the server rendering errored:\n\n" ^ Printexc.to_string exn
 
-let model_to_chunk model index =
+let payload_to_html_chunk payload =
   Html.raw
-    (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>"
-       (Html.escape_attribute_value (Model.to_chunk model index)))
+    (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>" (Html.escape_attribute_value payload))
+
+let model_to_chunk model index = payload_to_html_chunk (Model.to_chunk model index)
+let hint_row_to_html_chunk code payload = payload_to_html_chunk (Model.hint_to_chunk code payload)
 
 let boundary_to_chunk html index =
   let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
@@ -1607,6 +1609,12 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
          Similar on how react does: https://github.com/facebook/react/blob/7d9f876cbc7e9363092e60436704cf8ae435b969/packages/react-server/src/ReactFizzServer.js#L572-L581
          *)
       let stream, context = Stream.make ~initial_index:1 ~pending:1 () in
+      let hint_sink { Flight_hints.dedup_key; code; payload } =
+        Stream.push_hint ~context ~dedup_key (hint_row_to_html_chunk code payload)
+      in
+      (* Installed before boundary tasks are created so their Lwt resumptions carry the sink: hints from
+         late-resolving boundaries still land. *)
+      Flight_hints.with_sink hint_sink @@ fun () ->
       let fiber : Fiber.t =
         {
           context;
