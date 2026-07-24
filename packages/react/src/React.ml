@@ -592,7 +592,19 @@ end
 
 module Cache = struct
   type cache_entry = Ok of Obj.t | Error of exn
-  type fn_cache = (Obj.t, cache_entry) Hashtbl.t
+
+  (* React-parity keying: primitives (int/string/float) by value, everything else by reference. Every [Obj.obj] is
+     guarded by an [Obj.tag] check, so no representation is reinterpreted. *)
+  let same_arg (a : Obj.t) (b : Obj.t) =
+    a == b
+    || Obj.is_block a && Obj.is_block b
+       &&
+       let tag_a = Obj.tag a in
+       tag_a = Obj.tag b
+       && ((tag_a = Obj.string_tag && String.equal (Obj.obj a) (Obj.obj b))
+          || (tag_a = Obj.double_tag && Float.equal (Obj.obj a) (Obj.obj b)))
+
+  type fn_cache = (Obj.t * cache_entry) list Stdlib.ref
   type request_cache = (int, fn_cache) Hashtbl.t
 
   let async_key : request_cache Lwt.key = Lwt.new_key ()
@@ -623,21 +635,21 @@ let cache fn =
           match Hashtbl.find_opt cache_map fn_id with
           | Some cache -> cache
           | None ->
-              let cache = Hashtbl.create 8 in
+              let cache = ref [] in
               Hashtbl.add cache_map fn_id cache;
               cache
         in
         let arg_key = Obj.repr arg in
-        match Hashtbl.find_opt fn_cache arg_key with
-        | Some (Cache.Ok value) -> Obj.obj value
-        | Some (Cache.Error error) -> raise error
+        match List.find_opt (fun (key, _) -> Cache.same_arg key arg_key) !fn_cache with
+        | Some (_, Cache.Ok value) -> Obj.obj value
+        | Some (_, Cache.Error error) -> raise error
         | None -> (
             try
               let result = fn arg in
-              Hashtbl.add fn_cache arg_key (Cache.Ok (Obj.repr result));
+              fn_cache := (arg_key, Cache.Ok (Obj.repr result)) :: !fn_cache;
               result
             with exn ->
-              Hashtbl.add fn_cache arg_key (Cache.Error exn);
+              fn_cache := (arg_key, Cache.Error exn) :: !fn_cache;
               raise exn))
 
 let useContext (context : 'a Context.t) =
