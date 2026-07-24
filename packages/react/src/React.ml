@@ -593,10 +593,8 @@ end
 module Cache = struct
   type cache_entry = Ok of Obj.t | Error of exn
 
-  (* React's cache keys arguments like a JS Map: primitives compare by value,
-     everything else by reference. [Obj.tag] is inspected before any
-     [Obj.obj], and values are only read back at their tag-certified type
-     (string/float), so no representation is reinterpreted. *)
+  (* React-parity keying: primitives (int/string/float) by value, everything else by reference. Every [Obj.obj] is
+     guarded by an [Obj.tag] check, so no representation is reinterpreted. *)
   let same_arg (a : Obj.t) (b : Obj.t) =
     a == b
     || Obj.is_block a && Obj.is_block b

@@ -236,8 +236,7 @@ let cache_arg_containing_closure_does_not_crash () =
       ignore (cached g);
       ignore (cached h);
       ignore (cached g);
-      (* many distinct closures so a structural store would collide buckets
-         and raise "compare: functional value" *)
+      (* enough distinct closures that a structural store would compare functional values and raise *)
       for i = 3 to 22 do
         ignore (cached (fun x -> x + i))
       done);
@@ -252,8 +251,7 @@ let cache_structurally_equal_records_miss () =
         calls := !calls + 1;
         record.a + String.length record.b)
   in
-  (* [Sys.opaque_identity] prevents the compiler from statically sharing the
-     two structurally-equal records: the test needs distinct allocations *)
+  (* [Sys.opaque_identity] stops the compiler from statically sharing the two structurally-equal records *)
   let make_record () = { a = Sys.opaque_identity 1; b = "one" } in
   React.Cache.with_request_cache (fun () ->
       ignore (cached (make_record ()));
