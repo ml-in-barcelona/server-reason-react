@@ -355,6 +355,48 @@ let decodeFormDataReply_blob_missing_entry () =
         Alcotest.fail (Printf.sprintf "expected missing entry error, got %S" msg)
   | Ok _ -> Alcotest.fail "expected Error for blob with missing FormData entry"
 
+(* Hostile payload hardening *)
+
+let decode_outlined_result ~entries ~root_json =
+  let formData = Js.FormData.make () in
+  List.iter (fun (k, v) -> Js.FormData.append formData k (`String v)) entries;
+  Js.FormData.append formData "0" (`String root_json);
+  ReactServerDOM.decodeFormDataReply formData
+
+let decode_rejects_self_referential_outlined_entry () =
+  let result = decode_outlined_result ~entries:[ ("1", "\"$Q1\"") ] ~root_json:"[\"$Q1\"]" in
+  let msg = unwrap_error result in
+  if not (String.starts_with ~prefix:"decodeReply: cyclic" msg) then
+    Alcotest.fail (Printf.sprintf "expected cyclic reference error, got %S" msg)
+
+let decode_rejects_mutually_referential_entries () =
+  let result = decode_outlined_result ~entries:[ ("1", "\"$W2\""); ("2", "\"$W1\"") ] ~root_json:"[\"$W1\"]" in
+  let msg = unwrap_error result in
+  if not (String.starts_with ~prefix:"decodeReply: cyclic" msg) then
+    Alcotest.fail (Printf.sprintf "expected cyclic reference error, got %S" msg)
+
+let decode_rejects_malformed_outlined_entry () =
+  let result = decode_outlined_result ~entries:[ ("1", "{not json") ] ~root_json:"[\"$Q1\"]" in
+  let msg = unwrap_error result in
+  if not (String.starts_with ~prefix:"decodeReply: invalid JSON" msg) then
+    Alcotest.fail (Printf.sprintf "expected invalid JSON error, got %S" msg)
+
+let decode_rejects_deeply_nested_body () =
+  (* Only asserts totality: no exception may escape. *)
+  let depth = 200_000 in
+  let body = String.concat "" [ "["; String.make depth '['; "1"; String.make depth ']'; "]" ] in
+  match ReactServerDOM.decodeReply body with Ok _ -> () | Error _ -> ()
+
+let decode_valid_outlined_map_still_works () =
+  let args, _ =
+    decode_outlined ~entries:[ ("1", "[[\"name\",\"Alice\"],[\"role\",\"admin\"]]") ] ~root_json:"[\"$Q1\"]"
+  in
+  match args with
+  | [| `Assoc [ ("name", `String name); ("role", `String role) ] |] ->
+      assert_string name "Alice";
+      assert_string role "admin"
+  | _ -> Alcotest.fail "expected valid $Q Map to still decode after hardening"
+
 (* Recursive resolution of nested JSON objects *)
 
 let decodeReply_nested_special_values_in_object () =
@@ -539,6 +581,12 @@ let tests =
     test "decodeFormDataReply: mixed regular + outlined" decodeFormDataReply_mixed_outlined_and_regular;
     test "decodeFormDataReply: outlined + FormData coexist" decodeFormDataReply_outlined_and_formdata;
     test "decodeFormDataReply: hex ID resolution" decodeFormDataReply_hex_id;
+    (* Hostile payload hardening *)
+    test "decodeFormDataReply: rejects self-referential outlined entry" decode_rejects_self_referential_outlined_entry;
+    test "decodeFormDataReply: rejects mutually referential entries" decode_rejects_mutually_referential_entries;
+    test "decodeFormDataReply: rejects malformed outlined entry" decode_rejects_malformed_outlined_entry;
+    test "decodeReply: deeply nested body does not raise" decode_rejects_deeply_nested_body;
+    test "decodeFormDataReply: valid outlined map still works" decode_valid_outlined_map_still_works;
     (* Outlined models without FormData context *)
     test "decodeReply: $Q Map without FormData raises" (assert_decodeReply_errors "[\"$Q1\"]" "decodeReply: Map");
     test "decodeReply: $W Set without FormData raises" (assert_decodeReply_errors "[\"$W1\"]" "decodeReply: Set");
