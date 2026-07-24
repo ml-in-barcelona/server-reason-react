@@ -1138,6 +1138,50 @@ let nested_context () =
     ];
   Lwt.return ()
 
+let async_component_under_provider_reads_provider_value () =
+  (* The Suspense keeps the Provider below the root chain, whose serializer awaits children before popping. *)
+  let context = React.createContext "default" in
+  let async_reader =
+    React.Async_component
+      ( __FUNCTION__,
+        fun () ->
+          let%lwt () = sleep ~ms:1 in
+          Lwt.return (React.string (React.useContext context)) )
+  in
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:(mk_context context ~value:"provided" ~children:async_reader ())
+      ()
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"provided\"\n";
+    ];
+  Lwt.return ()
+
+let context_default_survives_provider_child_throw_in_model () =
+  (* The throw must sit on the root chain: the payload serializer catches component throws before they reach a
+     Provider frame. *)
+  let context = React.createContext "default" in
+  let app =
+    mk_context context ~value:"provided"
+      ~children:(React.Upper_case_component ("Throws", fun () -> raise (Failure "boom")))
+      ()
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [ "0:E{\"message\":\"Failure(\\\"boom\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
+  let reader = React.Upper_case_component ("Reader", fun () -> React.string (React.useContext context)) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe reader in
+  assert_list_of_strings !output [ "0:\"default\"\n" ];
+  Lwt.return ()
+
 let suspense_with_nested_upper_case () =
   (* Server components are always inlined, matching React.js behavior. Everything resolves in chunk 0. *)
   let inner () = React.Upper_case_component ("Inner", fun () -> React.string "inner-value") in
@@ -1528,6 +1572,8 @@ let tests =
     test "client_component_with_resources_metadata" client_component_with_resources_metadata;
     test "page_with_hoisted_resources" page_with_hoisted_resources;
     test "nested_context" nested_context;
+    test "async_component_under_provider_reads_provider_value" async_component_under_provider_reads_provider_value;
+    test "context_default_survives_provider_child_throw_in_model" context_default_survives_provider_child_throw_in_model;
     test "suspense_with_nested_upper_case" suspense_with_nested_upper_case;
     test "suspense_at_root" suspense_at_root;
     test "suspense_at_root_with_upper_case_children" suspense_at_root_with_upper_case_children;
