@@ -1782,6 +1782,17 @@ let resolve_raw_from_formdata formData hex_id =
   | None -> Error (Printf.sprintf "decodeReply: Blob ($B) invalid hex ID: %s" hex_id)
 
 let unsupported name = Error (Printf.sprintf "decodeReply: %s is not supported" name)
+let ( let* ) = Result.bind
+
+(* List.map over a fallible function, stopping at the first Error. *)
+let map_result f list =
+  let rec aux acc = function
+    | [] -> Ok (List.rev acc)
+    | x :: rest ->
+        let* v = f x in
+        aux (v :: acc) rest
+  in
+  aux [] list
 
 type decode_ctx = {
   formData : Js.FormData.t option;
@@ -1839,18 +1850,18 @@ let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
   | other -> Ok other
 
 and decode_list ctx items =
-  let rec aux acc = function
-    | [] -> Ok (`List (List.rev acc))
-    | item :: rest -> ( match decode_value ctx item with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
-  in
-  aux [] items
+  let* items = map_result (decode_value ctx) items in
+  Ok (`List items)
 
 and decode_assoc ctx pairs =
-  let rec aux acc = function
-    | [] -> Ok (`Assoc (List.rev acc))
-    | (k, v) :: rest -> ( match decode_value ctx v with Ok v -> aux ((k, v) :: acc) rest | Error _ as err -> err)
+  let* pairs =
+    map_result
+      (fun (key, value) ->
+        let* value = decode_value ctx value in
+        Ok (key, value))
+      pairs
   in
-  aux [] pairs
+  Ok (`Assoc pairs)
 
 (* The cycle check keys on the decimal FormData key, not the hex id, so alternate hex spellings of the same entry (e.g. "1" vs "01") cannot evade the guard. *)
 and resolve_and_decode_outlined ctx fd hex_id =
@@ -1892,71 +1903,57 @@ let decodeReply ?temporaryReferences body =
     let ctx = { formData = None; temporaryReferences; resolving = [] } in
     match Yojson.Basic.from_string body with
     | `List args ->
-        let rec aux acc = function
-          | [] -> Ok (Array.of_list (List.rev acc))
-          | arg :: rest -> ( match decode_value ctx arg with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
-        in
-        aux [] args
+        let* args = map_result (decode_value ctx) args in
+        Ok (Array.of_list args)
     | _ -> Error "Invalid args, this request was not created by server-reason-react"
     | exception Yojson.Json_error msg -> Error (Printf.sprintf "Invalid JSON: %s" msg)
   with Stack_overflow -> Error "decodeReply: payload nesting too deep"
 
+(* "$K<id>" marks where the caller's own form fields live: they are stored as "<id>_<name>". The marker is not one of the arguments. *)
+let formdata_field_prefix = function
+  | `String value when String.length value > 2 && String.get value 0 = '$' && String.get value 1 = 'K' ->
+      Some (String.sub value 2 (String.length value - 2) ^ "_")
+  | _ -> None
+
+(* Everything but the reply model itself is the caller's form. With a "$K" prefix only the fields it names belong to them, under their unprefixed names. *)
+let extract_user_formdata entries ~prefix =
+  let field_name key =
+    match prefix with
+    | None -> Some key
+    | Some prefix ->
+        let len = String.length prefix in
+        if String.starts_with ~prefix key then Some (String.sub key len (String.length key - len)) else None
+  in
+  let user_fd = Js.FormData.make () in
+  List.iter
+    (fun (key, value) ->
+      if not (String.equal key "0") then
+        Option.iter (fun name -> Js.FormData.append user_fd name value) (field_name key))
+    entries;
+  user_fd
+
 let decodeFormDataReply ?temporaryReferences formData =
   try
     let ctx = { formData = Some formData; temporaryReferences; resolving = [] } in
-    let input_prefix = ref None in
-    let is_formdata_ref = function
-      | `String value ->
-          let len = String.length value in
-          if len > 2 && String.get value 0 = '$' && String.get value 1 = 'K' then Some (String.sub value 2 (len - 2))
-          else None
-      | _ -> None
-    in
-    let formDataEntries = Js.FormData.entries formData in
-    let model_str =
+    let* model_str =
       try
         let (`String s) = Js.FormData.get formData "0" in
         Ok s
       with Not_found -> Error "decodeReply: FormData is missing the root entry at key \"0\""
     in
-    match model_str with
-    | Error _ as err -> err
-    | Ok model_str -> (
-        match Yojson.Basic.from_string model_str with
-        | exception Yojson.Json_error msg -> Error (Printf.sprintf "Invalid JSON in FormData root: %s" msg)
-        | `List items -> (
-            let rec aux_args acc = function
-              | [] -> Ok (Array.of_list (List.rev acc))
-              | item :: rest -> (
-                  match is_formdata_ref item with
-                  | Some id ->
-                      input_prefix := Some id;
-                      aux_args acc rest
-                  | None -> (
-                      match decode_value ctx item with Ok v -> aux_args (v :: acc) rest | Error _ as err -> err))
-            in
-            let args_result = aux_args [] items in
-            match args_result with
-            | Error _ as err -> err
-            | Ok args ->
-                let form_prefix = Option.map (fun id -> (id ^ "_", String.length id + 1)) !input_prefix in
-                let rec aux_entries acc = function
-                  | [] -> acc
-                  | (key, value) :: entries -> (
-                      if key = "0" then aux_entries acc entries
-                      else
-                        match form_prefix with
-                        | Some (prefix, prefix_len) ->
-                            if String.starts_with ~prefix key then (
-                              Js.FormData.append acc (String.sub key prefix_len (String.length key - prefix_len)) value;
-                              aux_entries acc entries)
-                            else aux_entries acc entries
-                        | None ->
-                            Js.FormData.append acc key value;
-                            aux_entries acc entries)
-                in
-                Ok (args, aux_entries (Js.FormData.make ()) formDataEntries))
-        | _ -> Error "Invalid args, this request was not created by server-reason-react")
+    let* items =
+      match Yojson.Basic.from_string model_str with
+      | `List items -> Ok items
+      | _ -> Error "Invalid args, this request was not created by server-reason-react"
+      | exception Yojson.Json_error msg -> Error (Printf.sprintf "Invalid JSON in FormData root: %s" msg)
+    in
+    let prefix =
+      List.fold_left (fun acc item -> match formdata_field_prefix item with Some _ as p -> p | None -> acc) None items
+    in
+    let* args =
+      items |> List.filter (fun item -> Option.is_none (formdata_field_prefix item)) |> map_result (decode_value ctx)
+    in
+    Ok (Array.of_list args, extract_user_formdata (Js.FormData.entries formData) ~prefix)
   with Stack_overflow -> Error "decodeReply: payload nesting too deep"
 
 let action_id_prefix = "$ACTION_ID_"
