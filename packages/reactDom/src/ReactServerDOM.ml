@@ -980,7 +980,7 @@ let html_suspense_placeholder ~fallback id =
 
 (* A Suspense boundary whose children errored before its placeholder was flushed: written directly in errored form
    (<!--$!-->), telling the hydrating client to client-render the boundary. Error detail is dev-only, mirroring
-   ReactDOM.write_suspense_fallback_error and react-dom's errored boundary output. *)
+   ReactDOM.write_suspense_fallback_error. *)
 let html_suspense_client_render ~env ~exn ~fallback =
   let template =
     match env with
@@ -1079,7 +1079,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
             wait_for_suspense_to_resolve ()
         | exception exn ->
             (* Propagate like the Async_component branch below: a Suspense boundary above turns the error into a
-               client-rendered boundary; without one the render fails, matching react-dom's shell error. *)
+               client-rendered boundary; without one the render fails. *)
             React.current_tree_context := saved_ctx;
             raise exn
         | output ->

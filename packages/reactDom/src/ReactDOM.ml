@@ -635,10 +635,9 @@ let renderToStream ?(env = `Prod) ?identifier_prefix element =
           pending_boundaries = [];
         }
       in
-      (* Aborting while Suspense boundaries are pending mirrors react-dom: emit a $RX client-render instruction per
-         still-pending boundary (so the client flips each boundary to errored and retries rendering it there), then
-         close the stream. Closing sets [closed], which guards the async pushes of boundary promises that resolve
-         later. *)
+      (* Aborting while Suspense boundaries are pending emits a $RX client-render instruction per still-pending
+         boundary (so the client flips each boundary to errored and retries rendering it there), then closes the
+         stream. Closing sets [closed], which guards the async pushes of boundary promises that resolve later. *)
       let abort () =
         if not stream_context.closed then (
           (match List.rev stream_context.pending_boundaries with
