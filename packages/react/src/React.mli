@@ -678,7 +678,12 @@ exception Suspend of any_promise
 
 val memo : 'component -> 'component
 val memoCustomCompareProps : 'component -> ('props -> 'props -> bool) -> 'component
+
 val cache : ('a -> 'b) -> 'a -> 'b
+(** Request-scoped memoization: within [Cache.with_request_cache] (or its async variant) the wrapped function runs at
+    most once per distinct argument. Arguments are compared like React's cache: primitives (ints, strings, floats) by
+    value, all other values by physical identity. *)
+
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a

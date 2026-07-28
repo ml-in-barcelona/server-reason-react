@@ -346,6 +346,16 @@ let map_children_with_tree_context f children =
       React.current_tree_context := saved_ctx;
       results
 
+let with_provider_value ~push ~async_key ~async_value fn =
+  let pop = push () in
+  try%lwt
+    let%lwt result = Lwt.with_value async_key (Some async_value) fn in
+    pop ();
+    Lwt.return result
+  with exn ->
+    pop ();
+    Lwt.reraise exn
+
 module Model = struct
   type chunk = Value of json | Debug_ref of json | Component_ref of json | Error of env * React.error
 
@@ -722,11 +732,13 @@ module Model = struct
           let client_props = models_to_payload ~context ~to_chunk ~env props in
           (* Client references are lazy references ("$L<id>"): the client must not block on the module row, it resolves it when the chunk loads. *)
           node ~env ~tag:(lazy_value index) ~key ~props:client_props []
-      | Provider { children; push; _ } ->
+      | Provider { children; push; async_key; async_value } ->
           let pop = push () in
-          let result = turn_element_into_payload ~context ~debug_info children in
-          pop ();
-          result
+          (* [with_value] must span the sync serialization: async components below capture the Lwt storage when
+             their promises are created inside it — after this frame's pop. *)
+          Fun.protect ~finally:pop (fun () ->
+              Lwt.with_value async_key (Some async_value) (fun () ->
+                  turn_element_into_payload ~context ~debug_info children))
       | Consumer children -> turn_element_into_payload ~context ~debug_info children
     in
     turn_element_into_payload ~context ~debug_info element
@@ -803,11 +815,8 @@ module Model = struct
       | Writer { original; _ } -> go ~debug_info (original ())
       | Fragment children -> go ~debug_info children
       | Consumer children -> go ~debug_info children
-      | Provider { children; push; _ } ->
-          let pop = push () in
-          let%lwt payload = go ~debug_info children in
-          pop ();
-          Lwt.return payload
+      | Provider { children; push; async_key; async_value } ->
+          with_provider_value ~push ~async_key ~async_value (fun () -> go ~debug_info children)
       | (Upper_case_component _ | Async_component _) when debug && Option.is_some debug_info ->
           (* In debug mode only the FIRST component attaches its debug rows to
              the root row; components further down are outlined with their own
@@ -888,11 +897,11 @@ module Model = struct
         let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env model in
         match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream)
 
-  let render ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
+  let render ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
     React.reset_id_rendering ?prefix:identifier_prefix ();
     run_stream ~env ~debug ?filter_stack_frame ?subscribe model
 
-  let create_action_response ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe response =
+  let create_action_response ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe response =
     let%lwt response =
       try%lwt response
       with exn ->
@@ -945,10 +954,12 @@ let client_render_boundary_to_chunk ~env ~message ~include_definition index =
 let client_render_error_message exn =
   "Switched to client rendering because the server rendering errored:\n\n" ^ Printexc.to_string exn
 
-let model_to_chunk model index =
+let payload_to_html_chunk payload =
   Html.raw
-    (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>"
-       (Html.escape_attribute_value (Model.to_chunk model index)))
+    (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>" (Html.escape_attribute_value payload))
+
+let model_to_chunk model index = payload_to_html_chunk (Model.to_chunk model index)
+let hint_row_to_html_chunk code payload = payload_to_html_chunk (Model.hint_to_chunk code payload)
 
 let boundary_to_chunk html index =
   let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
@@ -1124,11 +1135,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
         Lwt.return (html_suspense_client_render ~env:fiber.env ~exn ~fallback:fallback_html))
   | Client_component { client; _ } -> client_to_html ~fiber client
   | Provider { children; push; async_key; async_value } ->
-      let pop = push () in
-      let result = Lwt.with_value async_key (Some async_value) (fun () -> client_to_html ~fiber children) in
-      let%lwt result = result in
-      pop ();
-      Lwt.return result
+      with_provider_value ~push ~async_key ~async_value (fun () -> client_to_html ~fiber children)
   | Consumer children -> client_to_html ~fiber children
 
 and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children ~form_action_id =
@@ -1276,13 +1283,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
         let html = html_suspense_placeholder ~fallback:html_fallback index in
         Lwt.return (html, Model.suspense_placeholder ~env:fiber.env ~tag ~key ~fallback:model_fallback index))
   | Provider { children; push; async_key; async_value } ->
-      let pop = push () in
-      let result =
-        Lwt.with_value async_key (Some async_value) (fun () -> render_element_to_html ~fiber ~debug_info children)
-      in
-      let%lwt result = result in
-      pop ();
-      Lwt.return result
+      with_provider_value ~push ~async_key ~async_value (fun () -> render_element_to_html ~fiber ~debug_info children)
   | Consumer children -> render_element_to_html ~fiber ~debug_info children
   | Lower_case_element { key; tag; attributes; children } ->
       render_lower_case_element ~fiber ~debug_info ~key ~tag ~attributes ~children ()
@@ -1594,7 +1595,7 @@ let create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScr
     bootstrap_modules_nodes;
   ]
 
-let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame)
+let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame)
     ?timeout ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent ?bootstrapScripts
     ?bootstrapModules ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
@@ -1611,6 +1612,12 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
          Similar on how react does: https://github.com/facebook/react/blob/7d9f876cbc7e9363092e60436704cf8ae435b969/packages/react-server/src/ReactFizzServer.js#L572-L581
          *)
       let stream, context = Stream.make ~initial_index:1 ~pending:1 () in
+      let hint_sink { Flight_hints.dedup_key; code; payload } =
+        Stream.push_hint ~context ~dedup_key (hint_row_to_html_chunk code payload)
+      in
+      (* Installed before boundary tasks are created so their Lwt resumptions carry the sink: hints from
+         late-resolving boundaries still land. *)
+      Flight_hints.with_sink hint_sink @@ fun () ->
       let fiber : Fiber.t =
         {
           context;
@@ -1706,10 +1713,10 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?(debug = false) ?(filter_stac
       in
       Lwt.return (Html.to_string html, subscribe))
 
-let render_model_value ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe model =
+let render_model_value ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe model =
   React.Cache.with_request_cache_async (fun () -> Model.render ~env ~debug ?filter_stack_frame ?subscribe model)
 
-let render_model ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe model =
+let render_model ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe model =
   render_model_value ~env ~debug ?filter_stack_frame ?subscribe (React.Model.Element model)
 
 let create_action_response ?env ?debug ?filter_stack_frame ?subscribe response =

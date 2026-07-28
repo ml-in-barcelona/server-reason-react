@@ -1141,7 +1141,7 @@ let timeout_emits_client_render_instruction_per_pending_boundary () =
       ]
   in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~timeout:0.02 app in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~env:`Dev ~progressive_chunk_size:1 ~timeout:0.02 app in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -1211,7 +1211,7 @@ let timeout_rejects_pending_promise_prop_row () =
       }
   in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~timeout:0.02 app in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~env:`Dev ~progressive_chunk_size:1 ~timeout:0.02 app in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -1473,6 +1473,47 @@ let immediate_boundary_title_is_hoisted_to_head () =
     (count_occurrences all_content title_html);
   Lwt.return ()
 
+let flight_hints_emit_hint_rows () =
+  let app =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          ReactDOM.preload ~href:"/style.css" ~as_:"style";
+          ReactDOM.preload ~href:"/style.css" ~as_:"style";
+          React.createElement "span" [] [ React.string "hi" ] )
+  in
+  assert_html app
+    ~shell:
+      "<span>hi</span><script data-payload='0:[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [ "<script data-payload=':HL[\"/style.css\",\"style\"]\n'>window.srr_stream.push()</script>" ]
+
+let flight_hints_inside_suspense_boundary () =
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "async",
+             fun () ->
+               let%lwt () = Lwt.pause () in
+               ReactDOM.preload ~href:"/late.css" ~as_:"style";
+               Lwt.return (React.createElement "span" [] [ React.string "done" ]) ))
+      ()
+  in
+  assert_html app
+    ~shell:
+      "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload=':HL[\"/late.css\",\"style\"]\n'>window.srr_stream.push()</script>";
+      "<div hidden id=\"S:2\"><span>done</span></div>\n\
+       <script>$RC('B:2', 'S:2')</script><script \
+       data-payload='2:[\"$\",\"span\",null,{\"children\":\"done\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>";
+    ]
+
 let tests =
   [
     test "debug_adds_debug_info" debug_adds_debug_info;
@@ -1533,4 +1574,6 @@ let tests =
     test "late_boundary_link_stylesheet_is_streamed" late_boundary_link_stylesheet_is_streamed;
     test "late_boundary_title_is_streamed" late_boundary_title_is_streamed;
     test "immediate_boundary_title_is_hoisted_to_head" immediate_boundary_title_is_hoisted_to_head;
+    test "flight_hints_emit_hint_rows" flight_hints_emit_hint_rows;
+    test "flight_hints_inside_suspense_boundary" flight_hints_inside_suspense_boundary;
   ]
