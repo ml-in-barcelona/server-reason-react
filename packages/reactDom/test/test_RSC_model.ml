@@ -1154,7 +1154,7 @@ let async_component_under_provider_reads_provider_value () =
       ()
   in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
@@ -1173,7 +1173,7 @@ let context_default_survives_provider_child_throw_in_model () =
       ()
   in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
   assert_list_of_strings !output
     [ "0:E{\"message\":\"Failure(\\\"boom\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   let reader = React.Upper_case_component ("Reader", fun () -> React.string (React.useContext context)) in
@@ -1528,7 +1528,7 @@ let flight_hints_emit_h_rows () =
           React.createElement "span" [] [ React.string "hi" ] )
   in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
   assert_list_of_strings !output
     [ ":HL[\"/style.css\",\"style\"]\n"; "0:[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]\n" ];
   Lwt.return ()
