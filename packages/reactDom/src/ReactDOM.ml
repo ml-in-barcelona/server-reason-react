@@ -215,7 +215,8 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
             Buffer.add_buffer buf suspense_inner_buf;
             Buffer.add_string buf "<!--/$-->";
             ends_text
-        (* Misuse and fatal exns must surface; component bugs degrade to an errored boundary like react-dom. *)
+        (* [Invalid_argument] is how this renderer flags misuse (async/client component in a sync render), so a
+           boundary must not hide it. Genuine component errors still degrade to an errored boundary. *)
         | exception (Invalid_argument _ as misuse) -> raise misuse
         | exception ((Stack_overflow | Out_of_memory | Assert_failure _) as fatal) -> raise fatal
         | exception _e ->
