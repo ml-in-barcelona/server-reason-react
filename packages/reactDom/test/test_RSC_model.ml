@@ -1473,6 +1473,22 @@ let keyed_duplicate_client_component_preserves_keys () =
     ];
   Lwt.return ()
 
+let flight_hints_emit_h_rows () =
+  let app =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          ReactDOM.preload ~href:"/style.css" ~as_:"style";
+          (* Same hint twice: dedup keeps one H row per key per request. *)
+          ReactDOM.preload ~href:"/style.css" ~as_:"style";
+          React.createElement "span" [] [ React.string "hi" ] )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [ ":HL[\"/style.css\",\"style\"]\n"; "0:[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]\n" ];
+  Lwt.return ()
+
 let tests =
   [
     test "null_element" null_element;
@@ -1542,4 +1558,5 @@ let tests =
     test "server_function_as_model_prop" server_function_as_model_prop;
     test "error_in_prod_hides_message" error_in_prod_hides_message;
     test "duplicate_client_component_deduplicates_ref" duplicate_client_component_deduplicates_ref;
+    test "flight_hints_emit_h_rows" flight_hints_emit_h_rows;
   ]
