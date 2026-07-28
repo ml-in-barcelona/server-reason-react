@@ -52,7 +52,8 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
   in
   let subscribed_elements = ref [] in
   let%lwt html, subscribe =
-    ReactServerDOM.render_html ~progressive_chunk_size:1 ~skipRoot ?bootstrapModules ?bootstrapScriptContent element
+    ReactServerDOM.render_html ~env:`Dev ~progressive_chunk_size:1 ~skipRoot ?bootstrapModules ?bootstrapScriptContent
+      element
   in
   let%lwt () =
     subscribe (fun element ->

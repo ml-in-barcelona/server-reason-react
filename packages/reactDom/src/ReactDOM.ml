@@ -188,9 +188,7 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
                API instead. module: " ^ import_module))
     | Provider { children; push; _ } ->
         let pop = push () in
-        let ends_text = render buf prev_text children in
-        pop ();
-        ends_text
+        Fun.protect ~finally:pop (fun () -> render buf prev_text children)
     | Consumer children -> render buf prev_text children
     | Fragment children -> render buf prev_text children
     | List list -> render_children_list buf prev_text list
@@ -455,11 +453,15 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider { children; push; _ } ->
+    | Provider { children; push; _ } -> (
         let pop = push () in
-        let%lwt () = render_element children in
-        pop ();
-        Lwt.return ()
+        try%lwt
+          let%lwt () = render_element children in
+          pop ();
+          Lwt.return ()
+        with exn ->
+          pop ();
+          Lwt.reraise exn)
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list -> render_children_list_lwt render_element list
@@ -610,7 +612,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
     await_unhandled_suspensions := true;
     render_element element
 
-let renderToStream ?(env = `Dev) ?identifier_prefix element =
+let renderToStream ?(env = `Prod) ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
   React.Cache.with_request_cache_async (fun () ->
       let stream, push_to_stream, close = Push_stream.make () in

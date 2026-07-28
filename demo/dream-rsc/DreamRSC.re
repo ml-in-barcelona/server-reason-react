@@ -259,6 +259,7 @@ let streamFunctionResponse = (~debug=false, ~lookup, request) => {
     stream => {
       let%lwt () =
         ReactServerDOM.create_action_response(
+          ~env=`Dev,
           ~debug,
           ~subscribe=
             chunk => {
@@ -290,6 +291,7 @@ let stream_model_value = (~debug=false, ~location, app) =>
     stream => {
       let%lwt () =
         ReactServerDOM.render_model_value(
+          ~env=`Dev,
           ~debug,
           ~subscribe=
             chunk => {
@@ -324,6 +326,7 @@ let stream_html =
     stream => {
       let%lwt (html, subscribe) =
         ReactServerDOM.render_html(
+          ~env=`Dev,
           ~skipRoot,
           ~bootstrapScriptContent?,
           ~bootstrapScripts,

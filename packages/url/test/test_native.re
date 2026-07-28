@@ -37,6 +37,22 @@ let url_tests = (
       assert_option_string(URL.host(url), Some("www.example.com"));
       assert_string(URL.pathname(url), "/cats");
     }),
+    case("makeWith and query", () => {
+      let url = URL.makeWith("page?x=1", ~base="https://a.dev/dir/");
+      assert_string(URL.toString(url), "https://a.dev/dir/page?x=1");
+    }),
+    case("makeWith and rooted path", () => {
+      let url = URL.makeWith("/rooted", ~base="https://a.dev/dir/page");
+      assert_string(URL.pathname(url), "/rooted");
+    }),
+    case("makeWith and absolute input", () => {
+      let url = URL.makeWith("https://other.dev/x", ~base="https://a.dev");
+      assert_option_string(URL.host(url), Some("other.dev"));
+    }),
+    case("makeWith and fragment", () => {
+      let url = URL.makeWith("#frag", ~base="https://a.dev/page");
+      assert_string(URL.toString(url), "https://a.dev/page#frag");
+    }),
     case("host", () => {
       let url = URL.makeExn("https://sancho.dev");
       assert_option_string(URL.host(url), Some("sancho.dev"));
@@ -84,6 +100,16 @@ let url_tests = (
       let url = URL.makeExn("https://sancho.dev");
       assert_option_string(URL.port(url), None);
       let url = URL.makeExn("https://sancho.dev:1234");
+      assert_option_string(URL.port(url), Some("1234"));
+    }),
+    case("setPort", () => {
+      let url = URL.makeExn("https://sancho.dev:1234");
+      let url = URL.setPort(url, "8080");
+      assert_option_string(URL.port(url), Some("8080"));
+    }),
+    case("setPort with invalid input leaves the URL unchanged", () => {
+      let url = URL.makeExn("https://sancho.dev:1234");
+      let url = URL.setPort(url, "abc");
       assert_option_string(URL.port(url), Some("1234"));
     }),
     case("hash", () => {
@@ -247,6 +273,23 @@ let url_search_params_tests =
         /* let noEquals = SearchParams.makeExn("foo&bar=baz");
            assert_option_string(SearchParams.get(noEquals, "foo"), Some("")); */
         /* assert_string(SearchParams.toString(noEquals), "foo=&bar=baz"); */
+      }),
+      case("get with comma-separated value", () => {
+        let url = URL.makeExn("https://a.dev?tags=x,y");
+        let params = URL.searchParams(url);
+        assert_option_string(SearchParams.get(params, "tags"), Some("x,y"));
+        assert_entries(SearchParams.entries(params), [|("tags", "x,y")|]);
+      }),
+      case("set on absent key appends", () => {
+        let search = SearchParams.makeExn("a=1");
+        let search = SearchParams.set(search, "b", "2");
+        assert_string(SearchParams.toString(search), "a=1&b=2");
+      }),
+      case("set on duplicate keys keeps first with new value", () => {
+        let search = SearchParams.makeExn("k=1&z=9");
+        let search = SearchParams.append(search, "k", "2");
+        let search = SearchParams.set(search, "k", "new");
+        assert_string(SearchParams.toString(search), "k=new&z=9");
       }),
       case("getAll", () => {
         let search = SearchParams.makeExn("topic=api");
