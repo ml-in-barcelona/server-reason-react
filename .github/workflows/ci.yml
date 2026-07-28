@@ -77,13 +77,9 @@ jobs:
       - name: Run tests
         run: make test
 
-      - name: Setup Bun
-        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
-        uses: oven-sh/setup-bun@v2
-
       - name: Install flight spec deps
         if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
-        run: cd packages/reactDom/react_flight_spec && bun install --frozen-lockfile
+        run: cd packages/reactDom/react_flight_spec && npm ci
 
       - name: Check React Flight fixtures are up to date
         if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'

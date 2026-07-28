@@ -151,19 +151,19 @@ bench-allocation: ## Run allocation analysis
 flight_spec_dir = packages/reactDom/react_flight_spec
 
 .PHONY: spec-generate
-spec-generate: ## Regenerate React Flight fixtures from react-server-dom-webpack (requires bun + `bun install` in $(flight_spec_dir))
+spec-generate: ## Regenerate React Flight fixtures from react-server-dom-webpack (requires `npm ci` in $(flight_spec_dir))
 	$(DUNE) build --profile=dev @$(flight_spec_dir)/melange
-	cd $(flight_spec_dir) && NODE_ENV=production bun --conditions react-server generate.mjs
+	cd $(flight_spec_dir) && NODE_ENV=production node --conditions react-server generate.mjs
 
 .PHONY: spec-generate-reply
-spec-generate-reply: ## Regenerate React Flight reply fixtures from encodeReply (requires bun + `bun install` in $(flight_spec_dir))
-	cd $(flight_spec_dir) && NODE_ENV=production bun reply/generate-reply.mjs
+spec-generate-reply: ## Regenerate React Flight reply fixtures from encodeReply (requires `npm ci` in $(flight_spec_dir))
+	cd $(flight_spec_dir) && NODE_ENV=production node reply/generate-reply.mjs
 
 .PHONY: spec-check
 spec-check: ## Verify the committed React Flight fixtures (both directions) are up to date
 	$(DUNE) build --profile=dev @$(flight_spec_dir)/melange
-	cd $(flight_spec_dir) && NODE_ENV=production bun --conditions react-server generate.mjs --check
-	cd $(flight_spec_dir) && NODE_ENV=production bun reply/generate-reply.mjs --check
+	cd $(flight_spec_dir) && NODE_ENV=production node --conditions react-server generate.mjs --check
+	cd $(flight_spec_dir) && NODE_ENV=production node reply/generate-reply.mjs --check
 
 container_name = server-reason-react-demo
 current_hash = $(shell git rev-parse HEAD | cut -c1-7)

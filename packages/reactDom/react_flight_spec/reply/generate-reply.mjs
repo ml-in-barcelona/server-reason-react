@@ -3,10 +3,10 @@
 // writes the resulting server-function-call body to reply/fixtures/<case>.reply.
 //
 // Run from the react_flight_spec directory with:
-//   NODE_ENV=production bun reply/generate-reply.mjs [--check]
+//   NODE_ENV=production node reply/generate-reply.mjs [--check]
 //
-// (plain bun: processReply/encodeReply is CLIENT-side code, no react-server
-// condition. `client.browser` is imported explicitly because bun matches the
+// (plain node: processReply/encodeReply is CLIENT-side code, no react-server
+// condition. `client.browser` is imported explicitly because node matches the
 // `node` export condition, which resolves to a client build without
 // encodeReply.)
 //

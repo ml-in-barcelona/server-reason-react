@@ -3,7 +3,7 @@
 // fixtures/<case>.flight.
 //
 // Run from this directory with:
-//   NODE_ENV=production bun --conditions react-server generate.mjs [--check]
+//   NODE_ENV=production node --conditions react-server generate.mjs [--check]
 //
 // --check: re-render and diff against the committed fixtures instead of
 // writing; exits non-zero (with a printed diff) on any mismatch.
