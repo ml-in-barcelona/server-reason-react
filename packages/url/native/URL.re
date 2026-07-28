@@ -2,7 +2,7 @@ module SearchParams = {
   /* value is a list of strings on Uri, but it's represented as string on the browser
      we keep the type as a list, but each method it needs the value we "joinValue" */
   type value = list(string);
-  let joinValue = value => String.concat("", value);
+  let joinValue = value => String.concat(",", value);
 
   type t = list((string, value));
 
@@ -38,17 +38,15 @@ module SearchParams = {
     List.filter(((key, _value)) => key != string, t);
   };
 
-  let set = (t, newKey, newValue) => {
-    List.map(
-      ((key, value)) =>
-        if (key == newKey) {
-          (key, [newValue]);
-        } else {
-          (key, value);
-        },
-      t,
-    );
-  };
+  let rec set = (t, newKey, newValue) =>
+    switch (t) {
+    | [] => [(newKey, [newValue])]
+    | [(key, _), ...rest] when key == newKey => [
+        (key, [newValue]),
+        ...delete(rest, newKey),
+      ]
+    | [pair, ...rest] => [pair, ...set(rest, newKey, newValue)]
+    };
 
   let forEach = (t, fn) => {
     List.iter(
@@ -64,7 +62,7 @@ module SearchParams = {
     List.find_map(
       ((key, value)) =>
         if (key == string) {
-          List.nth_opt(value, 0);
+          Some(joinValue(value));
         } else {
           None;
         },
@@ -143,8 +141,7 @@ let make = str => {
 
 let makeWith = (str, ~base: string) => {
   let baseUri = Uri.of_string(base);
-  let absolute = Uri.with_uri(~path=Some(str), baseUri);
-  Uri.resolve(str, baseUri, absolute);
+  Uri.resolve("", baseUri, Uri.of_string(str));
 };
 
 let host = url => {
@@ -200,9 +197,11 @@ let port = url => {
   | None => None
   };
 };
-/* TODO: Return result? or optional Maybe int_of_string fails */
 let setPort = (t, string) => {
-  Uri.with_port(t, Some(int_of_string(string)));
+  switch (int_of_string_opt(string)) {
+  | Some(port) => Uri.with_port(t, Some(port))
+  | None => t
+  };
 };
 let protocol = url => {
   switch (Uri.scheme(url)) {
