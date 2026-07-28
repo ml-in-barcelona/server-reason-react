@@ -1,6 +1,7 @@
 (library
  (name benchmark_scenarios)
  (libraries
+  lwt
   server-reason-react.react
   server-reason-react.reactDom
   server-reason-react.js)
