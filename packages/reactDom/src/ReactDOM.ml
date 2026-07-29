@@ -450,12 +450,20 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         previous_node_was_text := false;
         Buffer.add_string buf prerendered;
         Lwt.return ()
-    | Writer { emit; _ } ->
+    | Writer { emit; original } -> (
+        let buffer_length = Buffer.length buf in
+        let saved_should_add_doctype = !should_add_doctype in
+        let saved_previous_node_was_text = !previous_node_was_text in
         should_add_doctype := false;
         previous_node_was_text := false;
         (* [renderToString] hydration relies on the [<!-- -->] text separators *)
-        emit buf ~separators:true;
-        Lwt.return ()
+        match emit buf ~separators:true with
+        | () -> Lwt.return ()
+        | exception Invalid_argument _ ->
+            Buffer.truncate buf buffer_length;
+            should_add_doctype := saved_should_add_doctype;
+            previous_node_was_text := saved_previous_node_was_text;
+            render_element (original ()))
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
