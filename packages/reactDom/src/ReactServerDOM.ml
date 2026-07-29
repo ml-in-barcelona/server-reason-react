@@ -1799,8 +1799,6 @@ type decode_ctx = {
   resolving : string list;
 }
 
-let make_decode_context ?formData ?temporaryReferences () = { formData; temporaryReferences; resolving = [] }
-
 let resolve_temporary_reference ctx id =
   match ctx.temporaryReferences with
   | Some lookup -> (
@@ -1812,11 +1810,6 @@ let resolve_temporary_reference ctx id =
           in
           Error message)
   | None -> Error "decodeReply: Temporary Reference ($T) requires a temporaryReferences resolver"
-
-let resolve_blob ctx id =
-  match ctx.formData with
-  | Some formData -> resolve_raw_from_formdata formData id
-  | None -> Error "decodeReply: Blob ($B) requires FormData for resolution"
 
 (* Recursively decode a JSON value, resolving $-prefixed special strings. When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved by looking up the corresponding FormData entry and recursively decoding it. *)
 let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
@@ -1846,7 +1839,10 @@ and decode_prefixed_value ctx value =
   | '@' -> unsupported "Promise ($@)"
   | ('A' | 'O' | 'o' | 'U' | 'S' | 's' | 'L' | 'l' | 'G' | 'g' | 'M' | 'm' | 'V') as prefix ->
       unsupported (Printf.sprintf "TypedArray/ArrayBuffer ($%c)" prefix)
-  | 'B' -> resolve_blob ctx payload
+  | 'B' -> (
+      match ctx.formData with
+      | Some formData -> resolve_raw_from_formdata formData payload
+      | None -> Error "decodeReply: Blob ($B) requires FormData for resolution")
   | 'R' -> unsupported "ReadableStream ($R)"
   | 'r' -> unsupported "ReadableStream bytes ($r)"
   | 'X' -> unsupported "AsyncIterable ($X)"
@@ -1914,7 +1910,7 @@ let decode_arguments ctx arguments =
 
 let decodeReply ?temporaryReferences body =
   protect_reply_decode (fun () ->
-      let context = make_decode_context ?temporaryReferences () in
+      let context = { formData = None; temporaryReferences; resolving = [] } in
       let* arguments = parse_reply_arguments ~invalid_json:"Invalid JSON" body in
       decode_arguments context arguments)
 
@@ -1924,16 +1920,6 @@ let form_data_field_prefix = function
       Some (String.sub value 2 (String.length value - 2) ^ "_")
   | _ -> None
 
-let partition_form_data_arguments items =
-  let rec loop arguments prefix = function
-    | [] -> (List.rev arguments, prefix)
-    | item :: rest -> (
-        match form_data_field_prefix item with
-        | Some prefix -> loop arguments (Some prefix) rest
-        | None -> loop (item :: arguments) prefix rest)
-  in
-  loop [] None items
-
 let read_form_data_reply formData =
   let* model =
     try
@@ -1942,7 +1928,15 @@ let read_form_data_reply formData =
     with Not_found -> Error "decodeReply: FormData is missing the root entry at key \"0\""
   in
   let* items = parse_reply_arguments ~invalid_json:"Invalid JSON in FormData root" model in
-  Ok (partition_form_data_arguments items)
+  let arguments, prefix =
+    List.fold_left
+      (fun (arguments, prefix) item ->
+        match form_data_field_prefix item with
+        | Some prefix -> (arguments, Some prefix)
+        | None -> (item :: arguments, prefix))
+      ([], None) items
+  in
+  Ok (List.rev arguments, prefix)
 
 let extract_user_form_data formData ~prefix =
   let field_name key =
@@ -1962,7 +1956,7 @@ let extract_user_form_data formData ~prefix =
 
 let decodeFormDataReply ?temporaryReferences formData =
   protect_reply_decode (fun () ->
-      let context = make_decode_context ~formData ?temporaryReferences () in
+      let context = { formData = Some formData; temporaryReferences; resolving = [] } in
       let* arguments, prefix = read_form_data_reply formData in
       let* arguments = decode_arguments context arguments in
       Ok (arguments, extract_user_form_data formData ~prefix))
