@@ -66,6 +66,24 @@ let suspense_fallback_on_error () =
   let html = ReactDOM.renderToString el in
   assert_string html "<!--$!--><div>fallback</div><!--/$-->"
 
+let context_default_survives_provider_child_throw () =
+  let context = React.createContext "default" in
+  let first =
+    React.Suspense
+      {
+        key = None;
+        children =
+          React.Context.provider context
+            (React.Context.makeProps ~value:"provided"
+               ~children:(React.Upper_case_component ("Throws", fun () -> raise (Failure "boom")))
+               ());
+        fallback = Some (React.string "fallback");
+      }
+  in
+  assert_string (ReactDOM.renderToString first) "<!--$!-->fallback<!--/$-->";
+  let second = React.Upper_case_component ("Reader", fun () -> React.string (React.useContext context)) in
+  assert_string (ReactDOM.renderToString second) "default"
+
 let inline_style_escaping () =
   (* A quoted CSS value must be escaped so it doesn't terminate the style="..."
      attribute early and drop the following custom properties. *)
@@ -108,6 +126,7 @@ let tests =
     test "text_after_element_with_text_child" text_after_element_with_text_child;
     test "suspense children render exactly once" suspense_children_render_once;
     test "suspense renders fallback on error" suspense_fallback_on_error;
+    test "context default survives provider child throw" context_default_survives_provider_child_throw;
     test "inline style escaping" inline_style_escaping;
     test "inline style empty value skipped" inline_style_empty_value_skipped;
     test "defaultChecked/defaultValue render as checked/value" default_checked_and_value_render_as_checked_and_value;

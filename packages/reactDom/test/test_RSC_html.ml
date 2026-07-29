@@ -1141,7 +1141,7 @@ let timeout_emits_client_render_instruction_per_pending_boundary () =
       ]
   in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~timeout:0.02 app in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~env:`Dev ~progressive_chunk_size:1 ~timeout:0.02 app in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -1211,7 +1211,7 @@ let timeout_rejects_pending_promise_prop_row () =
       }
   in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~timeout:0.02 app in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~env:`Dev ~progressive_chunk_size:1 ~timeout:0.02 app in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -1362,6 +1362,158 @@ let skip_root_omits_html_content () =
   Alcotest.(check bool) "should contain scripts" true has_script;
   Lwt.return ()
 
+let contains_substring str sub =
+  match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
+
+let count_occurrences hay needle = List.length (Str.split_delim (Str.regexp_string needle) hay) - 1
+
+let collect_chunks app =
+  let subscribed_elements = ref [] in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 app in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  Lwt.return (html, !subscribed_elements)
+
+let late_boundary_link_stylesheet_is_streamed () =
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "LateStylesheet",
+             fun () ->
+               let%lwt () = Lwt.pause () in
+               Lwt.return
+                 (React.list
+                    [
+                      React.createElement "link"
+                        [
+                          React.JSX.String ("rel", "rel", "stylesheet");
+                          React.JSX.String ("href", "href", "/late.css");
+                          React.JSX.String ("precedence", "precedence", "default");
+                        ]
+                        [];
+                      React.createElement "span" [] [ React.string "Late content" ];
+                    ]) ))
+      ()
+  in
+  let%lwt html, chunks = collect_chunks app in
+  let all_content = html ^ String.concat "" chunks in
+  let stylesheet_html = {|<link rel="stylesheet" href="/late.css"|} in
+  Alcotest.(check int)
+    "the stylesheet is rendered as an HTML element exactly once" 1
+    (count_occurrences all_content stylesheet_html);
+  Alcotest.(check bool)
+    "the stylesheet is inside the boundary completion chunk" true
+    (List.exists
+       (fun chunk -> contains_substring chunk {|<div hidden id="S:|} && contains_substring chunk stylesheet_html)
+       chunks);
+  Lwt.return ()
+
+let late_boundary_title_is_streamed () =
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "LateTitle",
+             fun () ->
+               let%lwt () = Lwt.pause () in
+               Lwt.return
+                 (React.list
+                    [
+                      React.createElement "title" [] [ React.string "Late title" ];
+                      React.createElement "span" [] [ React.string "Late content" ];
+                    ]) ))
+      ()
+  in
+  let%lwt html, chunks = collect_chunks app in
+  let all_content = html ^ String.concat "" chunks in
+  let title_html = "<title>Late title</title>" in
+  Alcotest.(check int)
+    "the title is rendered as an HTML element exactly once" 1
+    (count_occurrences all_content title_html);
+  Alcotest.(check bool)
+    "the title is inside the boundary completion chunk" true
+    (List.exists
+       (fun chunk -> contains_substring chunk {|<div hidden id="S:|} && contains_substring chunk title_html)
+       chunks);
+  Lwt.return ()
+
+let immediate_boundary_title_is_hoisted_to_head () =
+  let app =
+    React.createElement "html" []
+      [
+        React.createElement "body" []
+          [
+            mk_suspense ~fallback:(React.string "Loading...")
+              ~children:
+                (React.Async_component
+                   ( "ImmediateTitle",
+                     fun () ->
+                       Lwt.return
+                         (React.list
+                            [
+                              React.createElement "title" [] [ React.string "Immediate title" ];
+                              React.createElement "span" [] [ React.string "Immediate content" ];
+                            ]) ))
+              ();
+          ];
+      ]
+  in
+  let%lwt html, chunks = collect_chunks app in
+  let all_content = html ^ String.concat "" chunks in
+  let title_html = "<title>Immediate title</title>" in
+  Alcotest.(check bool)
+    "the title is hoisted into the shell head" true
+    (contains_substring html ("<head>" ^ title_html ^ "</head>"));
+  Alcotest.(check int)
+    "the title is rendered as an HTML element exactly once" 1
+    (count_occurrences all_content title_html);
+  Lwt.return ()
+
+let flight_hints_emit_hint_rows () =
+  let app =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          ReactDOM.preload ~href:"/style.css" ~as_:"style";
+          ReactDOM.preload ~href:"/style.css" ~as_:"style";
+          React.createElement "span" [] [ React.string "hi" ] )
+  in
+  assert_html app
+    ~shell:
+      "<span>hi</span><script data-payload='0:[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [ "<script data-payload=':HL[\"/style.css\",\"style\"]\n'>window.srr_stream.push()</script>" ]
+
+let flight_hints_inside_suspense_boundary () =
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "async",
+             fun () ->
+               let%lwt () = Lwt.pause () in
+               ReactDOM.preload ~href:"/late.css" ~as_:"style";
+               Lwt.return (React.createElement "span" [] [ React.string "done" ]) ))
+      ()
+  in
+  assert_html app
+    ~shell:
+      "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload=':HL[\"/late.css\",\"style\"]\n'>window.srr_stream.push()</script>";
+      "<div hidden id=\"S:2\"><span>done</span></div>\n\
+       <script>$RC('B:2', 'S:2')</script><script \
+       data-payload='2:[\"$\",\"span\",null,{\"children\":\"done\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>";
+    ]
+
 let tests =
   [
     test "debug_adds_debug_info" debug_adds_debug_info;
@@ -1419,4 +1571,9 @@ let tests =
     test "progressive_chunk_size_zero_does_not_raise" progressive_chunk_size_zero_does_not_raise;
     test "progressive_chunk_size_negative_does_not_raise" progressive_chunk_size_negative_does_not_raise;
     test "skip_root_omits_html_content" skip_root_omits_html_content;
+    test "late_boundary_link_stylesheet_is_streamed" late_boundary_link_stylesheet_is_streamed;
+    test "late_boundary_title_is_streamed" late_boundary_title_is_streamed;
+    test "immediate_boundary_title_is_hoisted_to_head" immediate_boundary_title_is_hoisted_to_head;
+    test "flight_hints_emit_hint_rows" flight_hints_emit_hint_rows;
+    test "flight_hints_inside_suspense_boundary" flight_hints_inside_suspense_boundary;
   ]
