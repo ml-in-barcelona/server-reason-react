@@ -765,6 +765,34 @@ let static_element_in_stream () =
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div>Hello</div>" ]
 
+let writer_with_async_suspense_in_stream () =
+  let child () =
+    mk_suspense ~fallback:(React.string "Loading")
+      ~children:(deffered_component ~seconds:0. ~children:(React.string "Done") ())
+      ()
+  in
+  let app =
+    React.Writer
+      {
+        emit =
+          (fun buf ~separators ->
+            Buffer.add_string buf "<div>";
+            let (_ : bool) = ReactDOM.write_element_to_buffer buf ~separators ~prev_text:false (child ()) in
+            Buffer.add_string buf "</div>");
+        original = (fun () -> React.createElement "div" [] [ child () ]);
+      }
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream
+    [
+      "<div><!--$?--><template id=\"B:0\"></template>Loading<!--/$--></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0. seconds<!-- -->, <!-- -->Done</div></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+    ]
+
 let client_component_error_in_stream () =
   let app =
     React.Client_component
@@ -1003,6 +1031,7 @@ let tests =
     test "context_provider_with_suspended_consumer" context_provider_with_suspended_consumer;
     test "async_component_returning_suspense_with_async_children" async_component_returning_suspense_with_async_children;
     test "static_element_in_stream" static_element_in_stream;
+    test "writer_with_async_suspense_in_stream" writer_with_async_suspense_in_stream;
     test "client_component_error_in_stream" client_component_error_in_stream;
     test "suspense_with_failed_promise" suspense_with_failed_promise;
     test "suspense_with_promise_that_rejects_after_flush" suspense_with_promise_that_rejects_after_flush;

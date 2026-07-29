@@ -164,7 +164,7 @@ let () =
             ReactDOM.renderToStream ~env:`Prod (WideTree.Wide100.make (WideTree.Wide100.makeProps ()))
           in
           Lwt_stream.iter (fun _ -> ()) stream);
-      measure_benchmark_lwt ~name:"streaming/renderToStream/suspense" (fun () ->
+      measure_benchmark_lwt ~name:"streaming/renderToStream/suspense-drained" (fun () ->
           let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Prod (SuspenseTree.make (SuspenseTree.makeProps ())) in
           Lwt_stream.iter (fun _ -> ()) stream);
       measure_benchmark_lwt ~name:"rsc/render_html/wide100" (fun () ->

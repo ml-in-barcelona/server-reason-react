@@ -66,6 +66,42 @@ let suspense_fallback_on_error () =
   let html = ReactDOM.renderToString el in
   assert_string html "<!--$!--><div>fallback</div><!--/$-->"
 
+let assert_raises exn fn =
+  match fn () with
+  | exception raised -> assert_string (Printexc.to_string raised) (Printexc.to_string exn)
+  | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
+
+let async_component_inside_suspense_raises () =
+  let el =
+    React.Suspense
+      {
+        key = None;
+        children = React.Async_component ("Async", fun () -> Lwt.return React.null);
+        fallback = Some (React.createElement "div" [] [ React.string "fallback" ]);
+      }
+  in
+  assert_raises
+    (Invalid_argument "Async components can't be rendered synchronously. Please use `renderToStream` instead.")
+    (fun () -> ReactDOM.renderToString el)
+
+let client_component_inside_suspense_raises () =
+  let client_component =
+    React.Client_component
+      { key = None; props = []; client = React.Empty; import_module = "test_module"; import_name = "TestComponent" }
+  in
+  let el =
+    React.Suspense
+      {
+        key = None;
+        children = client_component;
+        fallback = Some (React.createElement "div" [] [ React.string "fallback" ]);
+      }
+  in
+  assert_raises
+    (Invalid_argument
+       "Client components can't be rendered synchronously on the server. Please use the React server components API \
+        instead. module: test_module") (fun () -> ReactDOM.renderToString el)
+
 let context_default_survives_provider_child_throw () =
   let context = React.createContext "default" in
   let first =
@@ -126,6 +162,8 @@ let tests =
     test "text_after_element_with_text_child" text_after_element_with_text_child;
     test "suspense children render exactly once" suspense_children_render_once;
     test "suspense renders fallback on error" suspense_fallback_on_error;
+    test "async_component_inside_suspense_raises" async_component_inside_suspense_raises;
+    test "client_component_inside_suspense_raises" client_component_inside_suspense_raises;
     test "context default survives provider child throw" context_default_survives_provider_child_throw;
     test "inline style escaping" inline_style_escaping;
     test "inline style empty value skipped" inline_style_empty_value_skipped;
