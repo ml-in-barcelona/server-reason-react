@@ -43,6 +43,11 @@ See `README.md` for user-facing documentation.
 
 - Almost no comments: only non-obvious invariants and "why" that can't be
   expressed in code. Never write comments restating what the code does.
+- react-dom parity is the default assumption, so don't assert it. Drop phrases
+  like "matching react-dom" or "mirrors react-dom" that add nothing. Mention
+  upstream only to name a specific symbol (`escapeEntireInlineScriptContent`),
+  a pinned version ("verified against react-dom 19.1.0"), or a deliberate
+  divergence.
 - No `Obj.magic` / `%identity` unless absolutely necessary; prefer type-safe
   alternatives. `Obj.repr` for identity-only keys is acceptable when
   documented (see the `Physical_key` module comment in

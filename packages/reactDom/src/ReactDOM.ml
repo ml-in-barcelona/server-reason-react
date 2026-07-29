@@ -213,6 +213,10 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
             Buffer.add_buffer buf suspense_inner_buf;
             Buffer.add_string buf "<!--/$-->";
             ends_text
+        (* [Invalid_argument] is how this renderer flags misuse (async/client component in a sync render), so a
+           boundary must not hide it. Genuine component errors still degrade to an errored boundary. *)
+        | exception (Invalid_argument _ as misuse) -> raise misuse
+        | exception ((Stack_overflow | Out_of_memory | Assert_failure _) as fatal) -> raise fatal
         | exception _e ->
             Buffer.add_string buf "<!--$!-->";
             let ends_text = render buf prev_text (Option.value fallback ~default:React.null) in
@@ -446,12 +450,20 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         previous_node_was_text := false;
         Buffer.add_string buf prerendered;
         Lwt.return ()
-    | Writer { emit; _ } ->
+    | Writer { emit; original } -> (
+        let buffer_length = Buffer.length buf in
+        let saved_should_add_doctype = !should_add_doctype in
+        let saved_previous_node_was_text = !previous_node_was_text in
         should_add_doctype := false;
         previous_node_was_text := false;
         (* [renderToString] hydration relies on the [<!-- -->] text separators *)
-        emit buf ~separators:true;
-        Lwt.return ()
+        match emit buf ~separators:true with
+        | () -> Lwt.return ()
+        | exception Invalid_argument _ ->
+            Buffer.truncate buf buffer_length;
+            should_add_doctype := saved_should_add_doctype;
+            previous_node_was_text := saved_previous_node_was_text;
+            render_element (original ()))
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
@@ -651,10 +663,9 @@ let renderToStream ?(env = `Prod) ?identifier_prefix element =
           pending_boundaries = [];
         }
       in
-      (* Aborting while Suspense boundaries are pending mirrors react-dom: emit a $RX client-render instruction per
-         still-pending boundary (so the client flips each boundary to errored and retries rendering it there), then
-         close the stream. Closing sets [closed], which guards the async pushes of boundary promises that resolve
-         later. *)
+      (* Aborting while Suspense boundaries are pending emits a $RX client-render instruction per still-pending
+         boundary (so the client flips each boundary to errored and retries rendering it there), then closes the
+         stream. Closing sets [closed], which guards the async pushes of boundary promises that resolve later. *)
       let abort () =
         if not stream_context.closed then (
           (match List.rev stream_context.pending_boundaries with
