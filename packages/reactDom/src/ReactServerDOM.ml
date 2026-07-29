@@ -311,6 +311,8 @@ module Fiber = struct
     mutable inside_body : bool;
     (* Monotonic count of hoistable elements encountered (before dedup). Lets the Static/Writer branches detect that a prerendered subtree contained hoistables, whose raw HTML would otherwise render them a second time at their original position. *)
     mutable hoisted_count : int;
+    (* Set once after reconstruct_document; hoistables encountered later render in place inside the boundary chunk since the head-collection is never read again *)
+    mutable shell_flushed : bool;
     (* html_attributes collects the attributes of the <html> tag for document reconstruction *)
     mutable html_attributes : Html.attribute_list;
   }
@@ -1367,8 +1369,10 @@ and handle_hoistable_element ~fiber ~debug_info ~key ~tag ~attributes ~children 
   let html_props = ReactDOM.attributes_to_html attributes in
   let%lwt children_html, children_model = elements_to_html ~fiber ~debug_info children in
   let html = create_html_node ~html_props ~children_html in
-  on_push ~fiber html;
-  Lwt.return (Html.null, create_model children_model)
+  if fiber.shell_flushed then Lwt.return (Html.Node html, create_model children_model)
+  else (
+    on_push ~fiber html;
+    Lwt.return (Html.null, create_model children_model))
 
 and process_attributes ~context ?form_action_id attributes =
   let html_props =
@@ -1628,6 +1632,7 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
           inside_head = false;
           inside_body = false;
           hoisted_count = 0;
+          shell_flushed = false;
         }
       in
       let%lwt root_html, root_model = render_element_to_html ~fiber ~debug_info:None element in
@@ -1645,6 +1650,7 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
         create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ()
       in
       let html = reconstruct_document ~fiber ~root_html ~user_scripts ~skip_root:skipRoot in
+      fiber.shell_flushed <- true;
       let subscribe fn =
         let buf = Buffer.create progressive_chunk_size in
         let flush () =
@@ -1758,9 +1764,12 @@ let resolve_from_formdata formData hex_id =
   | Some key -> (
       try
         let (`String json_str) = Js.FormData.get formData key in
-        Yojson.Basic.from_string json_str
-      with Not_found -> `Null)
-  | None -> `Null
+        match Yojson.Basic.from_string json_str with
+        | json -> Ok json
+        | exception Yojson.Json_error msg ->
+            Error (Printf.sprintf "decodeReply: invalid JSON in outlined entry %s: %s" key msg)
+      with Not_found -> Ok `Null)
+  | None -> Ok `Null
 
 (* Look up a raw string entry from FormData by hex-encoded ID (for Blobs and other binary data). *)
 let resolve_raw_from_formdata formData hex_id =
@@ -1773,80 +1782,103 @@ let resolve_raw_from_formdata formData hex_id =
   | None -> Error (Printf.sprintf "decodeReply: Blob ($B) invalid hex ID: %s" hex_id)
 
 let unsupported name = Error (Printf.sprintf "decodeReply: %s is not supported" name)
+let ( let* ) = Result.bind
 
-type decode_ctx = { formData : Js.FormData.t option; temporaryReferences : (string -> json option) option }
+let map_result f list =
+  let rec aux acc = function
+    | [] -> Ok (List.rev acc)
+    | x :: rest ->
+        let* v = f x in
+        aux (v :: acc) rest
+  in
+  aux [] list
+
+type decode_ctx = {
+  formData : Js.FormData.t option;
+  temporaryReferences : (string -> json option) option;
+  resolving : string list;
+}
+
+let resolve_temporary_reference ctx id =
+  match ctx.temporaryReferences with
+  | Some lookup -> (
+      match lookup id with
+      | Some resolved -> Ok resolved
+      | None ->
+          let message =
+            Printf.sprintf "decodeReply: Temporary Reference $T%s not found in the provided temporaryReferences map" id
+          in
+          Error message)
+  | None -> Error "decodeReply: Temporary Reference ($T) requires a temporaryReferences resolver"
 
 (* Recursively decode a JSON value, resolving $-prefixed special strings. When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved by looking up the corresponding FormData entry and recursively decoding it. *)
 let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
   match json with
-  | `String value when String.length value >= 2 && String.get value 0 = '$' -> (
-      let len = String.length value in
-      let rest = String.sub value 2 (len - 2) in
-      match String.get value 1 with
-      (* Escaped user string: drop only the escaping '$' *)
-      | '$' -> Ok (`String (String.sub value 1 (len - 1)))
-      | 'u' -> Ok `Null
-      | 'K' -> Ok `Null
-      | 'D' -> Ok (`String rest)
-      | 'n' -> Ok (`String rest)
-      | 'N' -> Ok (`Float Float.nan)
-      | 'I' -> Ok (`Float Float.infinity)
-      | '-' -> Ok (if String.equal value "$-0" then `Float (-0.) else `Float Float.neg_infinity)
-      | 'Q' -> decode_outlined_map ctx rest
-      | 'W' -> resolve_outlined ctx "Set ($W)" rest
-      | 'i' -> resolve_outlined ctx "Iterator ($i)" rest
-      | 'F' -> resolve_outlined ctx "Server Reference ($F)" rest
-      | 'T' -> (
-          match ctx.temporaryReferences with
-          | Some lookup -> (
-              match lookup rest with
-              | Some resolved -> Ok resolved
-              | None ->
-                  Error
-                    (Printf.sprintf
-                       "decodeReply: Temporary Reference $T%s not found in the provided temporaryReferences map" rest))
-          | None -> Error "decodeReply: Temporary Reference ($T) requires a temporaryReferences resolver")
-      | '@' -> unsupported "Promise ($@)"
-      | ('A' | 'O' | 'o' | 'U' | 'S' | 's' | 'L' | 'l' | 'G' | 'g' | 'M' | 'm' | 'V') as c ->
-          unsupported (Printf.sprintf "TypedArray/ArrayBuffer ($%c)" c)
-      | 'B' -> (
-          match ctx.formData with
-          | Some fd -> resolve_raw_from_formdata fd rest
-          | None -> Error "decodeReply: Blob ($B) requires FormData for resolution")
-      | 'R' -> unsupported "ReadableStream ($R)"
-      | 'r' -> unsupported "ReadableStream bytes ($r)"
-      | 'X' -> unsupported "AsyncIterable ($X)"
-      | 'x' -> unsupported "AsyncIterator ($x)"
-      | _ -> (
-          match ctx.formData with
-          | Some fd ->
-              let resolved = resolve_from_formdata fd (String.sub value 1 (len - 1)) in
-              decode_value ctx resolved
-          | None -> Ok `Null))
+  | `String value when String.length value >= 2 && String.get value 0 = '$' -> decode_prefixed_value ctx value
   | `List items -> decode_list ctx items
   | `Assoc pairs -> decode_assoc ctx pairs
   | other -> Ok other
 
+and decode_prefixed_value ctx value =
+  let len = String.length value in
+  let payload = String.sub value 2 (len - 2) in
+  match String.get value 1 with
+  | '$' -> Ok (`String (String.sub value 1 (len - 1)))
+  | 'u' -> Ok `Null
+  | 'K' -> Ok `Null
+  | 'D' -> Ok (`String payload)
+  | 'n' -> Ok (`String payload)
+  | 'N' -> Ok (`Float Float.nan)
+  | 'I' -> Ok (`Float Float.infinity)
+  | '-' -> Ok (if String.equal value "$-0" then `Float (-0.) else `Float Float.neg_infinity)
+  | 'Q' -> decode_outlined_map ctx payload
+  | 'W' -> resolve_outlined ctx "Set ($W)" payload
+  | 'i' -> resolve_outlined ctx "Iterator ($i)" payload
+  | 'F' -> resolve_outlined ctx "Server Reference ($F)" payload
+  | 'T' -> resolve_temporary_reference ctx payload
+  | '@' -> unsupported "Promise ($@)"
+  | ('A' | 'O' | 'o' | 'U' | 'S' | 's' | 'L' | 'l' | 'G' | 'g' | 'M' | 'm' | 'V') as prefix ->
+      unsupported (Printf.sprintf "TypedArray/ArrayBuffer ($%c)" prefix)
+  | 'B' -> (
+      match ctx.formData with
+      | Some formData -> resolve_raw_from_formdata formData payload
+      | None -> Error "decodeReply: Blob ($B) requires FormData for resolution")
+  | 'R' -> unsupported "ReadableStream ($R)"
+  | 'r' -> unsupported "ReadableStream bytes ($r)"
+  | 'X' -> unsupported "AsyncIterable ($X)"
+  | 'x' -> unsupported "AsyncIterator ($x)"
+  | _ -> (
+      match ctx.formData with
+      | Some formData -> resolve_and_decode_outlined ctx formData (String.sub value 1 (len - 1))
+      | None -> Ok `Null)
+
 and decode_list ctx items =
-  let rec aux acc = function
-    | [] -> Ok (`List (List.rev acc))
-    | item :: rest -> ( match decode_value ctx item with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
-  in
-  aux [] items
+  let* items = map_result (decode_value ctx) items in
+  Ok (`List items)
 
 and decode_assoc ctx pairs =
-  let rec aux acc = function
-    | [] -> Ok (`Assoc (List.rev acc))
-    | (k, v) :: rest -> ( match decode_value ctx v with Ok v -> aux ((k, v) :: acc) rest | Error _ as err -> err)
+  let* pairs =
+    map_result
+      (fun (key, value) ->
+        let* value = decode_value ctx value in
+        Ok (key, value))
+      pairs
   in
-  aux [] pairs
+  Ok (`Assoc pairs)
+
+(* The cycle check keys on the decimal FormData key, not the hex id, so alternate hex spellings of the same entry (e.g. "1" vs "01") cannot evade the guard. *)
+and resolve_and_decode_outlined ctx fd hex_id =
+  let entry_key = Option.value (hex_to_formdata_key hex_id) ~default:hex_id in
+  if List.mem entry_key ctx.resolving then
+    Error (Printf.sprintf "decodeReply: cyclic reference to outlined entry %s" entry_key)
+  else
+    let* resolved = resolve_from_formdata fd hex_id in
+    decode_value { ctx with resolving = entry_key :: ctx.resolving } resolved
 
 and resolve_outlined ctx type_name hex_id =
   match ctx.formData with
   | None -> Error (Printf.sprintf "decodeReply: %s requires FormData for outlined model resolution" type_name)
-  | Some fd ->
-      let resolved = resolve_from_formdata fd hex_id in
-      decode_value ctx resolved
+  | Some fd -> resolve_and_decode_outlined ctx fd hex_id
 
 (* Maps are serialized as [[key, value], ...]. If all keys are strings, converts to Assoc for ergonomic use with Melange_json decoders. Otherwise preserves the List of pairs representation. *)
 and decode_outlined_map ctx hex_id =
@@ -1864,72 +1896,70 @@ and decode_outlined_map ctx hex_id =
           Ok (if all_string_keys then `Assoc (List.rev assoc_pairs) else resolved)
       | other -> Ok other)
 
-let decodeReply ?temporaryReferences body =
-  let ctx = { formData = None; temporaryReferences } in
-  match Yojson.Basic.from_string body with
-  | `List args ->
-      let rec aux acc = function
-        | [] -> Ok (Array.of_list (List.rev acc))
-        | arg :: rest -> ( match decode_value ctx arg with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
-      in
-      aux [] args
-  | _ -> Error "Invalid args, this request was not created by server-reason-react"
-  | exception Yojson.Json_error msg -> Error (Printf.sprintf "Invalid JSON: %s" msg)
+let protect_reply_decode decode = try decode () with Stack_overflow -> Error "decodeReply: payload nesting too deep"
 
-let decodeFormDataReply ?temporaryReferences formData =
-  let ctx = { formData = Some formData; temporaryReferences } in
-  let input_prefix = ref None in
-  let is_formdata_ref = function
-    | `String value ->
-        let len = String.length value in
-        if len > 2 && String.get value 0 = '$' && String.get value 1 = 'K' then Some (String.sub value 2 (len - 2))
-        else None
-    | _ -> None
-  in
-  let formDataEntries = Js.FormData.entries formData in
-  let model_str =
+let parse_reply_arguments ~invalid_json input =
+  match Yojson.Basic.from_string input with
+  | `List arguments -> Ok arguments
+  | _ -> Error "Invalid args, this request was not created by server-reason-react"
+  | exception Yojson.Json_error message -> Error (Printf.sprintf "%s: %s" invalid_json message)
+
+let decode_arguments ctx arguments =
+  let* arguments = map_result (decode_value ctx) arguments in
+  Ok (Array.of_list arguments)
+
+let decodeReply ?temporaryReferences body =
+  protect_reply_decode (fun () ->
+      let context = { formData = None; temporaryReferences; resolving = [] } in
+      let* arguments = parse_reply_arguments ~invalid_json:"Invalid JSON" body in
+      decode_arguments context arguments)
+
+(* "$K<id>" marks where the caller's own form fields live: they are stored as "<id>_<name>". The marker is not one of the arguments. *)
+let form_data_field_prefix = function
+  | `String value when String.length value > 2 && String.get value 0 = '$' && String.get value 1 = 'K' ->
+      Some (String.sub value 2 (String.length value - 2) ^ "_")
+  | _ -> None
+
+let read_form_data_reply formData =
+  let* model =
     try
-      let (`String s) = Js.FormData.get formData "0" in
-      Ok s
+      let (`String model) = Js.FormData.get formData "0" in
+      Ok model
     with Not_found -> Error "decodeReply: FormData is missing the root entry at key \"0\""
   in
-  match model_str with
-  | Error _ as err -> err
-  | Ok model_str -> (
-      match Yojson.Basic.from_string model_str with
-      | exception Yojson.Json_error msg -> Error (Printf.sprintf "Invalid JSON in FormData root: %s" msg)
-      | `List items -> (
-          let rec aux_args acc = function
-            | [] -> Ok (Array.of_list (List.rev acc))
-            | item :: rest -> (
-                match is_formdata_ref item with
-                | Some id ->
-                    input_prefix := Some id;
-                    aux_args acc rest
-                | None -> ( match decode_value ctx item with Ok v -> aux_args (v :: acc) rest | Error _ as err -> err))
-          in
-          let args_result = aux_args [] items in
-          match args_result with
-          | Error _ as err -> err
-          | Ok args ->
-              let form_prefix = Option.map (fun id -> (id ^ "_", String.length id + 1)) !input_prefix in
-              let rec aux_entries acc = function
-                | [] -> acc
-                | (key, value) :: entries -> (
-                    if key = "0" then aux_entries acc entries
-                    else
-                      match form_prefix with
-                      | Some (prefix, prefix_len) ->
-                          if String.starts_with ~prefix key then (
-                            Js.FormData.append acc (String.sub key prefix_len (String.length key - prefix_len)) value;
-                            aux_entries acc entries)
-                          else aux_entries acc entries
-                      | None ->
-                          Js.FormData.append acc key value;
-                          aux_entries acc entries)
-              in
-              Ok (args, aux_entries (Js.FormData.make ()) formDataEntries))
-      | _ -> Error "Invalid args, this request was not created by server-reason-react")
+  let* items = parse_reply_arguments ~invalid_json:"Invalid JSON in FormData root" model in
+  let arguments, prefix =
+    List.fold_left
+      (fun (arguments, prefix) item ->
+        match form_data_field_prefix item with
+        | Some prefix -> (arguments, Some prefix)
+        | None -> (item :: arguments, prefix))
+      ([], None) items
+  in
+  Ok (List.rev arguments, prefix)
+
+let extract_user_form_data formData ~prefix =
+  let field_name key =
+    match prefix with
+    | None -> Some key
+    | Some prefix ->
+        let len = String.length prefix in
+        if String.starts_with ~prefix key then Some (String.sub key len (String.length key - len)) else None
+  in
+  let user_fd = Js.FormData.make () in
+  List.iter
+    (fun (key, value) ->
+      if not (String.equal key "0") then
+        Option.iter (fun name -> Js.FormData.append user_fd name value) (field_name key))
+    (Js.FormData.entries formData);
+  user_fd
+
+let decodeFormDataReply ?temporaryReferences formData =
+  protect_reply_decode (fun () ->
+      let context = { formData = Some formData; temporaryReferences; resolving = [] } in
+      let* arguments, prefix = read_form_data_reply formData in
+      let* arguments = decode_arguments context arguments in
+      Ok (arguments, extract_user_form_data formData ~prefix))
 
 let action_id_prefix = "$ACTION_ID_"
 let action_prefix = "$ACTION_"
