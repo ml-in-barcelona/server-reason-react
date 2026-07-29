@@ -42,7 +42,10 @@ let expand_attributes ~loc attributes =
     let className_label, className_expr, style_label, style_expr =
       match label with
       | Ppxlib.Labelled "styles" ->
-          (Ppxlib.Labelled "className", [%expr CSS.className [%e arg]], Ppxlib.Labelled "style", [%expr CSS.styles [%e arg]])
+          ( Ppxlib.Labelled "className",
+            [%expr CSS.className [%e arg]],
+            Ppxlib.Labelled "style",
+            [%expr CSS.styles [%e arg]] )
       | _ ->
           ( Ppxlib.Optional "className",
             [%expr match [%e arg] with None -> None | Some x -> Some (CSS.className x)],
