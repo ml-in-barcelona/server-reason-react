@@ -355,8 +355,6 @@ let decodeFormDataReply_blob_missing_entry () =
         Alcotest.fail (Printf.sprintf "expected missing entry error, got %S" msg)
   | Ok _ -> Alcotest.fail "expected Error for blob with missing FormData entry"
 
-(* Hostile payload hardening *)
-
 let decode_outlined_result ~entries ~root_json =
   let formData = Js.FormData.make () in
   List.iter (fun (k, v) -> Js.FormData.append formData k (`String v)) entries;
@@ -382,7 +380,6 @@ let decode_rejects_malformed_outlined_entry () =
     Alcotest.fail (Printf.sprintf "expected invalid JSON error, got %S" msg)
 
 let decode_rejects_deeply_nested_body () =
-  (* Only asserts totality: no exception may escape. *)
   let depth = 200_000 in
   let body = String.concat "" [ "["; String.make depth '['; "1"; String.make depth ']'; "]" ] in
   match ReactServerDOM.decodeReply body with Ok _ -> () | Error _ -> ()
@@ -581,7 +578,6 @@ let tests =
     test "decodeFormDataReply: mixed regular + outlined" decodeFormDataReply_mixed_outlined_and_regular;
     test "decodeFormDataReply: outlined + FormData coexist" decodeFormDataReply_outlined_and_formdata;
     test "decodeFormDataReply: hex ID resolution" decodeFormDataReply_hex_id;
-    (* Hostile payload hardening *)
     test "decodeFormDataReply: rejects self-referential outlined entry" decode_rejects_self_referential_outlined_entry;
     test "decodeFormDataReply: rejects mutually referential entries" decode_rejects_mutually_referential_entries;
     test "decodeFormDataReply: rejects malformed outlined entry" decode_rejects_malformed_outlined_entry;
