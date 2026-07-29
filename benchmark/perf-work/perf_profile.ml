@@ -73,7 +73,7 @@ let drain_render_html element =
      let%lwt () =
        subscribe (fun chunk ->
            Buffer.add_string streamed chunk;
-           Lwt.return_unit)
+           Lwt.return ())
      in
      Lwt.return (shell ^ Buffer.contents streamed))
 

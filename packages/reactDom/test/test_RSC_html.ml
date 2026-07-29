@@ -384,7 +384,7 @@ let children_remain_sequential_across_suspension () =
   assert_list_of_strings (List.rev !events) [ "first"; "middle:start" ];
   Lwt.wakeup_later wake ();
   let%lwt html, subscribe = render in
-  let%lwt () = subscribe (fun _ -> Lwt.return_unit) in
+  let%lwt () = subscribe (fun _ -> Lwt.return ()) in
   assert_list_of_strings (List.rev !events) [ "first"; "middle:start"; "middle:end"; "third" ];
   let expected =
     "<div id=\"\xc2\xabR1\xc2\xbb\">first</div><div id=\"\xc2\xabR2\xc2\xbb\">middle</div><div \
@@ -394,7 +394,7 @@ let children_remain_sequential_across_suspension () =
     match Str.search_forward (Str.regexp_string expected) html 0 with exception Not_found -> false | _ -> true
   in
   Alcotest.(check bool) "shell preserves sibling IDs" true contains_expected;
-  Lwt.return_unit
+  Lwt.return ()
 
 let client_with_promise_props () =
   let delayed_value value =

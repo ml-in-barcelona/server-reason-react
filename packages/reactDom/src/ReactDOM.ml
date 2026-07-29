@@ -101,14 +101,14 @@ let render_upper_case_component_lwt render_element component =
   try%lwt
     let%lwt () = render_element result in
     React.current_tree_context := saved_ctx;
-    Lwt.return_unit
+    Lwt.return ()
   with exn ->
     React.current_tree_context := saved_ctx;
     raise exn
 
 let render_children_list_lwt render_element list =
   match list with
-  | [] -> Lwt.return_unit
+  | [] -> Lwt.return ()
   | [ single ] -> render_element single
   | _ -> (
       let saved_ctx = !React.current_tree_context in
@@ -116,7 +116,7 @@ let render_children_list_lwt render_element list =
       let rec loop i = function
         | [] ->
             React.current_tree_context := saved_ctx;
-            Lwt.return_unit
+            Lwt.return ()
         | el :: rest -> (
             React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
             let promise = render_element el in
@@ -133,14 +133,14 @@ let render_children_list_lwt render_element list =
 
 let render_children_array_lwt render_element arr =
   let total = Array.length arr in
-  if total = 0 then Lwt.return_unit
+  if total = 0 then Lwt.return ()
   else if total = 1 then render_element (Array.unsafe_get arr 0)
   else
     let saved_ctx = !React.current_tree_context in
     let rec loop i =
       if i >= total then (
         React.current_tree_context := saved_ctx;
-        Lwt.return_unit)
+        Lwt.return ())
       else (
         React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
         let promise = render_element (Array.unsafe_get arr i) in
@@ -443,18 +443,18 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
 
   let rec render_element element =
     match (element : React.element) with
-    | Empty -> Lwt.return_unit
+    | Empty -> Lwt.return ()
     | Static { prerendered; _ } ->
         should_add_doctype := false;
         previous_node_was_text := false;
         Buffer.add_string buf prerendered;
-        Lwt.return_unit
+        Lwt.return ()
     | Writer { emit; _ } ->
         should_add_doctype := false;
         previous_node_was_text := false;
         (* [renderToString] hydration relies on the [<!-- -->] text separators *)
         emit buf ~separators:true;
-        Lwt.return_unit
+        Lwt.return ()
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
@@ -465,7 +465,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         try%lwt
           let%lwt () = render_element children in
           pop ();
-          Lwt.return_unit
+          Lwt.return ()
         with exn ->
           pop ();
           Lwt.reraise exn)
@@ -480,7 +480,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         if is_previous_text_node then Buffer.add_string buf "<!-- -->";
         should_add_doctype := false;
         write_text_node buf text_node;
-        Lwt.return_unit
+        Lwt.return ()
     | Upper_case_component (_, component) -> render_upper_case_component_lwt render_element component
     | Async_component (_, component) -> (
         let saved_ctx = !React.current_tree_context in
@@ -498,7 +498,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
             try%lwt
               let%lwt () = render_element element in
               React.current_tree_context := saved_ctx;
-              Lwt.return_unit
+              Lwt.return ()
             with exn ->
               React.current_tree_context := saved_ctx;
               raise exn)
@@ -512,7 +512,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
                 let%lwt resolved = promise in
                 let%lwt () = render_element resolved in
                 React.current_tree_context := saved_ctx;
-                Lwt.return_unit
+                Lwt.return ()
               with exn ->
                 React.current_tree_context := saved_ctx;
                 raise exn)
@@ -532,7 +532,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         in
         try%lwt
           let%lwt () = render_element children in
-          Lwt.return_unit
+          Lwt.return ()
         with
         | React.Suspend (Any_promise promise) -> (
             match Lwt.state promise with
@@ -540,7 +540,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
             | Lwt.Fail exn ->
                 let%lwt fallback_html = render_fallback_html () in
                 write_suspense_fallback_error buf ~env ~exn fallback_html;
-                Lwt.return_unit
+                Lwt.return ()
             | Lwt.Sleep ->
                 let%lwt fallback_html = render_fallback_html () in
                 let current_boundary_id = stream_context.boundary_id in
@@ -568,14 +568,14 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
                       stream_context.push (Buffer.contents async_buf);
                       stream_context.has_rc_script_been_injected <- true;
                       if stream_context.waiting = 0 then close_stream stream_context);
-                    Lwt.return_unit);
+                    Lwt.return ());
 
                 write_suspense_fallback buf ~boundary_id:current_boundary_id fallback_html;
-                Lwt.return_unit)
+                Lwt.return ())
         | exn ->
             let%lwt fallback_html = render_fallback_html () in
             write_suspense_fallback_error buf ~env ~exn fallback_html;
-            Lwt.return_unit)
+            Lwt.return ())
   and render_lower_case ~key:_ tag attributes children =
     if Html.is_self_closing_tag tag then (
       should_add_doctype := false;
@@ -584,7 +584,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
       Buffer.add_string buf tag;
       let _ = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_string buf " />";
-      Lwt.return_unit)
+      Lwt.return ())
     else
       let doctype = !should_add_doctype in
       should_add_doctype := false;
@@ -598,14 +598,14 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         match inner_html with
         | Some html ->
             Buffer.add_string buf html;
-            Lwt.return_unit
+            Lwt.return ()
         | None -> render_children_list_lwt render_element children
       in
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
       previous_node_was_text := false;
-      Lwt.return_unit
+      Lwt.return ()
   in
 
   (* If Suspend escapes all Suspense boundaries, await the promise and re-render

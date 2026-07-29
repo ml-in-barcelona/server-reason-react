@@ -20,22 +20,20 @@ walkers and the RSC HTML child mapper. It does not add PPX metadata or change
 
 | Fully drained scenario | Minor words before | Minor words after | Change |
 |---|---:|---:|---:|
-| `renderToStream` list500 | 23,592 | 5,638 | **-76.1%** |
-| `renderToStream` array500 | 19,988 | 5,624 | **-71.9%** |
-| `render_html` list500 | 42,465 | 26,994 | **-36.4%** |
-| `render_html` array500 | 44,300 | 28,806 | **-35.0%** |
+| `renderToStream` list500 | 23,592 | 7,973 | **-66.2%** |
+| `renderToStream` array500 | 19,988 | 8,067 | **-59.6%** |
+| `render_html` list500 | 42,465 | 27,042 | **-36.3%** |
+| `render_html` array500 | 44,300 | 28,748 | **-35.1%** |
 
-Deterministic instruction totals dropped 12.1% on `stream-array500`
-(362,294,352→318,634,233) and 9.4% on `rsc-array500`
-(400,245,288→362,519,980). The targeted bind sites fell to 0.05% and 0.04%
-of Ir respectively.
+Post-treatment allocation profiles no longer show the per-child bind and
+callback sites among the top allocation sources.
 
-Against a fresh `main` benchmark run, eight RSC/streaming rows improved by at
-least 3% and none regressed by more than 3%. Notable results:
-`rsc/render_html/wide100` +12.2%, `rsc/width/100` +13.3%,
-`streaming/renderToStream/suspense` +6.0%, and
-`rsc/render_html/suspense` +6.5%. `renderToStream/wide100` was flat (+0.4%)
-because Writer already bypasses the Lwt child walker.
+Against a fresh `main` benchmark run, the best of two treatment runs had
+seven RSC/streaming rows improve by at least 3% and none regress by more than
+3%. Notable results: `rsc/render_html/wide100` +11.3%, `rsc/width/100`
++11.2%, `streaming/renderToStream/suspense` +3.4%, and
+`rsc/render_html/suspense` +6.7%. `renderToStream/wide100` was effectively
+flat (-1.5%) because Writer already bypasses the Lwt child walker.
 
 ## Phase 8 — Js_obj deferral, Writer-tier widening, adaptive buffers
 

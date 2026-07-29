@@ -139,7 +139,7 @@ let drain_render_to_stream element =
 let drain_render_html element =
   Lwt_main.run
     (let%lwt _shell, subscribe = ReactServerDOM.render_html ~env:`Prod element in
-     subscribe (fun _ -> Lwt.return_unit))
+     subscribe (fun _ -> Lwt.return ()))
 
 let scenarios : scenario list =
   [
