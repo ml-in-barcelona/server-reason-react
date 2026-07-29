@@ -100,13 +100,10 @@ echo ">>> Output directory: ${OUT_DIR}"
 # ---------------------------------------------------------------------------
 # callgrind driver
 #
-# --instr-atstart=no defers all instrumentation until we toggle on. The
-# --toggle-collect glob matches every specialisation of the OCaml
-# renderToStaticMarkup symbol — each iteration enters and exits the match,
-# so warmup iterations are captured too. That's fine; warmup's share of
-# total instructions is (warmup / (warmup+iters)), typically <10% of the
-# steady state, and callgrind's absolute counts are more informative than
-# per-iter averages for ranking hypotheses.
+# The profiler process runs one selected scenario, so collecting the whole
+# process is more reliable than symbol toggles across tail calls and Lwt
+# continuations. Startup and summary output are fixed overhead amortized over
+# the default 500 measured iterations.
 #
 # --cache-sim=no: we only want call counts and Ir (instructions read),
 # not cache simulation. Cache simulation triples runtime and the numbers
@@ -124,19 +121,8 @@ run_callgrind() {
     echo ""
     echo "--- callgrind: ${name} ---"
     rm -f "${out}" "${annot}"
-    # Flag rationale:
-    #   --collect-atstart=no + --toggle-collect=SYMBOL gates *collection*
-    #   to the render entry point. (--instr-atstart=no would skip
-    #   instrumentation entirely, which also skips the symbol-name lookup
-    #   that drives --toggle-collect, resulting in zero events — a subtle
-    #   valgrind gotcha.)
-    #   --cache-sim=no keeps runtime manageable; Ir alone is enough to rank.
-    #   --collect-jumps=yes attributes branch-target data, useful for
-    #   locating variant-dispatch cost later.
     valgrind --tool=callgrind \
         --callgrind-out-file="${out}" \
-        --collect-atstart=no \
-        --toggle-collect='camlReactDOM.renderToStaticMarkup_*' \
         --cache-sim=no \
         --collect-jumps=yes \
         --collect-systime=no \

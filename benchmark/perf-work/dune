@@ -10,6 +10,8 @@
   server-reason-react.reactDom
   server-reason-react.react
   benchmark_scenarios
+  lwt
+  lwt.unix
   unix)
  (preprocess
-  (pps server-reason-react.ppx)))
+  (pps server-reason-react.ppx lwt_ppx)))

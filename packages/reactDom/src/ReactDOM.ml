@@ -112,17 +112,21 @@ let render_children_list_lwt render_element list =
   | [ single ] -> render_element single
   | _ -> (
       let saved_ctx = !React.current_tree_context in
-      try%lwt
-        let total = List.length list in
-        let%lwt () =
-          Lwt_list.iteri_s
-            (fun i el ->
-              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-              render_element el)
-            list
-        in
-        React.current_tree_context := saved_ctx;
-        Lwt.return ()
+      let total = List.length list in
+      let rec loop i = function
+        | [] ->
+            React.current_tree_context := saved_ctx;
+            Lwt.return ()
+        | el :: rest -> (
+            React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+            let promise = render_element el in
+            match Lwt.state promise with
+            | Return () -> loop (i + 1) rest
+            | Sleep | Fail _ ->
+                let%lwt () = promise in
+                loop (i + 1) rest)
+      in
+      try%lwt loop 0 list
       with exn ->
         React.current_tree_context := saved_ctx;
         raise exn)
@@ -134,16 +138,19 @@ let render_children_array_lwt render_element arr =
   else
     let saved_ctx = !React.current_tree_context in
     let rec loop i =
-      if i >= total then Lwt.return ()
+      if i >= total then (
+        React.current_tree_context := saved_ctx;
+        Lwt.return ())
       else (
         React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-        let%lwt () = render_element (Array.unsafe_get arr i) in
-        loop (i + 1))
+        let promise = render_element (Array.unsafe_get arr i) in
+        match Lwt.state promise with
+        | Return () -> loop (i + 1)
+        | Sleep | Fail _ ->
+            let%lwt () = promise in
+            loop (i + 1))
     in
-    try%lwt
-      let%lwt () = loop 0 in
-      React.current_tree_context := saved_ctx;
-      Lwt.return ()
+    try%lwt loop 0
     with exn ->
       React.current_tree_context := saved_ctx;
       raise exn

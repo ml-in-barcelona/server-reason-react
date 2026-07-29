@@ -998,21 +998,33 @@ let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_strea
 let map_children_with_tree_context_lwt f children =
   match children with
   | [] -> Lwt.return []
-  | [ single ] ->
-      let%lwt result = f single in
-      Lwt.return [ result ]
-  | _ ->
+  | [ single ] -> (
+      let promise = f single in
+      match Lwt.state promise with
+      | Return result -> Lwt.return [ result ]
+      | Sleep | Fail _ ->
+          let%lwt result = promise in
+          Lwt.return [ result ])
+  | _ -> (
       let saved_ctx = !React.current_tree_context in
       let total = List.length children in
-      let%lwt results =
-        Lwt_list.mapi_s
-          (fun i el ->
+      let rec loop i results = function
+        | [] ->
+            React.current_tree_context := saved_ctx;
+            Lwt.return (List.rev results)
+        | el :: rest -> (
             React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-            f el)
-          children
+            let promise = f el in
+            match Lwt.state promise with
+            | Return result -> loop (i + 1) (result :: results) rest
+            | Sleep | Fail _ ->
+                let%lwt result = promise in
+                loop (i + 1) (result :: results) rest)
       in
-      React.current_tree_context := saved_ctx;
-      Lwt.return results
+      try%lwt loop 0 [] children
+      with exn ->
+        React.current_tree_context := saved_ctx;
+        Lwt.reraise exn)
 
 (* For form elements with server actions, augment html_props with action="" and method="POST",
    and produce a hidden <input> carrying the $ACTION_ID_<hash> name. *)
