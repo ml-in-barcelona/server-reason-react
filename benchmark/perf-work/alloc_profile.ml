@@ -71,6 +71,8 @@ let make_tracker (table : site_stats Site_table.t) : (unit, unit) Gc.Memprof.tra
     dealloc_major = (fun () -> ());
   }
 
+type scenario = { name : string; run : unit -> unit }
+
 type run_result = {
   elapsed : float;
   iterations : int;
@@ -126,19 +128,66 @@ let print_report ~top (name, result) =
       end)
     sites
 
-let scenarios =
+let text_list_500 = React.list (List.init 500 (fun _ -> React.string "x"))
+let text_array_500 = React.array (Array.init 500 (fun _ -> React.string "x"))
+
+let drain_render_to_stream element =
+  Lwt_main.run
+    (let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Prod element in
+     Lwt_stream.iter (fun _ -> ()) stream)
+
+let drain_render_html element =
+  Lwt_main.run
+    (let%lwt _shell, subscribe = ReactServerDOM.render_html ~env:`Prod element in
+     subscribe (fun _ -> Lwt.return_unit))
+
+let scenarios : scenario list =
   [
-    ("wide100", fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide100.make (WideTree.Wide100.makeProps ())));
-    ("wide500", fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide500.make (WideTree.Wide500.makeProps ())));
-    ("table100", fun () -> ReactDOM.renderToStaticMarkup (Table.Table100.make (Table.Table100.makeProps ())));
-    ("table500", fun () -> ReactDOM.renderToStaticMarkup (Table.Table500.make (Table.Table500.makeProps ())));
-    ("deep50", fun () -> ReactDOM.renderToStaticMarkup (DeepTree.Depth50.make (DeepTree.Depth50.makeProps ())));
-    ("propsmedium", fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Medium.make (PropsHeavy.Medium.makeProps ())));
-    ("form", fun () -> ReactDOM.renderToStaticMarkup (Form.make (Form.makeProps ())));
-    ("dashboard", fun () -> ReactDOM.renderToStaticMarkup (Dashboard.make (Dashboard.makeProps ())));
-    ("blog50", fun () -> ReactDOM.renderToStaticMarkup (Blog.Blog50.make (Blog.Blog50.makeProps ())));
-    ( "ecommerce48",
-      fun () -> ReactDOM.renderToStaticMarkup (Ecommerce.Products48.make (Ecommerce.Products48.makeProps ())) );
+    {
+      name = "wide100";
+      run = (fun () -> ignore (ReactDOM.renderToStaticMarkup (WideTree.Wide100.make (WideTree.Wide100.makeProps ()))));
+    };
+    {
+      name = "wide500";
+      run = (fun () -> ignore (ReactDOM.renderToStaticMarkup (WideTree.Wide500.make (WideTree.Wide500.makeProps ()))));
+    };
+    {
+      name = "table100";
+      run = (fun () -> ignore (ReactDOM.renderToStaticMarkup (Table.Table100.make (Table.Table100.makeProps ()))));
+    };
+    {
+      name = "table500";
+      run = (fun () -> ignore (ReactDOM.renderToStaticMarkup (Table.Table500.make (Table.Table500.makeProps ()))));
+    };
+    {
+      name = "deep50";
+      run = (fun () -> ignore (ReactDOM.renderToStaticMarkup (DeepTree.Depth50.make (DeepTree.Depth50.makeProps ()))));
+    };
+    {
+      name = "propsmedium";
+      run = (fun () -> ignore (ReactDOM.renderToStaticMarkup (PropsHeavy.Medium.make (PropsHeavy.Medium.makeProps ()))));
+    };
+    { name = "form"; run = (fun () -> ignore (ReactDOM.renderToStaticMarkup (Form.make (Form.makeProps ())))) };
+    {
+      name = "dashboard";
+      run = (fun () -> ignore (ReactDOM.renderToStaticMarkup (Dashboard.make (Dashboard.makeProps ()))));
+    };
+    {
+      name = "blog50";
+      run = (fun () -> ignore (ReactDOM.renderToStaticMarkup (Blog.Blog50.make (Blog.Blog50.makeProps ()))));
+    };
+    {
+      name = "ecommerce48";
+      run =
+        (fun () ->
+          ignore (ReactDOM.renderToStaticMarkup (Ecommerce.Products48.make (Ecommerce.Products48.makeProps ()))));
+    };
+    { name = "list500"; run = (fun () -> ignore (ReactDOM.renderToStaticMarkup text_list_500)) };
+    { name = "array500"; run = (fun () -> ignore (ReactDOM.renderToStaticMarkup text_array_500)) };
+    { name = "stream-list500"; run = (fun () -> drain_render_to_stream text_list_500) };
+    { name = "stream-array500"; run = (fun () -> drain_render_to_stream text_array_500) };
+    { name = "rsc-list500"; run = (fun () -> drain_render_html text_list_500) };
+    { name = "rsc-array500"; run = (fun () -> drain_render_html text_array_500) };
   ]
 
 let default_iterations = 2000
@@ -147,7 +196,7 @@ let usage () =
   print_endline "Usage: alloc_profile.exe [--scenario NAME] [--rate FLOAT] [--iters N] [--top N]";
   print_endline "";
   print_endline "Scenarios:";
-  List.iter (fun (n, _) -> Printf.printf "  - %s\n" n) scenarios
+  List.iter (fun scenario -> Printf.printf "  - %s\n" scenario.name) scenarios
 
 let () =
   let args = Array.to_list Sys.argv |> List.tl in
@@ -181,19 +230,20 @@ let () =
   let to_run =
     match !selected with
     | None -> scenarios
-    | Some name ->
-        (match List.assoc_opt name scenarios with
-        | Some _ -> ()
+    | Some name -> (
+        match List.find_opt (fun scenario -> scenario.name = name) scenarios with
         | None ->
             Printf.eprintf "Unknown scenario: %s\n" name;
             usage ();
-            exit 2);
-        [ (name, List.assoc name scenarios) ]
+            exit 2
+        | Some scenario -> [ scenario ])
   in
   Printf.printf "=== alloc_profile ===\n";
   Printf.printf "sampling_rate=%g  iterations=%d  top=%d\n" !sampling_rate !iterations !top;
   List.iter
-    (fun (name, f) ->
-      let result = run_with_memprof ~sampling_rate:!sampling_rate ~iterations:!iterations ~name f in
+    (fun scenario ->
+      let result =
+        run_with_memprof ~sampling_rate:!sampling_rate ~iterations:!iterations ~name:scenario.name scenario.run
+      in
       print_report ~top:!top result)
     to_run

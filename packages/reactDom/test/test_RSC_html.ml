@@ -359,6 +359,43 @@ let with_sleepy_promise () =
        '>window.srr_stream.push()</script>";
     ]
 
+let children_remain_sequential_across_suspension () =
+  let pending, wake = Lwt.wait () in
+  let events = ref [] in
+  let sync name =
+    React.Upper_case_component
+      ( name,
+        fun () ->
+          events := name :: !events;
+          let id = React.useId () in
+          React.createElement "div" [ React.JSX.String ("id", "id", id) ] [ React.string name ] )
+  in
+  let middle =
+    React.Async_component
+      ( "middle",
+        fun () ->
+          events := "middle:start" :: !events;
+          let id = React.useId () in
+          let%lwt () = pending in
+          events := "middle:end" :: !events;
+          Lwt.return (React.createElement "div" [ React.JSX.String ("id", "id", id) ] [ React.string "middle" ]) )
+  in
+  let render = ReactServerDOM.render_html ~env:`Prod (React.array [| sync "first"; middle; sync "third" |]) in
+  assert_list_of_strings (List.rev !events) [ "first"; "middle:start" ];
+  Lwt.wakeup_later wake ();
+  let%lwt html, subscribe = render in
+  let%lwt () = subscribe (fun _ -> Lwt.return_unit) in
+  assert_list_of_strings (List.rev !events) [ "first"; "middle:start"; "middle:end"; "third" ];
+  let expected =
+    "<div id=\"\xc2\xabR1\xc2\xbb\">first</div><div id=\"\xc2\xabR2\xc2\xbb\">middle</div><div \
+     id=\"\xc2\xabR3\xc2\xbb\">third</div>"
+  in
+  let contains_expected =
+    match Str.search_forward (Str.regexp_string expected) html 0 with exception Not_found -> false | _ -> true
+  in
+  Alcotest.(check bool) "shell preserves sibling IDs" true contains_expected;
+  Lwt.return_unit
+
 let client_with_promise_props () =
   let delayed_value value =
     let%lwt () = Lwt.pause () in
@@ -1535,6 +1572,7 @@ let tests =
     test "async_component_without_promise" async_component_without_promise;
     test "suspense_without_promise" suspense_without_promise;
     test "with_sleepy_promise" with_sleepy_promise;
+    test "children_remain_sequential_across_suspension" children_remain_sequential_across_suspension;
     test "client_with_promise_props" client_with_promise_props;
     test "client_with_promise_failed_props" client_with_promise_failed_props;
     test "client_component_with_async_component" client_component_with_async_component;

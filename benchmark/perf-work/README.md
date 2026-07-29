@@ -2,6 +2,41 @@
 
 Tracking SSR optimization work toward 5x vs Bun.
 
+## Phase 9 — Skip Lwt binds for synchronous streaming children
+
+Fresh profiles rejected H2 and H3 before implementation and accepted H5.
+
+| Hypothesis | Allocation evidence | CPU evidence | Outcome |
+|---|---:|---:|---|
+| H2, lazy `Tree_context.push` | Below the top-30 floor on `wide500` (<0.94%) and `table500` (<0.77%) | 0.21% / 0.17% Ir | Rejected |
+| H3, remove `List.length` | No allocation; list and array controls both allocate 3,827 minor words/render | `List.length` is 1.59% Ir; list total is 2.10% above array | Rejected |
+| H5, synchronous Lwt children | Bind/callback sites exceed 50% of `stream-array500` samples and 31% of `rsc-array500` samples | Bind is 7.80% / 3.24% Ir | Accepted |
+
+H5 now inspects each child promise with `Lwt.state`. Fulfilled children
+continue through direct tail recursion; sleeping and failed children retain
+the existing Lwt bind path. The change is internal to the ReactDOM list/array
+walkers and the RSC HTML child mapper. It does not add PPX metadata or change
+`React.element`.
+
+| Fully drained scenario | Minor words before | Minor words after | Change |
+|---|---:|---:|---:|
+| `renderToStream` list500 | 23,592 | 5,638 | **-76.1%** |
+| `renderToStream` array500 | 19,988 | 5,624 | **-71.9%** |
+| `render_html` list500 | 42,465 | 26,994 | **-36.4%** |
+| `render_html` array500 | 44,300 | 28,806 | **-35.0%** |
+
+Deterministic instruction totals dropped 12.1% on `stream-array500`
+(362,294,352→318,634,233) and 9.4% on `rsc-array500`
+(400,245,288→362,519,980). The targeted bind sites fell to 0.05% and 0.04%
+of Ir respectively.
+
+Against a fresh `main` benchmark run, eight RSC/streaming rows improved by at
+least 3% and none regressed by more than 3%. Notable results:
+`rsc/render_html/wide100` +12.2%, `rsc/width/100` +13.3%,
+`streaming/renderToStream/suspense` +6.0%, and
+`rsc/render_html/suspense` +6.5%. `renderToStream/wide100` was flat (+0.4%)
+because Writer already bypasses the Lwt child walker.
+
 ## Phase 8 — Js_obj deferral, Writer-tier widening, adaptive buffers
 
 Geomean **1.39x** over the Phase 7 baseline across all render + RSC

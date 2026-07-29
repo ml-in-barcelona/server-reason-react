@@ -36,8 +36,7 @@
      _build/default/benchmark/perf-work/perf_profile.exe --scenario wide500
 
      # Driven by callgrind (from the driver script):
-     valgrind --tool=callgrind --instr-atstart=no \
-       --toggle-collect='camlReactDOM.renderToStaticMarkup_*' \
+     valgrind --tool=callgrind \
        _build/default/benchmark/perf-work/perf_profile.exe \
          --scenario wide500 --warmup 50 --iters 500
 
@@ -51,17 +50,32 @@
      the timed loop, then a ref-kept [last_result] prevents the compiler
      from eliding the call to [f ()] entirely.
 
-   - Warmup runs are emitted before instrumentation is toggled by the
-     external profiler. The [--toggle-collect] flag above relies on the
-     fact that [renderToStaticMarkup] is re-entered per iteration, so
-     collection starts/stops on each boundary. Warmup amortizes first-call
-     cache misses and JIT-like effects in the OCaml runtime (minor heap
-     resize, Obj caching inside [Js_obj]) so the instrumented window
-     reflects steady state. *)
+   - Callgrind profiles the whole short-lived process. With the default 500
+     iterations, startup and summary output are fixed, amortized overhead. *)
 
 open Benchmark_scenarios
 
 type scenario = { name : string; run : unit -> string }
+
+let text_list_500 = React.list (List.init 500 (fun _ -> React.string "x"))
+let text_array_500 = React.array (Array.init 500 (fun _ -> React.string "x"))
+
+let drain_render_to_stream element =
+  Lwt_main.run
+    (let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Prod element in
+     let%lwt chunks = Lwt_stream.to_list stream in
+     Lwt.return (String.concat "" chunks))
+
+let drain_render_html element =
+  Lwt_main.run
+    (let streamed = Buffer.create 128 in
+     let%lwt shell, subscribe = ReactServerDOM.render_html ~env:`Prod element in
+     let%lwt () =
+       subscribe (fun chunk ->
+           Buffer.add_string streamed chunk;
+           Lwt.return_unit)
+     in
+     Lwt.return (shell ^ Buffer.contents streamed))
 
 let scenarios : scenario list =
   [
@@ -116,6 +130,12 @@ let scenarios : scenario list =
       name = "ecommerce48";
       run = (fun () -> ReactDOM.renderToStaticMarkup (Ecommerce.Products48.make (Ecommerce.Products48.makeProps ())));
     };
+    { name = "list500"; run = (fun () -> ReactDOM.renderToStaticMarkup text_list_500) };
+    { name = "array500"; run = (fun () -> ReactDOM.renderToStaticMarkup text_array_500) };
+    { name = "stream-list500"; run = (fun () -> drain_render_to_stream text_list_500) };
+    { name = "stream-array500"; run = (fun () -> drain_render_to_stream text_array_500) };
+    { name = "rsc-list500"; run = (fun () -> drain_render_html text_list_500) };
+    { name = "rsc-array500"; run = (fun () -> drain_render_html text_array_500) };
   ]
 
 (* [sink] prevents [run] calls from being dead-code-eliminated. The compiler
@@ -131,9 +151,8 @@ let run_loop ~warmup ~iters ~scenario =
      not to prior test state. *)
   Gc.full_major ();
   Gc.compact ();
-  (* Warmup: same entry point as the measured loop so the external profiler
-     (if using [--toggle-collect]) picks up and discards these calls via
-     its own warmup handling. *)
+  (* Warmup is included in external profiler totals, so keep it small
+     relative to the measured loop. *)
   for _ = 1 to warmup do
     sink := scenario.run ()
   done;
