@@ -17,7 +17,7 @@ val renderToStaticMarkup : ?identifier_prefix:string -> React.element -> string
 val renderToStream :
   ?env:[ `Dev | `Prod ] -> ?identifier_prefix:string -> React.element -> (string Lwt_stream.t * (unit -> unit)) Lwt.t
 (** renderToStream renders a React tree into a Lwt_stream.t. The returned function aborts the stream: pending Suspense
-    boundaries are flipped to client rendering (via $RX instruction scripts, like react-dom) and the stream is closed.
+    boundaries are flipped to client rendering (via $RX instruction scripts) and the stream is closed.
 
     @param env
       Controls how much error detail is sent to the client on abort. [`Prod] (the default) sends only the digest; opting
