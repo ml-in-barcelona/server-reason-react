@@ -4,7 +4,7 @@
    react-server-dom-webpack (see ../generate.mjs).
 
 
-   This runner only READS committed fixtures: it works offline, without bun
+   This runner only READS committed fixtures: it works offline, without Node.js
    or node_modules. *)
 
 let fixtures_dir = "../fixtures"

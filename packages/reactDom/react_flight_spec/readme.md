@@ -110,12 +110,8 @@ task's own row, sync throws at the root erroring the root row (`0:E`), and
   `react/jsx-runtime`, `react-server-dom-webpack/server`) resolve against the
   exact-pinned `node_modules` of this directory rather than whatever is above
   `_build`.
-- **Reply generator runs under plain node**: `encodeReply` is client-side code, so
-  no `--conditions react-server`. It is imported from
-  `react-server-dom-webpack/client.browser` explicitly (node matches the `node`
-  export condition, whose client build does not export `encodeReply`) with inert
-  `__webpack_require__` shims installed first.
-- **Bun's `FormData.prototype.toJSON`** (non-web-standard, present only when the
-  generators are run under bun instead of node) would hijack
-  `JSON.stringify` before React's replacer sees a FormData argument; `reply/cases.mjs`
-  shadows it per instance to restore the browser behavior React targets.
+- **Reply generator runs under plain Node.js**: `encodeReply` is a client API, so
+  the generator does not enable the `react-server` condition. Node.js resolves
+  `react-server-dom-webpack/client` to `client.node.unbundled`, which does not
+  expose `encodeReply`; the generator therefore imports `client.browser`
+  explicitly and installs inert `__webpack_require__` shims first.
