@@ -15,19 +15,8 @@ import {
   createTemporaryReferenceSet,
 } from "react-server-dom-webpack/client.browser";
 
-// Bun quirk: Bun defines a non-standard, non-configurable
-// `FormData.prototype.toJSON`. JSON.stringify calls it BEFORE handing the
-// value to React's replacer, so processReply's `instanceof FormData` branch
-// ($K) never runs and the FormData leaks through as a plain object. Browsers
-// have no FormData.prototype.toJSON. Shadow it per instance to restore the
-// web-standard behavior React was written against.
-function webFormData(fd) {
-  Object.defineProperty(fd, "toJSON", { value: undefined });
-  return fd;
-}
-
 function userFormData() {
-  const fd = webFormData(new FormData());
+  const fd = new FormData();
   fd.append("name", "Lola");
   fd.append("age", "20");
   return fd;
@@ -105,7 +94,7 @@ export const cases = [
   {
     name: "formdata_nested",
     args: () => {
-      const fd = webFormData(new FormData());
+      const fd = new FormData();
       fd.append("name", "Lola");
       return [{ form: fd }];
     },

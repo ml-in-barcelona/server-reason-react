@@ -3,12 +3,11 @@
 // writes the resulting server-function-call body to reply/fixtures/<case>.reply.
 //
 // Run from the react_flight_spec directory with:
-//   NODE_ENV=production bun reply/generate-reply.mjs [--check]
+//   NODE_ENV=production node reply/generate-reply.mjs [--check]
 //
-// (plain bun: processReply/encodeReply is CLIENT-side code, no react-server
-// condition. `client.browser` is imported explicitly because bun matches the
-// `node` export condition, which resolves to a client build without
-// encodeReply.)
+// Run without the react-server condition because encodeReply is a client API.
+// Under Node.js, the package's `client` export resolves to `client.node.unbundled`,
+// which does not expose encodeReply, so this imports `client.browser` explicitly.
 //
 // --check: re-encode and diff against the committed fixtures instead of
 // writing; exits non-zero (with a printed diff) on any mismatch.

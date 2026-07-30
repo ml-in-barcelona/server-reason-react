@@ -25,7 +25,7 @@ See `README.md` for user-facing documentation.
 | Format check (CI) | `make format-check` |
 | Full dep install | `make install` (opam) + `make install-npm` |
 | Benchmarks | `make bench` (CI gates regressions on ubuntu + OCaml 5.4.0) |
-| Flight fixture check | `make spec-check` (requires bun + `bun install` in `packages/reactDom/react_flight_spec`) |
+| Flight fixture check | `make spec-check` (requires `npm ci` in `packages/reactDom/react_flight_spec`) |
 
 ## Gotchas
 

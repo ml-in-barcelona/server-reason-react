@@ -12,7 +12,7 @@ Every case under `cases/shared/` is a single-source Reason file that compiles **
 1. **natively** (via `server-reason-react.ppx`) and is rendered by
    `ReactServerDOM.render_model ~env:\`Prod` — this is the implementation under test.
 2. **to JavaScript** (via melange + `reason-react-ppx`) and is rendered by the *real*
-   `react-server-dom-webpack/server` running under `bun --conditions react-server`
+   `react-server-dom-webpack/server` running under `node --conditions react-server`
    with `NODE_ENV=production` — this is the reference implementation.
 
 React's output is committed under `fixtures/*.flight` (one Flight row per line,
@@ -22,7 +22,7 @@ committed fixture. Fixture diffs across React version bumps *are* the protocol c
 
 The **reply direction** (client → server) works the other way around: `reply/cases.mjs`
 declares plain JS argument values, `reply/generate-reply.mjs` encodes them with the real
-`encodeReply` from `react-server-dom-webpack/client` (plain `bun`, no react-server
+`encodeReply` from `react-server-dom-webpack/client` (plain `node`, no react-server
 condition) into `reply/fixtures/*.reply`, and `conformance/reply_spec_conformance.ml`
 feeds those exact bytes to srr's `decodeReply`/`decodeFormDataReply` and compares the
 decoded result against an expected Yojson value declared per case.
@@ -30,7 +30,7 @@ decoded result against an expected Yojson value declared per case.
 ## Layout
 
 ```
-package.json      exact React pins (no ^). bun.lock is committed.
+package.json      exact React pins (no ^). package-lock.json is committed.
 generate.mjs      renders every case with react-server-dom-webpack → fixtures/.
                   --check re-renders and diffs against committed fixtures.
 harness/          the universal `Spec` seam: native and melange implementations
@@ -51,7 +51,7 @@ reply/            reply-direction spec: cases.mjs (JS argument values),
 # The conformance suite (offline; only reads committed fixtures):
 dune build @packages/reactDom/react_flight_spec/runtest
 
-# Regenerate fixtures from the real React (needs bun + `bun install` in this dir):
+# Regenerate fixtures from the real React (needs `npm ci` in this dir):
 make spec-generate        # server → client .flight fixtures, from the repo root
 make spec-generate-reply  # client → server .reply fixtures
 # Verify fixtures (both directions) are up to date without writing:
@@ -78,7 +78,7 @@ task's own row, sync throws at the root erroring the root row (`0:E`), and
 
 ## Bumping React
 
-1. Edit the exact versions in `package.json`, run `bun install` here.
+1. Edit the exact versions in `package.json`, run `npm install` here.
 2. `make spec-generate && make spec-generate-reply` — the fixture diff is the
    protocol change.
 3. Review the diff, update `protocol.md` if the grammar changed, adjust xfail
@@ -110,11 +110,8 @@ task's own row, sync throws at the root erroring the root row (`0:E`), and
   `react/jsx-runtime`, `react-server-dom-webpack/server`) resolve against the
   exact-pinned `node_modules` of this directory rather than whatever is above
   `_build`.
-- **Reply generator runs under plain bun**: `encodeReply` is client-side code, so
-  no `--conditions react-server`. It is imported from
-  `react-server-dom-webpack/client.browser` explicitly (bun matches the `node`
-  export condition, whose client build does not export `encodeReply`) with inert
-  `__webpack_require__` shims installed first.
-- **Bun's `FormData.prototype.toJSON`** (non-web-standard) would hijack
-  `JSON.stringify` before React's replacer sees a FormData argument; `reply/cases.mjs`
-  shadows it per instance to restore the browser behavior React targets.
+- **Reply generator runs under plain Node.js**: `encodeReply` is a client API, so
+  the generator does not enable the `react-server` condition. Node.js resolves
+  `react-server-dom-webpack/client` to `client.node.unbundled`, which does not
+  expose `encodeReply`; the generator therefore imports `client.browser`
+  explicitly and installs inert `__webpack_require__` shims first.

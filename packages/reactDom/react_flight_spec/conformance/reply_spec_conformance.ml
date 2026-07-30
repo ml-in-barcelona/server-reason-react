@@ -8,7 +8,7 @@
    the spec's assertion of srr's decode semantics for those exact bytes.
 
 
-   This runner only READS committed fixtures: it works offline, without bun
+   This runner only READS committed fixtures: it works offline, without Node.js
    or node_modules. *)
 
 let fixtures_dir = "../reply/fixtures"
