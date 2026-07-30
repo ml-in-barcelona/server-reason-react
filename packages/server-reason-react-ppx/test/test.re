@@ -848,6 +848,11 @@ let text_separator_matches_unoptimized_tree = () => {
   );
 };
 
+module CSS = {
+  let className = ((className, _)) => className;
+  let styles = ((_, styles)) => styles;
+};
+
 let styles_attribute = () => {
   let styles = (
     "some-class-name",
