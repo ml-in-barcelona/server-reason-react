@@ -41,15 +41,14 @@ let callServer = (path: string, args) => {
 
 module App = {
   let initialRSCModel =
-    ReactServerDOMEsbuild.ComponentPayload.ofReadableStream(
+    ReactServerDOMEsbuild.createFromReadableStream(
       ~callServer,
       readable_stream,
     );
 
   [@react.component]
   let make = () => {
-    let initialElement =
-      ReactServerDOMEsbuild.ComponentPayload.use(initialRSCModel);
+    let initialElement = React.Experimental.usePromise(initialRSCModel);
     let (layout, setLayout) = React.useState(() => initialElement);
 
     let navigate = search => {

@@ -26,7 +26,7 @@ let callServer = (path: string, args) => {
 };
 
 let initialRSCModel =
-  ReactServerDOMEsbuild.ComponentPayload.ofReadableStream(
+  ReactServerDOMEsbuild.createFromReadableStream(
     ~callServer,
     readable_stream,
   );
@@ -34,8 +34,7 @@ let initialRSCModel =
 module ClientApp = {
   [@react.component]
   let make = () => {
-    let initialElement =
-      ReactServerDOMEsbuild.ComponentPayload.use(initialRSCModel);
+    let initialElement = React.Experimental.usePromise(initialRSCModel);
 
     initialElement;
   };

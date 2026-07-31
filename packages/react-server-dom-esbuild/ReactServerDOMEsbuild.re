@@ -43,61 +43,30 @@ let getCallServer = () => {
   callServerRef^;
 };
 
-/* react-client returns a ReactPromise: a thenable whose `then` registers
-   callbacks but returns unit instead of a chained promise, so chaining
-   Js.Promise.then_ on it would resolve undefined. Promise.resolve
-   assimilates it into a spec-compliant promise, making the declared type
-   true. */
-[@mel.scope "Promise"]
-external assimilate: Js.Promise.t('a) => Js.Promise.t('a) = "resolve";
+/* The returned promise is a real Promise (chainable with Js.Promise.then_)
+   that also carries live status/value/reason getters delegating to
+   react-client's root chunk, so React.use keeps its synchronous unwrap
+   during hydration. See chainableRoot in ReactServerDOMEsbuild.js. */
+let createFromReadableStream = (~callServer=?, stream): Js.Promise.t('a) => {
+  switch (callServer) {
+  | Some(callServer) =>
+    setCallServer(callServer);
+    createFromReadableStreamImpl(
+      stream,
+      ~options={ callServer: callServer },
+      (),
+    );
+  | None => createFromReadableStreamImpl(stream, ())
+  };
+};
 
-let createFromReadableStream = (~callServer=?, stream): Js.Promise.t('a) =>
-  assimilate(
-    switch (callServer) {
-    | Some(callServer) =>
-      setCallServer(callServer);
-      createFromReadableStreamImpl(
-        stream,
-        ~options={ callServer: callServer },
-        (),
-      );
-    | None => createFromReadableStreamImpl(stream, ())
-    },
-  );
-
-let createFromFetch = (~callServer=?, promise) =>
-  assimilate(
-    switch (callServer) {
-    | Some(callServer) =>
-      setCallServer(callServer);
-      createFromFetchImpl(promise, ~options={ callServer: callServer }, ());
-    | None => createFromFetchImpl(promise, ())
-    },
-  );
-
-/* The flight payload kept as react-client's raw ReactPromise. React.use
-   reads its status field synchronously, which hydration needs to match the
-   server HTML in one pass; assimilating it into a real promise loses that
-   fast path. The type is abstract so `use` is the only way to consume it:
-   the thenable's unit-returning `then` makes promise chaining on it
-   unrepresentable rather than silently broken. */
-module ComponentPayload = {
-  type t;
-
-  [@mel.module "./ReactServerDOMEsbuild.js"]
-  external ofReadableStreamImpl:
-    (Webapi.ReadableStream.t, ~options: options=?, unit) => t =
-    "createFromReadableStream";
-
-  let ofReadableStream = (~callServer=?, stream): t =>
-    switch (callServer) {
-    | Some(callServer) =>
-      setCallServer(callServer);
-      ofReadableStreamImpl(stream, ~options={ callServer: callServer }, ());
-    | None => ofReadableStreamImpl(stream, ())
-    };
-
-  [@mel.module "react"] external use: t => React.element = "use";
+let createFromFetch = (~callServer=?, promise) => {
+  switch (callServer) {
+  | Some(callServer) =>
+    setCallServer(callServer);
+    createFromFetchImpl(promise, ~options={ callServer: callServer }, ());
+  | None => createFromFetchImpl(promise, ())
+  };
 };
 
 let createServerReference = serverReferenceId => {
