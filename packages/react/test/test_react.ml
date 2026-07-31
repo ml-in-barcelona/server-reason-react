@@ -42,6 +42,53 @@ let use_effect_doesnt_fire () =
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div>foo</div>"
 
+let compatibility_effects_dont_fire () =
+  let value = React.useRef "initial" in
+  let callback () =
+    value.current <- "changed";
+    None
+  in
+  React.useInsertionEffect0 callback;
+  React.useLayoutEffect callback;
+  assert_string value.current "initial"
+
+let compatibility_rendering_helpers () =
+  let component ?key:_ text = React.string text in
+  let app = React.StrictMode.make (React.StrictMode.makeProps ~children:(React.jsx component "content") ()) in
+  assert_string (ReactDOM.renderToStaticMarkup app) "content";
+  let transitioned = ref false in
+  React.startTransition (fun () -> transitioned := true);
+  Alcotest.(check bool) "runs the transition callback" true !transitioned
+
+let is_valid_element () =
+  let host = React.createElement "div" [] [] in
+  Alcotest.(check bool) "host element" true (React.isValidElement host);
+  Alcotest.(check bool) "text" false (React.isValidElement (React.string "text"));
+  Alcotest.(check bool) "array" false (React.isValidElement (React.array [| host |]));
+  Alcotest.(check bool) "null" false (React.isValidElement React.null)
+
+let async_transition_runs_callback () =
+  let transitioned = ref false in
+  let _, start_transition = React.useTransitionAsync () in
+  let _promise = start_transition (fun () -> transitioned := true) in
+  Alcotest.(check bool) "runs the transition callback" true !transitioned
+
+let compatible_ref_and_forward_ref () =
+  let ref = React.useRef "initial" in
+  assert_string (React.Ref.current ref) "initial";
+  React.Ref.setCurrent ref "updated";
+  assert_string ref.current "updated";
+  let component = React.forwardRef (fun text _ref -> React.string text) in
+  assert_string (ReactDOM.renderToStaticMarkup (React.jsx component "forwarded")) "forwarded"
+
+let experimental_hooks () =
+  let state, set_optimistic = React.Experimental.useOptimistic "initial" (fun _state value -> value) in
+  set_optimistic "updated";
+  assert_string state "initial";
+  let state, _action, pending = React.Experimental.useActionState (fun _state _form_data -> ()) "initial" in
+  assert_string state "initial";
+  Alcotest.(check bool) "is not pending" false pending
+
 module Gap = struct
   let make ~children =
     React.Children.map children (fun element ->
@@ -388,6 +435,12 @@ let tests =
         memo_custom_compare_props_renders_identically;
       test "useSyncExternalStoreWithServer" use_sync_external_store_with_server;
       test "useEffect" use_effect_doesnt_fire;
+      test "compatibility effects don't fire" compatibility_effects_dont_fire;
+      test "compatibility rendering helpers" compatibility_rendering_helpers;
+      test "isValidElement" is_valid_element;
+      test "async transition runs callback" async_transition_runs_callback;
+      test "compatible Ref and forwardRef" compatible_ref_and_forward_ref;
+      test "experimental hooks" experimental_hooks;
       test "Children.map" children_map_one_element;
       test "Children.map" children_map_list_element;
       test "useRef" use_ref_works;

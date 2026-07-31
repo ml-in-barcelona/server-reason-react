@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+* Add an opt-in `make check-react-compat` check of the native `React` interface against `reason-react >= 0.17.0`, with explicit normalization for renderer-specific representations. Add the missing server-safe React APIs, including compatible `Ref`, `Event`, and `Experimental` modules, JSX runtime helpers, `forwardRef`, `StrictMode`, hook arity 7, insertion effects, imperative handles, uncurried hooks, transitions, and `act` by @davesnx
+* Breaking: align `React.Suspense.makeProps`, `useMemo*`, `useCallback*`, `useReducerWithMapState`, and `useDebugValue` signatures with `reason-react` 0.17. Labelled calls to `Suspense.makeProps` are unchanged; `useDebugValue` now requires a trailing `()` by @davesnx
+* Breaking: `React.Ref` now matches reason-react's generic mutable-ref API; DOM ref conversion remains available as `ReactDOM.Ref`. `React.forwardRef` now takes a props/ref render function and supplies a null ref during SSR by @davesnx
 * Breaking: `ReactDOM.renderToStream`, `ReactServerDOM.render_html`, `ReactServerDOM.render_model`, `ReactServerDOM.render_model_value` and `ReactServerDOM.create_action_response` now default `?env` to `` `Prod`` instead of `` `Dev``, so component error messages and backtraces are no longer serialized into the HTML/RSC payload unless explicitly requested. Pass ``~env:`Dev`` to restore the previous behavior by @davesnx
 
 ## 0.5.1
