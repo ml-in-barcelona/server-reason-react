@@ -102,7 +102,6 @@ let%browser_only fetchComponent = (~from, ~registry, endpoint) => {
        | (_, true) =>
          Fetch.Response.body(response)
          |> ReactServerDOMEsbuild.createFromReadableStream
-         |> ReactServerDOMEsbuild.toPromise
          |> Js.Promise.then_(element => Js.Promise.resolve(Payload(element)))
        };
      });
