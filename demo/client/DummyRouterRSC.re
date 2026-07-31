@@ -84,6 +84,7 @@ module App = {
           ->URL.setSearchAsString(finalSearch);
         let response = fetchApp(URL.toString(finalURL));
         ReactServerDOMEsbuild.createFromFetch(response)
+        |> ReactServerDOMEsbuild.toPromise
         |> Js.Promise.then_(element => {
              History.pushState(
                History.state(DOM.history),

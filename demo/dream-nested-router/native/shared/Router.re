@@ -100,15 +100,10 @@ let%browser_only fetchComponent = (~from, ~registry, endpoint) => {
        | (Some("reload-required"), _) => Js.Promise.resolve(ReloadRequired)
        | (_, false) => Js.Promise.resolve(InvalidResponse)
        | (_, true) =>
-         /* createFromReadableStream returns a React thenable whose `then`
-            returns unit, so chaining then_ on it directly resolves undefined.
-            Promise.all assimilates it into a real promise first. */
          Fetch.Response.body(response)
          |> ReactServerDOMEsbuild.createFromReadableStream
-         |> (thenable => Js.Promise.all([|thenable|]))
-         |> Js.Promise.then_(elements =>
-              Js.Promise.resolve(Payload(elements[0]))
-            )
+         |> ReactServerDOMEsbuild.toPromise
+         |> Js.Promise.then_(element => Js.Promise.resolve(Payload(element)))
        };
      });
 };

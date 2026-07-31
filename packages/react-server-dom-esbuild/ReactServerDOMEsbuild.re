@@ -43,6 +43,15 @@ let getCallServer = () => {
   callServerRef^;
 };
 
+/* createFromReadableStream and createFromFetch return react-client's
+   ReactPromise: a thenable that React.use unwraps synchronously once
+   fulfilled (required for hydration), but whose `then` registers callbacks
+   and returns unit instead of a chained promise. Pass it to React.use as
+   is; convert with toPromise before chaining Js.Promise.then_ on it, or the
+   chain resolves undefined. */
+[@mel.scope "Promise"]
+external toPromise: Js.Promise.t('a) => Js.Promise.t('a) = "resolve";
+
 let createFromReadableStream = (~callServer=?, stream): Js.Promise.t('a) => {
   switch (callServer) {
   | Some(callServer) =>
