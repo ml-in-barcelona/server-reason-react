@@ -11,14 +11,13 @@ module type MAIN_PAGE = {
 module type LAYOUT = {
   [@react.component]
   let make:
-    (~children: React.element, ~params: DynamicParams.t, unit) => React.element;
+    (~children: React.element, ~params: PathParams.t, unit) => React.element;
 };
 
 module type PAGE = {
   [@react.component]
   let make:
-    (~params: DynamicParams.t, ~query: URL.SearchParams.t, unit) =>
-    React.element;
+    (~params: PathParams.t, ~query: URL.SearchParams.t, unit) => React.element;
 };
 
 module type NOT_FOUND = {
@@ -57,7 +56,7 @@ let make:
 
 let getRoute:
   (
-    ~initialDynamicParams: DynamicParams.t=?,
+    ~initialPathParams: PathParams.t=?,
     ~globalLoading: option(module LOADING)=?,
     ~definition: string,
     ~request: Dream.request,
@@ -76,6 +75,28 @@ let getSubRoute:
   option(React.element);
 
 let generated_routes_paths: (~routes: list(routeConfig)) => list(string);
+
+/** Deterministic identity of the route registry, echoed by clients in the
+    SRR-Registry header. A mismatch yields a reload-required response. */
+let registryFingerprint:
+  (~basePath: string, ~routes: list(routeConfig)) => string;
+
+/** Match a concrete path (relative to the mount) against route definitions.
+    First match in generation order wins. */
+let matchDefinition: (~definitions: list(string), string) => option(string);
+
+/** Split the target branch at the last level shared with the committed
+    branch. Shared requires definition and concrete segment equality.
+    Returns (parentRouteDefinition, subRouteDefinition), or None when the
+    caller should answer with a full model. */
+let sharedPrefixSplit:
+  (
+    ~fromDefinition: string,
+    ~fromPath: string,
+    ~targetDefinition: string,
+    ~targetPath: string
+  ) =>
+  option((string, string));
 
 let buildUrlFromRequest: Dream.request => URL.t;
 

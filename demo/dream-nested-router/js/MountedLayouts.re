@@ -1,7 +1,7 @@
 /**
-  Virtual History is a state of routes that the client has visited.
-  It's used to store the routes path and renderPage function.
-  This is how the client knows which route is rendered, and which subroute needs to get rendered as pageconsumer (children)
+  MountedLayouts is a registry of the layout levels currently on screen.
+  Each entry pairs a route path with that level's renderPage function,
+  which swaps the content rendered below the layout.
 
   let state = [{
     path: "/",
@@ -12,8 +12,8 @@
     renderPage: (pageElement) => {...},
   }]
 
-  When the client visits /student/:id, we find the parent route (/student) with VirtualHistory.find and we call the renderPage function to update the page/subroutes.
-  The virtual state history will be updated to:
+  When the client visits /student/:id, we find the parent route (/student) with MountedLayouts.find and we call the renderPage function to update the page/subroutes.
+  The registry will be updated to:
 
   [
     {
@@ -38,7 +38,7 @@ type route = {
 
 let state = ref([]);
 
-/* When a route is visited, we add it to the virtual state history */
+/* When a route level mounts, we register it */
 let push = (~path, ~renderPage): unit => {
   let filteredRoutes = List.filter(route => route.path != path, state^);
 

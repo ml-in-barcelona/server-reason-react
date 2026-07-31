@@ -10,7 +10,7 @@ let use: unit => t;
 
 type router = {
   navigate: t,
-  params: DynamicParams.t,
+  params: PathParams.t,
   url: URL.t,
   pathname: string,
   searchParams: URL.SearchParams.t,
@@ -23,7 +23,8 @@ let useRouter: unit => router;
 let make:
   (
     ~serverUrl: url,
-    ~initialDynamicParams: DynamicParams.t,
+    ~initialPathParams: PathParams.t,
+    ~registryFingerprint: string,
     ~children: React.element
   ) =>
   React.element;

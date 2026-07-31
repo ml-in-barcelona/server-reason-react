@@ -1,6 +1,6 @@
 /**
 * Route is the component that renders the route and provides the renderPage function to update page/subroutes when the route is navigated to.
-* It push the route to the virtual history when mounted.\
+* It registers itself in MountedLayouts when mounted.\
 *
 * As the <Route/> is a client component, we cannot pass to the component the layout as a function component (~children: React.element) => React.element,
 * so we need to pass the layout as a React.element and use the Provider to pass the children to the layout.
@@ -86,7 +86,7 @@ let make =
   };
 
   /**
-  * push the route to the virtual history.
+  * register this route level in MountedLayouts.
   * The renderPage function is used to update the page/subroutes.
   */
   (
@@ -94,7 +94,7 @@ let make =
     | Client =>
       if (isFirstRender.current) {
         isFirstRender.current = false;
-        VirtualHistory.push(~path, ~renderPage);
+        MountedLayouts.push(~path, ~renderPage);
       }
     | Server => ()
     }

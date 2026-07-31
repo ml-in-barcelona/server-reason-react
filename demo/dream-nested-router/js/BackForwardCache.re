@@ -1,5 +1,5 @@
 /**
- * HistoryCache is a module that caches the pages.
+ * BackForwardCache is a module that caches the pages.
  * It's used to avoid fetching the same page again when navigating back and forward.
  * For FullPage, we cache the whole page element.
  * For SubRoute, we cache only the sub-route element.

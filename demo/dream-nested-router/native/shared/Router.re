@@ -1,8 +1,9 @@
 /**
 * Router is a component that provides the router context to the application.
-* It provides the dynamic params, url and navigation function to the application.
-* On navigation, it fetches the route component and updates the dynamic params.
-* Depending on the mode (revalidate or not), it either updates the whole page or the specific route component.
+* It provides the path params, url and navigation function to the application.
+* On navigation, it requests the target route URL with the SRR-Navigation-From
+* and SRR-Registry headers; the server decides whether to answer with a full
+* model or a patch for the non-shared branch, and the client applies it.
 */
 exception No_provider(string);
 module DOM = Webapi.Dom;
@@ -35,76 +36,85 @@ let unwatchUrl = watcherID => {
 };
 
 [@platform js]
-module HistoryCache = {
-  module HistoryCacheConfig = {
+module BackForwardCache = {
+  module BackForwardCacheConfig = {
     type key = {
       .
       "path": string,
-      "dynamicParams": DynamicParams.t,
+      "pathParams": PathParams.t,
       "parentRoute": string,
     };
   };
 
-  module HistoryCache = HistoryCache.Make(HistoryCacheConfig);
-  let cache = HistoryCache.create();
+  module BackForwardCache = BackForwardCache.Make(BackForwardCacheConfig);
+  let cache = BackForwardCache.create();
   let set = (~key, ~page) => {
-    HistoryCache.set(cache, ~key, ~page);
+    BackForwardCache.set(cache, ~key, ~page);
   };
   let get = (~key) => {
-    HistoryCache.get(cache, ~key);
+    BackForwardCache.get(cache, ~key);
   };
 };
 
-/**
-  * Compares two paths and returns the sub-route path between them.
-  * Example:
-  * - path1: /students/123
-  * - path2: /students/123/grades/456
-  * - Returns: /grades/456
-  */
 [@platform js]
-let findSubRoutePath = (path1, path2) => {
-  let splitPath = path => path |> String.split_on_char('/') |> List.tl;
+type fetchResult =
+  | Payload(React.element)
+  | ReloadRequired
+  | InvalidResponse;
 
-  let rec findSubRoutePath = (p1, p2, acc) => {
-    switch (p1, p2) {
-    | ([h1, ...t1], [h2, ...t2]) when h1 == h2 =>
-      findSubRoutePath(t1, t2, acc)
-    | (_, remaining) => remaining |> String.concat("/")
-    };
-  };
-
-  findSubRoutePath(splitPath(path1), splitPath(path2), "");
-};
-
-let%browser_only splitPathAndQuery = to_ => {
-  switch (to_ |> String.split_on_char('?')) {
-  | [path, queryParams, ..._] => (path, Some(queryParams))
-  | _ => (to_, None)
-  };
-};
-
-let%browser_only buildQueryString = (~prefix, queryParamsOpt) => {
-  queryParamsOpt |> Option.map(q => prefix ++ q) |> Option.value(~default="");
-};
-
-let%browser_only fetchComponent = endpoint => {
+/* Navigation requests target the route URL itself and negotiate via headers.
+   SRR-Navigation-From states where the client is committed; the server
+   computes the shared branch and answers full or patch. Every header is a
+   fact about the client, never a conclusion about the shared branch. */
+let%browser_only fetchComponent = (~from, ~registry, endpoint) => {
+  let baseHeaders = [|
+    ("Accept", "application/react.component"),
+    ("SRR-Registry", registry),
+  |];
   let headers =
-    Fetch.HeadersInit.make({ "Accept": "application/react.component" });
+    Fetch.HeadersInit.makeWithArray(
+      switch (from) {
+      | Some(from) =>
+        Array.append(baseHeaders, [|("SRR-Navigation-From", from)|])
+      | None => baseHeaders
+      },
+    );
 
   Fetch.fetchWithInit(
     endpoint,
     Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
   )
   |> Js.Promise.then_(response => {
-       let body = Fetch.Response.body(response);
-       ReactServerDOMEsbuild.createFromReadableStream(body);
+       let responseHeaders = Fetch.Response.headers(response);
+       let responseKind = Fetch.Headers.get("SRR-Response", responseHeaders);
+       let isComponentPayload =
+         switch (Fetch.Headers.get("Content-Type", responseHeaders)) {
+         | Some(contentType) =>
+           String.starts_with(
+             ~prefix="application/react.component",
+             contentType,
+           )
+         | None => false
+         };
+       switch (responseKind, isComponentPayload) {
+       | (Some("reload-required"), _) => Js.Promise.resolve(ReloadRequired)
+       | (_, false) => Js.Promise.resolve(InvalidResponse)
+       | (_, true) =>
+         /* createFromReadableStream returns a React thenable whose `then`
+            returns unit, so chaining then_ on it directly resolves undefined.
+            Promise.all assimilates it into a real promise first. */
+         Fetch.Response.body(response)
+         |> ReactServerDOMEsbuild.createFromReadableStream
+         |> (thenable => Js.Promise.all([|thenable|]))
+         |> Js.Promise.then_(elements =>
+              Js.Promise.resolve(Payload(elements[0]))
+            )
+       };
      });
 };
 
 [@platform js]
-type pendingNavigation = {
-  revalidate: bool,
+type inflightNavigation = {
   path: string,
   shouldReplace: bool,
 };
@@ -114,7 +124,7 @@ type t =
 
 type router = {
   navigate: t,
-  params: DynamicParams.t,
+  params: PathParams.t,
   url: URL.t,
   pathname: string,
   searchParams: URL.SearchParams.t,
@@ -143,16 +153,16 @@ let useRouter = () => {
 let make =
     (
       ~serverUrl: url,
-      ~initialDynamicParams: DynamicParams.t,
+      ~initialPathParams: PathParams.t,
+      ~registryFingerprint: string,
       ~children: React.element,
     ) => {
   let (element, setElement) = React.useState(() => children);
-  let (pendingNavigationResponse, setPendingNavigationResponse) =
+  let (inflightPayload, setInflightPayload) =
     React.useState(() => React.null);
   let (url, setUrl) = React.useState(() => serverUrl);
-  let (dynamicParams, setDynamicParams) =
-    React.useState(() => initialDynamicParams);
-  let setDynamicParams = params => setDynamicParams(_ => params);
+  let (pathParams, setPathParams) = React.useState(() => initialPathParams);
+  let setPathParams = params => setPathParams(_ => params);
   let pathname = URL.pathname(url);
   let searchParams = URL.searchParams(url);
 
@@ -162,7 +172,7 @@ let make =
   });
   let (cachedNodeKey, setCachedNodeKey) = React.useState(() => "");
   let (isNavigating, setIsNavigating) = React.useState(() => false);
-  let pendingNavigationRef = React.useRef(None);
+  let inflightNavigation = React.useRef(None);
 
   let%browser_only renderFullPage = element => {
     /**
@@ -172,47 +182,61 @@ let make =
       */
     setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
     setElement(_ => element);
-    VirtualHistory.cleanup();
+    MountedLayouts.cleanup();
   };
 
   let%browser_only renderSubRoute = (~parentRoute, element) => {
-    let virtualHistoryRoute =
-      VirtualHistory.find(parentRoute)
-      |> Option.value(~default=VirtualHistory.state^ |> List.hd);
+    let mountedLayout =
+      MountedLayouts.find(parentRoute)
+      |> Option.value(~default=MountedLayouts.state^ |> List.hd);
 
-    VirtualHistory.cleanPathState(virtualHistoryRoute.path);
-    virtualHistoryRoute.renderPage(element);
+    MountedLayouts.cleanPathState(mountedLayout.path);
+    mountedLayout.renderPage(element);
   };
 
-  let%browser_only handleNavigationResponse =
-                   (~parentRoute, ~dynamicParams, ~element) => {
-    switch (pendingNavigationRef.current) {
-    | Some({ revalidate, path, shouldReplace }) =>
-      setDynamicParams(dynamicParams);
+  let%browser_only commitNavigation =
+                   (~parentRoute, ~pathParams, ~kind, ~element) => {
+    switch (inflightNavigation.current) {
+    | Some({ path, shouldReplace }) =>
+      setPathParams(pathParams);
 
-      let historyState = {
-        "dynamicParams": dynamicParams,
+      let navigationEntry = {
+        "pathParams": pathParams,
         "parentRoute": parentRoute,
         "path": path,
       };
 
       let _ =
         shouldReplace
-          ? HistoryState.replace(HistoryState.fromJs(historyState), path)
-          : HistoryState.push(HistoryState.fromJs(historyState), path);
+          ? NavigationEntry.replace(
+              NavigationEntry.fromJs(navigationEntry),
+              path,
+            )
+          : NavigationEntry.push(
+              NavigationEntry.fromJs(navigationEntry),
+              path,
+            );
 
+      /* The server decides full versus patch; the client only applies it. */
       let _ =
-        if (revalidate) {
-          HistoryCache.set(~key=historyState, ~page=FullPage(element));
-          renderFullPage(element);
-        } else {
-          HistoryCache.set(~key=historyState, ~page=SubRoute(element));
+        switch (kind) {
+        | "patch" =>
+          BackForwardCache.set(
+            ~key=navigationEntry,
+            ~page=SubRoute(element),
+          );
           renderSubRoute(~parentRoute, element);
+        | _ =>
+          BackForwardCache.set(
+            ~key=navigationEntry,
+            ~page=FullPage(element),
+          );
+          renderFullPage(element);
         };
 
-      pendingNavigationRef.current = None;
+      inflightNavigation.current = None;
       setIsNavigating(_ => false);
-      setPendingNavigationResponse(_ => React.null);
+      setInflightPayload(_ => React.null);
     | None => ()
     };
   };
@@ -224,56 +248,45 @@ let make =
                      ~shallow=false,
                      to_,
                    ) => {
-    let curPath = Location.pathname(DOM.window->DOM.Window.location);
-    let (toPath, queryParamsOpt) = splitPathAndQuery(to_);
-    /**
-     * Identify the sub-route path from the current path to the target path
-     * Example:
-     * 1.
-     *  - Current path: /students/123
-     *  - Target path: /students/123/grades/456
-     *  - Sub-route path: /grades/456
-     *  - Endpoint: /students/123/grades/456?toSubRoute=/grades/456
-     *  - We only receive the /grades/456 component to render in the /students/123 route
-     * 2.
-     *  - Current path: /students/123/grades/456
-     *  - Target path: /about/contact
-     *  - Sub-route path: "" (No sub-route)
-     *  - Endpoint: /about/contact?toSubRoute=
-     *  - We receive the /about/contact component to render in the /.
-     */
-    let subRoutePath = findSubRoutePath(curPath, toPath);
-
-    let endpoint =
-      if (revalidate) {
-        toPath ++ buildQueryString(~prefix="?", queryParamsOpt);
-      } else {
-        toPath
-        ++ "?toSubRoute="
-        ++ subRoutePath
-        ++ buildQueryString(~prefix="&", queryParamsOpt);
-      };
-
     if (shallow) {
       ();
     } else {
+      /**
+       * The committed location, stated as a fact. `revalidate` omits it so
+       * the server answers with a full model instead of a patch.
+       */
+      let location = DOM.window->DOM.Window.location;
+      let from =
+        revalidate
+          ? None
+          : Some(Location.pathname(location) ++ Location.search(location));
+
       setIsNavigating(_ => true);
-      pendingNavigationRef.current =
+      inflightNavigation.current =
         Some({
-          revalidate,
           path: to_,
           shouldReplace,
         });
 
+      let abandonNavigation = () => {
+        inflightNavigation.current = None;
+        setIsNavigating(_ => false);
+      };
+
       let _ =
-        fetchComponent(endpoint)
-        |> Js.Promise.then_((navigationResponse: React.element) => {
-             setPendingNavigationResponse(_ => navigationResponse);
+        fetchComponent(~from, ~registry=registryFingerprint, to_)
+        |> Js.Promise.then_(result => {
+             switch (result) {
+             | Payload(element) => setInflightPayload(_ => element)
+             | ReloadRequired =>
+               abandonNavigation();
+               Location.setHref(location, to_);
+             | InvalidResponse => abandonNavigation()
+             };
              Js.Promise.resolve();
            })
         |> Js.Promise.catch(error => {
-             pendingNavigationRef.current = None;
-             setIsNavigating(_ => false);
+             abandonNavigation();
              Js.Promise.reject(Obj.magic(error));
            });
       ();
@@ -285,17 +298,20 @@ let make =
   // Initialize cache and history state after hydration
   React.useEffect0(() => {
     let curPath = Location.pathname(DOM.window->DOM.Window.location);
-    let historyState = {
-      "dynamicParams": dynamicParams,
+    let navigationEntry = {
+      "pathParams": pathParams,
       "path": curPath,
       "parentRoute": curPath,
     };
-    HistoryCache.set(~key=historyState, ~page=FullPage(element));
+    BackForwardCache.set(~key=navigationEntry, ~page=FullPage(element));
 
     /**
        * Replace the history state set by the browser to our own implementation.
        */
-    HistoryState.replace(HistoryState.fromJs(historyState), curPath);
+    NavigationEntry.replace(
+      NavigationEntry.fromJs(navigationEntry),
+      curPath,
+    );
 
     None;
   });
@@ -309,19 +325,19 @@ let make =
         */
       (
         if (DOM.Event.isTrusted(event)) {
-          let historyState: {
+          let navigationEntry: {
             .
-            "dynamicParams": DynamicParams.t,
+            "pathParams": PathParams.t,
             "path": string,
             "parentRoute": string,
           } =
-            event->HistoryState.fromEvent->HistoryState.toJs;
+            event->NavigationEntry.fromEvent->NavigationEntry.toJs;
 
-          let dynamicParams = historyState##dynamicParams;
-          let parentRoute = historyState##parentRoute;
-          setDynamicParams(dynamicParams);
+          let pathParams = navigationEntry##pathParams;
+          let parentRoute = navigationEntry##parentRoute;
+          setPathParams(pathParams);
 
-          switch (HistoryCache.get(~key=historyState)) {
+          switch (BackForwardCache.get(~key=navigationEntry)) {
           | Some(FullPage(page)) => renderFullPage(page)
           | Some(SubRoute(page)) => renderSubRoute(~parentRoute, page)
           | None =>
@@ -329,7 +345,7 @@ let make =
               * If we don't find the cached page, we navigate to the path and replace the history state.
               * That may happen when the user refreshes the page, as the cache is in-memory or when the cache was cleared from the cache history due to the max cache size.
               */
-            navigate(~replace=true, historyState##path)
+            navigate(~replace=true, navigationEntry##path)
           };
         }
       );
@@ -353,7 +369,7 @@ let make =
   let routerValue =
     Some({
       navigate,
-      params: dynamicParams,
+      params: pathParams,
       url,
       pathname,
       searchParams,
@@ -364,22 +380,21 @@ let make =
     {switch%platform () {
      | Client =>
        React.createElement(
-         NavigationResponse.internalProvider,
+         Navigation.internalProvider,
          {
-           "value": Some(handleNavigationResponse),
+           "value": Some(commitNavigation),
            "children":
              React.createElement(
                provider,
                {
                  "value": routerValue,
-                 "children":
-                   React.array([|element, pendingNavigationResponse|]),
+                 "children": React.array([|element, inflightPayload|]),
                },
              ),
          },
        )
      | Server =>
-       NavigationResponse.internalProvider(
+       Navigation.internalProvider(
          React.Context.makeProps(
            ~value=None,
            ~children=
@@ -389,7 +404,7 @@ let make =
                    Some({
                      navigate: (~replace=?, ~revalidate=?, ~shallow=?, _) =>
                        failwith("navigate isn't supported on server"),
-                     params: dynamicParams,
+                     params: pathParams,
                      url,
                      pathname,
                      searchParams,

@@ -147,7 +147,7 @@ let make =
 That way we send to the client the page content, and the layout will be rendered as: `layout(~children=<PageConsumer />)`.
 We can dynamically update the page content by calling the `renderPage` function, updating the page content on the layout. With minimum re-renders.
 
-### Virtual History
+### Mounted layouts registry
 
 To make all this work, we need to keep track of the visited routes so we can identify the parent route and the sub-route to render the correct page content.
 
@@ -163,7 +163,7 @@ let state = ref([]);
 That way we can find the route by calling the `find` function with the path of the route, and render the page content by calling the `renderPage` function.
 For example
 ```reason
-// Current Virtual History state
+// Current Mounted layouts registry state
 [
   {
     path: "/",
@@ -178,12 +178,12 @@ For example
 // navigating from "/students" to "/students/:name":
 let navigate = (~to: string) => {
   // ...
-  let route = VirtualHistory.find("/students");
+  let route = MountedLayouts.find("/students");
   route.renderPage(<Route path={"/students/:name"} page={StudentPage} layout={<PageConsumer />} />);
   // ...
 }
 
-// After navigating to "/students/:name" the Virtual History state will be updated to:
+// After navigating to "/students/:name" the Mounted layouts registry state will be updated to:
 [
   {
     path: "/",
@@ -202,12 +202,12 @@ let navigate = (~to: string) => {
 // navigating from "/students/lola" to "/students":
 let navigate = (~to: string) => {
   // ...
-  let route = VirtualHistory.find("/");
+  let route = MountedLayouts.find("/");
   route.renderPage(<Route path={"/students"} page={<StudentsPage />} layout={<StudentsLayout />} />);
   // ...
 }
 
-// After navigating to "/" the Virtual History state will be updated to:
+// After navigating to "/" the Mounted layouts registry state will be updated to:
 [
   {
     path: "/",
@@ -220,7 +220,7 @@ let navigate = (~to: string) => {
 ]
 ```
 
-On every Route component, we push the route to the virtual history, and render the page content by calling the `renderPage` function. That way the Virtual History state is always up to date with the current route.
+On every Route component, we register the route in the mounted layouts registry, and render the page content by calling the `renderPage` function. That way the Mounted layouts registry state is always up to date with the current route.
 ```reason
 [@react.client.component]
 let make =
@@ -233,7 +233,7 @@ let make =
   (
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      VirtualHistory.push(~path, ~renderPage);
+      MountedLayouts.push(~path, ~renderPage);
     }
   );
 
@@ -252,8 +252,8 @@ For example:
 ```reason
 module StudentPage = {
   [@react.client.component]
-  let make = (~dynamicParams: DynamicParams.t) => {
-    let name = DynamicParams.find("name", dynamicParams);
+  let make = (~pathParams: PathParams.t) => {
+    let name = PathParams.find("name", pathParams);
     <div>
       <h1> "Student " ++ id </h1>
       <StudentContent />
@@ -264,20 +264,20 @@ module StudentPage = {
 
 The dynamic parameters can also be accessed in any client component by using the `Router.use` hook.
 ```reason
-let {dynamicParams, ..._} = Router.use();
-let name = DynamicParams.find("name", dynamicParams);
+let {pathParams, ..._} = Router.use();
+let name = PathParams.find("name", pathParams);
 ```
 
 ## Router
 
-To control the routes navigation, we need to use the `Router` component, which provides the dynamic params, url and navigation function to the application.
+To control the routes navigation, we need to use the `Router` component, which provides the path params, url and navigation function to the application.
 ```reason
 [@react.client.component]
 let make = () => {
-  let {navigate, dynamicParams, url, _} = Router.use();
+  let {navigate, pathParams, url, _} = Router.use();
 
   <div>
-    <p> "Student Name: " ++ dynamicParams |> DynamicParams.find("name") </p>
+    <p> "Student Name: " ++ pathParams |> PathParams.find("name") </p>
     <p> "URL: " ++ url |> URL.toString </p>
     <button onClick={() => navigate("/students")}> "Navigate to Students" </button>
   </div>
@@ -286,17 +286,19 @@ let make = () => {
 
 ### Navigation
 
-The navigate function takes care of identifying the sub-route path to render the correct page content, so we request only the minimum required to render the page content.
+The navigate function requests the target route URL itself and negotiates via headers, so the server can answer with only the branch that changed.
 Example:
 ```reason
 // current route: /students
 navigate(~to="/students/lola");
-// Parent route: /students
-// Sub-route: /lola
-// Request: /students/lola?toSubRoute=/lola
+// Request: GET /students/lola
+//   Accept:              application/react.component
+//   SRR-Navigation-From: /students
+//   SRR-Registry:        1.<registry fingerprint>
+// Response: SRR-Response: patch, replacing below /students
 ```
-In the sample above, the request is for the `/students/lola` route (In the server it falls into the `/students/:name` route) but we only want to render the `/lola` route, thats why we send the `toSubRoute` query param with the sub-route path. On the Dream handler, we split the target to get the sub-route path and the parent route path. In that case, the parent route path is `/students` and the sub-route path is `/:name`.
-We then return the `/:name` route and update the Virtual History item `/students` to render the `/:name` route. Updating the Virtual History state to:
+In the sample above, the request is for the `/students/lola` route (on the server it falls into the `/students/:name` route). The client only states where it is committed (`SRR-Navigation-From`); the server matches both locations against the route definitions and computes the shared prefix itself, requiring both the definition and the concrete segment values to be equal. In that case, the parent route path is `/students` and the sub-route path is `/:name`, so it answers `SRR-Response: patch` with just the `/:name` branch. A stripped or unusable header degrades to `SRR-Response: full`, and a registry fingerprint from another deployment yields `SRR-Response: reload-required`, which triggers a hard navigation.
+We then return the `/:name` route and update the Mounted layouts registry item `/students` to render the `/:name` route. Updating the Mounted layouts registry state to:
 ```reason
 [
   {
@@ -361,7 +363,7 @@ let routeDefinitionsTree = {
 };
 ```
 
-⚠️ The routeDefinitionsTree as the name suggests is a tree of routes, so it starts from a branch and goes down to the leaves, the main branch is the "/", so we don't need to define the "/" branch. Also, the MainLayout and MainPage are special as they don't have dynamic params.
+⚠️ The routeDefinitionsTree as the name suggests is a tree of routes, so it starts from a branch and goes down to the leaves, the main branch is the "/", so we don't need to define the "/" branch. Also, the MainLayout and MainPage are special as they don't have path params.
 
 It's from the route definitions tree that the Dream handler generates the routes paths and find which route to render based on the current path.
 ```reason

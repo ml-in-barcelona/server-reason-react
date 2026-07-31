@@ -20,7 +20,7 @@ module type MAIN_PAGE = {
 module type LAYOUT = {
   [@react.component]
   let make:
-    (~children: React.element, ~params: DynamicParams.t, unit) => React.element;
+    (~children: React.element, ~params: PathParams.t, unit) => React.element;
 };
 
 /**
@@ -29,8 +29,7 @@ module type LAYOUT = {
 module type PAGE = {
   [@react.component]
   let make:
-    (~params: DynamicParams.t, ~query: URL.SearchParams.t, unit) =>
-    React.element;
+    (~params: PathParams.t, ~query: URL.SearchParams.t, unit) => React.element;
 };
 
 module type NOT_FOUND = {
@@ -80,7 +79,7 @@ let make = (~layout=?, ~page, ~notFound=?, ~loading=?, routes) => {
   routes,
 };
 
-let extractDynamicParam = (request, segment) => {
+let extractPathParam = (request, segment) => {
   String.starts_with(segment, ~prefix=":")
     ? {
       let key = segment->String.sub(1, String.length(segment) - 1);
@@ -164,7 +163,7 @@ let renderNotFound = (~notFound, ~path) => {
   */
 let getRoute =
     (
-      ~initialDynamicParams=DynamicParams.create(),
+      ~initialPathParams=PathParams.create(),
       ~globalLoading=None,
       ~definition: string,
       ~request: Dream.request,
@@ -184,7 +183,7 @@ let getRoute =
             routes: list(routeConfig),
             pathSegments,
             parentPath,
-            currentDynamicParams,
+            currentPathParams,
           )
           : option(React.element) => {
     switch (routes, pathSegments) {
@@ -193,33 +192,33 @@ let getRoute =
 
       /**
         * The page and layout have only access to
-        * the dynamic params of the current route and the parent route.
-        * So we append the current dynamic params to the parent dynamic params.
+        * the path params of the current route and the parent route.
+        * So we append the current path params to the parent path params.
         * Example:
         * - Path: /classroom/:classroom_id
-        * - Parent dynamic params: [("classroom_id", "1")]
+        * - Parent path params: [("classroom_id", "1")]
         * - Path: /student/:student_id
         * - Request: /classroom/1/student/1
-        * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
+        * - Path params: [("student_id", "1"), ("classroom_id", "1")]
         */
-      let dynamicParams =
-        extractDynamicParam(request, segment)
+      let pathParams =
+        extractPathParam(request, segment)
         |> Option.map(((key, value)) =>
-             DynamicParams.add(currentDynamicParams, key, value)
+             PathParams.add(currentPathParams, key, value)
            )
-        |> Option.value(~default=currentDynamicParams);
+        |> Option.value(~default=currentPathParams);
 
       let renderLayout =
         switch (route.layout) {
         | Some(layout) =>
           module Layout = (val layout: LAYOUT);
-          <Layout params=dynamicParams> <Route.PageConsumer /> </Layout>;
+          <Layout params=pathParams> <Route.PageConsumer /> </Layout>;
         | None =>
           renderPage(
             ~pageOpt=route.page,
             ~loadingOpt=route.loading,
             ~globalLoading,
-            ~params=dynamicParams,
+            ~params=pathParams,
             ~query,
           )
         };
@@ -230,14 +229,14 @@ let getRoute =
           | [] => None
           | children =>
             Some(
-              aux(children, restSegments, currentRoutePath, dynamicParams)
+              aux(children, restSegments, currentRoutePath, pathParams)
               |> Option.value(
                    ~default=
                      renderPage(
                        ~pageOpt=route.page,
                        ~loadingOpt=route.loading,
                        ~globalLoading,
-                       ~params=dynamicParams,
+                       ~params=pathParams,
                        ~query,
                      ),
                  ),
@@ -248,7 +247,7 @@ let getRoute =
           <Route path=currentRoutePath pageconsumer layout=renderLayout />,
         );
       } else {
-        aux(restRoutes, pathSegments, parentPath, dynamicParams);
+        aux(restRoutes, pathSegments, parentPath, pathParams);
       };
 
     // No match
@@ -256,7 +255,7 @@ let getRoute =
     };
   };
 
-  aux(routes, pathSegments, "", initialDynamicParams);
+  aux(routes, pathSegments, "", initialPathParams);
 };
 
 /**
@@ -289,12 +288,12 @@ let getSubRoute =
     |> List.filter(segment => segment != "");
 
   // Goes through the parent route definitions to find the correct route from the subRoutePath to render
-  let rec aux = (routes, parentSegments, currentDynamicParams) => {
+  let rec aux = (routes, parentSegments, currentPathParams) => {
     switch (routes, parentSegments) {
     // When the parent segments are empty, we start rendering the route for the given subRoutePath
     | (routes, []) =>
       getRoute(
-        ~initialDynamicParams=currentDynamicParams,
+        ~initialPathParams=currentPathParams,
         ~definition=subRouteDefinition,
         ~request,
         ~globalLoading,
@@ -304,23 +303,23 @@ let getSubRoute =
         [routeDefinition, ...restRouteDefinitions],
         [parentRouteDefinitionSegment, ...restParentRouteDefinitionSegments],
       ) =>
-      let dynamicParams =
+      let pathParams =
         /**
           * The page and layout have only access to
-          * the dynamic params of the current route and the parent route.
-          * So we append the current dynamic params to the parent dynamic params.
+          * the path params of the current route and the parent route.
+          * So we append the current path params to the parent path params.
           * Example:
           * - Path: /classroom/:classroom_id
-          * - Parent dynamic params: [("classroom_id", "1")]
+          * - Parent path params: [("classroom_id", "1")]
           * - Path: /student/:student_id
           * - Request: /classroom/1/student/1
-          * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
+          * - Path params: [("student_id", "1"), ("classroom_id", "1")]
           */
-        extractDynamicParam(request, parentRouteDefinitionSegment)
+        extractPathParam(request, parentRouteDefinitionSegment)
         |> Option.map(((key, value)) =>
-             DynamicParams.add(currentDynamicParams, key, value)
+             PathParams.add(currentPathParams, key, value)
            )
-        |> Option.value(~default=currentDynamicParams);
+        |> Option.value(~default=currentPathParams);
 
       if (routeDefinition.path == "/" ++ parentRouteDefinitionSegment) {
         switch (routeDefinition.children) {
@@ -333,23 +332,23 @@ let getSubRoute =
                 ~pageOpt=routeDefinition.page,
                 ~loadingOpt=routeDefinition.loading,
                 ~globalLoading,
-                ~params=dynamicParams,
+                ~params=pathParams,
                 ~query,
               ),
             )
           }
         | children =>
-          aux(children, restParentRouteDefinitionSegments, dynamicParams)
+          aux(children, restParentRouteDefinitionSegments, pathParams)
         };
       } else {
-        aux(restRouteDefinitions, parentSegments, dynamicParams);
+        aux(restRouteDefinitions, parentSegments, pathParams);
       };
 
     | _ => None
     };
   };
 
-  aux(routes, parentPathSegments, DynamicParams.create());
+  aux(routes, parentPathSegments, PathParams.create());
 };
 
 /**
@@ -389,12 +388,132 @@ let buildUrlFromRequest = request => {
   Printf.sprintf("%s://%s%s", protocol, host, target) |> URL.makeExn;
 };
 
+let protocolVersion = 1;
+
+/**
+  * Deterministic identity of this route registry. Clients echo it in the
+  * SRR-Registry header; a mismatch means the hydrated client belongs to an
+  * incompatible deployment and must reload instead of applying payloads.
+  */
+let registryFingerprint = (~basePath, ~routes) => {
+  let identity =
+    String.concat("|", [basePath, ...generated_routes_paths(~routes)]);
+  Printf.sprintf(
+    "%d.%s",
+    protocolVersion,
+    Digest.to_hex(Digest.string(identity)),
+  );
+};
+
+let segments = path =>
+  String.split_on_char('/', path) |> List.filter(segment => segment != "");
+
+let segmentMatches = (definitionSegment, concreteSegment) =>
+  String.starts_with(definitionSegment, ~prefix=":")
+  || definitionSegment == concreteSegment;
+
+/**
+  * Match a concrete path (from SRR-Navigation-From, relative to the mount)
+  * against the generated route definitions. First match in generation order
+  * wins, mirroring Dream's registration order.
+  */
+let matchDefinition = (~definitions, concretePath) => {
+  let concrete = segments(concretePath);
+  definitions
+  |> List.find_opt(definition => {
+       let definitionSegments = segments(definition);
+       List.length(definitionSegments) == List.length(concrete)
+       && List.for_all2(segmentMatches, definitionSegments, concrete);
+     });
+};
+
+/**
+  * Compute where the target branch stops being shared with the committed
+  * branch. A level is shared only when its definition segment AND its
+  * concrete segment are both equal: /note/1 and /note/2 share nothing below
+  * their common static ancestor, so a stale :id layout can never be reused.
+  *
+  * Returns (parentRouteDefinition, subRouteDefinition), where the parent is
+  * the shared prefix ("" means the root layout) and the sub is the branch to
+  * rerender. Returns None when the whole target is shared (same location):
+  * the caller should answer with a full model.
+  */
+let sharedPrefixSplit =
+    (~fromDefinition, ~fromPath, ~targetDefinition, ~targetPath) => {
+  let rec walk = (defF, concF, defT, concT, shared) =>
+    switch (defF, concF, defT, concT) {
+    | ([df, ...defF], [cf, ...concF], [dt, ...defT], [ct, ...concT])
+        when df == dt && cf == ct =>
+      walk(defF, concF, defT, concT, [dt, ...shared])
+    | (_, _, remaining, _) => (List.rev(shared), remaining)
+    };
+
+  let (shared, sub) =
+    walk(
+      segments(fromDefinition),
+      segments(fromPath),
+      segments(targetDefinition),
+      segments(targetPath),
+      [],
+    );
+
+  /* When the target is fully shared (same location or an ancestor of the
+     committed branch), rerender its deepest level instead of nothing. */
+  let (shared, sub) =
+    switch (sub, List.rev(shared)) {
+    | ([], [last, ...restReversed]) => (List.rev(restReversed), [last])
+    | (sub, _) => (shared, sub)
+    };
+
+  switch (sub) {
+  | [] => None
+  | sub =>
+    let parent =
+      switch (shared) {
+      | [] => ""
+      | shared => "/" ++ String.concat("/", shared)
+      };
+    Some((parent, "/" ++ String.concat("/", sub)));
+  };
+};
+
+let maxNavigationFromLength = 2048;
+
+/**
+  * Interpret the SRR-Navigation-From header: same mount, sane length, and
+  * matching a known route definition. Anything else degrades to a full
+  * response — a stripped or foreign header must never produce a wrong patch.
+  */
+let navigationFrom = (~basePath, ~definitions, request) => {
+  switch (Dream.header(request, "SRR-Navigation-From")) {
+  | Some(from)
+      when
+        String.length(from) <= maxNavigationFromLength
+        && String.starts_with(from, ~prefix=basePath) =>
+    let fromPath =
+      switch (String.index_opt(from, '?')) {
+      | Some(queryStart) => String.sub(from, 0, queryStart)
+      | None => from
+      };
+    let relativePath =
+      String.sub(
+        fromPath,
+        String.length(basePath),
+        String.length(fromPath) - String.length(basePath),
+      );
+    matchDefinition(~definitions, relativePath)
+    |> Option.map(definition => (definition, relativePath));
+  | Some(_)
+  | None => None
+  };
+};
+
 let renderSubRouteModel =
     (
       ~request,
       ~parentRouteDefinition /* students */,
       ~subRouteDefinition /* :id */,
-      ~dynamicParams,
+      ~pathParams,
       ~globalLoading,
       ~notFound,
       routes,
@@ -412,18 +531,23 @@ let renderSubRouteModel =
          ~default=renderNotFound(~notFound, ~path=Dream.target(request)),
        );
 
-  DreamRSC.stream_model_value(
-    ~location=Dream.target(request),
-    React.Model.Element(
-      <NavigationResponse parentRoute dynamicParams>
-        element
-      </NavigationResponse>,
-    ),
-  );
+  let%lwt response =
+    DreamRSC.stream_model_value(
+      ~location=Dream.target(request),
+      React.Model.Element(
+        <Navigation parentRoute pathParams kind="patch"> element </Navigation>,
+      ),
+    );
+  Dream.set_header(response, "SRR-Response", "patch");
+  Dream.set_header(response, "Vary", "Accept");
+  /* Patches depend on SRR-Navigation-From; relying on Vary for that key is
+     unreliable across CDNs and its cardinality makes caching worthless. */
+  Dream.set_header(response, "Cache-Control", "private, no-store");
+  Lwt.return(response);
 };
 
 let renderRouteModel =
-    (~request, ~routeDefinition, ~dynamicParams, routeDefinitions) => {
+    (~request, ~routeDefinition, ~pathParams, routeDefinitions) => {
   let globalLoading = routeDefinitions.loading;
   let parentRoute = routeDefinition == "" ? "/" : routeDefinition;
   let pageconsumer = {
@@ -451,21 +575,25 @@ let renderRouteModel =
       },
     );
   };
-  DreamRSC.stream_model_value(
-    ~location=Dream.target(request),
-    React.Model.Element(
-      <NavigationResponse parentRoute dynamicParams>
-        <Route
-          path="/"
-          layout={renderMainLayout(
-            ~layoutOpt=routeDefinitions.layout,
-            ~children=<Route.PageConsumer />,
-          )}
-          pageconsumer
-        />
-      </NavigationResponse>,
-    ),
-  );
+  let%lwt response =
+    DreamRSC.stream_model_value(
+      ~location=Dream.target(request),
+      React.Model.Element(
+        <Navigation parentRoute pathParams kind="full">
+          <Route
+            path="/"
+            layout={renderMainLayout(
+              ~layoutOpt=routeDefinitions.layout,
+              ~children=<Route.PageConsumer />,
+            )}
+            pageconsumer
+          />
+        </Navigation>,
+      ),
+    );
+  Dream.set_header(response, "SRR-Response", "full");
+  Dream.set_header(response, "Vary", "Accept");
+  Lwt.return(response);
 };
 
 // Render full route HTML (for initial page load)
@@ -473,58 +601,64 @@ let renderRouteHtml =
     (
       ~request,
       ~routeDefinition,
-      ~dynamicParams,
+      ~pathParams,
+      ~registryFingerprint,
       ~bootstrapModules,
       ~document,
       routeDefinitions,
     ) => {
   let globalLoading = routeDefinitions.loading;
   let url = buildUrlFromRequest(request);
-  DreamRSC.stream_html(
-    ~bootstrapModules,
-    document(
-      ~children=
-        <Router serverUrl=url initialDynamicParams=dynamicParams>
-          <Route
-            /* MAIN ROUTE */
-            path="/"
-            layout={renderMainLayout(
-              ~layoutOpt=routeDefinitions.layout,
-              ~children=<Route.PageConsumer />,
-            )}
-            pageconsumer={
-                           let isRoot = routeDefinition ++ "/" == "/";
-                           Some(
-                             if (isRoot) {
-                               renderMainPage(
-                                 ~page=routeDefinitions.page,
-                                 ~globalLoading,
-                                 ~query=
-                                   Dream.all_queries(request)
-                                   |> Array.of_list
-                                   |> URL.SearchParams.makeWithArray,
-                               );
-                             } else {
-                               routeDefinitions.routes
-                               |> getRoute(
-                                    ~request,
-                                    ~definition=routeDefinition,
-                                    ~globalLoading,
-                                  )
-                               |> Option.value(
-                                    ~default=
-                                      renderNotFound(
-                                        ~notFound=routeDefinitions.notFound,
-                                        ~path=Dream.target(request),
-                                      ),
-                                  );
-                             },
-                           );
-                         }
-          />
-        </Router>,
-    ),
-  );
+  let%lwt response =
+    DreamRSC.stream_html(
+      ~bootstrapModules,
+      document(
+        ~children=
+          <Router
+            serverUrl=url initialPathParams=pathParams registryFingerprint>
+            <Route
+              /* MAIN ROUTE */
+              path="/"
+              layout={renderMainLayout(
+                ~layoutOpt=routeDefinitions.layout,
+                ~children=<Route.PageConsumer />,
+              )}
+              pageconsumer={
+                             let isRoot = routeDefinition ++ "/" == "/";
+                             Some(
+                               if (isRoot) {
+                                 renderMainPage(
+                                   ~page=routeDefinitions.page,
+                                   ~globalLoading,
+                                   ~query=
+                                     Dream.all_queries(request)
+                                     |> Array.of_list
+                                     |> URL.SearchParams.makeWithArray,
+                                 );
+                               } else {
+                                 routeDefinitions.routes
+                                 |> getRoute(
+                                      ~request,
+                                      ~definition=routeDefinition,
+                                      ~globalLoading,
+                                    )
+                                 |> Option.value(
+                                      ~default=
+                                        renderNotFound(
+                                          ~notFound=routeDefinitions.notFound,
+                                          ~path=Dream.target(request),
+                                        ),
+                                    );
+                               },
+                             );
+                           }
+            />
+          </Router>,
+      ),
+    );
+  /* The same URL serves HTML and flight payloads, negotiated by Accept. */
+  Dream.set_header(response, "Vary", "Accept");
+  Lwt.return(response);
 };
 
 let routeDefinitionsHandlers =
@@ -533,6 +667,8 @@ let routeDefinitionsHandlers =
     "/",
     ...generated_routes_paths(~routes=routeDefinitions.routes),
   ];
+  let registry =
+    registryFingerprint(~basePath, ~routes=routeDefinitions.routes);
 
   routesPaths
   |> List.map(path => {
@@ -553,88 +689,94 @@ let routeDefinitionsHandlers =
          handler(
            basePath ++ normalizedPath,
            request => {
-             let dynamicParams: DynamicParams.t =
+             let pathParams: PathParams.t =
                /**
                  * Route definition: /students/:id/grades/:grade_id
                  * Current path: /students/123/grades/456
-                 * Dynamic params: [("id", "123"), ("grade_id", "456")]
+                 * Path params: [("id", "123"), ("grade_id", "456")]
                  */
                normalizedPath
                |> String.split_on_char('/')
-               |> List.filter_map(extractDynamicParam(request))
+               |> List.filter_map(extractPathParam(request))
                |> Array.of_list;
 
-             switch (Dream.query(request, "toSubRoute")) {
-             | Some(subRoutePath) =>
-               /**
-                   * When the user navigates to a sub-route path (Example: /grades/456) from a parent route path (Example: /students/123), we need to find this sub-route definition (grades/:grade_id)
-                   * and the parent route definition (students/:id) so we can match it on the renderSubRouteModel function.
-                   * To find the sub-route definition, we need to find the index of the sub-route path in the current route definition from the subRoutePath.
-                   * Then split the current route definition into the sub-route definition and the parent route definition.
-                   * Request: https://localhost:3000/students/123/grades/456?toSubRoute=/grades/456
-                   * The toSubRoute means that from the current path, the user wants to navigate from /students/123 to /grades/456.
-                   * Route definition that matches the current path: /students/:id/grades/:grade_id (server-side only)
-                   * Sub-route target: ["grades", "456"] (?toSubRoute=/grades/456) -> Length: 2
-                   * Split ["students", ":id", "grades", ":grade_id"] into:
-                   * - ["students", ":id"] (parent route definition)
-                   * - ["grades", ":grade_id"] (sub-route definition)
-                   */
-               let subRoutePathnamesIndex =
-                 (normalizedPath |> String.split_on_char('/') |> List.length)
-                 - (subRoutePath |> String.split_on_char('/') |> List.length);
+             let isModelRequest =
+               Dream.header(request, "Accept")
+               == Some("application/react.component");
 
-               // Split the route definition into the parent route definition and the sub route definition
-               let (parentRouteDefinition, subRouteDefinition) =
-                 normalizedPath
-                 |> String.split_on_char('/')
-                 |> List.fold_left(
-                      ((parent, sub, remaining), segment) =>
-                        if (remaining > 0) {
-                          ([segment, ...parent], sub, remaining - 1);
-                        } else {
-                          (parent, [segment, ...sub], remaining);
-                        },
-                      ([], [], subRoutePathnamesIndex),
-                    )
-                 |> (
-                   ((parent, sub, _)) => (
-                     List.rev(parent) |> String.concat("/"),
-                     List.rev(sub) |> String.concat("/"),
-                   )
-                 );
-
-               renderSubRouteModel(
+             if (!isModelRequest) {
+               renderRouteHtml(
+                 ~bootstrapModules,
                  ~request,
-                 ~parentRouteDefinition,
-                 ~subRouteDefinition,
-                 ~dynamicParams,
-                 ~globalLoading=routeDefinitions.loading,
-                 ~notFound=routeDefinitions.notFound,
-                 routeDefinitions.routes,
+                 ~routeDefinition=normalizedPath,
+                 ~pathParams,
+                 ~registryFingerprint=registry,
+                 ~document,
+                 routeDefinitions,
                );
+             } else {
+               switch (Dream.header(request, "SRR-Registry")) {
+               | Some(clientRegistry) when clientRegistry != registry =>
+                 /* The hydrated client belongs to another deployment: it must
+                    reload rather than apply an incompatible payload. */
+                 Dream.respond(
+                   ~headers=[
+                     ("SRR-Response", "reload-required"),
+                     ("Vary", "Accept"),
+                     ("Cache-Control", "private, no-store"),
+                   ],
+                   "",
+                 )
+               | Some(_)
+               | None =>
+                 let renderFull = () =>
+                   routeDefinitions
+                   |> renderRouteModel(
+                        ~request,
+                        ~routeDefinition=normalizedPath,
+                        ~pathParams,
+                      );
 
-             | None =>
-               /* If the request has the header application/react.component, we render the full route as model */
-               let isModelRequest =
-                 Dream.header(request, "Accept")
-                 == Some("application/react.component");
+                 let targetPath = {
+                   let (target, _query) =
+                     Dream.target(request) |> Dream.split_target;
+                   String.sub(
+                     target,
+                     String.length(basePath),
+                     String.length(target) - String.length(basePath),
+                   );
+                 };
 
-               if (isModelRequest) {
-                 routeDefinitions
-                 |> renderRouteModel(
-                      ~request,
-                      ~routeDefinition=normalizedPath,
-                      ~dynamicParams,
-                    );
-               } else {
-                 renderRouteHtml(
-                   ~bootstrapModules,
-                   ~request,
-                   ~routeDefinition=normalizedPath,
-                   ~dynamicParams,
-                   ~document,
-                   routeDefinitions,
-                 );
+                 switch (
+                   navigationFrom(
+                     ~basePath,
+                     ~definitions=routesPaths,
+                     request,
+                   )
+                 ) {
+                 | None => renderFull()
+                 | Some((fromDefinition, fromPath)) =>
+                   switch (
+                     sharedPrefixSplit(
+                       ~fromDefinition,
+                       ~fromPath,
+                       ~targetDefinition=normalizedPath,
+                       ~targetPath,
+                     )
+                   ) {
+                   | None => renderFull()
+                   | Some((parentRouteDefinition, subRouteDefinition)) =>
+                     renderSubRouteModel(
+                       ~request,
+                       ~parentRouteDefinition,
+                       ~subRouteDefinition,
+                       ~pathParams,
+                       ~globalLoading=routeDefinitions.loading,
+                       ~notFound=routeDefinitions.notFound,
+                       routeDefinitions.routes,
+                     )
+                   }
+                 };
                };
              };
            },

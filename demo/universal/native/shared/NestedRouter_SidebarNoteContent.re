@@ -26,7 +26,7 @@ let make =
   let (isNavigating, startNavigating) = React.useTransition();
 
   let isActive =
-    switch (DynamicParams.find("id", params)) {
+    switch (PathParams.find("id", params)) {
     | Some(selectedId) => selectedId == Int.to_string(id)
     | None => false
     };

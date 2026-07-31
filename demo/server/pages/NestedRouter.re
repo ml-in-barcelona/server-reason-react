@@ -215,7 +215,7 @@ module NotePage = {
   [@react.component]
   let make = (~params, ~query as _) => {
     let selectedId =
-      DynamicParams.find("id", params) |> Option.map(int_of_string);
+      PathParams.find("id", params) |> Option.map(int_of_string);
     let isEditing = false;
     <React.Suspense fallback={<NoteSkeleton isEditing />}>
       <NestedRouter_NoteItem selectedId isEditing />
@@ -227,7 +227,7 @@ module EditNotePage = {
   [@react.component]
   let make = (~params, ~query as _) => {
     let selectedId =
-      DynamicParams.find("id", params) |> Option.map(int_of_string);
+      PathParams.find("id", params) |> Option.map(int_of_string);
     let isEditing = true;
     <React.Suspense fallback={<NoteSkeleton isEditing />}>
       <NestedRouter_NoteItem selectedId isEditing />
