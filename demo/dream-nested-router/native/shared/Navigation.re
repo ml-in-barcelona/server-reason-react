@@ -12,7 +12,6 @@ let internalContext: React.Context.t(option(navigationCallback)) =
 
 let internalProvider = React.Context.provider(internalContext);
 
-/* kind is "full" or "patch": the server decides, the client applies. */
 [@react.client.component]
 let make =
     (
