@@ -1,0 +1,24 @@
+(rule
+ (target React_compat.rei)
+ (action
+  (copy %{lib:reason-react:melange/React.rei} %{target})))
+
+(library
+ (name compat_interface_ppx)
+ (modules Compat_interface_ppx)
+ (libraries ppxlib)
+ (kind ppx_rewriter))
+
+(library
+ (name react_compat)
+ (modules React_compat)
+ (libraries
+  server-reason-react.react
+  server-reason-react.js
+  server-reason-react.dom)
+ (preprocess
+  (pps melange.ppx compat_interface_ppx)))
+
+(alias
+ (name runtest)
+ (deps react_compat.cma))

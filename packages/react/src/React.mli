@@ -72,6 +72,8 @@ module Event : sig
     val persist : 'a synthetic -> unit
   end
 
+  val toSyntheticEvent : 'a synthetic -> Synthetic.t
+
   module Clipboard : sig
     type tag
     type t = tag synthetic
@@ -583,6 +585,7 @@ module Model : sig
 end
 
 type ('props, 'return) componentLike = ?key:string -> 'props -> 'return
+and 'props component = ('props, element) componentLike
 
 and element =
   | Lower_case_element of lower_case_element
@@ -630,8 +633,16 @@ module Fragment : sig
   val make : (< children : element > Js.t, element) componentLike
 end
 
+module StrictMode : module type of Fragment
+
 val createElement : string -> JSX.prop list -> element list -> element
 val createElementWithKey : ?key:string -> string -> JSX.prop list -> element list -> element
+val component : 'props component -> 'props component
+val isValidElement : element -> bool
+val jsxKeyed : 'props component -> 'props -> ?key:string -> unit -> element
+val jsx : 'props component -> 'props -> element
+val jsxs : 'props component -> 'props -> element
+val jsxsKeyed : 'props component -> 'props -> ?key:string -> unit -> element
 val fragment : element -> element
 val cloneElement : element -> JSX.prop list -> element
 val string : string -> element
@@ -659,7 +670,7 @@ val createContext : 'a -> 'a Context.t
 
 module Suspense : sig
   val makeProps :
-    ?fallback:element -> ?children:element -> unit -> < fallback : element option ; children : element option > Js.t
+    ?children:element -> ?fallback:element -> unit -> < fallback : element option ; children : element option > Js.t
 
   val make : (< fallback : element option ; children : element option > Js.t, element) componentLike
 end
@@ -688,20 +699,31 @@ val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a
 val useMemo0 : (unit -> 'a) -> 'a
-val useMemo1 : (unit -> 'a) -> 'b -> 'a
-val useMemo2 : (unit -> 'a) -> 'b -> 'a
-val useMemo3 : (unit -> 'a) -> 'b -> 'a
-val useMemo4 : (unit -> 'a) -> 'b -> 'a
-val useMemo5 : (unit -> 'a) -> 'b -> 'a
-val useMemo6 : (unit -> 'a) -> 'b -> 'a
+val useMemo1 : (unit -> 'a) -> 'dependency array -> 'a
+val useMemo2 : (unit -> 'a) -> 'dependency1 * 'dependency2 -> 'a
+val useMemo3 : (unit -> 'a) -> 'dependency1 * 'dependency2 * 'dependency3 -> 'a
+val useMemo4 : (unit -> 'a) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 -> 'a
+val useMemo5 : (unit -> 'a) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 -> 'a
+
+val useMemo6 :
+  (unit -> 'a) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 -> 'a
+
+val useMemo7 :
+  (unit -> 'a) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 * 'dependency7 ->
+  'a
+
 val useCallback : 'a -> 'a
 val useCallback0 : 'a -> 'a
-val useCallback1 : 'a -> 'b -> 'a
-val useCallback2 : 'a -> 'b -> 'a
-val useCallback3 : 'a -> 'b -> 'a
-val useCallback4 : 'a -> 'b -> 'a
-val useCallback5 : 'a -> 'b -> 'a
-val useCallback6 : 'a -> 'b -> 'a
+val useCallback1 : 'a -> 'dependency array -> 'a
+val useCallback2 : 'a -> 'dependency1 * 'dependency2 -> 'a
+val useCallback3 : 'a -> 'dependency1 * 'dependency2 * 'dependency3 -> 'a
+val useCallback4 : 'a -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 -> 'a
+val useCallback5 : 'a -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 -> 'a
+val useCallback6 : 'a -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 -> 'a
+
+val useCallback7 :
+  'a -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 * 'dependency7 -> 'a
 
 module Tree_context : sig
   type t
@@ -727,10 +749,10 @@ val useId : unit -> string
     otherwise concurrent renders interleave at Lwt yields and produce hydration mismatches. *)
 
 type ('input, 'output) callback = 'input -> 'output
+type ('input, 'output) callbackAsync = 'input -> 'output Js.Promise.t
 
 val useSyncExternalStore :
   subscribe:((unit -> unit) -> (unit, unit) callback) -> getSnapshot:(unit -> 'snapshot) -> 'snapshot
-[@@deprecated "Use useSyncExternalStoreWithServer instead"]
 
 val useSyncExternalStoreWithServer :
   subscribe:((unit -> unit) -> (unit, unit) callback) ->
@@ -741,7 +763,7 @@ val useSyncExternalStoreWithServer :
 val useReducer : ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit)
 
 val useReducerWithMapState :
-  ('state -> 'action -> 'initialState) -> 'initialState -> ('initialState -> 'state) -> 'state * ('action -> unit)
+  ('state -> 'action -> 'state) -> 'initialState -> ('initialState -> 'state) -> 'state * ('action -> unit)
 
 val useEffect : (unit -> (unit -> unit) option) -> unit
 val useEffect0 : (unit -> (unit -> unit) option) -> unit
@@ -758,6 +780,34 @@ val useEffect6 :
   'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 ->
   unit
 
+val useEffect7 :
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 * 'dependency7 ->
+  unit
+
+val useInsertionEffect : (unit -> (unit -> unit) option) -> unit
+val useInsertionEffect0 : (unit -> (unit -> unit) option) -> unit
+val useInsertionEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit
+val useInsertionEffect2 : (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit
+val useInsertionEffect3 : (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 * 'dependency3 -> unit
+
+val useInsertionEffect4 :
+  (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 -> unit
+
+val useInsertionEffect5 :
+  (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 -> unit
+
+val useInsertionEffect6 :
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 ->
+  unit
+
+val useInsertionEffect7 :
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 * 'dependency7 ->
+  unit
+
+val useLayoutEffect : (unit -> (unit -> unit) option) -> unit
 val useLayoutEffect0 : (unit -> (unit -> unit) option) -> unit
 val useLayoutEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit
 val useLayoutEffect2 : (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit
@@ -773,6 +823,76 @@ val useLayoutEffect6 :
   (unit -> (unit -> unit) option) ->
   'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 ->
   unit
+
+val useLayoutEffect7 :
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 * 'dependency7 ->
+  unit
+
+val useImperativeHandle0 : 'value ref Js.Nullable.t -> (unit -> 'value) -> unit
+val useImperativeHandle1 : 'value ref Js.Nullable.t -> (unit -> 'value) -> 'dependency array -> unit
+val useImperativeHandle2 : 'value ref Js.Nullable.t -> (unit -> 'value) -> 'dependency1 * 'dependency2 -> unit
+
+val useImperativeHandle3 :
+  'value ref Js.Nullable.t -> (unit -> 'value) -> 'dependency1 * 'dependency2 * 'dependency3 -> unit
+
+val useImperativeHandle4 :
+  'value ref Js.Nullable.t -> (unit -> 'value) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 -> unit
+
+val useImperativeHandle5 :
+  'value ref Js.Nullable.t ->
+  (unit -> 'value) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 ->
+  unit
+
+val useImperativeHandle6 :
+  'value ref Js.Nullable.t ->
+  (unit -> 'value) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 ->
+  unit
+
+val useImperativeHandle7 :
+  'value ref Js.Nullable.t ->
+  (unit -> 'value) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 * 'dependency7 ->
+  unit
+
+module Uncurried : sig
+  type ('input, 'output) callback = ('input -> 'output) Js.Fn.arity1
+
+  val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit) Js.Fn.arity1
+  val useReducer : ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit) Js.Fn.arity1
+
+  val useReducerWithMapState :
+    ('state -> 'action -> 'state) ->
+    'initialState ->
+    ('initialState -> 'state) ->
+    'state * ('action -> unit) Js.Fn.arity1
+
+  val useCallback : ('input -> 'output) -> ('input, 'output) callback
+  val useCallback0 : ('input -> 'output) -> ('input, 'output) callback
+  val useCallback1 : ('input -> 'output) -> 'dependency array -> ('input, 'output) callback
+  val useCallback2 : ('input -> 'output) -> 'dependency1 * 'dependency2 -> ('input, 'output) callback
+  val useCallback3 : ('input -> 'output) -> 'dependency1 * 'dependency2 * 'dependency3 -> ('input, 'output) callback
+
+  val useCallback4 :
+    ('input -> 'output) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 -> ('input, 'output) callback
+
+  val useCallback5 :
+    ('input -> 'output) ->
+    'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 ->
+    ('input, 'output) callback
+
+  val useCallback6 :
+    ('input -> 'output) ->
+    'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 ->
+    ('input, 'output) callback
+
+  val useCallback7 :
+    ('input -> 'output) ->
+    'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 * 'dependency7 ->
+    ('input, 'output) callback
+end
 
 val setDisplayName : 'component -> string -> unit
 
@@ -794,5 +914,10 @@ module Experimental : sig
 end
 
 val useTransition : unit -> bool * ((unit -> unit) -> unit)
-val useDebugValue : 'value -> ?format:('value -> string) -> unit
+val startTransition : (unit -> unit) -> unit
+val useTransitionAsync : unit -> bool * ((unit -> unit) -> unit Js.Promise.t)
+val act : (unit -> unit) -> unit Js.Promise.t
+val actAsync : (unit -> unit Js.Promise.t) -> unit Js.Promise.t
+val displayName : 'props component -> string option
+val useDebugValue : 'value -> ?format:('value -> string) -> unit -> unit
 val useDeferredValue : 'value -> 'value

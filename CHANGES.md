@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Keep the native `React` interface checked against `reason-react >= 0.17.0` at build time, with explicit exclusions for renderer-specific APIs. Add the missing server-safe React APIs, including JSX runtime helpers, `StrictMode`, hook arity 7, insertion effects, imperative handles, uncurried hooks, transitions, and `act` by @davesnx
+* Breaking: align `React.Suspense.makeProps`, `useMemo*`, `useCallback*`, `useReducerWithMapState`, and `useDebugValue` signatures with `reason-react` 0.17. Labelled calls to `Suspense.makeProps` are unchanged; `useDebugValue` now requires a trailing `()` by @davesnx
 * Breaking: `ReactDOM.renderToStream`, `ReactServerDOM.render_html`, `ReactServerDOM.render_model`, `ReactServerDOM.render_model_value` and `ReactServerDOM.create_action_response` now default `?env` to `` `Prod`` instead of `` `Dev``, so component error messages and backtraces are no longer serialized into the HTML/RSC payload unless explicitly requested. Pass ``~env:`Dev`` to restore the previous behavior by @davesnx
 
 ## 0.5.1

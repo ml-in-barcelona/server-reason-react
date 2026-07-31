@@ -71,7 +71,7 @@ module Event = struct
     let persist : 'a synthetic -> unit = fun _ -> fail "Synthetic.persist"
   end
 
-  (* let toSyntheticEvent : 'a synthetic -> Synthetic.t = i -> i *)
+  let toSyntheticEvent : 'a synthetic -> Synthetic.t = fun _ -> fail "toSyntheticEvent"
 
   module Clipboard = struct
     type tag
@@ -402,6 +402,7 @@ module Model = struct
 end
 
 type ('props, 'return) componentLike = ?key:string -> 'props -> 'return
+and 'props component = ('props, element) componentLike
 
 and element =
   | Lower_case_element of lower_case_element
@@ -495,6 +496,18 @@ let create_element_with_key ?key tag attributes children =
 
 let createElement = create_element_with_key ?key:None
 let createElementWithKey = create_element_with_key
+let component component = component
+
+let isValidElement = function
+  | Text _ | Int _ | Float _ | List _ | Array _ | Empty -> false
+  | Lower_case_element _ | Upper_case_component _ | Async_component _ | Client_component _ | Static _ | Writer _
+  | Fragment _ | Provider _ | Consumer _ | Suspense _ ->
+      true
+
+let jsxKeyed component props ?key () = component ?key props
+let jsx (component : 'props component) props = component ?key:None props
+let jsxs = jsx
+let jsxsKeyed = jsxKeyed
 
 let clone_component_error name =
   Printf.sprintf
@@ -529,6 +542,8 @@ module Fragment = struct
 
   let make ?key:_ props = Fragment props#children
 end
+
+module StrictMode = Fragment
 
 let fragment children = Fragment.make (Fragment.makeProps ~children ())
 
@@ -581,7 +596,7 @@ let createContext (initial_value : 'a) : 'a Context.t =
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
-  let makeProps ?fallback ?children () : < fallback : element option ; children : element option > Js.t =
+  let makeProps ?children ?fallback () : < fallback : element option ; children : element option > Js.t =
     object
       method fallback = fallback
       method children = children
@@ -664,6 +679,7 @@ let useState (make_initial_value : unit -> 'state) =
   (initial_value, setState)
 
 type ('input, 'output) callback = 'input -> 'output
+type ('input, 'output) callbackAsync = 'input -> 'output Js.Promise.t
 
 let useSyncExternalStore ~subscribe:_ ~getSnapshot = getSnapshot ()
 let useSyncExternalStoreWithServer ~subscribe:_ ~getSnapshot:_ ~getServerSnapshot = getServerSnapshot ()
@@ -806,6 +822,7 @@ let useMemo3 fn _ = fn ()
 let useMemo4 fn _ = fn ()
 let useMemo5 fn _ = fn ()
 let useMemo6 fn _ = fn ()
+let useMemo7 fn _ = fn ()
 let useCallback fn = fn
 let useCallback0 fn = fn
 let useCallback1 fn _ = fn
@@ -814,6 +831,7 @@ let useCallback3 fn _ = fn
 let useCallback4 fn _ = fn
 let useCallback5 fn _ = fn
 let useCallback6 fn _ = fn
+let useCallback7 fn _ = fn
 let useReducer _ s = (s, fun _ -> ())
 let useReducerWithMapState _ s mapper = (mapper s, fun _ -> ())
 let useEffect _ = ()
@@ -824,6 +842,17 @@ let useEffect3 _ _ = ()
 let useEffect4 _ _ = ()
 let useEffect5 _ _ = ()
 let useEffect6 _ _ = ()
+let useEffect7 _ _ = ()
+let useInsertionEffect _ = ()
+let useInsertionEffect0 _ = ()
+let useInsertionEffect1 _ _ = ()
+let useInsertionEffect2 _ _ = ()
+let useInsertionEffect3 _ _ = ()
+let useInsertionEffect4 _ _ = ()
+let useInsertionEffect5 _ _ = ()
+let useInsertionEffect6 _ _ = ()
+let useInsertionEffect7 _ _ = ()
+let useLayoutEffect _ = ()
 let useLayoutEffect0 _ = ()
 let useLayoutEffect1 _ _ = ()
 let useLayoutEffect2 _ _ = ()
@@ -831,6 +860,43 @@ let useLayoutEffect3 _ _ = ()
 let useLayoutEffect4 _ _ = ()
 let useLayoutEffect5 _ _ = ()
 let useLayoutEffect6 _ _ = ()
+let useLayoutEffect7 _ _ = ()
+let useImperativeHandle0 _ _ = ()
+let useImperativeHandle1 _ _ _ = ()
+let useImperativeHandle2 _ _ _ = ()
+let useImperativeHandle3 _ _ _ = ()
+let useImperativeHandle4 _ _ _ = ()
+let useImperativeHandle5 _ _ _ = ()
+let useImperativeHandle6 _ _ _ = ()
+let useImperativeHandle7 _ _ _ = ()
+
+module Uncurried = struct
+  type ('input, 'output) callback = ('input -> 'output) Js.Fn.arity1
+
+  let wrap callback = { Js.Fn.i1 = callback }
+
+  let useState make_initial_value =
+    let state, set_state = useState make_initial_value in
+    (state, wrap set_state)
+
+  let useReducer reducer state =
+    let state, dispatch = useReducer reducer state in
+    (state, wrap dispatch)
+
+  let useReducerWithMapState reducer state mapper =
+    let state, dispatch = useReducerWithMapState reducer state mapper in
+    (state, wrap dispatch)
+
+  let useCallback callback = wrap callback
+  let useCallback0 callback = wrap callback
+  let useCallback1 callback _ = wrap callback
+  let useCallback2 callback _ = wrap callback
+  let useCallback3 callback _ = wrap callback
+  let useCallback4 callback _ = wrap callback
+  let useCallback5 callback _ = wrap callback
+  let useCallback6 callback _ = wrap callback
+  let useCallback7 callback _ = wrap callback
+end
 
 module Children = struct
   let map element fn =
@@ -882,8 +948,19 @@ module Children = struct
 end
 
 let setDisplayName _ _ = ()
+let displayName _ = None
+let startTransition callback = callback ()
 let useTransition () = (false, fun (_cb : unit -> unit) -> ())
-let useDebugValue : 'value -> ?format:('value -> string) -> unit = fun[@warning "-16"] _ ?format:_ -> ()
+
+let useTransitionAsync () =
+  ( false,
+    fun callback ->
+      callback ();
+      Js.Promise.resolve () )
+
+let act callback = callback () |> Js.Promise.resolve
+let actAsync callback = callback ()
+let useDebugValue _ ?format:_ () = ()
 let useDeferredValue value = value
 
 (* `exception Suspend of 'a Lwt`
