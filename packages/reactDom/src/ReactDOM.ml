@@ -1,5 +1,5 @@
 module Style = ReactDOMStyle
-module Ref = React.Ref
+module Ref = React.DOMRef
 
 type domRef = Ref.t
 

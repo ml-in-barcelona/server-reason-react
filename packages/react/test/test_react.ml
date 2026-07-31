@@ -73,6 +73,22 @@ let async_transition_runs_callback () =
   let _promise = start_transition (fun () -> transitioned := true) in
   Alcotest.(check bool) "runs the transition callback" true !transitioned
 
+let compatible_ref_and_forward_ref () =
+  let ref = React.useRef "initial" in
+  assert_string (React.Ref.current ref) "initial";
+  React.Ref.setCurrent ref "updated";
+  assert_string ref.current "updated";
+  let component = React.forwardRef (fun text _ref -> React.string text) in
+  assert_string (ReactDOM.renderToStaticMarkup (React.jsx component "forwarded")) "forwarded"
+
+let experimental_hooks () =
+  let state, set_optimistic = React.Experimental.useOptimistic "initial" (fun _state value -> value) in
+  set_optimistic "updated";
+  assert_string state "initial";
+  let state, _action, pending = React.Experimental.useActionState (fun _state _form_data -> ()) "initial" in
+  assert_string state "initial";
+  Alcotest.(check bool) "is not pending" false pending
+
 module Gap = struct
   let make ~children =
     React.Children.map children (fun element ->
@@ -423,6 +439,8 @@ let tests =
       test "compatibility rendering helpers" compatibility_rendering_helpers;
       test "isValidElement" is_valid_element;
       test "async transition runs callback" async_transition_runs_callback;
+      test "compatible Ref and forwardRef" compatible_ref_and_forward_ref;
+      test "experimental hooks" experimental_hooks;
       test "Children.map" children_map_one_element;
       test "Children.map" children_map_list_element;
       test "useRef" use_ref_works;

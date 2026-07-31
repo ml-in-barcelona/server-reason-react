@@ -2,6 +2,13 @@ type 'value ref = { mutable current : 'value }
 type domRef = CallbackDomRef of (Dom.element Js.nullable -> unit) | CurrentDomRef of Dom.element Js.nullable ref
 
 module Ref = struct
+  type 'value t = 'value ref
+
+  let current ref = ref.current
+  let setCurrent ref value = ref.current <- value
+end
+
+module DOMRef = struct
   type t = domRef
   type currentDomRef = Dom.element Js.nullable ref
   type callbackDomRef = Dom.element Js.nullable -> unit
@@ -12,7 +19,6 @@ end
 
 let createRef () = { current = None }
 let useRef value = { current = value }
-let forwardRef f = f ()
 
 module Event = struct
   type 'a synthetic
@@ -172,8 +178,7 @@ module Event = struct
     end)
 
     let detail : t -> int = fun _ -> fail "Pointer.detail"
-
-    (* let view : t -> Dom.window *)
+    let view : t -> Dom.window = fun _ -> fail "Pointer.view"
     let screenX : t -> int = fun _ -> fail "Pointer.screenX"
     let screenY : t -> int = fun _ -> fail "Pointer.screenY"
     let clientX : t -> int = fun _ -> fail "Pointer.clientX"
@@ -190,8 +195,7 @@ module Event = struct
     let button : t -> int = fun _ -> fail "Pointer.button"
     let buttons : t -> int = fun _ -> fail "Pointer.buttons"
     let relatedTarget : t -> target_like option = fun _ -> fail "Pointer.relatedTarget"
-
-    (* let pointerId : t -> Dom.eventPointerId *)
+    let pointerId : t -> Dom.eventPointerId = fun _ -> fail "Pointer.pointerId"
     let width : t -> float = fun _ -> fail "Pointer.width"
     let height : t -> float = fun _ -> fail "Pointer.height"
     let pressure : t -> float = fun _ -> fail "Pointer.pressure"
@@ -239,7 +243,7 @@ module Event = struct
     end)
 
     let detail : t -> int = fun _ -> fail "UI.detail"
-    (* let view : t -> Dom.window *)
+    let view : t -> Dom.window = fun _ -> fail "UI.view"
   end
 
   module Wheel = struct
@@ -356,7 +360,7 @@ module JSX = struct
     | Float of (string * string * float)
     | Style of (string * string * string) list
     | DangerouslyInnerHtml of string
-    | Ref of Ref.t
+    | Ref of domRef
     | Event of string * event
 
   let bool name jsxName value = Bool (name, jsxName, value)
@@ -441,6 +445,8 @@ and element =
 and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
 and client_props = (string * element Model.t) list
 and model_value = element Model.t
+
+let forwardRef render ?key:_ props = render props Js.Nullable.null
 
 exception Invalid_children of string
 
@@ -972,6 +978,8 @@ exception Suspend of any_promise
 let suspend promise = raise (Suspend (Any_promise promise))
 
 module Experimental = struct
+  type formAction = unit
+
   let usePromise promise =
     match Lwt.state promise with
     | Sleep -> suspend promise
@@ -979,5 +987,9 @@ module Experimental = struct
     | Fail e -> raise e
     | Return v -> v
 
-  let useActionState ?permalink:_ _action state = (state, (), false)
+  let promise = usePromise
+  let useContext = useContext
+  let useOptimistic state _update = (state, fun _ -> ())
+  let useTransitionAsync () = (false, fun callback -> callback ())
+  let useActionState _action state = (state, (), false)
 end

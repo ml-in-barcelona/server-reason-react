@@ -1,5 +1,7 @@
 (rule
  (target React_compat.rei)
+ (enabled_if
+  (= %{profile} react-compat))
  (action
   (copy %{lib:reason-react:melange/React.rei} %{target})))
 
@@ -7,6 +9,8 @@
  (name compat_interface_ppx)
  (modules Compat_interface_ppx)
  (libraries ppxlib)
+ (enabled_if
+  (= %{profile} react-compat))
  (kind ppx_rewriter))
 
 (library
@@ -16,9 +20,7 @@
   server-reason-react.react
   server-reason-react.js
   server-reason-react.dom)
+ (enabled_if
+  (= %{profile} react-compat))
  (preprocess
   (pps melange.ppx compat_interface_ppx)))
-
-(alias
- (name runtest)
- (deps react_compat.cma))

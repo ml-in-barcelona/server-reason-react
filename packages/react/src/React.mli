@@ -4,6 +4,13 @@ type domRef
 type 'value ref = { mutable current : 'value }
 
 module Ref : sig
+  type 'value t = 'value ref
+
+  val current : 'value ref -> 'value
+  val setCurrent : 'value ref -> 'value -> unit
+end
+
+module DOMRef : sig
   type t = domRef
   type currentDomRef = Dom.element Js.nullable ref
   type callbackDomRef = Dom.element Js.nullable -> unit
@@ -14,7 +21,6 @@ end
 
 val createRef : unit -> 'a option ref
 val useRef : 'a -> 'a ref
-val forwardRef : (unit -> 'a) -> 'a
 
 module Event : sig
   type 'a synthetic
@@ -251,6 +257,7 @@ module Event : sig
     val type_ : t -> string
     val persist : t -> unit
     val detail : t -> int
+    val view : t -> Dom.window
     val screenX : t -> int
     val screenY : t -> int
     val clientX : t -> int
@@ -267,6 +274,7 @@ module Event : sig
     val button : t -> int
     val buttons : t -> int
     val relatedTarget : t -> target_like option
+    val pointerId : t -> Dom.eventPointerId
     val width : t -> float
     val height : t -> float
     val pressure : t -> float
@@ -348,6 +356,7 @@ module Event : sig
     val type_ : t -> string
     val persist : t -> unit
     val detail : t -> int
+    val view : t -> Dom.window
   end
 
   module Wheel : sig
@@ -625,6 +634,8 @@ and element =
 and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
 and client_props = (string * element Model.t) list
 and model_value = element Model.t
+
+val forwardRef : ('props -> 'value ref Js.Nullable.t -> element) -> 'props component
 
 exception Invalid_children of string
 
@@ -909,8 +920,14 @@ end
 val suspend : 'a Lwt.t -> unit
 
 module Experimental : sig
+  type formAction
+
+  val promise : element Js.Promise.t -> element
   val usePromise : 'a Lwt.t -> 'a
-  val useActionState : ?permalink:string -> 'action -> 'state -> 'state * unit * bool
+  val useContext : 'a Context.t -> 'a
+  val useOptimistic : 'state -> ('state -> 'optimistic_value -> 'state) -> 'state * ('optimistic_value -> unit)
+  val useTransitionAsync : unit -> bool * ((unit -> unit Js.Promise.t) -> unit Js.Promise.t)
+  val useActionState : ('state -> Js.FormData.t -> unit) -> 'state -> 'state * formAction * bool
 end
 
 val useTransition : unit -> bool * ((unit -> unit) -> unit)
