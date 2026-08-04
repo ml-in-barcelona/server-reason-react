@@ -86,6 +86,8 @@ let with_render_context = (request, f) =>
     Lwt.with_value(RequestContext.phase_key, Some(RequestContext.Render), f)
   );
 
+let withRequestContext = (request, f) => with_render_context(request, f);
+
 let with_action_context = (request, f) => {
   let pending = ref([]);
   let run = () =>
@@ -281,13 +283,34 @@ let streamFunctionResponse = (~debug=false, ~lookup, request) => {
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
 
-let stream_model_value = (~debug=false, ~location, app) =>
+let merge_headers = (defaults, overrides) =>
+  defaults
+  |> List.filter(((name, _)) =>
+       !
+         List.exists(
+           ((override_name, _)) =>
+             String.equal(
+               String.lowercase_ascii(name),
+               String.lowercase_ascii(override_name),
+             ),
+           overrides,
+         )
+     )
+  |> List.append(overrides);
+
+let stream_model_value =
+    (~debug=false, ~code=200, ~headers=[], ~location, app) =>
   Dream.stream(
-    ~headers=[
-      ("Content-Type", "application/react.component"),
-      ("X-Content-Type-Options", "nosniff"),
-      ("X-Location", location),
-    ],
+    ~code,
+    ~headers=
+      merge_headers(
+        [
+          ("Content-Type", "application/react.component"),
+          ("X-Content-Type-Options", "nosniff"),
+          ("X-Location", location),
+        ],
+        headers,
+      ),
     stream => {
       let%lwt () =
         ReactServerDOM.render_model_value(
@@ -309,12 +332,20 @@ let stream_model_value = (~debug=false, ~location, app) =>
     },
   );
 
-let stream_model = (~debug=false, ~location, app) =>
-  stream_model_value(~debug, ~location, React.Model.Element(app));
+let stream_model = (~debug=false, ~code=200, ~headers=[], ~location, app) =>
+  stream_model_value(
+    ~debug,
+    ~code,
+    ~headers,
+    ~location,
+    React.Model.Element(app),
+  );
 
 let stream_html =
     (
       ~debug=false,
+      ~code=200,
+      ~headers=[],
       ~skipRoot=false,
       ~bootstrapScriptContent=?,
       ~bootstrapScripts=[],
@@ -322,7 +353,8 @@ let stream_html =
       app,
     ) => {
   Dream.stream(
-    ~headers=[("Content-Type", "text/html")],
+    ~code,
+    ~headers=merge_headers([("Content-Type", "text/html")], headers),
     stream => {
       let%lwt (html, subscribe) =
         ReactServerDOM.render_html(

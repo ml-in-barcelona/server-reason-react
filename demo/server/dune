@@ -8,8 +8,12 @@
   dream
   dream_rsc
   demo_shared_native
-  nested_router_native
+  demo_nested_router_native
+  dream_router_adapter
   server-reason-react.url_native
+  server-reason-react.router-runtime-native
+  server-reason-react.router-server
+  server-reason-react.rsc-native
   react
   reactDOM
   html

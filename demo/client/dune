@@ -18,7 +18,8 @@
   melange-webapi
   melange-fetch
   demo_shared_js
-  nested_router_js)
+  demo_nested_router_js
+  server-reason-react.router-react)
  (preprocess
   (pps browser_ppx -js reason-react-ppx melange.ppx)))
 

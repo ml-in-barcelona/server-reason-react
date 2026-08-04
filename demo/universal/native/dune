@@ -20,7 +20,6 @@
   str
   lwt
   lwt.unix
-  nested_router_native
   dream_rsc)
  (wrapped false)
  (preprocess

@@ -1,0 +1,40 @@
+(library
+ (name router_cycle_js)
+ (modules Client Filter NoteId Router RouterReact WorkspaceId)
+ (modes melange)
+ (wrapped false)
+ (libraries reason-react server-reason-react.router-runtime)
+ (preprocess
+  (pps melange.ppx)))
+
+(melange.emit
+ (target test_cycle_js)
+ (modules TestCycleJs)
+ (module_systems commonjs)
+ (libraries router_cycle_js))
+
+(rule
+ (alias runtest)
+ (deps
+  (alias melange)
+  (:test test_cycle_js/packages/router/test/cycle/js/TestCycleJs.js))
+ (action
+  (setenv
+   NODE_PATH
+   %{workspace_root}/demo/client/node_modules
+   (run node %{test}))))
+
+(copy_files
+ (files ../shared/NoteId.re))
+
+(copy_files
+ (files ../shared/Router.re))
+
+(copy_files
+ (files ../shared/Router.rei))
+
+(copy_files
+ (files ../shared/WorkspaceId.re))
+
+(copy_files
+ (files ../shared/Filter.re))

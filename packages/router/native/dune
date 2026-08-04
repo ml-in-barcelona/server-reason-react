@@ -1,0 +1,5 @@
+(library
+ (name router_server)
+ (public_name server-reason-react.router-server)
+ (wrapped false)
+ (libraries lwt server-reason-react.router-runtime-native uri))

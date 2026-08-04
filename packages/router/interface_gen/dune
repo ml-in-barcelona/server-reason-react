@@ -1,0 +1,4 @@
+(executable
+ (name router_interface_gen)
+ (public_name server-reason-react.router-interface-gen)
+ (libraries ppxlib ppxlib.astlib router_ppx_common))

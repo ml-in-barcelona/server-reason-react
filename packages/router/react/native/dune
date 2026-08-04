@@ -1,0 +1,22 @@
+(library
+ (name router_react_native)
+ (public_name server-reason-react.router-react-native)
+ (wrapped false)
+ (libraries
+  server-reason-react.js
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.router-runtime-native
+  server-reason-react.rsc-native
+  uri)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -shared-folder-prefix=/native/
+   server-reason-react.rsc-native.ppx)))
+
+(copy_files
+ (files ../shared/RouterReact.rei))
+
+(copy_files
+ (files ../shared/RouterOutlet.re))

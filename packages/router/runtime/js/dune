@@ -1,0 +1,14 @@
+(library
+ (name router_runtime_js)
+ (public_name server-reason-react.router-runtime)
+ (modes melange)
+ (wrapped false)
+ (libraries melange.js)
+ (preprocess
+  (pps melange.ppx)))
+
+(copy_files
+ (files ../shared/RouterTypes.re))
+
+(copy_files
+ (files ../shared/RouterTypes.rei))

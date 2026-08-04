@@ -1,0 +1,8 @@
+(cram
+ (package server-reason-react)
+ (enabled_if
+  (>= %{ocaml_version} 5.2.0))
+ (deps
+  %{bin:refmt}
+  %{bin:server-reason-react.router-interface-gen}
+  %{bin:server-reason-react.router-source-gen}))

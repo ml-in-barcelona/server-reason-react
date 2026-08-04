@@ -1,0 +1,26 @@
+(library
+ (name dream_router_adapter)
+ (modules DreamRouterAdapter)
+ (wrapped false)
+ (libraries
+  dream
+  dream_rsc
+  lwt
+  server-reason-react.router-runtime-native
+  server-reason-react.router-server))
+
+(test
+ (name test_dream_router_adapter)
+ (enabled_if
+  (= %{profile} dev))
+ (modules Test_dream_router_adapter)
+ (libraries
+  alcotest
+  dream
+  dream_router_adapter
+  dream_rsc
+  lwt
+  lwt.unix
+  react
+  server-reason-react.router-runtime-native
+  server-reason-react.router-server))

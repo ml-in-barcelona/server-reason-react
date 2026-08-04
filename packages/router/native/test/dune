@@ -1,0 +1,8 @@
+(test
+ (name test_router_server)
+ (libraries
+  alcotest
+  lwt
+  lwt.unix
+  server-reason-react.router-runtime-native
+  server-reason-react.router-server))

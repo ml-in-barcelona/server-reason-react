@@ -1,23 +1,5 @@
 open Lwt.Syntax;
 
-let is_substring = (a, b) => {
-  let len_a = String.length(a);
-  let len_b = String.length(b);
-  if (len_a > len_b) {
-    false;
-  } else {
-    let rec check = start =>
-      if (start > len_b - len_a) {
-        false;
-      } else if (String.sub(b, start, len_a) == a) {
-        true;
-      } else {
-        check(start + 1);
-      };
-    check(0);
-  };
-};
-
 [@react.async.component]
 let make = (~searchText: string, ~sleep: option(float)) => {
   let+ notes = DB.readNotes(~sleep, ());
@@ -38,9 +20,9 @@ let make = (~searchText: string, ~sleep: option(float)) => {
     <ul className="mt-8">
       {notes
        |> List.filter((note: Note.t) =>
-            is_substring(
-              String.lowercase_ascii(searchText),
-              String.lowercase_ascii(note.title),
+            TextSearch.contains(
+              ~needle=String.lowercase_ascii(searchText),
+              ~haystack=String.lowercase_ascii(note.title),
             )
           )
        |> List.map((note: Note.t) =>

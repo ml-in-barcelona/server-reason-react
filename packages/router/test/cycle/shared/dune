@@ -1,0 +1,23 @@
+(rule
+ (targets Router.re Router.rei RouterRegistry.re)
+ (deps RouterDefinition.re)
+ (action
+  (progn
+   (with-stdout-to
+    Router.re
+    (pipe-outputs
+     (run %{bin:refmt} --parse re --print ml %{dep:RouterDefinition.re})
+     (run %{bin:server-reason-react.router-source-gen} --mode handles)
+     (run %{bin:refmt} --parse ml --print re)))
+   (with-stdout-to
+    Router.rei
+    (pipe-outputs
+     (run %{bin:refmt} --parse re --print ml %{dep:RouterDefinition.re})
+     (run %{bin:server-reason-react.router-interface-gen})
+     (run %{bin:refmt} --parse ml --print re --interface true)))
+   (with-stdout-to
+    RouterRegistry.re
+    (pipe-outputs
+     (run %{bin:refmt} --parse re --print ml %{dep:RouterDefinition.re})
+     (run %{bin:server-reason-react.router-source-gen} --mode registry)
+     (run %{bin:refmt} --parse ml --print re))))))

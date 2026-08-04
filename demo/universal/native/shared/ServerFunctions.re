@@ -25,8 +25,10 @@ module Notes = {
 
   [@react.server.function]
   let delete_ = (~id: int): Js.Promise.t(string) => {
-    let _ = DB.deleteNote(id);
-    Lwt.return("Note deleted");
+    switch%lwt (DB.deleteNote(id)) {
+    | Ok(_) => Lwt.return("Note deleted")
+    | Error(error) => Lwt.fail_with(error)
+    };
   };
 };
 
@@ -37,13 +39,7 @@ let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
 
 [@react.server.function]
 let error = (): Js.Promise.t(string) => {
-  // Uncomment to see that it also works with Lwt.fail
-  Lwt.fail(
-    failwith("Error from server"),
-    // failwith(
-    //   "Error from server",
-    // );
-  );
+  Lwt.fail(failwith("Error from server"));
 };
 
 [@react.server.function]

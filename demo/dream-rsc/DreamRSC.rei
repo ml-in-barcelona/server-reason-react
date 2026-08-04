@@ -50,6 +50,11 @@ module RequestContext: {
     unit;
 };
 
+/** Run [f] with render-phase request context installed for the full lifetime
+    of its returned promise. */
+let withRequestContext:
+  (Dream.request, unit => Lwt.t('value)) => Lwt.t('value);
+
 /** {1 Streaming} */;
 
 /** Render a React element as a full HTML page or RSC model stream,
@@ -89,18 +94,33 @@ let streamFunctionResponse:
 
 /** Stream a [React.model_value] as an RSC model response. */
 let stream_model_value:
-  (~debug: bool=?, ~location: string, React.model_value) =>
+  (
+    ~debug: bool=?,
+    ~code: int=?,
+    ~headers: list((string, string))=?,
+    ~location: string,
+    React.model_value
+  ) =>
   Lwt.t(Dream.response);
 
 /** Stream a [React.element] as an RSC model response. */
 let stream_model:
-  (~debug: bool=?, ~location: string, React.element) => Lwt.t(Dream.response);
+  (
+    ~debug: bool=?,
+    ~code: int=?,
+    ~headers: list((string, string))=?,
+    ~location: string,
+    React.element
+  ) =>
+  Lwt.t(Dream.response);
 
 /** Stream a [React.element] as an HTML response with optional
     bootstrap scripts for client hydration. */
 let stream_html:
   (
     ~debug: bool=?,
+    ~code: int=?,
+    ~headers: list((string, string))=?,
     ~skipRoot: bool=?,
     ~bootstrapScriptContent: string=?,
     ~bootstrapScripts: list(string)=?,
