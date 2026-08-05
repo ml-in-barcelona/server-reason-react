@@ -7,17 +7,32 @@
     Router.re
     (pipe-outputs
      (run %{bin:refmt} --parse re --print ml %{dep:RouterDefinition.re})
-     (run %{bin:server-reason-react.router-source-gen} --mode handles)
+     (run
+      %{bin:server-reason-react.router-gen}
+      --mode
+      handles
+      --source
+      %{dep:RouterDefinition.re})
      (run %{bin:refmt} --parse ml --print re)))
    (with-stdout-to
     Router.rei
     (pipe-outputs
      (run %{bin:refmt} --parse re --print ml %{dep:RouterDefinition.re})
-     (run %{bin:server-reason-react.router-interface-gen})
+     (run
+      %{bin:server-reason-react.router-gen}
+      --mode
+      interface
+      --source
+      %{dep:RouterDefinition.re})
      (run %{bin:refmt} --parse ml --print re --interface true)))
    (with-stdout-to
     RouterRegistry.re
     (pipe-outputs
      (run %{bin:refmt} --parse re --print ml %{dep:RouterDefinition.re})
-     (run %{bin:server-reason-react.router-source-gen} --mode registry)
+     (run
+      %{bin:server-reason-react.router-gen}
+      --mode
+      registry
+      --source
+      %{dep:RouterDefinition.re})
      (run %{bin:refmt} --parse ml --print re))))))
