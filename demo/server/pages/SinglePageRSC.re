@@ -336,7 +336,7 @@ module App = {
 };
 
 let handler = request =>
-  DreamRSC.createFromRequest(
+  DreamRouter.createFromRequest(
     ~debug=Sys.getenv_opt("DEMO_ENV") == Some("development"),
     ~bootstrapModules=["/static/demo/SinglePageRSC.re.js"],
     ~layout=

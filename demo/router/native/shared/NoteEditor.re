@@ -1,12 +1,16 @@
-[@warning "-26-27-32"];
-
 [@react.client.component]
 let make =
-    (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
-  let navigate = DummyClientRouter.useNavigate();
+    (~id: option(NoteId.t), ~initialTitle: string, ~initialBody: string) => {
+  let (navigate, navigation) = Router.useNavigation();
+  let { Router.searchText } = Router.useSearch();
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
-  let (isNavigating, startNavigating) = React.useTransition();
+  let isNavigating =
+    switch (navigation) {
+    | Router.Navigation.Loading(_) => true
+    | Router.Navigation.Idle
+    | Router.Navigation.Failed(_) => false
+    };
 
   let%browser_only onChangeTitle = e => {
     let newValue = React.Event.Form.target(e)##value;
@@ -27,38 +31,48 @@ let make =
       <Textarea rows=10 value=body onChange=onChangeBody />
     </form>
     <div className="flex flex-col gap-4">
-      <div className="flex flex-row gap-2" role="menubar">
+      <div className="flex flex-row gap-2">
         <button
           className=Theme.button
           disabled=isNavigating
           onClick=[%browser_only
             _ => {
               let action =
-                switch (noteId) {
+                switch (id) {
                 | Some(id) =>
-                  ServerFunctions.Notes.edit.call(~id, ~title, ~content=body)
+                  ServerFunctions.Notes.edit.call(
+                    ~id=NoteId.toInt(id),
+                    ~title,
+                    ~content=body,
+                  )
                 | None =>
                   ServerFunctions.Notes.create.call(~title, ~content=body)
                 };
 
               action
               |> Js.Promise.then_((result: Note.t) => {
-                   let id = result.id;
-                   navigate({
-                     selectedId: Some(id),
-                     isEditing: false,
-                     searchText: None,
-                   });
+                   switch (navigate) {
+                   | Some(navigate) =>
+                     navigate(
+                       ~revalidate=true,
+                       Router.Note.destination(
+                         ~id=NoteId.ofInt(result.id),
+                         ~searchText?,
+                         (),
+                       ),
+                     )
+                     |> ignore
+                   | None => ()
+                   };
                    Js.Promise.resolve();
                  })
               |> ignore;
             }
-          ]
-          role="menuitem">
+          ]>
           {React.string("Done")}
         </button>
-        {switch (noteId) {
-         | Some(id) => <DeleteNoteButton noteId=id />
+        {switch (id) {
+         | Some(id) => <DeleteNoteButton id />
          | None => React.null
          }}
       </div>

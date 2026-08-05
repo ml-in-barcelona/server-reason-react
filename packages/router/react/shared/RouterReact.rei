@@ -1,7 +1,11 @@
 type options = RouterRuntime.Link.options;
 type navigationResult = RouterRuntime.Navigation.Result.t;
 type navigate =
-  (~options: options, RouterRuntime.destination) =>
+  (
+    ~history: RouterRuntime.Navigation.historyAction=?,
+    ~revalidate: bool=?,
+    RouterRuntime.destination
+  ) =>
   Js.Promise.t(navigationResult);
 type updateSearch =
   (
@@ -29,8 +33,8 @@ module Provider: {
     React.element;
 };
 
-let useNavigate: unit => option(navigate);
-let useNavigation: unit => RouterRuntime.Navigation.status;
+let useNavigation:
+  unit => (option(navigate), RouterRuntime.Navigation.status);
 let useCommitted: unit => option(RouterRuntime.Navigation.committed);
 let useSearchValues: unit => list((string, list(string)));
 let useUpdateSearch: unit => option(updateSearch);
@@ -49,8 +53,12 @@ let suspense:
 let link:
   (
     ~destination: RouterRuntime.destination,
-    ~children: React.element,
+    ~className: string=?,
+    ~target: string=?,
+    ~download: string=?,
+    ~ariaCurrent: string=?,
     ~options: options=?,
+    ~children: React.element,
     unit
   ) =>
   React.element;

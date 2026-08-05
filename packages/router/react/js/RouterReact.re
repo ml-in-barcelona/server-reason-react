@@ -6,7 +6,11 @@ module Navigation = RouterRuntime.Navigation;
 type options = RouterRuntime.Link.options;
 type navigationResult = Navigation.Result.t;
 type navigate =
-  (~options: options, RouterRuntime.destination) =>
+  (
+    ~history: Navigation.historyAction=?,
+    ~revalidate: bool=?,
+    RouterRuntime.destination
+  ) =>
   Js.Promise.t(navigationResult);
 type updateSearch =
   (
@@ -612,10 +616,10 @@ module Provider = {
            failNavigation("navigation request failed") |> Js.Promise.resolve;
          });
     };
-    let navigate = (~options: options, destination) =>
+    let navigate = (~history=Navigation.Push, ~revalidate=false, destination) =>
       navigateTarget(
-        ~action=options.history,
-        ~revalidate=options.revalidate,
+        ~action=history,
+        ~revalidate,
         RouterRuntime.href(destination),
       );
     React.useEffect0(() => {
@@ -739,16 +743,10 @@ module Provider = {
   };
 };
 
-let useNavigate = () =>
-  switch (React.useContext(context)) {
-  | Some(value) => Some(value.navigate)
-  | None => None
-  };
-
 let useNavigation = () =>
   switch (React.useContext(context)) {
-  | Some(value) => value.navigation
-  | None => Navigation.Idle
+  | Some(value) => (Some(value.navigate), value.navigation)
+  | None => (None, Navigation.Idle)
   };
 
 let useCommitted = () =>
@@ -790,8 +788,16 @@ let useIsActive = (~routeId, ~parameters, ~includeDescendants) =>
 module Link = {
   [@react.component]
   let make =
-      (~destination, ~children, ~options=RouterRuntime.Link.defaultOptions) => {
-    let navigate = useNavigate();
+      (
+        ~destination,
+        ~className=?,
+        ~target=?,
+        ~download=?,
+        ~ariaCurrent=?,
+        ~options=RouterRuntime.Link.defaultOptions,
+        ~children,
+      ) => {
+    let (navigate, _) = useNavigation();
     let onClick = event => {
       let plainClick =
         React.Event.Mouse.button(event) == 0
@@ -799,9 +805,9 @@ module Link = {
         && !React.Event.Mouse.ctrlKey(event)
         && !React.Event.Mouse.metaKey(event)
         && !React.Event.Mouse.shiftKey(event)
-        && Option.is_none(options.download)
+        && Option.is_none(download)
         && (
-          switch (options.target) {
+          switch (target) {
           | None
           | Some("_self") => true
           | Some(_) => false
@@ -810,22 +816,39 @@ module Link = {
       switch (plainClick, navigate) {
       | (true, Some(navigate)) =>
         React.Event.Mouse.preventDefault(event);
-        let _ = navigate(~options, destination);
+        let _ =
+          navigate(
+            ~history=options.history,
+            ~revalidate=options.revalidate,
+            destination,
+          );
         ();
       | _ => ()
       };
     };
     <a
       href={RouterRuntime.href(destination)}
-      className=?{options.className}
-      target=?{options.target}
-      download=?{options.download}
-      ariaCurrent=?{options.ariaCurrent}
+      ?className
+      ?target
+      ?download
+      ?ariaCurrent
       onClick>
       children
     </a>;
   };
 };
 
-let link = (~destination, ~children, ~options=?, ()) =>
-  <Link destination ?options> children </Link>;
+let link =
+    (
+      ~destination,
+      ~className=?,
+      ~target=?,
+      ~download=?,
+      ~ariaCurrent=?,
+      ~options=?,
+      ~children,
+      (),
+    ) =>
+  <Link destination ?className ?target ?download ?ariaCurrent ?options>
+    children
+  </Link>;

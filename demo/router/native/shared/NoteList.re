@@ -3,23 +3,21 @@ let readNotesCached = React.cache(sleep => DB.readNotes(~sleep, ()));
 
 module NoteList = {
   [@react.client.component]
-  let make = (~notes: list(NestedRouter_SidebarNote.notePreview)) => {
+  let make = (~notes: list(SidebarNote.notePreview)) => {
     let { Router.searchText } = Router.useSearch();
     let searchText = searchText |> Option.value(~default="");
 
     <ul className="mt-8">
       {Array.of_list(
          notes
-         |> List.filter((note: NestedRouter_SidebarNote.notePreview) =>
+         |> List.filter((note: SidebarNote.notePreview) =>
               TextSearch.contains(
                 ~needle=String.lowercase_ascii(searchText),
                 ~haystack=String.lowercase_ascii(note.title),
               )
             )
-         |> List.map((note: NestedRouter_SidebarNote.notePreview) =>
-              <li key={NoteId.print(note.id)}>
-                <NestedRouter_SidebarNote note />
-              </li>
+         |> List.map((note: SidebarNote.notePreview) =>
+              <li key={NoteId.print(note.id)}> <SidebarNote note /> </li>
             ),
        )
        |> React.array}
@@ -62,7 +60,7 @@ let make = () => {
              };
 
            {
-             NestedRouter_SidebarNote.id: NoteId.ofInt(note.id),
+             SidebarNote.id: NoteId.ofInt(note.id),
              title: note.title,
              content: summary,
              updated_at: lastUpdatedAt,

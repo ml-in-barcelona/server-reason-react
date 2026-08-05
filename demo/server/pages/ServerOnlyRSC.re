@@ -21,7 +21,7 @@ let handler = request => {
       </div>
     </DemoLayout>;
 
-  DreamRSC.createFromRequest(
+  DreamRouter.createFromRequest(
     ~bootstrapModules=["/static/demo/ServerOnlyRSC.re.js"],
     ~layout=children => <Document> children </Document>,
     app,

@@ -304,10 +304,6 @@ module NavigationResponse: {
 
 module Link: {
   type options = {
-    className: option(string),
-    target: option(string),
-    download: option(string),
-    ariaCurrent: option(string),
     history: Navigation.historyAction,
     revalidate: bool,
   };

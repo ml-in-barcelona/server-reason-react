@@ -1,6 +1,6 @@
 (library
- (name router_react_js)
- (public_name server-reason-react.router-react)
+ (name router_js)
+ (public_name server-reason-react.router)
  (modes melange)
  (wrapped false)
  (private_modules RouterClient)

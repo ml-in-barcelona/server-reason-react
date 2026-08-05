@@ -8,6 +8,9 @@ let option_type ~loc typ = B.ptyp_constr ~loc { txt = Longident.Lident "option";
 let list_type ~loc typ = B.ptyp_constr ~loc { txt = Longident.Lident "list"; loc } [ typ ]
 let bool_type ~loc = result_type ~loc "bool"
 
+let react_component_attribute ~loc =
+  { attr_name = { txt = "react.component"; loc }; attr_payload = PStr []; attr_loc = loc }
+
 let search_destination_type ~loc (search : Router_declaration.search) =
   match search.kind with Required | Optional | Default _ -> search.typ | Many -> list_type ~loc search.typ
 
@@ -35,11 +38,15 @@ let route_function_type ~loc parameters search result =
       B.ptyp_arrow ~loc (Labelled parameter.name) parameter.typ result)
     parameters with_search
 
-let link_function_type ~loc parameters search =
+let link_component_type ~loc parameters search =
   let result = result_type ~loc "React.element" in
   let with_unit = B.ptyp_arrow ~loc Nolabel (unit_type ~loc) result in
-  let with_options = B.ptyp_arrow ~loc (Optional "options") (result_type ~loc "RouterReact.options") with_unit in
-  let with_children = B.ptyp_arrow ~loc (Labelled "children") (result_type ~loc "React.element") with_options in
+  let with_children = B.ptyp_arrow ~loc (Labelled "children") (result_type ~loc "React.element") with_unit in
+  let with_options = B.ptyp_arrow ~loc (Optional "options") (result_type ~loc "RouterReact.options") with_children in
+  let with_aria_current = B.ptyp_arrow ~loc (Optional "ariaCurrent") (result_type ~loc "string") with_options in
+  let with_download = B.ptyp_arrow ~loc (Optional "download") (result_type ~loc "string") with_aria_current in
+  let with_target = B.ptyp_arrow ~loc (Optional "target") (result_type ~loc "string") with_download in
+  let with_class_name = B.ptyp_arrow ~loc (Optional "className") (result_type ~loc "string") with_target in
   let with_search =
     List.fold_right
       (fun (search : Router_declaration.search) result ->
@@ -49,7 +56,7 @@ let link_function_type ~loc parameters search =
           | Optional | Default _ | Many -> Optional search.name
         in
         B.ptyp_arrow ~loc label (search_destination_type ~loc search) result)
-      search with_children
+      search with_class_name
   in
   List.fold_right
     (fun (parameter : Router_declaration.parameter) result ->
@@ -125,6 +132,12 @@ let apply_route_inputs ~loc callee parameters search =
 let route_signature (route : Router_declaration.route) =
   let loc = route.loc in
   let destination_type = result_type ~loc "RouterRuntime.destination" in
+  let link_make =
+    B.value_description ~loc ~name:{ txt = "make"; loc }
+      ~type_:(link_component_type ~loc route.parameters route.search)
+      ~prim:[]
+  in
+  let link_make = { link_make with pval_attributes = [ react_component_attribute ~loc ] } in
   let module_items =
     [
       B.psig_value ~loc
@@ -135,10 +148,9 @@ let route_signature (route : Router_declaration.route) =
         (B.value_description ~loc ~name:{ txt = "href"; loc }
            ~type_:(route_function_type ~loc route.parameters route.search (result_type ~loc "string"))
            ~prim:[]);
-      B.psig_value ~loc
-        (B.value_description ~loc ~name:{ txt = "link"; loc }
-           ~type_:(link_function_type ~loc route.parameters route.search)
-           ~prim:[]);
+      B.psig_module ~loc
+        (B.module_declaration ~loc ~name:{ txt = Some "Link"; loc }
+           ~type_:(B.pmty_signature ~loc [ B.psig_value ~loc link_make ]));
       B.psig_value ~loc
         (B.value_description ~loc ~name:{ txt = "useIsActive"; loc }
            ~type_:(active_function_type ~loc route.parameters)
@@ -183,13 +195,14 @@ let signature (declaration : Router_declaration.t) =
   List.map (signature_alias ~loc) public_modules
   @ [
       B.psig_value ~loc
-        (B.value_description ~loc ~name:{ txt = "useNavigate"; loc }
-           ~type_:
-             (B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (option_type ~loc (result_type ~loc "RouterReact.navigate")))
-           ~prim:[]);
-      B.psig_value ~loc
         (B.value_description ~loc ~name:{ txt = "useNavigation"; loc }
-           ~type_:(B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (result_type ~loc "RouterRuntime.Navigation.status"))
+           ~type_:
+             (B.ptyp_arrow ~loc Nolabel (unit_type ~loc)
+                (B.ptyp_tuple ~loc
+                   [
+                     option_type ~loc (result_type ~loc "RouterReact.navigate");
+                     result_type ~loc "RouterRuntime.Navigation.status";
+                   ]))
            ~prim:[]);
       B.psig_value ~loc
         (B.value_description ~loc ~name:{ txt = "useUpdateHash"; loc }
@@ -278,14 +291,24 @@ let route_module ~base_path (route : Router_declaration.route) =
     B.pexp_apply ~loc (B.evar ~loc "RouterReact.link")
       [
         (Labelled "destination", destination_call);
-        (Labelled "children", B.evar ~loc "children");
+        (Optional "className", B.evar ~loc "className");
+        (Optional "target", B.evar ~loc "target");
+        (Optional "download", B.evar ~loc "download");
+        (Optional "ariaCurrent", B.evar ~loc "ariaCurrent");
         (Optional "options", B.evar ~loc "options");
+        (Labelled "children", B.evar ~loc "children");
         (Nolabel, unit_expression ~loc);
       ]
   in
   let link_with_unit = B.pexp_fun ~loc Nolabel None (B.punit ~loc) link_body in
-  let link_with_options = B.pexp_fun ~loc (Optional "options") None (B.pvar ~loc "options") link_with_unit in
-  let link_with_children = B.pexp_fun ~loc (Labelled "children") None (B.pvar ~loc "children") link_with_options in
+  let link_with_children = B.pexp_fun ~loc (Labelled "children") None (B.pvar ~loc "children") link_with_unit in
+  let link_with_options = B.pexp_fun ~loc (Optional "options") None (B.pvar ~loc "options") link_with_children in
+  let link_with_aria_current =
+    B.pexp_fun ~loc (Optional "ariaCurrent") None (B.pvar ~loc "ariaCurrent") link_with_options
+  in
+  let link_with_download = B.pexp_fun ~loc (Optional "download") None (B.pvar ~loc "download") link_with_aria_current in
+  let link_with_target = B.pexp_fun ~loc (Optional "target") None (B.pvar ~loc "target") link_with_download in
+  let link_with_class_name = B.pexp_fun ~loc (Optional "className") None (B.pvar ~loc "className") link_with_target in
   let link_with_search =
     List.fold_right
       (fun (search : Router_declaration.search) body ->
@@ -295,13 +318,20 @@ let route_module ~base_path (route : Router_declaration.route) =
           | Optional | Default _ | Many -> Optional search.name
         in
         B.pexp_fun ~loc label None (B.pvar ~loc search.name) body)
-      route.search link_with_children
+      route.search link_with_class_name
   in
   let link_expression =
     List.fold_right
       (fun (parameter : Router_declaration.parameter) body ->
         B.pexp_fun ~loc (Labelled parameter.name) None (B.pvar ~loc parameter.name) body)
       route.parameters link_with_search
+  in
+  let link_binding = B.value_binding ~loc ~pat:(B.pvar ~loc "make") ~expr:link_expression in
+  let link_binding = { link_binding with pvb_attributes = [ react_component_attribute ~loc ] } in
+  let link_module =
+    B.pstr_module ~loc
+      (B.module_binding ~loc ~name:{ txt = Some "Link"; loc }
+         ~expr:(B.pmod_structure ~loc [ B.pstr_value ~loc Nonrecursive [ link_binding ] ]))
   in
   let active_body =
     B.pexp_apply ~loc (B.evar ~loc "RouterReact.useIsActive")
@@ -329,7 +359,7 @@ let route_module ~base_path (route : Router_declaration.route) =
         B.pstr_value ~loc Nonrecursive
           [ B.value_binding ~loc ~pat:(B.pvar ~loc "destination") ~expr:destination_expression ];
         B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "href") ~expr:href_expression ];
-        B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "link") ~expr:link_expression ];
+        link_module;
         B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "useIsActive") ~expr:active_expression ];
       ]
   in
@@ -455,8 +485,6 @@ let handles (declaration : Router_declaration.t) =
   let root_search = Router_declaration.root_search declaration in
   List.map (structure_alias ~loc) public_modules
   @ [
-      B.pstr_value ~loc Nonrecursive
-        [ B.value_binding ~loc ~pat:(B.pvar ~loc "useNavigate") ~expr:(B.evar ~loc "RouterReact.useNavigate") ];
       B.pstr_value ~loc Nonrecursive
         [ B.value_binding ~loc ~pat:(B.pvar ~loc "useNavigation") ~expr:(B.evar ~loc "RouterReact.useNavigation") ];
       B.pstr_value ~loc Nonrecursive

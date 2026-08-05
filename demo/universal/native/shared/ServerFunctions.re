@@ -88,7 +88,7 @@ let withOptionalGreeting =
 [@react.server.function]
 let getSessionUser = (): Js.Promise.t(string) => {
   let name =
-    DreamRSC.RequestContext.get_cookie("demo_user")
+    DreamRouter.RequestContext.get_cookie("demo_user")
     |> Option.value(~default="anonymous");
   Lwt.return("Hello, " ++ name ++ "!");
 };
@@ -96,13 +96,13 @@ let getSessionUser = (): Js.Promise.t(string) => {
 [@react.server.function]
 let getUserAgent = (): Js.Promise.t(string) => {
   let ua =
-    DreamRSC.RequestContext.get_header("User-Agent")
+    DreamRouter.RequestContext.get_header("User-Agent")
     |> Option.value(~default="unknown");
   Lwt.return(ua);
 };
 
 [@react.server.function]
 let setSessionUser = (~name: string): Js.Promise.t(string) => {
-  DreamRSC.RequestContext.set_cookie(~path="/", "demo_user", name);
+  DreamRouter.RequestContext.set_cookie(~path="/", "demo_user", name);
   Lwt.return("Cookie set for " ++ name ++ "!");
 };

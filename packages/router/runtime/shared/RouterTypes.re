@@ -627,19 +627,11 @@ module NavigationResponse = {
 
 module Link = {
   type options = {
-    className: option(string),
-    target: option(string),
-    download: option(string),
-    ariaCurrent: option(string),
     history: Navigation.historyAction,
     revalidate: bool,
   };
 
   let defaultOptions = {
-    className: None,
-    target: None,
-    download: None,
-    ariaCurrent: None,
     history: Navigation.Push,
     revalidate: false,
   };

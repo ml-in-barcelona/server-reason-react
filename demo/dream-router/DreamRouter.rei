@@ -128,3 +128,47 @@ let stream_html:
     React.element
   ) =>
   Lwt.t(Dream.response);
+
+module Accept: {
+  let acceptsRsc: string => bool;
+};
+
+let handler:
+  (
+    ~registry:
+      RouterServer.EndpointRegistry.t(
+        RouterServer.Plan.t(React.element, 'error),
+        'error,
+      ),
+    ~basePath: string,
+    ~fallback:
+      (
+        ~search: RouterServer.Search.t,
+        ~error: RouterRuntime.Error.t('error)
+      ) =>
+      RouterServer.Plan.t(React.element, 'error),
+    ~applicationStatus: 'error => RouterRuntime.Status.t,
+    ~diagnosticId: exn => string,
+    ~revision: unit => string,
+    ~protocolVersion: int,
+    ~bootstrapModules: list(string)=?,
+    ~document:
+      RouterServer.ServerEngine.full(React.element, 'error) => React.element,
+    ~rscModel:
+      RouterServer.ServerEngine.full(React.element, 'error) =>
+      React.model_value,
+    ~rscPatch:
+      RouterServer.ServerEngine.patch(React.element, 'error) =>
+      React.model_value,
+    ~rscRedirect: RouterRuntime.destination => React.model_value,
+    Dream.request
+  ) =>
+  Lwt.t(Dream.response);
+
+let routes:
+  (
+    ~basePath: string,
+    ~actionHandler: Dream.request => Lwt.t(Dream.response),
+    Dream.request => Lwt.t(Dream.response)
+  ) =>
+  list(Dream.route);

@@ -1,7 +1,7 @@
 (include_subdirs unqualified)
 
 (library
- (name demo_nested_router_native)
+ (name demo_router_native)
  (wrapped false)
  (flags :standard -w -26-27)
  (libraries
@@ -12,8 +12,7 @@
   react
   reactDOM
   server-reason-react.router-react-native
-  server-reason-react.router-runtime-native
-  server-reason-react.router-server
+  server-reason-react.router-native
   server-reason-react.rsc-native)
  (preprocess
   (pps

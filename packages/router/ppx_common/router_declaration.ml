@@ -69,15 +69,10 @@ let string_of_expression expression =
   | Pexp_constant (Pconst_string (value, _, _)) -> value
   | _ -> error ~loc:expression.pexp_loc "expected a string literal"
 
-let name_of_page page =
-  match longident_of_expression page |> longident_parts |> List.rev with
-  | "make" :: module_name :: _ -> module_name
-  | _ -> error ~loc:page.pexp_loc "page must be a module make function"
-
-let name_of_alias expression =
+let name_of_route expression =
   match expression.pexp_desc with
   | Pexp_construct ({ txt = Longident.Lident name; _ }, None) -> name
-  | _ -> error ~loc:expression.pexp_loc "~as_ must be a module identifier"
+  | _ -> error ~loc:expression.pexp_loc "route name must be a module identifier"
 
 let type_of_name ~loc name = Ast_builder.Default.ptyp_constr ~loc { txt = Longident.parse name; loc } []
 
@@ -273,21 +268,23 @@ let rec node_of_expression ~address expression =
   if is_identifier [ "Router"; "route" ] callee then
     let () =
       validate_arguments ~loc:expression.pexp_loc
-        ~allowed:([ "path"; "as_"; "search" ] @ attachment_labels)
+        ~allowed:([ "page"; "path"; "search" ] @ attachment_labels)
         ~unlabelled:1 arguments
     in
-    let page =
+    let name =
       match argument Nolabel arguments with
+      | Some name -> name_of_route name
+      | None -> error ~loc:expression.pexp_loc "route requires a name"
+    in
+    let page =
+      match argument (Labelled "page") arguments with
       | Some page -> page
-      | None -> error ~loc:expression.pexp_loc "route requires a page"
+      | None -> error ~loc:expression.pexp_loc "route requires ~page"
     in
     let path =
       match argument (Labelled "path") arguments with
       | Some path -> string_of_expression path
       | None -> error ~loc:expression.pexp_loc "route requires ~path"
-    in
-    let name =
-      match argument (Labelled "as_") arguments with Some alias -> name_of_alias alias | None -> name_of_page page
     in
     Route { name; page; scope = scope ~id:("route:" ^ name) ~path arguments expression; loc = expression.pexp_loc }
   else if is_identifier [ "Router"; "group" ] callee then

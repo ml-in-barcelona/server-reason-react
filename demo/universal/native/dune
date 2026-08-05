@@ -20,7 +20,7 @@
   str
   lwt
   lwt.unix
-  dream_rsc)
+  dream_router)
  (wrapped false)
  (preprocess
   (pps

@@ -49,9 +49,13 @@ let testEncodeURIComponentParity = () => {
 
 let testGeneratedLink = () => {
   let link =
-    Router.Note.link(
+    Router.Note.Link.make(
       ~workspaceId=WorkspaceId.make(7),
       ~id=NoteId.make(42),
+      ~className="note-link",
+      ~target="_blank",
+      ~download="note.txt",
+      ~ariaCurrent="page",
       ~children=React.string("Open"),
       (),
     );
@@ -59,7 +63,7 @@ let testGeneratedLink = () => {
   Alcotest.check(
     Alcotest.string,
     "progressive link",
-    {js|<a href="/fixture/workspaces/7/notes/42">Open</a>|js},
+    {js|<a class="note-link" href="/fixture/workspaces/7/notes/42" target="_blank" download="note.txt" aria-current="page">Open</a>|js},
     html,
   );
 };

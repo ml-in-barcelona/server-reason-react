@@ -28,6 +28,7 @@ let make =
   let isNoteActive = Router.Note.useIsActive(~id, ());
   let isEditActive = Router.EditNote.useIsActive(~id, ());
   let isActive = isNoteActive || isEditActive;
+  let ariaCurrent = isActive ? Some("page") : None;
   let detailsId = "sidebar-note-details-" ++ NoteId.print(id);
 
   <div
@@ -37,23 +38,13 @@ let make =
       isActive
         ? Theme.border(Theme.Color.Gray14) : Theme.border(Theme.Color.Gray4),
     ])}>
-    {Router.Note.link(
-       ~id,
-       ~searchText?,
-       ~options={
-         className:
-           Some(
-             "relative p-4 w-full justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 flex flex-col gap-1 cursor-pointer",
-           ),
-         target: None,
-         download: None,
-         ariaCurrent: isActive ? Some("page") : None,
-         history: Router.Navigation.Push,
-         revalidate: false,
-       },
-       ~children,
-       (),
-     )}
+    <Router.Note.Link
+      id
+      ?searchText
+      className="relative p-4 w-full justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 flex flex-col gap-1 cursor-pointer"
+      ?ariaCurrent>
+      children
+    </Router.Note.Link>
     <div id=detailsId className="px-4" hidden={!isExpanded}>
       expandedChildren
     </div>

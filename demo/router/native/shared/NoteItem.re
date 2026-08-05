@@ -19,10 +19,8 @@ module NoteView = {
             {"Last updated on " ++ Date.format_date(note.updated_at)}
           </Text>
         </div>
-        <NestedRouter_EditButton noteId=id>
-          {React.string("Edit")}
-        </NestedRouter_EditButton>
-        <NestedRouter_DeleteNoteButton id />
+        <EditButton noteId=id> {React.string("Edit")} </EditButton>
+        <DeleteNoteButton id />
       </div>
       <NotePreview key="note-preview" body={Markdown.toHTML(note.content)} />
     </div>;
@@ -33,7 +31,7 @@ module NoteView = {
 [@react.component]
 let make = (~note: Note.t, ~isEditing: bool) =>
   isEditing
-    ? <NestedRouter_NoteEditor
+    ? <NoteEditor
         id={Some(NoteId.ofInt(note.id))}
         initialTitle={note.title}
         initialBody={note.content}

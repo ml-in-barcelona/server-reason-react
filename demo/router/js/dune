@@ -1,7 +1,7 @@
 (include_subdirs unqualified)
 
 (library
- (name demo_nested_router_js)
+ (name demo_router_js)
  (modes melange)
  (wrapped false)
  (libraries
@@ -11,7 +11,7 @@
   melange.js
   melange-webapi
   reason-react
-  server-reason-react.router-react
+  server-reason-react.router
   server-reason-react.router-runtime
   server-reason-react.rsc
   server-reason-react.runtime)

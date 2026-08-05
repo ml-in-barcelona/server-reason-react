@@ -1,7 +1,11 @@
 type options = RouterRuntime.Link.options;
 type navigationResult = RouterRuntime.Navigation.Result.t;
 type navigate =
-  (~options: options, RouterRuntime.destination) =>
+  (
+    ~history: RouterRuntime.Navigation.historyAction=?,
+    ~revalidate: bool=?,
+    RouterRuntime.destination
+  ) =>
   Js.Promise.t(navigationResult);
 type updateSearch =
   (
@@ -40,8 +44,7 @@ module Provider = {
     );
 };
 
-let useNavigate = () => None;
-let useNavigation = () => RouterRuntime.Navigation.Idle;
+let useNavigation = () => (None, RouterRuntime.Navigation.Idle);
 let useCommitted = () =>
   switch (React.useContext(context)) {
   | Some(value) => Some(value.committed)
@@ -81,12 +84,21 @@ let suspense = (~fallback, ~children, ()) =>
   <React.Suspense fallback> children </React.Suspense>;
 
 let link =
-    (~destination, ~children, ~options=RouterRuntime.Link.defaultOptions, ()) =>
+    (
+      ~destination,
+      ~className=?,
+      ~target=?,
+      ~download=?,
+      ~ariaCurrent=?,
+      ~options as _=?,
+      ~children,
+      (),
+    ) =>
   <a
     href={RouterRuntime.href(destination)}
-    className=?{options.className}
-    target=?{options.target}
-    download=?{options.download}
-    ariaCurrent=?{options.ariaCurrent}>
+    ?className
+    ?target
+    ?download
+    ?ariaCurrent>
     children
   </a>;

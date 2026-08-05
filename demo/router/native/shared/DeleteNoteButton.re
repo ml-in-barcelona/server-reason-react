@@ -1,8 +1,7 @@
 [@react.client.component]
 let make = (~id: NoteId.t) => {
   let (isDeleting, setIsDeleting) = RR.useStateValue(false);
-  let navigate = Router.useNavigate();
-  let navigation = Router.useNavigation();
+  let (navigate, navigation) = Router.useNavigation();
   let { Router.searchText } = Router.useSearch();
   let isNavigating =
     switch (navigation) {
@@ -10,12 +9,6 @@ let make = (~id: NoteId.t) => {
     | Router.Navigation.Idle
     | Router.Navigation.Failed(_) => false
     };
-  let options: RouterRuntime.Link.options = {
-    ...RouterRuntime.Link.defaultOptions,
-    history: RouterRuntime.Navigation.Replace,
-    revalidate: true,
-  };
-
   let%browser_only onClick = _ => {
     setIsDeleting(true);
     ServerFunctions.Notes.delete_.call(~id=NoteId.toInt(id))
@@ -23,7 +16,11 @@ let make = (~id: NoteId.t) => {
          setIsDeleting(false);
          switch (navigate) {
          | Some(navigate) =>
-           navigate(~options, Router.Home.destination(~searchText?, ()))
+           navigate(
+             ~history=Router.Navigation.Replace,
+             ~revalidate=true,
+             Router.Home.destination(~searchText?, ()),
+           )
            |> ignore
          | None => ()
          };

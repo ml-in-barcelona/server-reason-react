@@ -23,8 +23,8 @@ Router.make(
       ~notFound=Attachments.WorkspaceNotFound.make,
       [
         Router.route(
-          NotePage.make,
-          ~as_=Note,
+          Note,
+          ~page=NotePage.make,
           ~path="/notes/:id<NoteId.t>",
           ~loader=NoteLoader.load,
           ~loaderAs_=noteAccess,
@@ -32,8 +32,8 @@ Router.make(
           ~headers=Attachments.NoteHeaders.make,
         ),
         Router.route(
-          NotePage.make,
-          ~as_=EditNote,
+          EditNote,
+          ~page=NotePage.make,
           ~path="/notes/:id<NoteId.t>/edit",
           ~loader=NoteLoader.load,
           ~loaderAs_=noteAccess,

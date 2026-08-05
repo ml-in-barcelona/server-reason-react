@@ -29,18 +29,18 @@ module AppLayout = {
             </p>
           </section>
           <section className="mt-4 mb-4 flex flex-row gap-2" key="search">
-            <NestedRouter_SearchField />
+            <SearchField />
           </section>
           <nav className="mt-4">
             <div className="mb-4"> <Hr /> </div>
             <div className="mb-4">
-              <NestedRouter_CreateNoteButton>
+              <CreateNoteButton>
                 {React.string("Create a note")}
-              </NestedRouter_CreateNoteButton>
+              </CreateNoteButton>
             </div>
             <Hr />
             <React.Suspense fallback={<NoteListSkeleton />}>
-              <NestedRouter_NoteList />
+              <NoteList />
             </React.Suspense>
           </nav>
         </section>
@@ -127,15 +127,15 @@ module NoteLayout = {
 
 module NewNote = {
   let make = (~searchText as _, ()) =>
-    <NestedRouter_NoteEditor id=None initialTitle="Untitled" initialBody="" />;
+    <NoteEditor id=None initialTitle="Untitled" initialBody="" />;
 };
 
 module Note = {
   let make = (~id as _, ~searchText as _, ~note, ()) =>
-    <NestedRouter_NoteItem note isEditing=false />;
+    <NoteItem note isEditing=false />;
 };
 
 module EditNote = {
   let make = (~id as _, ~searchText as _, ~note, ()) =>
-    <NestedRouter_NoteItem note isEditing=true />;
+    <NoteItem note isEditing=true />;
 };

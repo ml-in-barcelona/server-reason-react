@@ -8,7 +8,7 @@ let registry seen : ((React.element, string) RouterServer.Plan.t, string) Router
       ~fingerprintParts:[ "item" ]
       ~project:(fun _ -> Ok [])
       ~prepare:(fun _input ->
-        seen := DreamRSC.RequestContext.get_header "X-Test";
+        seen := DreamRouter.RequestContext.get_header "X-Test";
         Ok (RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:(React.string "item"))))
   in
   RouterServer.EndpointRegistry.makeExn [ endpoint ]
@@ -20,7 +20,7 @@ let patch_element (response : (React.element, string) RouterServer.ServerEngine.
   match response.RouterServer.ServerEngine.resolved.element with Some element -> element | None -> React.null
 
 let handler seen request =
-  DreamRouterAdapter.handler ~registry:(registry seen) ~basePath:"/app" ~fallback
+  DreamRouter.handler ~registry:(registry seen) ~basePath:"/app" ~fallback
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ~diagnosticId:(fun _ -> "diagnostic")
     ~revision:(fun () -> "revision")
@@ -33,10 +33,8 @@ let handler seen request =
 let realistic_accept_header () =
   Alcotest.(check bool)
     "accepted" true
-    (DreamRouterAdapter.Accept.acceptsRsc "text/html;q=0.2, application/react.component; q=1.0");
-  Alcotest.(check bool)
-    "q zero" false
-    (DreamRouterAdapter.Accept.acceptsRsc "application/react.component;q=0, text/html")
+    (DreamRouter.Accept.acceptsRsc "text/html;q=0.2, application/react.component; q=1.0");
+  Alcotest.(check bool) "q zero" false (DreamRouter.Accept.acceptsRsc "application/react.component;q=0, text/html")
 
 let rsc_request_uses_context_and_headers () =
   let seen = ref None in
@@ -67,7 +65,7 @@ let shared_action_dispatcher_handles_mount () =
     Dream.empty `OK
   in
   let get _request = Dream.empty `OK in
-  let router = Dream.router (DreamRouterAdapter.routes ~basePath:"/app" ~actionHandler:action get) in
+  let router = Dream.router (DreamRouter.routes ~basePath:"/app" ~actionHandler:action get) in
   let nested = Dream.request ~method_:`POST ~target:"/app/nested/route" "" in
   let root = Dream.request ~method_:`POST ~target:"/app" "" in
   let _response = Dream.test router nested in
@@ -116,7 +114,7 @@ let patch_registry () : ((React.element, string) RouterServer.Plan.t, string) Ro
     ]
 
 let patch_handler registry request =
-  DreamRouterAdapter.handler ~registry ~basePath:"/app" ~fallback
+  DreamRouter.handler ~registry ~basePath:"/app" ~fallback
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ~diagnosticId:(fun _ -> "diagnostic")
     ~revision:(fun () -> "revision")

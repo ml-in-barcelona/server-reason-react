@@ -1,7 +1,7 @@
 let debug = Sys.getenv_opt("DEMO_ENV") == Some("development");
 
 let serverFunctionHandler =
-  DreamRSC.streamFunctionResponse(~debug, ~lookup=FunctionReferences.get);
+  DreamRouter.streamFunctionResponse(~debug, ~lookup=FunctionReferences.get);
 
 let getAndPost = (path, handler) =>
   Dream.scope(
@@ -10,19 +10,16 @@ let getAndPost = (path, handler) =>
     [Dream.get(path, handler), Dream.post(path, serverFunctionHandler)],
   );
 
-type nestedRouterResponse =
-  RouterServer.ServerEngine.full(React.element, NestedRouterPages.AppError.t);
-type nestedRouterPatch =
-  RouterServer.ServerEngine.patch(
-    React.element,
-    NestedRouterPages.AppError.t,
-  );
+type routerResponse =
+  RouterServer.ServerEngine.full(React.element, RouterPages.AppError.t);
+type routerPatch =
+  RouterServer.ServerEngine.patch(React.element, RouterPages.AppError.t);
 
-let nestedRouterElement = (response: nestedRouterResponse) =>
+let routerElement = (response: routerResponse) =>
   response.RouterServer.ServerEngine.resolved.element
   |> Option.value(~default=React.null);
 
-let nestedRouterMatches = (response: nestedRouterResponse) =>
+let routerMatches = (response: routerResponse) =>
   response.RouterServer.ServerEngine.matches
   |> List.map((matched: RouterRuntime.Navigation.matched) =>
        {
@@ -31,7 +28,7 @@ let nestedRouterMatches = (response: nestedRouterResponse) =>
        }
      );
 
-let nestedRouterLayouts = layouts =>
+let routerLayouts = layouts =>
   layouts
   |> List.map((layout: RouterRuntime.Navigation.layout) =>
        {
@@ -40,45 +37,43 @@ let nestedRouterLayouts = layouts =>
        }
      );
 
-let nestedRouterDocument = (response: nestedRouterResponse) => {
+let routerDocument = (response: routerResponse) => {
   let (pathname, query) =
     response.RouterServer.ServerEngine.canonical_url |> Dream.split_target;
   let search = query == "" ? "" : "?" ++ query;
-  let initial: NestedRouter_ClientRoot.initial = {
+  let initial: ClientRoot.initial = {
     pathname,
     search,
     key: "server",
     revision: response.revision,
-    matches: nestedRouterMatches(response),
-    layouts: nestedRouterLayouts(response.layouts),
+    matches: routerMatches(response),
+    layouts: routerLayouts(response.layouts),
   };
   let children =
-    <NestedRouter_ClientRoot
+    <ClientRoot
       initial
       registryFingerprint={response.registry_fingerprint}
       basePath=RouterRegistry.basePath>
-      {nestedRouterElement(response)}
-    </NestedRouter_ClientRoot>;
-  NestedRouterPages.Document.make(
-    NestedRouterPages.Document.makeProps(~children, ()),
-  );
+      {routerElement(response)}
+    </ClientRoot>;
+  RouterPages.Document.make(RouterPages.Document.makeProps(~children, ()));
 };
 
-let nestedRouterModel = (response: nestedRouterResponse) => {
+let routerModel = (response: routerResponse) => {
   let full: RouterWire.full = {
     protocolVersion: response.protocol_version,
     registryFingerprint: response.registry_fingerprint,
     canonicalUrl: response.canonical_url,
     status: RouterRuntime.Status.toInt(response.resolved.status),
-    matches: nestedRouterMatches(response),
-    layouts: nestedRouterLayouts(response.layouts),
+    matches: routerMatches(response),
+    layouts: routerLayouts(response.layouts),
     targetRevision: response.revision,
-    payload: nestedRouterElement(response),
+    payload: routerElement(response),
   };
   full |> RouterWire.full_to_rsc |> RSC.to_model;
 };
 
-let nestedRouterPatchModel = (response: nestedRouterPatch) => {
+let routerPatchModel = (response: routerPatch) => {
   let patch: RouterWire.patch = {
     protocolVersion: response.protocol_version,
     registryFingerprint: response.registry_fingerprint,
@@ -95,13 +90,13 @@ let nestedRouterPatchModel = (response: nestedRouterPatch) => {
              parameters: matched.parameters,
            }
          ),
-    layouts: nestedRouterLayouts(response.layouts),
+    layouts: routerLayouts(response.layouts),
     payload: response.resolved.element |> Option.value(~default=React.null),
   };
   patch |> RouterWire.patch_to_rsc |> RSC.to_model;
 };
 
-let nestedRouterRedirectModel = destination => {
+let routerRedirectModel = destination => {
   let redirect: RouterWire.redirect = {
     protocolVersion: 1,
     registryFingerprint:
@@ -112,8 +107,8 @@ let nestedRouterRedirectModel = destination => {
   redirect |> RouterWire.redirect_to_rsc |> RSC.to_model;
 };
 
-let nestedRouterHandler =
-  DreamRouterAdapter.handler(
+let routerHandler =
+  DreamRouter.handler(
     ~registry=RouterRegistry.registry,
     ~basePath=RouterRegistry.basePath,
     ~fallback=RouterRegistry.fallback,
@@ -121,11 +116,11 @@ let nestedRouterHandler =
     ~diagnosticId=_ => string_of_int(Random.bits()),
     ~revision=() => string_of_int(Random.bits()),
     ~protocolVersion=1,
-    ~bootstrapModules=["/static/demo/NestedRouterRSC.re.js"],
-    ~document=nestedRouterDocument,
-    ~rscModel=nestedRouterModel,
-    ~rscPatch=nestedRouterPatchModel,
-    ~rscRedirect=nestedRouterRedirectModel,
+    ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
+    ~document=routerDocument,
+    ~rscModel=routerModel,
+    ~rscPatch=routerPatchModel,
+    ~rscRedirect=routerRedirectModel,
   );
 
 let server =
@@ -161,12 +156,11 @@ let server =
       ),
       getAndPost(Routes.renderToStream, Pages.Comments.handler),
       getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
-      getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
-      ...DreamRouterAdapter.routes(
+      ...DreamRouter.routes(
            ~basePath=RouterRegistry.basePath,
            ~actionHandler=serverFunctionHandler,
-           nestedRouterHandler,
+           routerHandler,
          ),
     ]),
   );
