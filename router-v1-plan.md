@@ -8,7 +8,7 @@ Related documents:
 
 - [`router-prototype-audit.md`](router-prototype-audit.md) records evidence about the current prototype.
 - [`router-adr-spec.md`](router-adr-spec.md) remains the source for compatible transport, history, reconciliation, and conformance decisions.
-- [`router-v1-repository-plan.md`](router-v1-repository-plan.md) maps this design onto the package layout and nested-router demo.
+- [`router-v1-repository-plan.md`](router-v1-repository-plan.md) maps this design onto the package layout and router demo.
 - [`router-v2-brainstorm.md`](router-v2-brainstorm.md) records possible follow-up work without adding it to v1.
 
 This plan supersedes the route declaration, format-string path, generated API, loader, metadata, and error-interface decisions in `router-adr-spec.md`. In particular, v1 uses a Dune route compiler built on Ppxlib that generates labeled route APIs; it does not use positional format-string handles.
@@ -39,11 +39,13 @@ Router.make(
   ~error=AppError,
   [
     Router.route(
-      App.make,
+      App,
+      ~page=App.make,
       ~path="/",
     ),
     Router.route(
-      NewNote.make,
+      NewNote,
+      ~page=NewNote.make,
       ~path="/new",
       ~loading=NewNoteLoading.make,
     ),
@@ -57,14 +59,16 @@ Router.make(
       },
       [
         Router.route(
-          Note.make,
+          Note,
+          ~page=Note.make,
           ~path="/",
           ~loading=NoteLoading.make,
           ~metadata=Note.metadata,
           ~headers=Note.headers,
         ),
         Router.route(
-          EditNote.make,
+          EditNote,
+          ~page=EditNote.make,
           ~path="/edit",
           ~loading=EditNoteLoading.make,
         ),
@@ -77,12 +81,12 @@ Router.make(
 ### Declaration rules
 
 - `Router.make` is the implicit root group. It owns `basePath`, root attachments, and the root child list.
-- `Router.route(page, ...)` declares a navigable leaf and never accepts children.
+- `Router.route(Name, ~page, ...)` declares a navigable leaf and never accepts children. The positional module identifier becomes the generated public route module.
 - `Router.group(...)` declares a page-less structural node and accepts children.
 - A group may omit `path`, making it pathless.
 - Every declared path is relative to its parent. `"/"` is the index destination at the current depth.
 - Static, multi-segment, and typed dynamic paths are valid in v1. Optional segments and splats are deferred.
-- A route's generated module name defaults to the page module name. `~as_` provides an explicit override for reused pages or collisions. The generator does not strip naming suffixes.
+- Route names are always explicit and independent of page module names, so pages can be reused without naming inference or override syntax.
 - Groups generate internal registry nodes, not public destination modules.
 - Root and nested attachments use optional labeled arguments. The initial set is `layout`, `loading`, `notFound`, `error`, `loader`, `search`, `metadata`, and `headers`.
 
@@ -110,16 +114,23 @@ module Note: {
     ) =>
     string;
 
-  let link:
-    (
-      ~id: NoteId.t,
-      ~filter: Filter.t=?,
-      ~page: int=?,
-      ~children: React.element,
-      ~options: RouterRuntime.Link.options=?,
-      unit
-    ) =>
-    React.element;
+  module Link: {
+    [@react.component]
+    let make:
+      (
+        ~id: NoteId.t,
+        ~filter: Filter.t=?,
+        ~page: int=?,
+        ~className: string=?,
+        ~target: string=?,
+        ~download: string=?,
+        ~ariaCurrent: string=?,
+        ~options: RouterRuntime.Link.options=?,
+        ~children: React.element,
+        unit
+      ) =>
+      React.element;
+  };
 };
 ```
 
@@ -129,24 +140,20 @@ Expected usage:
 let target = Router.Note.destination(~id, ~filter?, ());
 let href = Router.Note.href(~id, ~filter?, ());
 
-Router.Note.link(
-  ~id,
-  ~filter?,
-  ~children=React.string("Open note"),
-  ~options={className: "note-link", history: #push},
-  (),
-);
+<Router.Note.Link id ?filter className="note-link">
+  {React.string("Open note")}
+</Router.Note.Link>;
 
 Router.Loader.Redirect(Router.Login.destination(~returnTo=href, ()));
 ```
 
-`destination` is opaque. Application code cannot construct one from an arbitrary URL string. `href` and `link` delegate to the same generated constructor. Route arguments and link configuration occupy separate namespaces; DOM and navigation settings live in the `options` record.
+`destination` is opaque. Application code cannot construct one from an arbitrary URL string. `href` and `Link` delegate to the same generated constructor. Anchor attributes are component props; the `options` record contains only navigation behavior.
 
 ## Generation boundary
 
 The source uses no extension node and no marker attribute. A top-level `Router.make(...)` structure expression is the manifest marker. A Dune rule parses Reason through `refmt`, feeds the AST to the route compiler, and writes generated Reason implementation and interface units.
 
-Dune generates `Router.re`, `Router.rei`, and native-only `RouterRegistry.re` from the same declaration. Separating universal handles from native page attachments makes the dependency graph acyclic when page and layout components import generated routes. The source and interface generators share one parser and declaration IR; users still author exactly one route tree.
+Dune generates `Router.re`, `Router.rei`, and native-only `RouterRegistry.re` from the same declaration. Separating universal handles from native page attachments makes the dependency graph acyclic when page and layout components import generated routes. One generator module emits all three artifact modes from the same parser and declaration IR; users still author exactly one route tree.
 
 The route compiler must generate only route-specific static glue:
 

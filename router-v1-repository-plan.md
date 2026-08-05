@@ -8,14 +8,14 @@ Source design: [`router-v1-plan.md`](router-v1-plan.md)
 
 Prototype evidence: [`router-prototype-audit.md`](router-prototype-audit.md)
 
-This document maps the v1 design onto the current repository. It covers the new package under `packages/router`, the generated application router, the Dream/RSC adapter seam, and migration of the nested-router demo. It does not implement the design.
+This document maps the v1 design onto the current repository. It covers the new package under `packages/router`, the generated application router, the Dream/RSC adapter seam, and migration of the router demo. It does not implement the design.
 
 ## Repository outcome
 
 The completed change has three layers:
 
 1. `packages/router` owns reusable codecs, generated destinations, matching, loader execution, response envelopes, React navigation state, and route-compiler tooling.
-2. `demo/nested-router` owns the application route manifest, route components, and route-aware client components.
+2. `demo/router` owns the application route manifest, route components, and route-aware client components.
 3. `demo/server` owns only final Dream registration and the rest of the demo server.
 
 The existing `demo/dream-nested-router` implementation is removed after migration. It is not copied wholesale into the package. Its pure behavior is rewritten behind the v1 types; its mutable layout registry, response sentinel component, and React element cache are deleted.
@@ -32,12 +32,12 @@ Trying to put the entire router in one dual-mode library would mix incompatible 
 
 ### Universal handles and native attachments need separate units
 
-The route declaration references `AppLayout`, pages, loaders, and boundaries. Those components render client components that must call generated APIs such as `Router.Note.link`. Without an interface, the dependency is cyclic:
+The route declaration references `AppLayout`, pages, loaders, and boundaries. Those components render client components that must call generated APIs such as `Router.Note.Link`. Without an interface, the dependency is cyclic:
 
 ```text
 Router implementation
-  -> NestedRouterPages.AppLayout
-  -> NestedRouter_CreateNoteButton
+  -> RouterPages.AppLayout
+  -> CreateNoteButton
   -> Router.NewNote
 ```
 
@@ -47,9 +47,9 @@ The required build flow is:
 
 ```text
 RouterDefinition.re manifest
-  -> interface generator -> Router.rei
-  -> source generator    -> Router.re
-  -> registry generator  -> RouterRegistry.re
+  -> router generator --mode interface -> Router.rei
+  -> router generator --mode handles   -> Router.re
+  -> router generator --mode registry  -> RouterRegistry.re
 
 native application
   -> Router.re + Router.rei + RouterRegistry.re
@@ -58,7 +58,7 @@ Melange application
   -> Router.re + Router.rei
 ```
 
-The interface, source, and registry generators must consume the same parser and declaration IR. A Dune rule runs `refmt` to parse the authored Reason source into the AST consumed by the generators; a standalone `ppxlib` executable cannot parse raw `.re` text by itself. Generate one canonical `Router.re`/`Router.rei` pair and copy it into the native and Melange compilation roots. Compile `RouterRegistry.re` only in native. The native and Melange public signatures are therefore identical by construction.
+One generator module consumes the shared parser and declaration IR and selects the artifact with `--mode`. A Dune rule runs `refmt` to parse the authored Reason source into the AST consumed by the generator and passes the manifest path explicitly with `--source` for diagnostics. Generate one canonical `Router.re`/`Router.rei` pair and copy it into the native and Melange compilation roots. Compile `RouterRegistry.re` only in native. The native and Melange public signatures are therefore identical by construction.
 
 Do not reintroduce a single generated implementation unit, duplicate route declarations, or process-global registration to evade the cycle.
 
@@ -72,11 +72,11 @@ The first package cut therefore exposes a Dream-neutral native server engine. A 
 
 Current callsites also need:
 
-- A generic imperative `useNavigate` over opaque destinations
+- A `useNavigation` hook returning an imperative navigator over opaque destinations and the current navigation state
 - A typed navigation-options record for push, replace, revalidate, shallow search, hash behavior, and scroll policy
 - A typed current-search hook and shallow search updater
 - A route-specific active-match hook for selected sidebar entries
-- A navigation-state hook for disabling mutation controls and displaying pending state
+- Navigation state for disabling mutation controls and displaying pending state
 
 These contracts must be frozen in the handwritten-expansion phase. Falling back to raw URL, packed-match, or search-map access is not an acceptable migration shortcut.
 
@@ -112,12 +112,9 @@ packages/router/
     RouterDeclaration.re
     RouterDeclarationParser.ml
     RouterExpansion.ml
-  interface_gen/
+  gen/
     dune
-    RouterInterfaceGen.ml
-  source_gen/
-    dune
-    RouterSourceGen.ml
+    RouterGen.ml
   test/
     dune
     codec_*.re
@@ -181,7 +178,7 @@ The client side owns:
 
 It never matches routes independently for authorization or patch splitting.
 
-Navigation Flight decoding must use the same server-function `callServer` callback as initial hydration. The router client runtime therefore exposes a `FlightProvider` or equivalent adapter. `demo/client/NestedRouterRSC.re` wraps the initial model with that provider, and every later navigation decode reads it from context. Do not decode navigation payloads through a callback-free `createFromFetch` path.
+Navigation Flight decoding must use the same server-function `callServer` callback as initial hydration. The router client runtime therefore exposes a `FlightProvider` or equivalent adapter. `demo/client/RouterDemo.re` wraps the initial model with that provider, and every later navigation decode reads it from context. Do not decode navigation payloads through a callback-free `createFromFetch` path.
 
 ### Route compiler responsibilities
 
@@ -196,13 +193,13 @@ The registry generator emits:
 - Packed registry nodes
 - Native render adapters
 
-The source generator emits:
+The generator's `handles` mode emits:
 
 - The same public destination modules and signatures
 - Route IDs and printer/search metadata needed by links and hooks
 - No references to native pages, loaders, metadata callbacks, headers, or Dream
 
-The interface generator emits only the common public API. It must never expose packed registry internals. `Router.re` and `Router.rei` are copied unchanged into both target roots.
+The generator's `interface` mode emits only the common public API. It must never expose packed registry internals. `Router.re` and `Router.rei` are copied unchanged into both target roots.
 
 ## Target dependency graph
 
@@ -210,16 +207,14 @@ The interface generator emits only the common public API. It must never expose p
 router_ppx_common
   -> ppxlib
 
-router_interface_gen
-  -> router_ppx_common
-  -> refmt in its Dune generation rule
-
-router_source_gen
+router_gen
   -> router_ppx_common
   -> ppxlib
+  -> refmt in its Dune generation rule
 
-router_runtime_native
-  -> React native, ReactDOM native, URL native, RSC native, Lwt
+router_native
+  -> URI, Lwt
+  -> exposes RouterRuntime and RouterServer
 
 router_runtime_js
   -> reason-react, URL JS, RSC JS, ReactServerDOMEsbuild, Fetch, Webapi
@@ -227,40 +222,40 @@ router_runtime_js
 router tests
   -> runtime and route-compiler libraries
 
-demo_nested_router_native
-  -> router_runtime_native
+demo_router_native
+  -> router_native
   -> demo_shared_native
 
-demo_nested_router_dream
-  -> demo_nested_router_native
+dream_router
+  -> demo_router_native
   -> dream
   -> dream_rsc
 
-demo_nested_router_js
+demo_router_js
   -> router_runtime_js
   -> demo_shared_js
 
 demo server
-  -> demo_nested_router_dream
+  -> dream_router
 ```
 
 The runtime libraries must not depend on the route compiler. Generated source depends on runtime libraries in the ordinary target dependency graph. Because `implicit_transitive_deps` is disabled, every direct library dependency must be listed in its Dune stanza.
 
 ## Target demo layout
 
-Move nested-router-specific application code out of the general shared demo library:
+Move router-demo-specific application code out of the general shared demo library:
 
 ```text
-demo/nested-router/
+demo/router/
   native/
     dune
-    NestedRouterPages.re       current server page/layout/document modules
+    RouterPages.re             current server page/layout/document modules
     shared/
       RouterDefinition.re      single authored route manifest
       Router.re/.rei           generated universal handles
       RouterRegistry.re        generated native attachments
       NoteId.re                universal custom path codec
-      NestedRouter_*.re        route-aware shared/client components
+      *.re                     route-aware shared/client components
   js/
     dune
     shared/                    copied generated Router.re/.rei and route-aware client components
@@ -271,15 +266,15 @@ demo/nested-router/
 
 `demo_shared_native` and `demo_shared_js` continue to provide generic UI, DB/domain modules, server functions, theme, and RSC utilities. They stop depending on `nested_router_native` and `nested_router_js`.
 
-The native and JS nested-router application libraries both compile the generated `Router` public API. Dune generates one `Router.re`/`Router.rei` pair from the canonical manifest and copies it beside the JS sources. Only native compiles `RouterRegistry.re`, which references `NestedRouterPages` and builds the packed registry.
+The native and JS router demo libraries both compile the generated `Router` public API. Dune generates one `Router.re`/`Router.rei` pair from the canonical manifest and copies it beside the JS sources. Only native compiles `RouterRegistry.re`, which references `RouterPages` and builds the packed registry.
 
-The current `demo/server/pages/NestedRouter.re` is migrated into `demo/nested-router/native/NestedRouterPages.re`. The final server executable references `NestedRouterPages.Document` and the generated router adapter. A temporary forwarding module is allowed during the move, but it must be removed in the cutover change.
+The current `demo/server/pages/NestedRouter.re` is migrated into `demo/router/native/RouterPages.re`. The final server executable references `RouterPages.Document` and the generated router adapter. A temporary forwarding module is allowed during the move, but it must be removed in the cutover change.
 
 ## Prototype file disposition
 
 | Current file | V1 disposition |
 | --- | --- |
-| `demo/dream-nested-router/native/RouterRSC.re` | Split. Move pure registry, matching, loader, metadata, error, response-plan, and protocol behavior into package native modules. Rewrite the small Dream request/streaming portion as `DreamRouterAdapter`. Delete definition-string traversal. |
+| `demo/dream-nested-router/native/RouterRSC.re` | Split. Move pure registry, matching, loader, metadata, error, response-plan, and protocol behavior into package native modules. Rewrite the small Dream request/streaming portion as `DreamRouter`. Delete definition-string traversal. |
 | `demo/dream-nested-router/native/RouterRSC.rei` | Replace with package interfaces and generated application `Router.rei`. No prototype compatibility interface remains. |
 | `demo/dream-nested-router/native/shared/Router.re` | Rewrite provider, fetch, and navigation behavior under the package client runtime and reducer. Do not preserve its state shape or raw-string API. |
 | `demo/dream-nested-router/native/shared/Router.rei` | Replace with package runtime interfaces and generated application hooks. |
@@ -296,45 +291,47 @@ Nothing under `demo/dream-nested-router` is copied as an architectural compatibi
 
 ## Concrete demo declaration
 
-The migrated `demo/nested-router/native/shared/RouterDefinition.re` should exercise the package features rather than merely reproduce the old strings:
+The migrated `demo/router/generated/RouterDefinition.re` should exercise the package features rather than merely reproduce the old strings:
 
 ```reason
 Router.make(
   ~basePath="/demo/router",
-  ~layout=NestedRouterPages.AppLayout.make,
-  ~loading=NestedRouterPages.GlobalLoading.make,
-  ~notFound=NestedRouterPages.NotFound.make,
-  ~error=NestedRouterPages.AppError,
+  ~layout=RouterPages.AppLayout.make,
+  ~loading=RouterPages.GlobalLoading.make,
+  ~notFound=RouterPages.NotFound.make,
+  ~error=RouterPages.AppError,
   ~search={
     searchText: Router.Search.optional(string),
   },
   [
     Router.route(
-      NestedRouterPages.App.make,
-      ~as_=Home,
+      Home,
+      ~page=RouterPages.App.make,
       ~path="/",
     ),
     Router.route(
-      NestedRouterPages.NewNote.make,
-      ~as_=NewNote,
+      NewNote,
+      ~page=RouterPages.NewNote.make,
       ~path="/new",
-      ~loading=NestedRouterPages.NewNoteLoading.make,
+      ~loading=RouterPages.NewNoteLoading.make,
     ),
     Router.group(
       ~path="/:id<NoteId.t>",
-      ~layout=NestedRouterPages.NoteLayout.make,
-      ~loader=NestedRouterPages.NoteLoader.load,
+      ~layout=RouterPages.NoteLayout.make,
+      ~loader=RouterPages.NoteLoader.load,
       ~loaderAs_=note,
       [
         Router.route(
-          NestedRouterPages.Note.make,
+          Note,
+          ~page=RouterPages.Note.make,
           ~path="/",
-          ~loading=NestedRouterPages.NoteLoading.make,
+          ~loading=RouterPages.NoteLoading.make,
         ),
         Router.route(
-          NestedRouterPages.EditNote.make,
+          EditNote,
+          ~page=RouterPages.EditNote.make,
           ~path="/edit",
-          ~loading=NestedRouterPages.EditNoteLoading.make,
+          ~loading=RouterPages.EditNoteLoading.make,
         ),
       ],
     ),
@@ -342,7 +339,7 @@ Router.make(
 );
 ```
 
-`~as_` and `~loaderAs_` are working spellings pending the grammar freeze. The important requirements are explicit stable route names and a loader result label of `note`.
+The positional route identifier is the stable generated module name. `~loaderAs_` supplies the loader result label (`note` in this branch).
 
 For the demo, `NoteId.t` may initially be a transparent alias of `int` with `parse` and `print`; package compile fixtures must use abstract domain IDs to prove that generated signatures distinguish same-representation identifiers. Avoid migrating unrelated dummy-router and server-function APIs solely to make the demo ID abstract.
 
@@ -401,7 +398,7 @@ module EditNote = {
 
 The current DB API returns every missing-note case as `Error(string)`. Add a lower-level `DB.fetchNoteOption` returning `result(option(Note.t), string)` and preserve the existing `DB.fetchNote` wrapper for the other demos. The loader uses the option-returning API and never parses error strings. This avoids an unrelated migration of `demo/server/pages/NoteItem.re`.
 
-Add `NestedRouterPages.AppError` explicitly. Its `t`, `status`, and `make` members establish the shared loader error type and root boundary. Rewrite `NotFound.make` to accept the full normalized router error rather than the prototype's raw `~path` string.
+Add `RouterPages.AppError` explicitly. Its `t`, `status`, and `make` members establish the shared loader error type and root boundary. Rewrite `NotFound.make` to accept the full normalized router error rather than the prototype's raw `~path` string.
 
 The route-level `NoteLoading` runs after the group loader succeeds and therefore receives `~id`, `~searchText`, and `~note`. `NotFound` and error boundaries for a failed group loader receive decoded `~id` and root search, but not `~note`.
 
@@ -412,11 +409,12 @@ Freeze these signatures during the handwritten expansion. Exact names may change
 ### Imperative navigation
 
 ```reason
-let navigate = Router.useNavigate();
+let (navigate, navigation) = Router.useNavigation();
 
 navigate(
+  ~history=#replace,
+  ~revalidate=true,
   Router.Note.destination(~id, ~searchText?, ()),
-  ~options={history: #replace, revalidate: true},
 );
 ```
 
@@ -425,7 +423,7 @@ The destination owns route inputs. Navigation options own history action, revali
 ### Navigation state
 
 ```reason
-let navigation = Router.useNavigation();
+let (_, navigation) = Router.useNavigation();
 ```
 
 The hook exposes `Idle`, `Loading`, and `Failed` without leaking packed route internals. Mutation pending state and route navigation pending state remain distinct.
@@ -456,50 +454,50 @@ Active matching compares route ID and canonical typed params, not string prefixe
 
 ## Demo callsite migration
 
-### `NestedRouter_CreateNoteButton.re`
+### `CreateNoteButton.re`
 
-- Replace the button plus `Router.use()` string navigation with `Router.NewNote.link`.
+- Replace the button plus `Router.use()` string navigation with `Router.NewNote.Link`.
 - Preserve root `searchText` when the product behavior requires it.
 - Remove the local navigation transition; use generated link pending/disabled behavior only if the interaction still needs it.
 - Remove invalid `menuitem` semantics as part of the same component rewrite.
 
-### `NestedRouter_EditButton.re`
+### `EditButton.re`
 
-- Replace ID string concatenation with `Router.EditNote.link(~id, ...)`.
+- Replace ID string concatenation with `Router.EditNote.Link`.
 - Keep mutation and navigation state separate.
 - Remove `menuitem` semantics.
 
-### `NestedRouter_SidebarNoteContent.re`
+### `SidebarNoteContent.re`
 
 - Replace `PathParams.find`, `window.location`, query serialization, and string navigation.
 - Use `Router.Note.useIsActive(~id, ~includeDescendants=true, ())`.
 - Render note selection as a generated link.
 - Render expansion as a separate native button with `aria-expanded` and `aria-controls`; do not nest disclosure behavior in the route link.
 
-### `NestedRouter_DeleteNoteButton.re`
+### `DeleteNoteButton.re`
 
 - Remove direct DOM location and query parsing.
 - After deletion, navigate to `Router.Home.destination(~searchText?, ())` with replace and revalidation options.
 - Use `Router.useNavigation` for route pending state and retain separate mutation pending state.
 
-### `NestedRouter_NoteEditor.re`
+### `NoteEditor.re`
 
 - Replace post-save URL construction with `Router.Note.destination(~id=result.id, ~searchText?, ())`.
 - Use imperative navigation options for revalidation.
 - Keep the server function contract unchanged in the first router migration.
 
-### `NestedRouter_SearchField.re`
+### `SearchField.re`
 
 - Replace raw URL and `URL.SearchParams` access with generated typed search hooks.
 - Replace the broken `~shallow=true` string navigation with `Router.updateSearch`.
 - Use a deferred or transitioned local input only for responsiveness; committed search state remains router-owned.
 
-### `NestedRouter_NoteList.re`
+### `NoteList.re`
 
 - Replace raw router URL parsing with `Router.useSearch`.
 - Keep note fetching in the RSC component; the route loader owns only the selected note needed for status.
 
-### `NestedRouter_NoteItem.re`
+### `NoteItem.re`
 
 - Accept the loader-provided selected note on note and edit routes instead of fetching it again.
 - Keep new-note editor initialization local to the new route.
@@ -526,7 +524,7 @@ with:
 server.re
   -> DreamRouterAdapter.routes(
        registry=Router.registry,
-       document=NestedRouterPages.Document.make,
+       document=RouterPages.Document.make,
        bootstrapModules=[...]
      )
   -> one base-path catch-all owned by the router adapter
@@ -606,7 +604,7 @@ Exit criterion: a native and Melange compile-pass fixture demonstrates the real 
 - Add package directories and Dune stanzas.
 - Choose final internal and public names.
 - Add shared type skeletons and platform libraries.
-- Add declaration/parser, source-generator, and interface-generator libraries and executables.
+- Add the declaration/parser library and the multi-mode router generator executable.
 - Add the direct ReactServerDOMEsbuild dependency required by client navigation decoding.
 - Add package-level native, Melange, Alcotest, and cram test aliases.
 - Do not add Dream as a package dependency.
@@ -666,16 +664,16 @@ Exit criterion: the package integration fixture serves all four demo routes corr
 - Implement generated link, navigation, search, active-match, and navigation-state hooks.
 - Add the router Flight provider and make every navigation decode use the hydration entrypoint's `callServer` callback.
 - Preserve full URL during hydration.
-- Update `demo/client/NestedRouterRSC.re` in the browser fixture rather than testing a callback-free decoder.
+- Update `demo/client/RouterDemo.re` in the browser fixture rather than testing a callback-free decoder.
 - Add deterministic reducer and race tests.
 
 Exit criterion: a browser fixture navigates all four routes, search works, queries survive hydration, and latest navigation wins without `MountedLayouts` or element caching.
 
 ### Phase 7: restructure and migrate the demo
 
-- Create `demo/nested-router` native and JS application libraries plus the separate Dream adapter library.
+- Create `demo/router` native and JS application libraries plus the separate Dream adapter library.
 - Move route-aware shared components out of `demo_shared_*`.
-- Move the current `NestedRouter.re` route components into `NestedRouterPages.re` and replace raw props with generated labels.
+- Move the current `NestedRouter.re` route components into `RouterPages.re` and replace raw props with generated labels.
 - Add the single `RouterDefinition.re` manifest and generated handle/registry rules.
 - Add the universal `NoteId` codec, `DB.fetchNoteOption`, `NoteLoader`, root `AppError` policy, full-error `NotFound`, and depth-specific new/edit loading components.
 - Replace every raw navigation/search/active callsite listed above.
@@ -712,11 +710,11 @@ The implementation plan must update:
 - `demo/server/dune`: replace `nested_router_native` with the new Dream adapter and native application/router libraries.
 - `demo/universal/native/dune`: remove `nested_router_native` after route-aware components move; retain generic shared dependencies only.
 - `demo/universal/js/dune`: remove `nested_router_js` after route-aware components move.
-- `demo/client/dune`: add the nested-router JS application library and router Flight runtime because hydration and later navigation share `callServer`.
-- `demo/nested-router/dream/dune`: list both `dream` and `dream_rsc` directly because transitive dependencies are disabled.
+- `demo/client/dune`: add the router demo JS application library and router Flight runtime because hydration and later navigation share `callServer`.
+- `demo/dream-router/dune`: list Dream and RSC dependencies directly because transitive dependencies are disabled.
 - `demo/dream-nested-router/*/dune`: delete after package and app migration.
 - `demo/dream-rsc/DreamRSC.re` and `.rei`: expose a callback-style request-context scope used around pre-render router work.
-- `demo/client/NestedRouterRSC.re`: provide `callServer` to initial hydration and every later Flight navigation decode.
+- `demo/client/RouterDemo.re`: provide `callServer` to initial hydration and every later Flight navigation decode.
 - `demo/universal/native/DB.re`: add the option-returning note lookup while preserving the existing wrapper.
 - `demo/server/server.re`: replace per-pattern `RouterRSC` registration with the single generated registry adapter.
 - `dune-project`: no change for the first Dream-neutral package cut unless final package libraries introduce an external dependency not already declared.
