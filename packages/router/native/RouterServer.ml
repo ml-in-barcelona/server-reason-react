@@ -1,28 +1,3 @@
-type parameter = { name : string }
-type segment = Static of string | Parameter of parameter
-
-let split_path path =
-  if path = "/" then Ok []
-  else if path = "" || path.[0] <> '/' then Error path
-  else
-    let segments = String.split_on_char '/' path |> List.tl in
-    if List.exists (String.equal "") segments then Error path else Ok segments
-
-let parse_segment segment =
-  if segment = "" || segment.[0] <> ':' then Static segment
-  else
-    match (String.index_opt segment '<', String.index_opt segment '>') with
-    | Some opening, Some closing when opening > 1 && closing = String.length segment - 1 ->
-        let name = String.sub segment 1 (opening - 1) in
-        let type_name = String.sub segment (opening + 1) (closing - opening - 1) in
-        if type_name = "" then invalid_arg ("invalid route segment " ^ segment) else Parameter { name }
-    | _ -> invalid_arg ("invalid route segment " ^ segment)
-
-let parse_path path =
-  match split_path path with
-  | Error path -> Error path
-  | Ok segments -> ( try Ok (List.map parse_segment segments) with Invalid_argument _ -> Error path)
-
 module Percent = struct
   let is_hex = function '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> true | _ -> false
 
@@ -41,11 +16,71 @@ module Percent = struct
       Ok (Uri.pct_decode value)
 end
 
+module Path = struct
+  type parameter = { name : string }
+  type segment = Static of string | Parameter of parameter
+  type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
+
+  let split path =
+    if path = "/" then Ok []
+    else if path = "" || path.[0] <> '/' then Error path
+    else
+      let segments = String.split_on_char '/' path |> List.tl in
+      if List.exists (String.equal "") segments then Error path else Ok segments
+
+  let parse_pattern_segment segment =
+    if segment = "" || segment.[0] <> ':' then Static segment
+    else
+      match (String.index_opt segment '<', String.index_opt segment '>') with
+      | Some opening, Some closing when opening > 1 && closing = String.length segment - 1 ->
+          let name = String.sub segment 1 (opening - 1) in
+          let type_name = String.sub segment (opening + 1) (closing - opening - 1) in
+          if type_name = "" then invalid_arg ("invalid route segment " ^ segment) else Parameter { name }
+      | _ -> invalid_arg ("invalid route segment " ^ segment)
+
+  let parse_pattern path =
+    match split path with
+    | Error path -> Error path
+    | Ok segments -> ( try Ok (List.map parse_pattern_segment segments) with Invalid_argument _ -> Error path)
+
+  let decode_segment segment =
+    match Percent.decode segment with
+    | Error segment -> Error (MalformedEscape segment)
+    | Ok decoded -> if String.contains decoded '/' then Error (EncodedSlash segment) else Ok decoded
+
+  let decodePathname pathname =
+    match split pathname with
+    | Error path -> Error (InvalidPath path)
+    | Ok segments ->
+        let rec decode_all decoded = function
+          | [] -> Ok (List.rev decoded)
+          | segment :: rest -> (
+              match decode_segment segment with
+              | Ok segment -> decode_all (segment :: decoded) rest
+              | Error error -> Error error)
+        in
+        decode_all [] segments
+
+  let stripBasePath ~basePath pathname =
+    if String.equal basePath "/" then Some pathname
+    else if String.equal pathname basePath then Some "/"
+    else
+      let prefix = basePath ^ "/" in
+      if String.starts_with ~prefix pathname then
+        Some (String.sub pathname (String.length basePath) (String.length pathname - String.length basePath))
+      else None
+
+  let splitLocation location =
+    match String.index_opt location '?' with
+    | None -> (location, "")
+    | Some index -> (String.sub location 0 index, String.sub location index (String.length location - index))
+end
+
 module Route = struct
-  type t = { id : string; path : string; segments : segment list }
+  type t = { id : string; path : string; segments : Path.segment list }
 
   let make ~id ~path =
-    match parse_path path with
+    match Path.parse_pattern path with
     | Ok segments -> { id; path; segments }
     | Error _ -> invalid_arg ("invalid route path " ^ path)
 
@@ -54,6 +89,8 @@ module Route = struct
 end
 
 module Registry = struct
+  open Path
+
   type t = Route.t list
 
   type error =
@@ -117,26 +154,10 @@ module Registry = struct
 end
 
 module Match = struct
+  open Path
+
   type t = { route : Route.t; parameters : (string * string) list }
-  type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
-
-  let decode segment =
-    match Percent.decode segment with
-    | Error segment -> Error (MalformedEscape segment)
-    | Ok decoded -> if String.contains decoded '/' then Error (EncodedSlash segment) else Ok decoded
-
-  let decoded_segments pathname =
-    match split_path pathname with
-    | Error path -> Error (InvalidPath path)
-    | Ok segments ->
-        let rec decode_all decoded = function
-          | [] -> Ok (List.rev decoded)
-          | segment :: rest -> (
-              match decode segment with
-              | Ok segment -> decode_all (segment :: decoded) rest
-              | Error error -> Error error)
-        in
-        decode_all [] segments
+  type error = Path.error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
 
   let match_route route segments =
     let rec loop parameters patterns values =
@@ -152,7 +173,7 @@ module Match = struct
     List.fold_left (fun score -> function Static _ -> score + 1 | Parameter _ -> score) 0 route.Route.segments
 
   let find registry ~pathname =
-    match decoded_segments pathname with
+    match Path.decodePathname pathname with
     | Error error -> Error error
     | Ok segments ->
         let matches =
@@ -211,12 +232,12 @@ module Input = struct
 end
 
 module Decode = struct
-  let parse_path ~name ~parse value =
+  let parse_path_value ~name ~parse value =
     match parse value with Ok value -> Ok value | Error _ -> Error (RouterRuntime.Error.InvalidPathParameter { name })
 
   let path ~input ~name ~parse =
     match List.assoc_opt name input.Input.parameters with
-    | Some value -> parse_path ~name ~parse value
+    | Some value -> parse_path_value ~name ~parse value
     | None -> Error (RouterRuntime.Error.InvalidPathParameter { name })
 
   let parse_search ~name ~parse value =
@@ -541,15 +562,6 @@ module ServerEngine = struct
     | ReloadRequired
     | Redirect of RouterRuntime.destination
 
-  let strip_base_path ~base_path pathname =
-    if String.equal base_path "/" then Some pathname
-    else if String.equal pathname base_path then Some "/"
-    else
-      let prefix = base_path ^ "/" in
-      if String.starts_with ~prefix pathname then
-        Some (String.sub pathname (String.length base_path) (String.length pathname - String.length base_path))
-      else None
-
   let empty_search = match Search.parse "" with Ok search -> search | Error _ -> assert false
 
   let required_headers ~kind ~response_kind ~protocol_version ~fingerprint =
@@ -603,18 +615,13 @@ module ServerEngine = struct
           | _ -> false)
       | _ -> false
     in
-    let split_location location =
-      match String.index_opt location '?' with
-      | None -> (location, "")
-      | Some index -> (String.sub location 0 index, String.sub location index (String.length location - index))
-    in
     let patch_base ~target_branch =
       match (request.kind, request.navigation) with
       | Rsc, Some { from = Some from; base_revision = Some base_revision; _ } when String.length from <= 2048 -> (
-          let from_pathname, from_search = split_location from in
+          let from_pathname, from_search = Path.splitLocation from in
           if not (String.equal from_search request.search) then None
           else
-            match strip_base_path ~base_path:basePath from_pathname with
+            match Path.stripBasePath ~basePath from_pathname with
             | None -> None
             | Some from_path -> (
                 match (Search.parse from_search, EndpointRegistry.find registry ~pathname:from_path) with
@@ -634,7 +641,7 @@ module ServerEngine = struct
     let execute () =
       if registry_mismatch then Lwt.return ReloadRequired
       else
-        match strip_base_path ~base_path:basePath request.pathname with
+        match Path.stripBasePath ~basePath request.pathname with
         | None -> fail (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
         | Some pathname -> (
             match Search.parse request.search with

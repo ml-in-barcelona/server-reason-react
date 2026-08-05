@@ -1,3 +1,11 @@
+module Path : sig
+  type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
+
+  val decodePathname : string -> (string list, error) result
+  val stripBasePath : basePath:string -> string -> string option
+  val splitLocation : string -> string * string
+end
+
 module Route : sig
   type t
 
