@@ -1,5 +1,5 @@
-  $ refmt --parse re --print ml input.re | server-reason-react.router-gen --mode handles --source input.re > Router.ml
-  $ refmt --parse re --print ml input.re | server-reason-react.router-gen --mode interface --source input.re > Router.mli
+  $ server-reason-react.router-gen --mode handles --source input.ml < input.ml > Router.ml
+  $ server-reason-react.router-gen --mode interface --source input.ml < input.ml > Router.mli
   $ ocamlc -c RouterRuntime.ml
   $ ocamlc -c React.ml
   $ ocamlc -c RouterReact.ml
@@ -15,10 +15,10 @@
   Hint: This function application is partial, maybe some arguments are missing.
   [2]
 
-  $ refmt --parse re --print ml unknown-argument.re | server-reason-react.router-gen --mode handles --source unknown-argument.re
+  $ server-reason-react.router-gen --mode handles --source unknown-argument.ml < unknown-argument.ml
   Fatal error: exception router: unknown router argument ~laoyut
   [2]
 
-  $ refmt --parse re --print ml duplicate-manifest.re | server-reason-react.router-gen --mode handles --source duplicate-manifest.re
+  $ server-reason-react.router-gen --mode handles --source duplicate-manifest.ml < duplicate-manifest.ml
   Fatal error: exception router: expected exactly one Router.make declaration
   [2]

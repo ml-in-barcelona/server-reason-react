@@ -39,6 +39,10 @@ module RequestContext = struct
           ("RequestContext.set_cookie: no request context. " ^ "This function must be called inside a server function.")
 end
 
+let get_header = RequestContext.get_header
+let get_cookie = RequestContext.get_cookie
+let set_cookie = RequestContext.set_cookie
+
 let with_render_context request =
  fun fn ->
   Lwt.with_value RequestContext.request_key (Some request) (fun () ->

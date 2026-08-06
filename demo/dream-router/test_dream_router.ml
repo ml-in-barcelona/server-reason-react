@@ -8,7 +8,7 @@ let registry seen : ((React.element, string) RouterServer.Plan.t, string) Router
       ~fingerprintParts:[ "item" ]
       ~project:(fun _ -> Ok [])
       ~prepare:(fun _input ->
-        seen := DreamRouter.RequestContext.get_header "X-Test";
+        seen := DreamRouter.get_header "X-Test";
         Ok (RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:(React.string "item"))))
   in
   RouterServer.EndpointRegistry.makeExn [ endpoint ]

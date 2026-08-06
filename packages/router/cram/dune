@@ -2,4 +2,4 @@
  (package server-reason-react)
  (enabled_if
   (>= %{ocaml_version} 5.2.0))
- (deps %{bin:refmt} %{bin:server-reason-react.router-gen}))
+ (deps %{bin:server-reason-react.router-gen}))
