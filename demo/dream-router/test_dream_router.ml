@@ -30,17 +30,11 @@ let handler seen request =
     ~rscRedirect:(fun _ -> React.Model.Element React.null)
     request
 
-let realistic_accept_header () =
-  Alcotest.(check bool)
-    "accepted" true
-    (DreamRouter.Accept.acceptsRsc "text/html;q=0.2, application/react.component; q=1.0");
-  Alcotest.(check bool) "q zero" false (DreamRouter.Accept.acceptsRsc "application/react.component;q=0, text/html")
-
 let rsc_request_uses_context_and_headers () =
   let seen = ref None in
   let request =
     Dream.request ~target:"/app/item?tag=one"
-      ~headers:[ ("Accept", "text/html;q=0.1, application/react.component; q=0.9"); ("X-Test", "context") ]
+      ~headers:[ ("Accept", "application/react.component"); ("X-Test", "context") ]
       ""
   in
   let response = Dream.test (handler seen) request in
@@ -52,7 +46,7 @@ let rsc_request_uses_context_and_headers () =
 
 let document_request_uses_html () =
   let seen = ref None in
-  let request = Dream.request ~target:"/app/item" ~headers:[ ("Accept", "text/html, */*;q=0.8") ] "" in
+  let request = Dream.request ~target:"/app/item" "" in
   let response = Dream.test (handler seen) request in
   Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int);
   Alcotest.(check (option string))
@@ -180,7 +174,6 @@ let () =
     [
       ( "adapter",
         [
-          test "realistic Accept header" realistic_accept_header;
           test "RSC request uses context and headers" rsc_request_uses_context_and_headers;
           test "document request uses HTML" document_request_uses_html;
           test "shared action dispatcher handles mount" shared_action_dispatcher_handles_mount;

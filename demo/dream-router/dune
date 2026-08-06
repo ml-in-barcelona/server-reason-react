@@ -15,8 +15,6 @@
 
 (test
  (name test_dream_router)
- (enabled_if
-  (= %{profile} dev))
  (modules Test_dream_router)
  (libraries
   alcotest
