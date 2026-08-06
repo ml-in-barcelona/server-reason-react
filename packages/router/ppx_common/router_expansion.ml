@@ -220,13 +220,15 @@ let route_module ~base_path (route : Router_declaration.route) =
       (fun (parameter : Router_declaration.parameter) ->
         let printed =
           B.pexp_apply ~loc
-            (B.pexp_ident ~loc { txt = parameter.printer; loc })
+            (B.pexp_ident ~loc { txt = parameter.to_string; loc })
             [ (Nolabel, B.evar ~loc parameter.name) ]
         in
         B.pexp_tuple ~loc [ B.estring ~loc parameter.name; printed ])
       route.parameters
   in
-  let print_value printer value = B.pexp_apply ~loc (B.pexp_ident ~loc { txt = printer; loc }) [ (Nolabel, value) ] in
+  let print_value to_string value =
+    B.pexp_apply ~loc (B.pexp_ident ~loc { txt = to_string; loc }) [ (Nolabel, value) ]
+  in
   let search_pair name values = B.pexp_tuple ~loc [ B.estring ~loc name; values ] in
   let optional_search_entries (search : Router_declaration.search) value_body =
     let mapper = B.pexp_fun ~loc Nolabel None (B.pvar ~loc "value") value_body in
@@ -238,7 +240,7 @@ let route_module ~base_path (route : Router_declaration.route) =
   let search_entries =
     List.map
       (fun (search : Router_declaration.search) ->
-        let printed value = print_value search.printer value in
+        let printed value = print_value search.to_string value in
         match search.kind with
         | Required -> B.elist ~loc [ search_pair search.name (B.elist ~loc [ printed (B.evar ~loc search.name) ]) ]
         | Optional ->
@@ -385,7 +387,7 @@ let search_decoder ~loc (search : Router_declaration.search) =
 let search_pair ~loc name values = B.pexp_tuple ~loc [ B.estring ~loc name; values ]
 
 let print_search_value ~loc (search : Router_declaration.search) value =
-  B.pexp_apply ~loc (B.pexp_ident ~loc { txt = search.printer; loc }) [ (Nolabel, value) ]
+  B.pexp_apply ~loc (B.pexp_ident ~loc { txt = search.to_string; loc }) [ (Nolabel, value) ]
 
 let search_update_entry ~loc (search : Router_declaration.search) =
   let variable = B.evar ~loc search.name in
@@ -549,7 +551,9 @@ let canonical_parameters ~loc parameters =
   List.map
     (fun (parameter : Router_declaration.parameter) ->
       let value =
-        B.pexp_apply ~loc (B.pexp_ident ~loc { txt = parameter.printer; loc }) [ (Nolabel, B.evar ~loc parameter.name) ]
+        B.pexp_apply ~loc
+          (B.pexp_ident ~loc { txt = parameter.to_string; loc })
+          [ (Nolabel, B.evar ~loc parameter.name) ]
       in
       B.pexp_tuple ~loc [ B.estring ~loc parameter.name; value ])
     parameters

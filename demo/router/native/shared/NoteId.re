@@ -7,6 +7,6 @@ let parse = value =>
   | None => Error("expected an integer")
   };
 
-let print = Int.to_string;
+let to_string = Int.to_string;
 let toInt = value => value;
 let ofInt = value => value;

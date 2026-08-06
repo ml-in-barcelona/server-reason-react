@@ -1,3 +1,3 @@
 type t = int
 
-let print = string_of_int
+let to_string = string_of_int

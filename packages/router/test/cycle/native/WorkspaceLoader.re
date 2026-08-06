@@ -32,7 +32,7 @@ let load =
   } else {
     Lwt.return(
       RouterRuntime.Loader.Data(
-        WorkspaceId.print(workspaceId) ++ ":" ++ Int.to_string(page),
+        WorkspaceId.to_string(workspaceId) ++ ":" ++ Int.to_string(page),
       ),
     );
   };

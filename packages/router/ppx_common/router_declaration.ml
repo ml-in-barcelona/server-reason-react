@@ -1,13 +1,13 @@
 open Ppxlib
 
-type parameter = { name : string; typ : core_type; parser : Longident.t; printer : Longident.t; loc : Location.t }
+type parameter = { name : string; typ : core_type; parser : Longident.t; to_string : Longident.t; loc : Location.t }
 type search_kind = Required | Optional | Default of expression | Many
 
 type search = {
   name : string;
   typ : core_type;
   parser : Longident.t;
-  printer : Longident.t;
+  to_string : Longident.t;
   kind : search_kind;
   loc : Location.t;
 }
@@ -76,14 +76,14 @@ let name_of_route expression =
 
 let type_of_name ~loc name = Ast_builder.Default.ptyp_constr ~loc { txt = Longident.parse name; loc } []
 
-let printer_of_type ~loc name =
+let to_string_of_type ~loc name =
   match String.split_on_char '.' name with
   | [ "int" ] -> Longident.Lident "string_of_int"
   | [ "string" ] -> Longident.parse "Fun.id"
   | parts -> (
       match List.rev parts with
       | "t" :: module_parts when module_parts <> [] ->
-          List.rev ("print" :: module_parts) |> String.concat "." |> Longident.parse
+          List.rev ("to_string" :: module_parts) |> String.concat "." |> Longident.parse
       | _ -> error ~loc "custom path parameter types must end in .t")
 
 let parser_of_type ~loc name =
@@ -121,7 +121,7 @@ let parameters_of_path ~loc path =
                      name;
                      typ = type_of_name ~loc type_name;
                      parser = parser_of_type ~loc type_name;
-                     printer = printer_of_type ~loc type_name;
+                     to_string = to_string_of_type ~loc type_name;
                      loc;
                    }
                   :: parameters)))
@@ -180,7 +180,7 @@ let search_kind expression =
   ( kind,
     type_of_name ~loc:type_expression.pexp_loc type_name,
     parser_of_type ~loc:type_expression.pexp_loc type_name,
-    printer_of_type ~loc:type_expression.pexp_loc type_name )
+    to_string_of_type ~loc:type_expression.pexp_loc type_name )
 
 let search_of_expression expression =
   match expression.pexp_desc with
@@ -192,8 +192,8 @@ let search_of_expression expression =
             | name :: _ -> name
             | [] -> error ~loc "search field needs a name"
           in
-          let kind, typ, parser, printer = search_kind value in
-          { name; typ; parser; printer; kind; loc })
+          let kind, typ, parser, to_string = search_kind value in
+          { name; typ; parser; to_string; kind; loc })
         fields
   | _ -> error ~loc:expression.pexp_loc "~search must be a record schema"
 

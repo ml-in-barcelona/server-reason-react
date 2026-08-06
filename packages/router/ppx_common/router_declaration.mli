@@ -1,13 +1,13 @@
 open Ppxlib
 
-type parameter = { name : string; typ : core_type; parser : Longident.t; printer : Longident.t; loc : Location.t }
+type parameter = { name : string; typ : core_type; parser : Longident.t; to_string : Longident.t; loc : Location.t }
 type search_kind = Required | Optional | Default of expression | Many
 
 type search = {
   name : string;
   typ : core_type;
   parser : Longident.t;
-  printer : Longident.t;
+  to_string : Longident.t;
   kind : search_kind;
   loc : Location.t;
 }

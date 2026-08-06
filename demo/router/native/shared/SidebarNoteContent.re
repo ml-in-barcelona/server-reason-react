@@ -29,7 +29,7 @@ let make =
   let isEditActive = Router.EditNote.useIsActive(~id, ());
   let isActive = isNoteActive || isEditActive;
   let ariaCurrent = isActive ? Some("page") : None;
-  let detailsId = "sidebar-note-details-" ++ NoteId.print(id);
+  let detailsId = "sidebar-note-details-" ++ NoteId.to_string(id);
 
   <div
     className={Cx.make([

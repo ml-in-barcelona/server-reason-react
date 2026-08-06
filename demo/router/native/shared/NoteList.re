@@ -17,7 +17,7 @@ module NoteList = {
               )
             )
          |> List.map((note: SidebarNote.notePreview) =>
-              <li key={NoteId.print(note.id)}> <SidebarNote note /> </li>
+              <li key={NoteId.to_string(note.id)}> <SidebarNote note /> </li>
             ),
        )
        |> React.array}
