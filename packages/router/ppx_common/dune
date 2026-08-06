@@ -1,7 +1,0 @@
-(library
- (name router_ppx_common)
- (public_name server-reason-react.router-ppx-common)
- (wrapped false)
- (libraries ppxlib ppxlib.astlib)
- (preprocess
-  (pps ppxlib.metaquot)))
