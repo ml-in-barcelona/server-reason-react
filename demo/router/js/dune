@@ -27,10 +27,10 @@
    reason-react-ppx)))
 
 (copy_files
- (files ../generated/Router.re))
+ (files ../generated/Router.ml))
 
 (copy_files
- (files ../generated/Router.rei))
+ (files ../generated/Router.mli))
 
 (copy_files
  (files ../native/shared/*.re))

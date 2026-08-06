@@ -10,90 +10,6 @@ let getAndPost = (path, handler) =>
     [Dream.get(path, handler), Dream.post(path, serverFunctionHandler)],
   );
 
-type routerResponse =
-  RouterServer.ServerEngine.full(React.element, RouterPages.AppError.t);
-type routerPatch =
-  RouterServer.ServerEngine.patch(React.element, RouterPages.AppError.t);
-
-let routerElement = (response: routerResponse) =>
-  response.RouterServer.ServerEngine.resolved.element
-  |> Option.value(~default=React.null);
-
-let routerDocument = (response: routerResponse) => {
-  let (pathname, query) =
-    response.RouterServer.ServerEngine.canonical_url |> Dream.split_target;
-  let search = query == "" ? "" : "?" ++ query;
-  let initial: RouterRuntime.Navigation.committed = {
-    location:
-      RouterRuntime.Navigation.{
-        pathname,
-        search,
-        hash: "",
-        key: "server",
-      },
-    revision: response.revision,
-    matches: response.matches,
-    layouts: response.layouts,
-  };
-  let children =
-    <ClientRoot
-      initial
-      registryFingerprint={response.registry_fingerprint}
-      basePath=RouterRegistry.basePath>
-      {routerElement(response)}
-    </ClientRoot>;
-  RouterPages.Document.make(RouterPages.Document.makeProps(~children, ()));
-};
-
-let routerModel = (response: routerResponse) => {
-  let full: RouterRuntime.NavigationResponse.full(React.element) = {
-    protocolVersion: response.protocol_version,
-    registryFingerprint: response.registry_fingerprint,
-    canonicalUrl: response.canonical_url,
-    status: RouterRuntime.Status.toInt(response.resolved.status),
-    matches: response.matches,
-    layouts: response.layouts,
-    targetRevision: response.revision,
-    payload: routerElement(response),
-  };
-  RouterRuntime.NavigationResponse.full_to_rsc(
-    RSC.Primitives.react_element_to_rsc,
-    full,
-  )
-  |> RSC.to_model;
-};
-
-let routerPatchModel = (response: routerPatch) => {
-  let patch: RouterRuntime.NavigationResponse.patch(React.element) = {
-    protocolVersion: response.protocol_version,
-    registryFingerprint: response.registry_fingerprint,
-    baseRevision: response.base_revision,
-    targetRevision: response.revision,
-    replaceFrom: response.replace_from,
-    canonicalUrl: response.canonical_url,
-    status: RouterRuntime.Status.toInt(response.resolved.status),
-    matches: response.matches,
-    layouts: response.layouts,
-    payload: response.resolved.element |> Option.value(~default=React.null),
-  };
-  RouterRuntime.NavigationResponse.patch_to_rsc(
-    RSC.Primitives.react_element_to_rsc,
-    patch,
-  )
-  |> RSC.to_model;
-};
-
-let routerRedirectModel = destination => {
-  let redirect: RouterRuntime.NavigationResponse.redirect = {
-    protocolVersion: 1,
-    registryFingerprint:
-      RouterServer.EndpointRegistry.fingerprint(RouterRegistry.registry),
-    location: RouterRuntime.href(destination),
-    status: 200,
-  };
-  redirect |> RouterRuntime.NavigationResponse.redirect_to_rsc |> RSC.to_model;
-};
-
 let routerHandler =
   DreamRouter.handler(
     ~registry=RouterRegistry.registry,
@@ -104,10 +20,11 @@ let routerHandler =
     ~revision=() => string_of_int(Random.bits()),
     ~protocolVersion=1,
     ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
-    ~document=routerDocument,
-    ~rscModel=routerModel,
-    ~rscPatch=routerPatchModel,
-    ~rscRedirect=routerRedirectModel,
+    ~document=
+      children =>
+        RouterPages.Document.make(
+          RouterPages.Document.makeProps(~children, ()),
+        ),
   );
 
 let server =

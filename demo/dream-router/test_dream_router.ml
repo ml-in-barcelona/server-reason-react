@@ -13,22 +13,12 @@ let registry seen : ((React.element, string) RouterServer.Plan.t, string) Router
   in
   RouterServer.EndpointRegistry.makeExn [ endpoint ]
 
-let full_element (response : (React.element, string) RouterServer.ServerEngine.full) =
-  match response.RouterServer.ServerEngine.resolved.element with Some element -> element | None -> React.null
-
-let patch_element (response : (React.element, string) RouterServer.ServerEngine.patch) =
-  match response.RouterServer.ServerEngine.resolved.element with Some element -> element | None -> React.null
-
 let handler seen request =
   DreamRouter.handler ~registry:(registry seen) ~basePath:"/app" ~fallback
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ~diagnosticId:(fun _ -> "diagnostic")
     ~revision:(fun () -> "revision")
-    ~protocolVersion:1 ~document:full_element
-    ~rscModel:(fun response -> React.Model.Element (full_element response))
-    ~rscPatch:(fun response -> React.Model.Element (patch_element response))
-    ~rscRedirect:(fun _ -> React.Model.Element React.null)
-    request
+    ~protocolVersion:1 ~document:Fun.id request
 
 let rsc_request_uses_context_and_headers () =
   let seen = ref None in
@@ -112,11 +102,7 @@ let patch_handler registry request =
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ~diagnosticId:(fun _ -> "diagnostic")
     ~revision:(fun () -> "revision")
-    ~protocolVersion:1 ~document:full_element
-    ~rscModel:(fun response -> React.Model.Element (full_element response))
-    ~rscPatch:(fun response -> React.Model.Element (patch_element response))
-    ~rscRedirect:(fun _ -> React.Model.Element React.null)
-    request
+    ~protocolVersion:1 ~document:Fun.id request
 
 let patch_payload_is_smaller_than_full () =
   let registry = patch_registry () in

@@ -1,38 +1,35 @@
 (rule
- (targets Router.re Router.rei RouterRegistry.re)
- (deps Routes.re)
+ (targets Router.ml Router.mli RouterRegistry.ml)
+ (deps Routes.ml)
  (action
   (progn
    (with-stdout-to
-    Router.re
-    (pipe-outputs
-     (run %{bin:refmt} --parse re --print ml %{dep:Routes.re})
+    Router.ml
+    (with-stdin-from
+     %{dep:Routes.ml}
      (run
       %{bin:server-reason-react.router-gen}
       --mode
       handles
       --source
-      %{dep:Routes.re})
-     (run %{bin:refmt} --parse ml --print re)))
+      %{dep:Routes.ml})))
    (with-stdout-to
-    Router.rei
-    (pipe-outputs
-     (run %{bin:refmt} --parse re --print ml %{dep:Routes.re})
+    Router.mli
+    (with-stdin-from
+     %{dep:Routes.ml}
      (run
       %{bin:server-reason-react.router-gen}
       --mode
       interface
       --source
-      %{dep:Routes.re})
-     (run %{bin:refmt} --parse ml --print re --interface true)))
+      %{dep:Routes.ml})))
    (with-stdout-to
-    RouterRegistry.re
-    (pipe-outputs
-     (run %{bin:refmt} --parse re --print ml %{dep:Routes.re})
+    RouterRegistry.ml
+    (with-stdin-from
+     %{dep:Routes.ml}
      (run
       %{bin:server-reason-react.router-gen}
       --mode
       registry
       --source
-      %{dep:Routes.re})
-     (run %{bin:refmt} --parse ml --print re))))))
+      %{dep:Routes.ml}))))))

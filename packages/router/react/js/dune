@@ -27,3 +27,6 @@
 
 (copy_files
  (files ../shared/RouterOutlet.re))
+
+(copy_files
+ (files ../shared/RouterClientRoot.re))

@@ -97,10 +97,7 @@ val handler :
   revision:(unit -> string) ->
   protocolVersion:int ->
   ?bootstrapModules:string list ->
-  document:((React.element, 'error) RouterServer.ServerEngine.full -> React.element) ->
-  rscModel:((React.element, 'error) RouterServer.ServerEngine.full -> React.model_value) ->
-  rscPatch:((React.element, 'error) RouterServer.ServerEngine.patch -> React.model_value) ->
-  rscRedirect:(RouterRuntime.destination -> React.model_value) ->
+  document:(React.element -> React.element) ->
   Dream.request ->
   Dream.response Lwt.t
 (** Handle document and RSC requests for a generated router registry.
@@ -113,10 +110,7 @@ val handler :
     @param revision produce the revision attached to a successful response
     @param protocolVersion router wire-protocol version
     @param bootstrapModules JavaScript modules loaded by document responses
-    @param document render a full router result into the HTML document tree
-    @param rscModel encode a full router result as a Flight model
-    @param rscPatch encode a router patch as a Flight model
-    @param rscRedirect encode an RSC redirect as a Flight model
+    @param document wrap the routed client root in the HTML document tree
     @param request current Dream request *)
 
 val routes :
