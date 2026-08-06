@@ -3,9 +3,9 @@
  (public_name server-reason-react.router-runtime)
  (modes melange)
  (wrapped false)
- (libraries melange.js)
+ (libraries melange.js server-reason-react.rsc)
  (preprocess
-  (pps melange.ppx)))
+  (pps server-reason-react.rsc.ppx melange.ppx)))
 
 (copy_files
  (files ../shared/RouterTypes.re))

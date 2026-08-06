@@ -199,6 +199,7 @@ module Headers = {
 };
 
 module Navigation = {
+  [@deriving rsc]
   type location = {
     pathname: string,
     search: string,
@@ -216,16 +217,19 @@ module Navigation = {
     | Shallow
     | HashOnly;
 
+  [@deriving rsc]
   type matched = {
     routeId: string,
     parameters: list((string, string)),
   };
 
+  [@deriving rsc]
   type layout = {
     id: string,
     instanceKey: string,
   };
 
+  [@deriving rsc]
   type committed = {
     location,
     matches: list(matched),
@@ -451,6 +455,7 @@ module NavigationResponse = {
     | FailedResponse
     | ReloadRequiredResponse;
 
+  [@deriving rsc]
   type full('payload) = {
     protocolVersion: int,
     registryFingerprint: string,
@@ -462,6 +467,7 @@ module NavigationResponse = {
     payload: 'payload,
   };
 
+  [@deriving rsc]
   type patch('payload) = {
     protocolVersion: int,
     registryFingerprint: string,
@@ -475,6 +481,7 @@ module NavigationResponse = {
     payload: 'payload,
   };
 
+  [@deriving rsc]
   type redirect = {
     protocolVersion: int,
     registryFingerprint: string,
@@ -482,6 +489,7 @@ module NavigationResponse = {
     status: int,
   };
 
+  [@deriving rsc]
   type failure = {
     protocolVersion: int,
     registryFingerprint: string,

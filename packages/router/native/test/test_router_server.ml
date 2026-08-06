@@ -229,6 +229,23 @@ let valid_full_navigation_response () =
   | Ok validated -> Alcotest.(check int) "request" 7 validated.requestId
   | Error _ -> Alcotest.fail "expected valid full response"
 
+let navigation_response_rsc_round_trip () =
+  let original : string RouterRuntime.NavigationResponse.full =
+    {
+      protocolVersion = 1;
+      registryFingerprint = "registry";
+      canonicalUrl = "/notes?page=2";
+      status = 200;
+      matches = [ { RouterRuntime.Navigation.routeId = "notes"; parameters = [ ("id", "2") ] } ];
+      layouts = [ { RouterRuntime.Navigation.id = "root"; instanceKey = "root" } ];
+      targetRevision = "r2";
+      payload = "payload";
+    }
+  in
+  let encoded = RouterRuntime.NavigationResponse.full_to_rsc RSC.Primitives.string_to_rsc original in
+  let decoded = RouterRuntime.NavigationResponse.full_of_rsc RSC.Primitives.string_of_rsc encoded in
+  Alcotest.(check bool) "round trip" true (decoded = original)
+
 let superseded_navigation_response_is_canceled () =
   let open RouterRuntime.NavigationResponse in
   let response = ReloadRequired in
@@ -510,6 +527,7 @@ let () =
           test "stale revision rejected" stale_revision_rejected;
           test "shallow location commit" shallow_location_commit;
           test "valid full navigation response" valid_full_navigation_response;
+          test "navigation response RSC round trip" navigation_response_rsc_round_trip;
           test "superseded navigation response is canceled" superseded_navigation_response_is_canceled;
           test "stale navigation response is rejected" stale_navigation_response_is_rejected;
           test "stale patch base is rejected" stale_patch_base_is_rejected;

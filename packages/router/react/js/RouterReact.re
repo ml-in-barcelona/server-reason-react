@@ -137,8 +137,6 @@ module Provider = {
         ~basePath,
         ~children,
       ) => {
-    let callServer = FlightProvider.useCallServer();
-    let decodeNavigation = FlightProvider.useNavigationDecoder();
     let initialModel = {
       navigationState: Navigation.make(initial),
       element: children,
@@ -389,8 +387,6 @@ module Provider = {
         };
       let pending =
         RouterClient.fetch(
-          ~callServer,
-          ~decodeNavigation,
           ~protocolVersion,
           ~registryFingerprint,
           ~requestId,

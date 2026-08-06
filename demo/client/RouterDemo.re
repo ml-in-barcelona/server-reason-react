@@ -35,10 +35,7 @@ module ClientApp = {
   [@react.component]
   let make = () => {
     let initialElement = React.Experimental.usePromise(initialRSCModel);
-    <FlightProvider.Provider
-      callServer decodeNavigation=RouterWire.responseOfRsc>
-      initialElement
-    </FlightProvider.Provider>;
+    initialElement;
   };
 };
 

@@ -19,35 +19,21 @@ let routerElement = (response: routerResponse) =>
   response.RouterServer.ServerEngine.resolved.element
   |> Option.value(~default=React.null);
 
-let routerMatches = (response: routerResponse) =>
-  response.RouterServer.ServerEngine.matches
-  |> List.map((matched: RouterRuntime.Navigation.matched) =>
-       {
-         RouterWire.routeId: matched.routeId,
-         parameters: matched.parameters,
-       }
-     );
-
-let routerLayouts = layouts =>
-  layouts
-  |> List.map((layout: RouterRuntime.Navigation.layout) =>
-       {
-         RouterWire.id: layout.id,
-         instanceKey: layout.instanceKey,
-       }
-     );
-
 let routerDocument = (response: routerResponse) => {
   let (pathname, query) =
     response.RouterServer.ServerEngine.canonical_url |> Dream.split_target;
   let search = query == "" ? "" : "?" ++ query;
-  let initial: ClientRoot.initial = {
-    pathname,
-    search,
-    key: "server",
+  let initial: RouterRuntime.Navigation.committed = {
+    location:
+      RouterRuntime.Navigation.{
+        pathname,
+        search,
+        hash: "",
+        key: "server",
+      },
     revision: response.revision,
-    matches: routerMatches(response),
-    layouts: routerLayouts(response.layouts),
+    matches: response.matches,
+    layouts: response.layouts,
   };
   let children =
     <ClientRoot
@@ -60,21 +46,25 @@ let routerDocument = (response: routerResponse) => {
 };
 
 let routerModel = (response: routerResponse) => {
-  let full: RouterWire.full = {
+  let full: RouterRuntime.NavigationResponse.full(React.element) = {
     protocolVersion: response.protocol_version,
     registryFingerprint: response.registry_fingerprint,
     canonicalUrl: response.canonical_url,
     status: RouterRuntime.Status.toInt(response.resolved.status),
-    matches: routerMatches(response),
-    layouts: routerLayouts(response.layouts),
+    matches: response.matches,
+    layouts: response.layouts,
     targetRevision: response.revision,
     payload: routerElement(response),
   };
-  full |> RouterWire.full_to_rsc |> RSC.to_model;
+  RouterRuntime.NavigationResponse.full_to_rsc(
+    RSC.Primitives.react_element_to_rsc,
+    full,
+  )
+  |> RSC.to_model;
 };
 
 let routerPatchModel = (response: routerPatch) => {
-  let patch: RouterWire.patch = {
+  let patch: RouterRuntime.NavigationResponse.patch(React.element) = {
     protocolVersion: response.protocol_version,
     registryFingerprint: response.registry_fingerprint,
     baseRevision: response.base_revision,
@@ -82,29 +72,26 @@ let routerPatchModel = (response: routerPatch) => {
     replaceFrom: response.replace_from,
     canonicalUrl: response.canonical_url,
     status: RouterRuntime.Status.toInt(response.resolved.status),
-    matches:
-      response.matches
-      |> List.map((matched: RouterRuntime.Navigation.matched) =>
-           {
-             RouterWire.routeId: matched.routeId,
-             parameters: matched.parameters,
-           }
-         ),
-    layouts: routerLayouts(response.layouts),
+    matches: response.matches,
+    layouts: response.layouts,
     payload: response.resolved.element |> Option.value(~default=React.null),
   };
-  patch |> RouterWire.patch_to_rsc |> RSC.to_model;
+  RouterRuntime.NavigationResponse.patch_to_rsc(
+    RSC.Primitives.react_element_to_rsc,
+    patch,
+  )
+  |> RSC.to_model;
 };
 
 let routerRedirectModel = destination => {
-  let redirect: RouterWire.redirect = {
+  let redirect: RouterRuntime.NavigationResponse.redirect = {
     protocolVersion: 1,
     registryFingerprint:
       RouterServer.EndpointRegistry.fingerprint(RouterRegistry.registry),
     location: RouterRuntime.href(destination),
     status: 200,
   };
-  redirect |> RouterWire.redirect_to_rsc |> RSC.to_model;
+  redirect |> RouterRuntime.NavigationResponse.redirect_to_rsc |> RSC.to_model;
 };
 
 let routerHandler =

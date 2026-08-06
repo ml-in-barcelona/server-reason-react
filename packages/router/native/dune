@@ -2,7 +2,9 @@
  (name router_native)
  (public_name server-reason-react.router-native)
  (wrapped false)
- (libraries lwt uri))
+ (libraries lwt server-reason-react.react server-reason-react.rsc-native uri)
+ (preprocess
+  (pps server-reason-react.rsc-native.ppx)))
 
 (copy_files
  (files ../runtime/shared/RouterTypes.re))

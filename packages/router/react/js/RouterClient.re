@@ -15,10 +15,25 @@ type pending = {
   response: Js.Promise.t(result(decoded, error)),
 };
 
+let decodeNavigation = (kind, value) =>
+  switch (kind) {
+  | Response.FullResponse =>
+    Response.Full(
+      Response.full_of_rsc(RSC.Primitives.react_element_of_rsc, value),
+    )
+  | Response.PatchResponse =>
+    Response.Patch(
+      Response.patch_of_rsc(RSC.Primitives.react_element_of_rsc, value),
+    )
+  | Response.RedirectResponse =>
+    Response.Redirect(Response.redirect_of_rsc(value))
+  | Response.FailedResponse =>
+    Response.Failed(Response.failure_of_rsc(value))
+  | Response.ReloadRequiredResponse => Response.ReloadRequired
+  };
+
 let fetch =
     (
-      ~callServer,
-      ~decodeNavigation,
       ~protocolVersion,
       ~registryFingerprint,
       ~requestId,
@@ -82,7 +97,7 @@ let fetch =
                Js.Promise.resolve(Error(InvalidContentType(contentType)));
              } else {
                Fetch.Response.body(httpResponse)
-               |> FlightProvider.decode(~callServer)
+               |> ReactServerDOMEsbuild.createFromReadableStream
                |> Js.Promise.then_((wire: RSC.t) =>
                     Js.Promise.resolve(
                       Ok({
