@@ -20,6 +20,9 @@ node_modules/
 
 # Build
 **/dist/
+# ...except React's react-client build output, which is committed and installed by dune
+# (see packages/react-client/README.md)
+!packages/react-client/dist/
 
 # Optional npm cache directory
 .npm
@@ -76,3 +79,6 @@ _esy
 demo/.running/*
 .vercel
 .env*
+
+# npm pack leftovers
+packages/esbuild-plugin/*.tgz

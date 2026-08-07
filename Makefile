@@ -75,6 +75,17 @@ pin: ## Pin dependencies
 	# TODO: drop this pin once quickjs 0.5.1 is published to opam-repository
 	opam pin add quickjs.0.5.1 "git+https://github.com/ml-in-barcelona/quickjs.ml.git#0.5.1" -y
 
+.PHONY: submodules
+submodules: ## Check out the vendored React submodule (only needed to regenerate react-client's dist)
+	git submodule update --init packages/react-client/react
+	git config push.recurseSubmodules no
+
+# The generator needs no npm dependencies of its own; it copies React's build output into
+# packages/react-client/dist and derives the version from the submodule's ReactVersion.js.
+.PHONY: react-client-generate
+react-client-generate: submodules ## Regenerate packages/react-client/dist from the vendored React submodule
+	cd packages/react-client && npm run react-client-generate
+
 .PHONY: init
 init: setup-githooks create-switch pin install install-npm ## Create a local dev enviroment
 
