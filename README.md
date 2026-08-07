@@ -11,7 +11,7 @@ Designed to be used with [reason-react](https://github.com/reasonml/reason-react
 - Includes **`React.Suspense`** and **`React.use()`** implementations
 - **server-reason-react-ppx** - A ppx transformation to support JSX on native
 - All [reason-react](https://reasonml.github.io/reason-react/) interface is either implemented or stubbed (some of the methods, like React.useState need to be stubbed because they aren't used on the server!)
-- **React Server Components** - A ReactServerDOM module for streaming RSC payload, an esbuild plugin to enhance the bundle with client-components mappings, a Dream middleware to serve the RSC endpoint and a dummy implementation of a router (still [work in progress](https://github.com/ml-in-barcelona/server-reason-react/issues/204))
+- **React Server Components** - A ReactServerDOM module for streaming RSC payloads, an esbuild plugin for client-component mappings, Dream integration, and a generated type-safe router
 
 > Warning: This repo contains a few parts that are considered experimental and there's no guarantee of stability. Most of the stable parts are used in production at ahrefs.com, app.ahrefs.com and wordcount.com. Check each module's documentation for more details.
 

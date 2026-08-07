@@ -43,24 +43,34 @@ let getCallServer = () => {
   callServerRef^;
 };
 
-let createFromReadableStream = (~callServer=?, stream): Js.Promise.t('a) => {
+let resolveCallServer = callServer =>
   switch (callServer) {
   | Some(callServer) =>
     setCallServer(callServer);
+    Some(callServer);
+  | None => getCallServer()
+  };
+
+/* The returned promise is a real Promise (chainable with Js.Promise.then_)
+   that also carries live status/value/reason getters delegating to
+   react-client's root chunk, so React.use keeps its synchronous unwrap
+   during hydration. See chainableRoot in ReactServerDOMEsbuild.js. */
+let createFromReadableStream = (~callServer=?, stream): Js.Promise.t('a) => {
+  switch (resolveCallServer(callServer)) {
+  | Some(callServer) =>
     createFromReadableStreamImpl(
       stream,
       ~options={ callServer: callServer },
       (),
-    );
+    )
   | None => createFromReadableStreamImpl(stream, ())
   };
 };
 
 let createFromFetch = (~callServer=?, promise) => {
-  switch (callServer) {
+  switch (resolveCallServer(callServer)) {
   | Some(callServer) =>
-    setCallServer(callServer);
-    createFromFetchImpl(promise, ~options={ callServer: callServer }, ());
+    createFromFetchImpl(promise, ~options={ callServer: callServer }, ())
   | None => createFromFetchImpl(promise, ())
   };
 };

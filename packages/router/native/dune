@@ -1,0 +1,38 @@
+(library
+ (name router_native)
+ (public_name server-reason-react.router-native)
+ (wrapped false)
+ (private_modules RouterClientRoot RouterOutlet RouterPattern RouterTypes)
+ (libraries
+  lwt
+  server-reason-react.js
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.rsc-native
+  uri)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -shared-folder-prefix=/native/
+   server-reason-react.rsc-native.ppx)))
+
+(copy_files
+ (files ../runtime/shared/RouterTypes.re))
+
+(copy_files
+ (files ../runtime/shared/RouterRuntime.rei))
+
+(copy_files
+ (files ../runtime/shared/RouterPattern.re))
+
+(copy_files
+ (files ../runtime/shared/RouterPattern.rei))
+
+(copy_files
+ (files ../react/shared/RouterReact.rei))
+
+(copy_files
+ (files ../react/shared/RouterOutlet.re))
+
+(copy_files
+ (files ../react/shared/RouterClientRoot.re))

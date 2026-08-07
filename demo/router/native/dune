@@ -1,0 +1,32 @@
+(include_subdirs unqualified)
+
+(library
+ (name demo_router_native)
+ (wrapped false)
+ (flags :standard -w -26-27)
+ (libraries
+  belt
+  demo_shared_native
+  js
+  lwt
+  react
+  reactDOM
+  server-reason-react.router-native
+  server-reason-react.rsc-native)
+ (preprocess
+  (pps
+   lwt_ppx
+   melange_native_ppx
+   server-reason-react.ppx
+   -shared-folder-prefix=/native/shared/
+   server-reason-react.browser_ppx
+   server-reason-react.rsc-native.ppx)))
+
+(copy_files
+ (files ../generated/Router.ml))
+
+(copy_files
+ (files ../generated/Router.mli))
+
+(copy_files
+ (files ../generated/RouterRegistry.ml))

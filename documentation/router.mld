@@ -1,0 +1,46 @@
+{0 Type-safe router}
+
+The generated [Router] module is the application API. Application components
+should not import [RouterRuntime], [RouterReact], or [RouterServer] directly.
+
+{1 Application API}
+
+Each route is a component and also owns its typed helpers:
+
+{[
+<Router.Note id> children </Router.Note>
+
+let destination = Router.Note.destination(~id, ())
+let href = Router.Note.href(~id, ())
+let active = Router.Note.useIsActive(~id, ())
+]}
+
+[Router.useNavigation], [Router.useSearch], and [Router.useUpdateHash] expose
+navigation state and commands. [Router.useSearch] returns the decoded search
+record and its typed update function. [Router.Status],
+[Router.Loader], [Router.Error], [Router.Metadata], [Router.Headers], and
+[Router.Navigation] contain the application-authored server contracts.
+
+{1 Server integration}
+
+The native generator emits [RouterRegistry.server]. A Dream application mounts
+the generated router with one call:
+
+{[
+DreamRouter.routes(
+  ~router=RouterRegistry.server,
+  ~actionHandler,
+  ~bootstrapModules=["/static/app.js"],
+  ~document=children => <Document> children </Document>,
+  (),
+)
+]}
+
+The registry, matching engine, protocol version, response envelopes, and client
+provider are implementation details of the generator and adapter.
+
+{1 Libraries}
+
+Melange applications depend on [server-reason-react.router]. Native
+applications depend on [server-reason-react.router-native]. Route generation
+uses [server-reason-react.router-gen].

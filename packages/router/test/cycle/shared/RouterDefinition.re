@@ -1,0 +1,47 @@
+Router.make(
+  ~basePath="/fixture",
+  ~search={
+    page: Router.Search.default(int, 1),
+    searchText: Router.Search.optional(string),
+  },
+  ~layout=Attachments.RootLayout.make,
+  ~loading=Attachments.RootLoading.make,
+  ~metadata=Attachments.RootMetadata.make,
+  ~headers=Attachments.RootHeaders.make,
+  ~error=Attachments.AppError,
+  ~invalidSearch=Attachments.InvalidSearch.make,
+  ~notFound=Attachments.RootNotFound.make,
+  [
+    Router.group(
+      ~path="/workspaces/:workspaceId<WorkspaceId.t>",
+      ~search={ filter: Router.Search.optional(Filter.t) },
+      ~loader=WorkspaceLoader.load,
+      ~loaderAs_=workspace,
+      ~layout=Attachments.WorkspaceLayout.make,
+      ~metadata=Attachments.WorkspaceMetadata.make,
+      ~headers=Attachments.WorkspaceHeaders.make,
+      ~error=Attachments.WorkspaceBoundary.make,
+      ~notFound=Attachments.WorkspaceNotFound.make,
+      [
+        Router.route(
+          Note,
+          ~page=NotePage.make,
+          ~path="/notes/:id<NoteId.t>",
+          ~loader=NoteLoader.load,
+          ~loaderAs_=noteAccess,
+          ~metadata=Attachments.NoteMetadata.make,
+          ~headers=Attachments.NoteHeaders.make,
+        ),
+        Router.route(
+          EditNote,
+          ~page=NotePage.make,
+          ~path="/notes/:id<NoteId.t>/edit",
+          ~loader=NoteLoader.load,
+          ~loaderAs_=noteAccess,
+          ~metadata=Attachments.NoteMetadata.make,
+          ~headers=Attachments.NoteHeaders.make,
+        ),
+      ],
+    ),
+  ],
+);

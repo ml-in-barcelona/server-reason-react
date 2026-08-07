@@ -66,6 +66,17 @@ let suspense_fallback_on_error () =
   let html = ReactDOM.renderToString el in
   assert_string html "<!--$!--><div>fallback</div><!--/$-->"
 
+let suspense_fallback_on_invalid_argument () =
+  let el =
+    React.Suspense
+      {
+        key = None;
+        children = React.Upper_case_component ("Throws", fun () -> raise (Invalid_argument "user error"));
+        fallback = Some (React.createElement "div" [] [ React.string "fallback" ]);
+      }
+  in
+  assert_string (ReactDOM.renderToString el) "<!--$!--><div>fallback</div><!--/$-->"
+
 let assert_raises exn fn =
   match fn () with
   | exception raised -> assert_string (Printexc.to_string raised) (Printexc.to_string exn)
@@ -162,6 +173,7 @@ let tests =
     test "text_after_element_with_text_child" text_after_element_with_text_child;
     test "suspense children render exactly once" suspense_children_render_once;
     test "suspense renders fallback on error" suspense_fallback_on_error;
+    test "suspense renders fallback on user invalid argument" suspense_fallback_on_invalid_argument;
     test "async_component_inside_suspense_raises" async_component_inside_suspense_raises;
     test "client_component_inside_suspense_raises" client_component_inside_suspense_raises;
     test "context default survives provider child throw" context_default_survives_provider_child_throw;

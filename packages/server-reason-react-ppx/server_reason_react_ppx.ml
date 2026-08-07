@@ -489,7 +489,7 @@ type compile_time_textness = Ct_text | Ct_markup | Ct_unknown
    when both sides of a boundary are known, the separator is emitted behind
    a plain [if separators] check (or not at all); when the left side is a
    [Dynamic_element] hole the generated code threads a [prev_text] ref,
-   assigned from [ReactDOM.write_element_to_buffer]'s result. The ref is
+    assigned from [ReactDOM.write_element_to_buffer_internal]'s result. The ref is
    only read while the compile-time state is [Ct_unknown], so static parts
    and string holes never need to update it. *)
 let emit_parts_emit_fn ~loc parts =
@@ -580,14 +580,14 @@ let emit_parts_emit_fn ~loc parts =
                   Some
                     [%expr
                       __prev_text :=
-                        ReactDOM.write_element_to_buffer __buf ~separators:__separators ~prev_text:[%e prev_text_arg]
-                          [%e e]]
+                        ReactDOM.write_element_to_buffer_internal __buf ~separators:__separators
+                          ~prev_text:[%e prev_text_arg] [%e e]]
                 else
                   Some
                     [%expr
                       let (_ : bool) =
-                        ReactDOM.write_element_to_buffer __buf ~separators:__separators ~prev_text:[%e prev_text_arg]
-                          [%e e]
+                        ReactDOM.write_element_to_buffer_internal __buf ~separators:__separators
+                          ~prev_text:[%e prev_text_arg] [%e e]
                       in
                       ()]
             | Dynamic_attr_slot { info; expr; is_optional } -> Some (write_attr_slot ~info ~expr ~is_optional)

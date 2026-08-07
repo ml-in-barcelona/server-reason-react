@@ -400,8 +400,36 @@ function callCurrentServerCallback(callServer) {
 }
 
 /*
+ * react-client's root chunk (ReactPromise) serves two consumers with
+ * conflicting needs:
+ *
+ * - React.use reads its `status`/`value` fields synchronously (hydration
+ *   relies on that) and calls `then` for its side effect of registering
+ *   callbacks and initializing lazy chunks.
+ * - Promise chaining needs `then` to return a chained promise, but the
+ *   chunk's `then` returns undefined, so chaining on it silently resolves
+ *   undefined.
+ *
+ * Wrapping the chunk (Promise.resolve or a facade) breaks hydration: any
+ * subscription at creation time forces the model to initialize as soon as
+ * its row arrives, before referenced module chunks have loaded, and client
+ * components resolve to null. Instead, repair `then` in place: it still
+ * performs the original synchronous registration and initialization, and
+ * additionally returns a real promise. Nothing subscribes until a consumer
+ * does, so the chunk stays lazy.
+ */
+function chainableRoot(chunk) {
+  const originalThen = chunk.then.bind(chunk);
+  chunk.then = function (onFulfilled, onRejected) {
+    return new Promise(originalThen).then(onFulfilled, onRejected);
+  };
+  return chunk;
+}
+
+/*
  * Public API: Creates a Flight response from a ReadableStream.
- * Returns a thenable that resolves to the deserialized React element tree.
+ * Returns a chainable promise (see chainableRoot) that resolves to the
+ * deserialized React element tree.
  *
  * @param stream - A ReadableStream containing the RSC payload
  * @param options - Optional config: { callServer, temporaryReferences }
@@ -409,7 +437,7 @@ function callCurrentServerCallback(callServer) {
 export function createFromReadableStream(stream, options) {
   const response = createResponseFromOptions(options);
   startReadingFromStream(response, stream);
-  return getRoot(response);
+  return chainableRoot(getRoot(response));
 }
 
 /*
@@ -468,7 +496,7 @@ export function createFromFetch(promise, options) {
       reportGlobalError(response, e);
     }
   );
-  return getRoot(response);
+  return chainableRoot(getRoot(response));
 }
 
 /*

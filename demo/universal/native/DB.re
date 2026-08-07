@@ -187,7 +187,13 @@ let findOne =
   });
 
 let insertNote = (~title, ~content, notes) => {
-  let id = List.length(notes);
+  let id =
+    notes
+    |> List.fold_left(
+         (highest, note: Note.t) => Int.max(highest, note.id),
+         -1,
+       )
+    |> (highest => highest + 1);
   let note: Note.t = {
     id,
     title,
@@ -253,12 +259,15 @@ let editNote = (~id, ~title, ~content) => {
 
 let deleteNote = id => {
   let%lwt notes = readNotes();
-  let notes =
-    Result.map(
-      notes => notes |> List.filter((note: Note.t) => note.id != id),
-      notes,
-    );
-  Lwt_result.lift(notes);
+  switch (notes) {
+  | Error(error) => Lwt_result.fail(error)
+  | Ok(notes) =>
+    let notes = notes |> List.filter((note: Note.t) => note.id != id);
+    switch%lwt (writeFile("./notes.json", serializeNotes(notes))) {
+    | Ok () => Lwt_result.return(notes)
+    | Error(error) => Lwt_result.fail(error)
+    };
+  };
 };
 
 let fetchNoteCached =
@@ -278,3 +287,17 @@ let fetchNoteCached =
   });
 
 let fetchNote = (~sleep=None, id) => fetchNoteCached((sleep, id));
+
+let fetchNoteOptionCached =
+  React.cache(id => {
+    Dream.log("[DB.fetchNoteOption] Fetching note id=%d from disk", id);
+    let%lwt notes = readNotes();
+    Lwt.return(
+      Result.map(
+        notes => List.find_opt((note: Note.t) => note.id == id, notes),
+        notes,
+      ),
+    );
+  });
+
+let fetchNoteOption = id => fetchNoteOptionCached(id);

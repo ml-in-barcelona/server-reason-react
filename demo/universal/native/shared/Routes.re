@@ -4,8 +4,6 @@ let renderToString = "/demo/renderToString";
 let renderToStream = "/demo/renderToStream";
 let serverOnlyRSC = "/demo/serverOnlyRSC";
 let singlePageRSC = "/demo/singlePageRSC";
-let dummyRouterRSC = "/demo/dummyRouterRSC";
-let dummyRouterRSCNoSSR = "/demo/dummyRouterRSC?ssr=false";
 let router = "/demo/router";
 
 let links = [|
@@ -35,18 +33,8 @@ let links = [|
     singlePageRSC,
   ),
   (
-    "dummyRouterRSC",
-    "A dummy implementation of a router (only a few queryStrings) as a single page app. Server components with SSR, client components and Suspense + React.use",
-    dummyRouterRSC,
-  ),
-  (
-    "dummyRouterRSC - without SSR",
-    "The same demo as dummyRouterRSC but without SSR. It SSR the shell of the page (head, body, etc), but not the app itself.",
-    dummyRouterRSCNoSSR,
-  ),
-  (
-    "nestedRouterRSC",
-    "A nested router with server components and SSR, client components and Suspense + React.use. It uses the same design as the dummyRouterRSC but with a more complex structure that can handle nested routes and dynamic segments.",
+    "router",
+    "A router demo with server components, SSR, client components, Suspense, nested routes, and dynamic segments.",
     router,
   ),
 |];

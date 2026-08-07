@@ -76,3 +76,6 @@ _esy
 demo/.running/*
 .vercel
 .env*
+
+# Local design notes
+/design/

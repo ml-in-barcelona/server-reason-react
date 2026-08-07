@@ -6,6 +6,7 @@ let () =
             Test_RSC_html.tests;
             Test_RSC_html_shell.tests;
             Test_renderToStream.tests;
+            Test_streaming_suspense.tests;
             Test_renderToStaticMarkup.tests;
             Test_renderToString.tests;
             Test_write_to_buffer.tests;

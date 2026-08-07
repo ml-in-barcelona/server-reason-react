@@ -16,7 +16,7 @@ async function build(entryPoints, { env, output, extract, mockWebpackRequire }) 
 				target: "app",
 				mockWebpackRequire,
 				bootstrapOutput,
-				entrypoints: ["SinglePageRSC.re.js", "DummyRouterRSC.re.js", "NestedRouterRSC.re.js"],
+				entrypoints: ["SinglePageRSC.re.js", "RouterDemo.re.js"],
 			}),
 		);
 	}
