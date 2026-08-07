@@ -2,6 +2,7 @@
  (package server-reason-react)
  (mld_files
   index
+  router
   get-started
   universal-code
   how-to-organise-universal-code
