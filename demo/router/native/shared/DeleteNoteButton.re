@@ -2,7 +2,7 @@
 let make = (~id: NoteId.t) => {
   let (isDeleting, setIsDeleting) = RR.useStateValue(false);
   let (navigate, navigation) = Router.useNavigation();
-  let { Router.searchText } = Router.useSearch();
+  let ({ Router.searchText }, _) = Router.useSearch();
   let isNavigating =
     switch (navigation) {
     | Router.Navigation.Loading(_) => true
@@ -14,16 +14,12 @@ let make = (~id: NoteId.t) => {
     ServerFunctions.Notes.delete_.call(~id=NoteId.toInt(id))
     |> Js.Promise.then_(_ => {
          setIsDeleting(false);
-         switch (navigate) {
-         | Some(navigate) =>
-           navigate(
-             ~history=Router.Navigation.Replace,
-             ~revalidate=true,
-             Router.Home.destination(~searchText?, ()),
-           )
-           |> ignore
-         | None => ()
-         };
+         navigate(
+           ~history=Router.Navigation.Replace,
+           ~revalidate=true,
+           Router.Home.destination(~searchText?, ()),
+         )
+         |> ignore;
          Js.Promise.resolve();
        })
     |> ignore;

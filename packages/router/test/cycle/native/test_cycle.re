@@ -49,7 +49,7 @@ let testEncodeURIComponentParity = () => {
 
 let testGeneratedLink = () => {
   let link =
-    Router.Note.Link.make(
+    Router.Note.make(
       ~workspaceId=WorkspaceId.make(7),
       ~id=NoteId.make(42),
       ~className="note-link",
@@ -83,10 +83,16 @@ let testGeneratedEndpoint = () => {
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.prepare(matched, ~search)) {
+    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
     | Error(_) => Alcotest.fail("expected decoded endpoint")
-    | Ok(execution) =>
-      switch (Lwt_main.run(RouterServer.Execution.run(execution))) {
+    | Ok(prepared) =>
+      switch (
+        Lwt_main.run(
+          RouterServer.Execution.run(
+            RouterServer.Endpoint.execution(prepared),
+          ),
+        )
+      ) {
       | RouterRuntime.Loader.Data(plan) =>
         let result =
           Lwt_main.run(
@@ -138,13 +144,35 @@ let testGeneratedEndpoint = () => {
             "workspace-headers",
             "note-metadata",
             "note-headers",
-            "workspace-layout",
-            "root-layout",
           ],
           Attachments.events(),
         );
       | _ => Alcotest.fail("expected loader data")
       }
+    }
+  | _ => Alcotest.fail("expected generated endpoint")
+  };
+};
+
+let testGeneratedDecodeIsLazy = () => {
+  let search =
+    switch (RouterServer.Search.parse("")) {
+    | Ok(search) => search
+    | Error(_) => Alcotest.fail("expected valid search")
+    };
+  NotePage.fail();
+  switch (
+    RouterServer.EndpointRegistry.find(
+      RouterRegistry.registry,
+      ~pathname="/workspaces/7/notes/42",
+    )
+  ) {
+  | Ok(Some(matched)) =>
+    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    | Ok(prepared) =>
+      let _branch = RouterServer.Endpoint.branch(prepared);
+      NotePage.reset();
+    | Error(_) => Alcotest.fail("expected decoded endpoint")
     }
   | _ => Alcotest.fail("expected generated endpoint")
   };
@@ -164,7 +192,7 @@ let testGeneratedDecodeError = () => {
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.prepare(matched, ~search)) {
+    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
     | Error(RouterRuntime.Error.InvalidPathParameter({ name: "id" })) =>
       Alcotest.check(
         Alcotest.list(Alcotest.string),
@@ -194,10 +222,16 @@ let testGeneratedLoaderShortCircuit = () => {
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.prepare(matched, ~search)) {
+    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
     | Error(_) => Alcotest.fail("expected decoded endpoint")
-    | Ok(execution) =>
-      switch (Lwt_main.run(RouterServer.Execution.run(execution))) {
+    | Ok(prepared) =>
+      switch (
+        Lwt_main.run(
+          RouterServer.Execution.run(
+            RouterServer.Endpoint.execution(prepared),
+          ),
+        )
+      ) {
       | RouterRuntime.Loader.Data(plan) =>
         let result =
           Lwt_main.run(
@@ -226,12 +260,7 @@ let testGeneratedLoaderShortCircuit = () => {
         Alcotest.check(
           Alcotest.list(Alcotest.string),
           "failure attachments",
-          [
-            "root-metadata",
-            "root-headers",
-            "workspace-not-found",
-            "root-layout",
-          ],
+          ["root-metadata", "root-headers"],
           Attachments.events(),
         );
       | _ => Alcotest.fail("expected failure plan")
@@ -255,7 +284,7 @@ let testGeneratedSearchDecodeError = () => {
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.prepare(matched, ~search)) {
+    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
     | Error(RouterRuntime.Error.InvalidSearchParameter({ name: "page" })) =>
       Alcotest.check(
         Alcotest.list(Alcotest.string),
@@ -378,13 +407,13 @@ let testDocumentNotFoundResponse = () => {
 let testInternalResponseIsSafe = () => {
   WorkspaceLoader.reset();
   Attachments.reset();
-  NotePage.fail();
+  NoteLoader.fail();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/42", ())) {
   | Redirect(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
-    NotePage.reset();
+    NoteLoader.reset();
     Alcotest.check(
       Alcotest.int,
       "status",
@@ -408,6 +437,34 @@ let testInternalResponseIsSafe = () => {
 let testEngineDecodeError = () => {
   Attachments.reset();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/nope", ())) {
+  | Redirect(_) => Alcotest.fail("expected full response")
+  | Patch(_)
+  | ReloadRequired => Alcotest.fail("unexpected navigation response")
+  | Full(response) =>
+    Alcotest.check(
+      Alcotest.int,
+      "status",
+      400,
+      RouterRuntime.Status.toInt(response.resolved.status),
+    );
+    Alcotest.check(
+      Alcotest.bool,
+      "boundary",
+      true,
+      Option.is_some(response.resolved.element),
+    );
+  };
+};
+
+let testInvalidRootSearchBoundary = () => {
+  Attachments.reset();
+  switch (
+    runEngine(
+      ~pathname="/fixture/workspaces/7/notes/42",
+      ~search="?page=nope",
+      (),
+    )
+  ) {
   | Redirect(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
@@ -593,6 +650,11 @@ let () =
             testGeneratedEndpoint,
           ),
           Alcotest.test_case(
+            "generated endpoint decode is lazy",
+            `Quick,
+            testGeneratedDecodeIsLazy,
+          ),
+          Alcotest.test_case(
             "generated decode error",
             `Quick,
             testGeneratedDecodeError,
@@ -626,6 +688,11 @@ let () =
             "engine decode error",
             `Quick,
             testEngineDecodeError,
+          ),
+          Alcotest.test_case(
+            "invalid root search boundary",
+            `Quick,
+            testInvalidRootSearchBoundary,
           ),
           Alcotest.test_case("engine redirect", `Quick, testEngineRedirect),
           Alcotest.test_case(

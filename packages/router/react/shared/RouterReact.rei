@@ -1,4 +1,3 @@
-type options = RouterRuntime.Link.options;
 type navigationResult = RouterRuntime.Navigation.Result.t;
 type navigate =
   (
@@ -11,12 +10,12 @@ type updateSearch =
   (
     ~owned: list(string),
     ~values: list((string, list(string))),
-    ~options: RouterRuntime.Search.options=?,
+    ~history: RouterRuntime.Navigation.historyAction=?,
     unit
   ) =>
   navigationResult;
 type updateHash =
-  (~hash: string, ~options: RouterRuntime.Search.options=?, unit) =>
+  (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
   navigationResult;
 
 module Provider: {
@@ -27,18 +26,17 @@ module Provider: {
       ~protocolVersion: int=?,
       ~registryFingerprint: string,
       ~basePath: string,
+      ~metadata: React.element,
       ~children: React.element,
       unit
     ) =>
     React.element;
 };
 
-let useNavigation:
-  unit => (option(navigate), RouterRuntime.Navigation.status);
+let useNavigation: unit => (navigate, RouterRuntime.Navigation.status);
 let useCommitted: unit => option(RouterRuntime.Navigation.committed);
-let useSearchValues: unit => list((string, list(string)));
-let useUpdateSearch: unit => option(updateSearch);
-let useUpdateHash: unit => option(updateHash);
+let useSearch: unit => (list((string, list(string))), updateSearch);
+let useUpdateHash: unit => updateHash;
 let useIsActive:
   (
     ~routeId: string,
@@ -57,7 +55,8 @@ let link:
     ~target: string=?,
     ~download: string=?,
     ~ariaCurrent: string=?,
-    ~options: options=?,
+    ~history: RouterRuntime.Navigation.historyAction=?,
+    ~revalidate: bool=?,
     ~children: React.element,
     unit
   ) =>

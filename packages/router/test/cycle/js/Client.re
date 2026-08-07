@@ -15,7 +15,7 @@ let quoteHref =
   );
 
 let useGeneratedClientHooks = () => {
-  let { Router.page, searchText: _ } = Router.useSearch();
+  let ({ Router.page, searchText: _ }, updateSearch) = Router.useSearch();
   let isActive =
     Router.Note.useIsActive(
       ~workspaceId=WorkspaceId.make(7),
@@ -23,11 +23,6 @@ let useGeneratedClientHooks = () => {
       ~includeDescendants=true,
       (),
     );
-  let updateResult =
-    switch (Router.useUpdateSearch()) {
-    | Some(updateSearch) =>
-      Some(updateSearch(~page=page + 1, ~searchText=None, ()))
-    | None => None
-    };
+  let updateResult = updateSearch(~page=page + 1, ~searchText=None, ());
   (isActive, updateResult, Router.useUpdateHash());
 };

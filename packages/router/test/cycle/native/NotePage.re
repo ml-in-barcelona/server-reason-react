@@ -2,6 +2,7 @@ let shouldFail = ref(false);
 let fail = () => shouldFail := true;
 let reset = () => shouldFail := false;
 
+[@react.component]
 let make =
     (
       ~workspaceId: WorkspaceId.t,
@@ -11,7 +12,6 @@ let make =
       ~filter: option(Filter.t),
       ~workspace: string,
       ~noteAccess: int,
-      (),
     ) =>
   if (shouldFail^) {
     raise(Failure("private page failure"));

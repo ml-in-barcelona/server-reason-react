@@ -82,39 +82,20 @@ val streamFunctionResponse :
     @param lookup maps an action ID to a registered {!ReactServerDOM.server_function}
     @param request current Dream request *)
 
-val handler :
-  registry:((React.element, 'error) RouterServer.Plan.t, 'error) RouterServer.EndpointRegistry.t ->
-  basePath:string ->
-  fallback:
-    (search:RouterServer.Search.t -> error:'error RouterRuntime.Error.t -> (React.element, 'error) RouterServer.Plan.t) ->
-  applicationStatus:('error -> RouterRuntime.Status.t) ->
-  diagnosticId:(exn -> string) ->
-  revision:(unit -> string) ->
-  protocolVersion:int ->
+val routes :
+  router:(React.element, 'error) RouterServer.Server.t ->
+  actionHandler:(Dream.request -> Dream.response Lwt.t) ->
+  ?diagnosticId:(exn -> string) ->
+  ?revision:(unit -> string) ->
   ?bootstrapModules:string list ->
   document:(React.element -> React.element) ->
-  Dream.request ->
-  Dream.response Lwt.t
-(** Handle document and RSC requests for a generated router registry.
+  unit ->
+  Dream.route list
+(** Register document, RSC, and server-function routes for a generated router.
 
-    @param registry generated endpoint registry
-    @param basePath URL path under which the router is mounted
-    @param fallback build the plan used for unmatched routes and decode errors
-    @param applicationStatus map application errors to HTTP statuses
+    @param router generated router server configuration
+    @param actionHandler server-function POST handler
     @param diagnosticId produce a safe identifier for an internal exception
     @param revision produce the revision attached to a successful response
-    @param protocolVersion router wire-protocol version
     @param bootstrapModules JavaScript modules loaded by document responses
-    @param document wrap the routed client root in the HTML document tree
-    @param request current Dream request *)
-
-val routes :
-  basePath:string ->
-  actionHandler:(Dream.request -> Dream.response Lwt.t) ->
-  (Dream.request -> Dream.response Lwt.t) ->
-  Dream.route list
-(** Register GET and server-function POST routes for a router mount.
-
-    @param basePath URL path under which the router is mounted
-    @param actionHandler server-function POST handler
-    @param handler document and RSC request handler *)
+    @param document wrap the routed client root in the HTML document tree *)

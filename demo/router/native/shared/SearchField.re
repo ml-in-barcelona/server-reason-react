@@ -1,7 +1,6 @@
 [@react.client.component]
 let make = () => {
-  let { Router.searchText } = Router.useSearch();
-  let updateSearch = Router.useUpdateSearch();
+  let ({ Router.searchText }, updateSearch) = Router.useSearch();
   let (text, setText) =
     RR.useStateValue(searchText |> Option.value(~default=""));
   let (isSearching, startSearching) = React.useTransition();
@@ -15,14 +14,10 @@ let make = () => {
     let nextText = target##value;
     let searchText = nextText == "" ? None : Some(nextText);
     setText(nextText);
-    switch (updateSearch) {
-    | Some(updateSearch) =>
-      startSearching(() => {
-        let _ = updateSearch(~searchText, ());
-        ();
-      })
-    | None => ()
-    };
+    startSearching(() => {
+      let _ = updateSearch(~searchText, ());
+      ();
+    });
   };
 
   <form className="search" role="search" onSubmit>

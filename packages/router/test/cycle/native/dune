@@ -12,10 +12,15 @@
   WorkspaceLoader)
  (wrapped false)
  (libraries
+  js
   server-reason-react.react
   lwt
-  server-reason-react.router-react-native
-  server-reason-react.router-native))
+  server-reason-react.router-native)
+ (preprocess
+  (per_module
+   ((pps server-reason-react.ppx)
+    Attachments
+    NotePage))))
 
 (test
  (name test_cycle)

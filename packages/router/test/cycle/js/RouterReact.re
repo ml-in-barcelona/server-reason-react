@@ -1,4 +1,3 @@
-type options = RouterRuntime.Link.options;
 type navigationResult = RouterRuntime.Navigation.Result.t;
 type navigate =
   (
@@ -11,12 +10,12 @@ type updateSearch =
   (
     ~owned: list(string),
     ~values: list((string, list(string))),
-    ~options: RouterRuntime.Search.options=?,
+    ~history: RouterRuntime.Navigation.historyAction=?,
     unit
   ) =>
   navigationResult;
 type updateHash =
-  (~hash: string, ~options: RouterRuntime.Search.options=?, unit) =>
+  (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
   navigationResult;
 
 let link =
@@ -26,13 +25,20 @@ let link =
       ~target as _=?,
       ~download as _=?,
       ~ariaCurrent as _=?,
-      ~options as _=?,
+      ~history as _=?,
+      ~revalidate as _=?,
       ~children,
       (),
     ) => children;
-let useNavigation = () => (None, RouterRuntime.Navigation.Idle);
-let useSearchValues = () => [];
-let useUpdateSearch = () => None;
-let useUpdateHash = () => None;
+let navigate: navigate = (~history as _=?, ~revalidate as _=?, _destination) =>
+  assert(false);
+let updateSearch: updateSearch =
+    (~owned as _, ~values as _, ~history as _=?, ()) =>
+  assert(false);
+let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>
+  assert(false);
+let useNavigation = () => (navigate, RouterRuntime.Navigation.Idle);
+let useSearch = () => ([], updateSearch);
+let useUpdateHash = () => updateHash;
 let useIsActive = (~routeId as _, ~parameters as _, ~includeDescendants as _) =>
   false;

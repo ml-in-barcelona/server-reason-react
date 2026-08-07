@@ -5,8 +5,10 @@ let make =
       ~protocolVersion: int,
       ~registryFingerprint: string,
       ~basePath: string,
+      ~metadata: React.element,
       ~children: React.element,
     ) =>
-  <RouterReact.Provider initial protocolVersion registryFingerprint basePath>
+  <RouterReact.Provider
+    initial protocolVersion registryFingerprint basePath metadata>
     children
   </RouterReact.Provider>;

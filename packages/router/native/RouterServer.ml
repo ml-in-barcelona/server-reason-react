@@ -17,8 +17,7 @@ module Percent = struct
 end
 
 module Path = struct
-  type parameter = { name : string }
-  type segment = Static of string | Parameter of parameter
+  type segment = RouterPattern.segment = Static of string | Parameter of RouterPattern.parameter
   type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
 
   let split path =
@@ -28,25 +27,13 @@ module Path = struct
       let segments = String.split_on_char '/' path |> List.tl in
       if List.exists (String.equal "") segments then Error path else Ok segments
 
-  let parse_pattern_segment segment =
-    if segment = "" || segment.[0] <> ':' then Static segment
-    else
-      match (String.index_opt segment '<', String.index_opt segment '>') with
-      | Some opening, Some closing when opening > 1 && closing = String.length segment - 1 ->
-          let name = String.sub segment 1 (opening - 1) in
-          let type_name = String.sub segment (opening + 1) (closing - opening - 1) in
-          if type_name = "" then invalid_arg ("invalid route segment " ^ segment) else Parameter { name }
-      | _ -> invalid_arg ("invalid route segment " ^ segment)
-
-  let parse_pattern path =
-    match split path with
-    | Error path -> Error path
-    | Ok segments -> ( try Ok (List.map parse_pattern_segment segments) with Invalid_argument _ -> Error path)
-
   let decode_segment segment =
     match Percent.decode segment with
     | Error segment -> Error (MalformedEscape segment)
-    | Ok decoded -> if String.contains decoded '/' then Error (EncodedSlash segment) else Ok decoded
+    | Ok decoded ->
+        if String.contains decoded '/' then Error (EncodedSlash segment)
+        else if decoded = "." || decoded = ".." then Error (InvalidPath segment)
+        else Ok decoded
 
   let decodePathname pathname =
     match split pathname with
@@ -80,8 +67,8 @@ module Route = struct
   type t = { id : string; path : string; segments : Path.segment list }
 
   let make ~id ~path =
-    match Path.parse_pattern path with
-    | Ok segments -> { id; path; segments }
+    match RouterPattern.parse path with
+    | Ok pattern -> { id; path; segments = RouterPattern.segments pattern }
     | Error _ -> invalid_arg ("invalid route path " ^ path)
 
   let id route = route.id
@@ -164,7 +151,8 @@ module Match = struct
       match (patterns, values) with
       | [], [] -> Some (List.rev parameters)
       | Static expected :: patterns, value :: values when String.equal expected value -> loop parameters patterns values
-      | Parameter parameter :: patterns, value :: values -> loop ((parameter.name, value) :: parameters) patterns values
+      | Parameter parameter :: patterns, value :: values ->
+          loop ((parameter.RouterPattern.name, value) :: parameters) patterns values
       | _ -> None
     in
     loop [] route.Route.segments segments
@@ -269,6 +257,8 @@ module Decode = struct
     loop [] (Search.values input.Input.search name)
 end
 
+let fatal_exception = function Lwt.Canceled | Out_of_memory | Stack_overflow | Sys.Break -> true | _ -> false
+
 module Execution = struct
   type ('result, 'error) t =
     | Done : 'result -> ('result, 'error) t
@@ -288,24 +278,35 @@ module Execution = struct
   let load run next = Load { run; next }
   let loadWithBoundary ~run ~failure ~next = LoadWithBoundary { run; failure; next }
 
-  let rec run : type result error. (result, error) t -> (result, error) RouterRuntime.Loader.result Lwt.t = function
-    | Done result -> Lwt.return (RouterRuntime.Loader.Data result)
-    | Load loader ->
-        Lwt.bind (loader.run ()) (function
-          | RouterRuntime.Loader.Data data -> run (loader.next data)
-          | RouterRuntime.Loader.Error error -> Lwt.return (RouterRuntime.Loader.Error error)
-          | RouterRuntime.Loader.NotFound -> Lwt.return RouterRuntime.Loader.NotFound
-          | RouterRuntime.Loader.Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination))
-    | LoadWithBoundary loader ->
-        Lwt.bind (loader.run ()) (function
-          | RouterRuntime.Loader.Data data -> run (loader.next data)
-          | RouterRuntime.Loader.Error error ->
-              Lwt.return (RouterRuntime.Loader.Data (loader.failure (RouterRuntime.Error.Application error)))
-          | RouterRuntime.Loader.NotFound ->
-              Lwt.return
-                (RouterRuntime.Loader.Data
-                   (loader.failure (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })))
-          | RouterRuntime.Loader.Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination))
+  let run ?(diagnosticId = fun _ -> "internal") execution =
+    let rec loop : type result error. (result, error) t -> (result, error) RouterRuntime.Loader.result Lwt.t = function
+      | Done result -> Lwt.return (RouterRuntime.Loader.Data result)
+      | Load loader ->
+          Lwt.bind (loader.run ()) (function
+            | RouterRuntime.Loader.Data data -> loop (loader.next data)
+            | RouterRuntime.Loader.Error error -> Lwt.return (RouterRuntime.Loader.Error error)
+            | RouterRuntime.Loader.NotFound -> Lwt.return RouterRuntime.Loader.NotFound
+            | RouterRuntime.Loader.Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination))
+      | LoadWithBoundary loader ->
+          Lwt.catch
+            (fun () ->
+              Lwt.bind (loader.run ()) (function
+                | RouterRuntime.Loader.Data data -> loop (loader.next data)
+                | RouterRuntime.Loader.Error error ->
+                    Lwt.return (RouterRuntime.Loader.Data (loader.failure (RouterRuntime.Error.Application error)))
+                | RouterRuntime.Loader.NotFound ->
+                    Lwt.return
+                      (RouterRuntime.Loader.Data
+                         (loader.failure (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })))
+                | RouterRuntime.Loader.Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination)))
+            (fun exception_ ->
+              if fatal_exception exception_ then Lwt.fail exception_
+              else
+                Lwt.return
+                  (RouterRuntime.Loader.Data
+                     (loader.failure (RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ }))))
+    in
+    loop execution
 end
 
 let status_of_error ~application = function
@@ -347,22 +348,12 @@ end
 module Plan = struct
   module Scope = struct
     type 'view t = {
-      id : string;
-      instance_key : string;
-      reusable : bool;
       layout : ('view -> 'view) option;
-      loading : (unit -> 'view) option;
       metadata : (unit -> RouterRuntime.Metadata.t Lwt.t) option;
       headers : (unit -> RouterRuntime.Headers.t Lwt.t) option;
     }
 
-    let make ~id ~instanceKey ~reusable ?layout ?loading ?metadata ?headers () =
-      { id; instance_key = instanceKey; reusable; layout; loading; metadata; headers }
-
-    let id scope = scope.id
-    let instanceKey scope = scope.instance_key
-    let reusable scope = scope.reusable
-    let loading scope = scope.loading
+    let make ?layout ?metadata ?headers () = { layout; metadata; headers }
   end
 
   type ('view, 'error) t =
@@ -398,13 +389,12 @@ module Plan = struct
             | None -> Lwt.return metadata
             | Some make -> Lwt.map (RouterRuntime.Metadata.merge metadata) (make ())
           in
-          Lwt.bind metadata_promise (fun metadata ->
-              let headers_promise =
-                match scope.Scope.headers with
-                | None -> Lwt.return headers
-                | Some make -> Lwt.map (RouterRuntime.Headers.merge headers) (make ())
-              in
-              Lwt.bind headers_promise (fun headers -> loop metadata headers scopes))
+          let headers_promise =
+            match scope.Scope.headers with
+            | None -> Lwt.return headers
+            | Some make -> Lwt.map (RouterRuntime.Headers.merge headers) (make ())
+          in
+          Lwt.bind (Lwt.both metadata_promise headers_promise) (fun (metadata, headers) -> loop metadata headers scopes)
     in
     loop (RouterRuntime.Metadata.make ()) empty_headers scopes
 
@@ -452,36 +442,38 @@ module Plan = struct
 end
 
 module Endpoint = struct
+  type ('result, 'error) prepared = { branch : Branch.t; execution : unit -> ('result, 'error) Execution.t }
+
   type ('result, 'error) t = {
     route : Route.t;
     active_routes : (string * string list) list;
-    fingerprint_parts : string list;
-    project : Input.t -> (Branch.t, 'error RouterRuntime.Error.t) result;
-    prepare : Input.t -> (('result, 'error) Execution.t, 'error RouterRuntime.Error.t) result;
+    fingerprint : string;
+    decode : Input.t -> (('result, 'error) prepared, 'error RouterRuntime.Error.t) result;
   }
 
-  let make ~id ~path ~activeRoutes ~fingerprintParts ~project ~prepare =
-    {
-      route = Route.make ~id ~path;
-      active_routes = activeRoutes;
-      fingerprint_parts = fingerprintParts;
-      project;
-      prepare;
-    }
+  let make ~id ~path ~activeRoutes ~fingerprint ~decode =
+    { route = Route.make ~id ~path; active_routes = activeRoutes; fingerprint; decode }
 
+  let prepared ~branch ~execution = { branch; execution }
   let route endpoint = endpoint.route
   let active_routes endpoint = endpoint.active_routes
-  let project endpoint = endpoint.project
-  let fingerprint_parts endpoint = endpoint.fingerprint_parts
+  let decode endpoint = endpoint.decode
+  let branch prepared = prepared.branch
+  let execution prepared = prepared.execution ()
+  let fingerprint endpoint = endpoint.fingerprint
 end
 
 module EndpointRegistry = struct
-  type ('result, 'error) t = { raw : Registry.t; endpoints : ('result, 'error) Endpoint.t list }
+  type ('result, 'error) t = { raw : Registry.t; endpoints : ('result, 'error) Endpoint.t list; fingerprint : string }
   type ('result, 'error) matched = { endpoint : ('result, 'error) Endpoint.t; parameters : (string * string) list }
 
   let make endpoints =
     match Registry.make (List.map Endpoint.route endpoints) with
-    | Ok raw -> Ok { raw; endpoints }
+    | Ok raw ->
+        let fingerprint =
+          endpoints |> List.map Endpoint.fingerprint |> String.concat "\n" |> Digest.string |> Digest.to_hex
+        in
+        Ok { raw; endpoints; fingerprint }
     | Error error -> Error error
 
   let makeExn endpoints =
@@ -503,8 +495,7 @@ module EndpointRegistry = struct
         in
         Ok (Option.map (fun endpoint -> { endpoint; parameters = matched.parameters }) endpoint)
 
-  let prepare matched ~search = matched.endpoint.Endpoint.prepare (Input.make ~parameters:matched.parameters ~search)
-  let project matched ~search = Endpoint.project matched.endpoint (Input.make ~parameters:matched.parameters ~search)
+  let decode matched ~search = Endpoint.decode matched.endpoint (Input.make ~parameters:matched.parameters ~search)
   let route matched = Endpoint.route matched.endpoint
   let parameters matched = matched.parameters
 
@@ -514,10 +505,7 @@ module EndpointRegistry = struct
         let parameters = List.filter (fun (name, _) -> List.mem name parameter_names) matched.parameters in
         RouterRuntime.Navigation.{ routeId = route_id; parameters })
 
-  let fingerprint registry =
-    registry.endpoints
-    |> List.concat_map Endpoint.fingerprint_parts
-    |> String.concat "\n" |> Digest.string |> Digest.to_hex
+  let fingerprint registry = registry.fingerprint
 end
 
 module ServerEngine = struct
@@ -626,9 +614,10 @@ module ServerEngine = struct
             | Some from_path -> (
                 match (Search.parse from_search, EndpointRegistry.find registry ~pathname:from_path) with
                 | Ok from_search, Ok (Some from_match) -> (
-                    match EndpointRegistry.project from_match ~search:from_search with
+                    match EndpointRegistry.decode from_match ~search:from_search with
                     | Error _ -> None
-                    | Ok from_branch ->
+                    | Ok prepared ->
+                        let from_branch = Endpoint.branch prepared in
                         let shared = Branch.sharedPrefix from_branch target_branch in
                         if shared <= 0 || shared >= List.length target_branch then None
                         else
@@ -652,12 +641,14 @@ module ServerEngine = struct
                 | Ok None ->
                     fail ~search (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
                 | Ok (Some matched) -> (
-                    match (EndpointRegistry.project matched ~search, EndpointRegistry.prepare matched ~search) with
-                    | Error error, _ | _, Error error -> fail ~search error
-                    | Ok target_branch, Ok execution ->
+                    match EndpointRegistry.decode matched ~search with
+                    | Error error -> fail ~search error
+                    | Ok prepared ->
+                        let target_branch = Endpoint.branch prepared in
+                        let execution = Endpoint.execution prepared in
                         let matches = EndpointRegistry.matches matched in
                         let layouts = Branch.layouts target_branch in
-                        Lwt.bind (Execution.run execution) (function
+                        Lwt.bind (Execution.run ~diagnosticId execution) (function
                           | RouterRuntime.Loader.Data plan -> (
                               match patch_base ~target_branch with
                               | None -> full ~matches ~layouts plan
@@ -722,14 +713,47 @@ module ServerEngine = struct
              resolved;
            })
     in
-    let fatal = function Lwt.Canceled | Out_of_memory | Stack_overflow | Sys.Break -> true | _ -> false in
     Lwt.catch execute (fun exception_ ->
-        if fatal exception_ then Lwt.fail exception_
+        if fatal_exception exception_ then Lwt.fail exception_
         else
           let error = RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ } in
           Lwt.catch
             (fun () -> fail error)
-            (fun fallback_error -> if fatal fallback_error then Lwt.fail fallback_error else blank_internal error))
+            (fun fallback_error ->
+              if fatal_exception fallback_error then Lwt.fail fallback_error else blank_internal error))
+end
+
+module Server = struct
+  type ('view, 'error) t = {
+    base_path : string;
+    registry : (('view, 'error) Plan.t, 'error) EndpointRegistry.t;
+    fallback : search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t;
+    application_status : 'error -> RouterRuntime.Status.t;
+    protocol_version : int;
+  }
+
+  let make ~basePath ~registry ~fallback ~applicationStatus ?(protocolVersion = 1) () =
+    {
+      base_path = basePath;
+      registry;
+      fallback;
+      application_status = applicationStatus;
+      protocol_version = protocolVersion;
+    }
+
+  let basePath server = server.base_path
+  let protocolVersion server = server.protocol_version
+  let fingerprint server = EndpointRegistry.fingerprint server.registry
+
+  let clientRoot server ~initial ~metadata ~children =
+    RouterClientRoot.make
+      (RouterClientRoot.makeProps ~initial ~protocolVersion:server.protocol_version
+         ~registryFingerprint:(fingerprint server) ~basePath:server.base_path ~metadata ~children ())
+
+  let run server ~diagnosticId ~revision request =
+    ServerEngine.run ~registry:server.registry ~basePath:server.base_path ~fallback:server.fallback
+      ~applicationStatus:server.application_status ~diagnosticId ~revision ~protocolVersion:server.protocol_version
+      request
 end
 
 let statusOfError = status_of_error

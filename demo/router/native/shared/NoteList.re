@@ -4,7 +4,7 @@ let readNotesCached = React.cache(sleep => DB.readNotes(~sleep, ()));
 module NoteList = {
   [@react.client.component]
   let make = (~notes: list(SidebarNote.notePreview)) => {
-    let { Router.searchText } = Router.useSearch();
+    let ({ Router.searchText }, _) = Router.useSearch();
     let searchText = searchText |> Option.value(~default="");
 
     <ul className="mt-8">

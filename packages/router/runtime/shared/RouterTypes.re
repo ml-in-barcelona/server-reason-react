@@ -171,15 +171,16 @@ module Headers = {
     let merged =
       List.filter(
         ((parentName, _)) =>
-          !
-            List.exists(
-              ((childName, _)) =>
-                String.equal(
-                  String.lowercase_ascii(parentName),
-                  String.lowercase_ascii(childName),
-                ),
-              child,
-            ),
+          String.equal(String.lowercase_ascii(parentName), "set-cookie")
+          || !
+               List.exists(
+                 ((childName, _)) =>
+                   String.equal(
+                     String.lowercase_ascii(parentName),
+                     String.lowercase_ascii(childName),
+                   ),
+                 child,
+               ),
         parent,
       )
       @ child;
@@ -360,17 +361,29 @@ module Navigation = {
     };
   };
 
+  let classifyPopLocation = (committed, target) =>
+    if (String.equal(target.pathname, committed.location.pathname)
+        && String.equal(target.search, committed.location.search)) {
+      HashOnly;
+    } else if (String.equal(target.pathname, committed.location.pathname)) {
+      Shallow;
+    } else {
+      Content;
+    };
+
   let classifyPop = (committed, ~target, ~targetRevision) =>
     switch (targetRevision) {
     | Some(revision) when String.equal(revision, committed.revision) =>
-      if (String.equal(target.pathname, committed.location.pathname)
-          && String.equal(target.search, committed.location.search)) {
-        HashOnly;
-      } else if (String.equal(target.pathname, committed.location.pathname)) {
-        Shallow;
-      } else {
-        Content;
-      }
+      classifyPopLocation(committed, target)
+    | Some(_)
+    | None => Content
+    };
+
+  let classifyPopByContentIdentity =
+      (committed, ~target, ~currentIdentity, ~targetIdentity) =>
+    switch (targetIdentity) {
+    | Some(identity) when String.equal(identity, currentIdentity) =>
+      classifyPopLocation(committed, target)
     | Some(_)
     | None => Content
     };
@@ -464,6 +477,7 @@ module NavigationResponse = {
     matches: list(Navigation.matched),
     layouts: list(Navigation.layout),
     targetRevision: string,
+    metadata: 'payload,
     payload: 'payload,
   };
 
@@ -478,6 +492,7 @@ module NavigationResponse = {
     status: int,
     matches: list(Navigation.matched),
     layouts: list(Navigation.layout),
+    metadata: 'payload,
     payload: 'payload,
   };
 

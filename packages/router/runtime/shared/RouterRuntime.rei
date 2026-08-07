@@ -1,7 +1,16 @@
 type destination;
+type pattern;
 
-let makeDestination: string => destination;
-let destinationHref: destination => string;
+let destination: (~path: string) => destination;
+let pattern: string => pattern;
+let destinationFromPattern:
+  (
+    ~pattern: pattern,
+    ~parameters: list((string, string)),
+    ~search: list((string, list(string)))
+  ) =>
+  destination;
+let href: destination => string;
 
 module Status: {
   type t =
@@ -154,6 +163,14 @@ module Navigation: {
     bool;
   let classifyPop:
     (committed, ~target: location, ~targetRevision: option(string)) => kind;
+  let classifyPopByContentIdentity:
+    (
+      committed,
+      ~target: location,
+      ~currentIdentity: string,
+      ~targetIdentity: option(string)
+    ) =>
+    kind;
 
   module Result: {
     type t =
@@ -231,6 +248,7 @@ module NavigationResponse: {
     matches: list(Navigation.matched),
     layouts: list(Navigation.layout),
     targetRevision: string,
+    metadata: 'payload,
     payload: 'payload,
   };
 
@@ -245,6 +263,7 @@ module NavigationResponse: {
     status: int,
     matches: list(Navigation.matched),
     layouts: list(Navigation.layout),
+    metadata: 'payload,
     payload: 'payload,
   };
 

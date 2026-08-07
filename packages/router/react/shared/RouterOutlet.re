@@ -18,16 +18,7 @@ type saved = {
   child: React.element,
 };
 
-[@react.client.component]
-let make = (~owner: string, ~children: React.element) => {
-  let operation = React.useContext(context);
-  let (saved, setSaved) =
-    React.useState(() =>
-      {
-        serial: 0,
-        child: children,
-      }
-    );
+let transition = (~owner, ~children, saved, operation) => {
   let targeted =
     switch (operation) {
     | ApplyPatch(patch) when String.equal(patch.graftAt, owner) =>
@@ -45,41 +36,56 @@ let make = (~owner: string, ~children: React.element) => {
     | NoPatch => false
     };
   let visible =
-    switch (targeted) {
-    | Some(patch) => patch.payload
-    | None => refreshed ? children : saved.child
+    switch (targeted, operation) {
+    | (Some(patch), _) => patch.payload
+    | (None, RefreshFull(_)) => children
+    | (None, ApplyPatch(_))
+    | (None, NoPatch) => saved.child
     };
+  let nextSaved =
+    switch (targeted) {
+    | Some(patch) when patch.serial > saved.serial =>
+      Some({
+        serial: patch.serial,
+        child: patch.payload,
+      })
+    | Some(_) => None
+    | None when refreshed =>
+      switch (operation) {
+      | ApplyPatch(patch) when patch.serial > saved.serial =>
+        Some({
+          ...saved,
+          serial: patch.serial,
+        })
+      | ApplyPatch(_) => None
+      | RefreshFull(refresh) when refresh.serial > saved.serial =>
+        Some({
+          serial: refresh.serial,
+          child: children,
+        })
+      | RefreshFull(_)
+      | NoPatch => None
+      }
+    | None => None
+    };
+  (visible, nextSaved);
+};
+
+[@react.client.component]
+let make = (~owner: string, ~children: React.element) => {
+  let operation = React.useContext(context);
+  let (saved, setSaved) =
+    React.useState(() =>
+      {
+        serial: 0,
+        child: children,
+      }
+    );
+  let (visible, nextSaved) = transition(~owner, ~children, saved, operation);
   React.useLayoutEffect1(
     () => {
-      switch (targeted) {
-      | Some(patch) when patch.serial > saved.serial =>
-        setSaved(_ =>
-          {
-            serial: patch.serial,
-            child: patch.payload,
-          }
-        )
-      | Some(_) => ()
-      | None when refreshed =>
-        switch (operation) {
-        | ApplyPatch(patch) when patch.serial > saved.serial =>
-          setSaved(_ =>
-            {
-              serial: patch.serial,
-              child: children,
-            }
-          )
-        | ApplyPatch(_) => ()
-        | RefreshFull(refresh) when refresh.serial > saved.serial =>
-          setSaved(_ =>
-            {
-              serial: refresh.serial,
-              child: children,
-            }
-          )
-        | RefreshFull(_)
-        | NoPatch => ()
-        }
+      switch (nextSaved) {
+      | Some(saved) => setSaved(_ => saved)
       | None => ()
       };
       None;

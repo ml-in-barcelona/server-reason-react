@@ -1,4 +1,5 @@
 type destination = RouterTypes.destination
+type pattern = RouterPattern.t
 
 module Status = RouterTypes.Status
 module Loader = RouterTypes.Loader
@@ -35,32 +36,18 @@ let encodeSegment value =
 
 let destination ~path = RouterTypes.makeDestination path
 
+let pattern path =
+  match RouterPattern.parse path with
+  | Ok pattern -> pattern
+  | Error _ -> invalid_arg ("invalid generated route pattern " ^ path)
+
 let destinationFromPattern ~pattern ~parameters ~search =
-  let parameter name =
-    match List.assoc_opt name parameters with
-    | Some value -> value
-    | None -> invalid_arg ("missing generated route parameter " ^ name)
+  let parameter name = List.assoc_opt name parameters in
+  let path =
+    match RouterPattern.render pattern ~parameter ~encode:encodeSegment with
+    | Ok path -> path
+    | Error (InvalidPattern message) -> invalid_arg message
   in
-  let length = String.length pattern in
-  let buffer = Buffer.create length in
-  let rec copy index =
-    if index >= length then ()
-    else if pattern.[index] <> ':' then (
-      Buffer.add_char buffer pattern.[index];
-      copy (index + 1))
-    else
-      match String.index_from_opt pattern (index + 1) '<' with
-      | None -> invalid_arg "generated route parameter has no type"
-      | Some opening -> (
-          match String.index_from_opt pattern (opening + 1) '>' with
-          | None -> invalid_arg "generated route parameter type is unterminated"
-          | Some closing ->
-              let name = String.sub pattern (index + 1) (opening - index - 1) in
-              Buffer.add_string buffer (parameter name |> encodeSegment);
-              copy (closing + 1))
-  in
-  copy 0;
-  let path = Buffer.contents buffer in
   let search =
     search
     |> List.sort (fun (left, _) (right, _) -> String.compare left right)

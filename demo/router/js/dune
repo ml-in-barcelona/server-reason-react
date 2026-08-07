@@ -12,7 +12,6 @@
   melange-webapi
   reason-react
   server-reason-react.router
-  server-reason-react.router-runtime
   server-reason-react.rsc
   server-reason-react.runtime)
  (preprocess

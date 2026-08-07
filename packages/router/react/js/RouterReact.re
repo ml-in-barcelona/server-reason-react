@@ -3,7 +3,6 @@ module Location = DOM.Location;
 module Response = RouterRuntime.NavigationResponse;
 module Navigation = RouterRuntime.Navigation;
 
-type options = RouterRuntime.Link.options;
 type navigationResult = Navigation.Result.t;
 type navigate =
   (
@@ -16,12 +15,12 @@ type updateSearch =
   (
     ~owned: list(string),
     ~values: list((string, list(string))),
-    ~options: RouterRuntime.Search.options=?,
+    ~history: Navigation.historyAction=?,
     unit
   ) =>
   navigationResult;
 type updateHash =
-  (~hash: string, ~options: RouterRuntime.Search.options=?, unit) =>
+  (~hash: string, ~history: Navigation.historyAction=?, unit) =>
   navigationResult;
 
 type contextValue = {
@@ -34,6 +33,7 @@ type contextValue = {
 
 type model = {
   navigationState: Navigation.state,
+  metadata: React.element,
   element: React.element,
   patchOperation: RouterOutlet.operation,
   restore: option((Navigation.historyAction, string, string)),
@@ -135,10 +135,12 @@ module Provider = {
         ~protocolVersion=1,
         ~registryFingerprint,
         ~basePath,
+        ~metadata,
         ~children,
       ) => {
     let initialModel = {
       navigationState: Navigation.make(initial),
+      metadata,
       element: children,
       patchOperation: RouterOutlet.NoPatch,
       restore: None,
@@ -148,7 +150,8 @@ module Provider = {
     let activeRequest = React.useRef(None);
     let nextLocationKey = React.useRef(1);
     let scrollPositions = React.useRef([]);
-    let restoredRevision = React.useRef("");
+    let contentIdentity = React.useRef("content-0");
+    let restoredContentIdentity = React.useRef("");
     let rec take = (count, values) =>
       if (count <= 0) {
         [];
@@ -278,7 +281,7 @@ module Provider = {
       let url = location.pathname ++ location.search ++ location.hash;
       let historyState: RouterHistory.state = {
         key,
-        revision: committed.revision,
+        revision: contentIdentity.current,
       };
       switch (Navigation.historyMutation(action)) {
       | Navigation.PushEntry => RouterHistory.push(~state=historyState, ~url)
@@ -296,8 +299,7 @@ module Provider = {
       };
       Navigation.Result.Committed(committed);
     };
-    let updateSearch =
-        (~owned, ~values, ~options=RouterRuntime.Search.defaultOptions, ()) => {
+    let updateSearch = (~owned, ~values, ~history=Navigation.Replace, ()) => {
       let current = Navigation.committed(modelRef.current.navigationState);
       let nextValues =
         RouterRuntime.Search.update(
@@ -323,7 +325,7 @@ module Provider = {
       } else {
         commitLocation(
           ~kind=Navigation.Shallow,
-          ~action=options.history,
+          ~action=history,
           {
             ...current.location,
             search,
@@ -331,7 +333,7 @@ module Provider = {
         );
       };
     };
-    let updateHash = (~hash, ~options=RouterRuntime.Search.defaultOptions, ()) => {
+    let updateHash = (~hash, ~history=Navigation.Replace, ()) => {
       let current = Navigation.committed(modelRef.current.navigationState);
       let hash =
         String.equal(hash, "") || String.starts_with(~prefix="#", hash)
@@ -341,7 +343,7 @@ module Provider = {
       } else {
         commitLocation(
           ~kind=Navigation.HashOnly,
-          ~action=options.history,
+          ~action=history,
           {
             ...current.location,
             hash,
@@ -438,172 +440,131 @@ module Provider = {
              | Error(error) =>
                failNavigation(validationMessage(error)) |> Js.Promise.resolve
              | Ok(validated) =>
-               switch (validated.response) {
-               | Response.ReloadRequired =>
-                 hardNavigate(~replace=action != Navigation.Push, target)
-                 |> Js.Promise.resolve
-               | Response.Redirect(redirect) =>
-                 hardNavigate(~replace=false, redirect.location)
-                 |> Js.Promise.resolve
-               | Response.Failed(failure) =>
-                 failNavigation(failure.message) |> Js.Promise.resolve
-               | Response.Patch(response) =>
-                 if (!
-                       List.exists(
-                         (layout: Navigation.layout) =>
-                           String.equal(
-                             layout.instanceKey,
-                             response.replaceFrom,
-                           ),
-                         currentCommitted.layouts,
-                       )) {
-                   hardNavigate(~replace=action != Navigation.Push, target)
-                   |> Js.Promise.resolve;
-                 } else {
-                   let key =
-                     switch (action) {
-                     | Navigation.Push =>
-                       "navigation-" ++ string_of_int(requestId)
-                     | Navigation.Replace => currentCommitted.location.key
-                     | Navigation.Pop =>
-                       switch (RouterHistory.state()) {
-                       | Some(state) => state.key
-                       | None => currentCommitted.location.key
-                       }
-                     };
-                   let canonicalLocation =
-                     locationFromUrl(~key, response.canonicalUrl);
-                   let location = {
-                     ...canonicalLocation,
-                     hash:
-                       String.equal(canonicalLocation.hash, "")
-                         ? targetLocation.hash : canonicalLocation.hash,
+               let commitResponse = (~metadata, response) => {
+                 let currentHistoryState = RouterHistory.state();
+                 let historyKey =
+                   switch (currentHistoryState) {
+                   | Some(state) => Some(state.key)
+                   | None => None
                    };
-                   let canonicalUrl =
-                     location.pathname ++ location.search ++ location.hash;
-                   let nextCommitted =
-                     Navigation.{
-                       location,
-                       matches: response.matches,
-                       layouts: response.layouts,
-                       revision: response.targetRevision,
-                     };
-                   switch (
-                     Navigation.commit(
-                       current.navigationState,
-                       ~requestId=validated.requestId,
-                       ~baseRevision=response.baseRevision,
-                       ~next=nextCommitted,
-                     )
-                   ) {
-                   | Error(_) =>
-                     Js.Promise.resolve(Navigation.Result.Canceled)
-                   | Ok(navigationState) =>
-                     let historyState: RouterHistory.state = {
-                       key,
-                       revision: response.targetRevision,
-                     };
-                     switch (Navigation.historyMutation(action)) {
-                     | Navigation.PushEntry =>
-                       RouterHistory.push(
-                         ~state=historyState,
-                         ~url=canonicalUrl,
-                       )
-                     | Navigation.ReplaceEntry =>
-                       RouterHistory.replace(
-                         ~state=historyState,
-                         ~url=canonicalUrl,
-                       )
-                     };
-                     updateModel({
-                       navigationState,
-                       element: current.element,
-                       patchOperation:
-                         RouterOutlet.ApplyPatch({
-                           serial: requestId,
-                           graftAt: response.replaceFrom,
-                           targetLayouts:
-                             List.map(
-                               (layout: Navigation.layout) =>
-                                 layout.instanceKey,
-                               response.layouts,
-                             ),
-                           payload: response.payload,
-                         }),
-                       restore: Some((action, location.hash, key)),
-                     });
-                     Js.Promise.resolve(
-                       Navigation.Result.Committed(nextCommitted),
-                     );
-                   };
-                 }
-               | Response.Full(response) =>
-                 let key =
-                   switch (action) {
-                   | Navigation.Push =>
-                     "navigation-" ++ string_of_int(requestId)
-                   | Navigation.Replace => currentCommitted.location.key
-                   | Navigation.Pop =>
-                     switch (RouterHistory.state()) {
-                     | Some(state) => state.key
-                     | None => currentCommitted.location.key
-                     }
-                   };
-                 let canonicalLocation =
-                   locationFromUrl(~key, response.canonicalUrl);
-                 let location = {
-                   ...canonicalLocation,
-                   hash:
-                     String.equal(canonicalLocation.hash, "")
-                       ? targetLocation.hash : canonicalLocation.hash,
-                 };
-                 let canonicalUrl =
-                   location.pathname ++ location.search ++ location.hash;
-                 let nextCommitted =
-                   Navigation.{
-                     location,
-                     matches: response.matches,
-                     layouts: response.layouts,
-                     revision: response.targetRevision,
+                 let nextContentIdentity =
+                   switch (action, currentHistoryState) {
+                   | (Navigation.Pop, Some(state)) => state.revision
+                   | (Navigation.Pop, None)
+                   | (Navigation.Push, _)
+                   | (Navigation.Replace, _) =>
+                     "content-" ++ string_of_int(requestId)
                    };
                  switch (
-                   Navigation.commit(
-                     current.navigationState,
-                     ~requestId=validated.requestId,
-                     ~baseRevision=validated.baseRevision,
-                     ~next=nextCommitted,
+                   RouterTransaction.prepare(
+                     ~action,
+                     ~requestId,
+                     ~validatedRequestId=validated.requestId,
+                     ~currentState=current.navigationState,
+                     ~currentCommitted,
+                     ~targetHash=targetLocation.hash,
+                     ~historyKey,
+                     ~locationFromUrl,
+                     response,
                    )
                  ) {
-                 | Error(_) => Js.Promise.resolve(Navigation.Result.Canceled)
-                 | Ok(navigationState) =>
+                 | Error(RouterTransaction.InvalidGraft) =>
+                   hardNavigate(~replace=action != Navigation.Push, target)
+                   |> Js.Promise.resolve
+                 | Error(RouterTransaction.Canceled) =>
+                   Js.Promise.resolve(Navigation.Result.Canceled)
+                 | Ok(prepared) =>
                    let historyState: RouterHistory.state = {
-                     key,
-                     revision: response.targetRevision,
+                     key: prepared.key,
+                     revision: nextContentIdentity,
                    };
                    switch (Navigation.historyMutation(action)) {
                    | Navigation.PushEntry =>
                      RouterHistory.push(
                        ~state=historyState,
-                       ~url=canonicalUrl,
+                       ~url=prepared.url,
                      )
                    | Navigation.ReplaceEntry =>
                      RouterHistory.replace(
                        ~state=historyState,
-                       ~url=canonicalUrl,
+                       ~url=prepared.url,
                      )
                    };
+                   contentIdentity.current = nextContentIdentity;
+                   let (element, patchOperation) =
+                     switch (prepared.render) {
+                     | RouterTransaction.ReplacePayload(element) => (
+                         element,
+                         RouterOutlet.RefreshFull({ serial: requestId }),
+                       )
+                     | RouterTransaction.GraftPayload({
+                         serial,
+                         graftAt,
+                         targetLayouts,
+                         payload,
+                       }) => (
+                         current.element,
+                         RouterOutlet.ApplyPatch({
+                           serial,
+                           graftAt,
+                           targetLayouts,
+                           payload,
+                         }),
+                       )
+                     };
                    updateModel({
-                     navigationState,
-                     element: response.payload,
-                     patchOperation:
-                       RouterOutlet.RefreshFull({ serial: requestId }),
-                     restore: Some((action, location.hash, key)),
+                     navigationState: prepared.navigationState,
+                     metadata,
+                     element,
+                     patchOperation,
+                     restore: Some(prepared.restore),
                    });
                    Js.Promise.resolve(
-                     Navigation.Result.Committed(nextCommitted),
+                     Navigation.Result.Committed(prepared.committed),
                    );
                  };
-               }
+               };
+               switch (validated.response) {
+               | Response.ReloadRequired =>
+                 hardNavigate(~replace=action != Navigation.Push, target)
+                 |> Js.Promise.resolve
+               | Response.Redirect(redirect) =>
+                 hardNavigate(
+                   ~replace=action != Navigation.Push,
+                   redirect.location,
+                 )
+                 |> Js.Promise.resolve
+               | Response.Failed(failure) =>
+                 failNavigation(failure.message) |> Js.Promise.resolve
+               | Response.Patch(response) =>
+                 commitResponse(
+                   ~metadata=response.metadata,
+                   RouterTransaction.{
+                     baseRevision: response.baseRevision,
+                     canonicalUrl: response.canonicalUrl,
+                     targetRevision: response.targetRevision,
+                     matches: response.matches,
+                     layouts: response.layouts,
+                     content:
+                       Graft({
+                         graftAt: response.replaceFrom,
+                         payload: response.payload,
+                       }),
+                   },
+                 )
+               | Response.Full(response) =>
+                 commitResponse(
+                   ~metadata=response.metadata,
+                   RouterTransaction.{
+                     baseRevision: validated.baseRevision,
+                     canonicalUrl: response.canonicalUrl,
+                     targetRevision: response.targetRevision,
+                     matches: response.matches,
+                     layouts: response.layouts,
+                     content: Replace(response.payload),
+                   },
+                 )
+               };
              };
            };
          })
@@ -647,7 +608,7 @@ module Provider = {
       RouterHistory.replace(
         ~state={
           key: committed.location.key,
-          revision: committed.revision,
+          revision: contentIdentity.current,
         },
         ~url=currentUrl(),
       );
@@ -662,13 +623,20 @@ module Provider = {
             | None => current.location.key
             };
           let target = locationFromUrl(~key, currentUrl());
-          let targetRevision =
+          let targetIdentity =
             switch (historyState) {
             | Some(state) => Some(state.revision)
             | None => None
             };
           let _ =
-            switch (Navigation.classifyPop(current, ~target, ~targetRevision)) {
+            switch (
+              Navigation.classifyPopByContentIdentity(
+                current,
+                ~target,
+                ~currentIdentity=contentIdentity.current,
+                ~targetIdentity,
+              )
+            ) {
             | Navigation.HashOnly =>
               commitLocation(
                 ~kind=Navigation.HashOnly,
@@ -700,11 +668,15 @@ module Provider = {
     });
     React.useLayoutEffect1(
       () => {
-        let committed = Navigation.committed(model.navigationState);
         switch (model.restore) {
         | Some(restore)
-            when !String.equal(restoredRevision.current, committed.revision) =>
-          restoredRevision.current = committed.revision;
+            when
+              !
+                String.equal(
+                  restoredContentIdentity.current,
+                  contentIdentity.current,
+                ) =>
+          restoredContentIdentity.current = contentIdentity.current;
           let (action, hash, key) = restore;
           restoreLocation(action, hash, key);
         | Some(_)
@@ -731,7 +703,7 @@ module Provider = {
                   updateSearch,
                   updateHash,
                 }),
-              "children": model.element,
+              "children": React.array([|model.metadata, model.element|]),
             },
           ),
       },
@@ -739,11 +711,16 @@ module Provider = {
   };
 };
 
-let useNavigation = () =>
+let useContextValue = () =>
   switch (React.useContext(context)) {
-  | Some(value) => (Some(value.navigate), value.navigation)
-  | None => (None, Navigation.Idle)
+  | Some(value) => value
+  | None => invalid_arg("router hooks require an ancestor Router.Provider")
   };
+
+let useNavigation = () => {
+  let value = useContextValue();
+  (value.navigate, value.navigation);
+};
 
 let useCommitted = () =>
   switch (React.useContext(context)) {
@@ -751,23 +728,15 @@ let useCommitted = () =>
   | None => None
   };
 
-let useSearchValues = () =>
-  switch (React.useContext(context)) {
-  | None => []
-  | Some(value) => searchValuesFromString(value.committed.location.search)
-  };
+let useSearch = () => {
+  let value = useContextValue();
+  (
+    searchValuesFromString(value.committed.location.search),
+    value.updateSearch,
+  );
+};
 
-let useUpdateSearch = () =>
-  switch (React.useContext(context)) {
-  | Some(value) => Some(value.updateSearch)
-  | None => None
-  };
-
-let useUpdateHash = () =>
-  switch (React.useContext(context)) {
-  | Some(value) => Some(value.updateHash)
-  | None => None
-  };
+let useUpdateHash = () => useContextValue().updateHash;
 
 let useIsActive = (~routeId, ~parameters, ~includeDescendants) =>
   switch (React.useContext(context)) {
@@ -790,7 +759,8 @@ module Link = {
         ~target=?,
         ~download=?,
         ~ariaCurrent=?,
-        ~options=RouterRuntime.Link.defaultOptions,
+        ~history=Navigation.Push,
+        ~revalidate=false,
         ~children,
       ) => {
     let (navigate, _) = useNavigation();
@@ -809,17 +779,10 @@ module Link = {
           | Some(_) => false
           }
         );
-      switch (plainClick, navigate) {
-      | (true, Some(navigate)) =>
+      if (plainClick) {
         React.Event.Mouse.preventDefault(event);
-        let _ =
-          navigate(
-            ~history=options.history,
-            ~revalidate=options.revalidate,
-            destination,
-          );
+        let _ = navigate(~history, ~revalidate, destination);
         ();
-      | _ => ()
       };
     };
     <a
@@ -841,10 +804,12 @@ let link =
       ~target=?,
       ~download=?,
       ~ariaCurrent=?,
-      ~options=?,
+      ~history=?,
+      ~revalidate=?,
       ~children,
       (),
     ) =>
-  <Link destination ?className ?target ?download ?ariaCurrent ?options>
+  <Link
+    destination ?className ?target ?download ?ariaCurrent ?history ?revalidate>
     children
   </Link>;

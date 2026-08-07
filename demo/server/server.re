@@ -10,27 +10,10 @@ let getAndPost = (path, handler) =>
     [Dream.get(path, handler), Dream.post(path, serverFunctionHandler)],
   );
 
-let routerHandler =
-  DreamRouter.handler(
-    ~registry=RouterRegistry.registry,
-    ~basePath=RouterRegistry.basePath,
-    ~fallback=RouterRegistry.fallback,
-    ~applicationStatus=RouterRegistry.applicationStatus,
-    ~diagnosticId=_ => string_of_int(Random.bits()),
-    ~revision=() => string_of_int(Random.bits()),
-    ~protocolVersion=1,
-    ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
-    ~document=
-      children =>
-        RouterPages.Document.make(
-          RouterPages.Document.makeProps(~children, ()),
-        ),
-  );
-
 let server =
   Dream.logger(
     Dream.router([
-      getAndPost("/", Pages.Home.handler),
+      getAndPost("/", Examples.Home.handler),
       Dream.get("/demo", req => Dream.redirect(req, "/")),
       Dream.get(
         "/output.css",
@@ -58,13 +41,17 @@ let server =
           ),
         )
       ),
-      getAndPost(Routes.renderToStream, Pages.Comments.handler),
-      getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
-      getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
+      getAndPost(Routes.renderToStream, Examples.Comments.handler),
+      getAndPost(Routes.singlePageRSC, Examples.SinglePageRSC.handler),
+      getAndPost(Routes.serverOnlyRSC, Examples.ServerOnlyRSC.handler),
       ...DreamRouter.routes(
-           ~basePath=RouterRegistry.basePath,
+           ~router=RouterRegistry.server,
            ~actionHandler=serverFunctionHandler,
-           routerHandler,
+           ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
+           ~document=
+             children =>
+               Pages.Document.make(Pages.Document.makeProps(~children, ())),
+           (),
          ),
     ]),
   );

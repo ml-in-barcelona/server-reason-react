@@ -4,3 +4,9 @@
  (libraries ppxlib ppxlib.astlib)
  (preprocess
   (pps ppxlib.metaquot)))
+
+(copy_files
+ (files ../runtime/shared/RouterPattern.re))
+
+(copy_files
+ (files ../runtime/shared/RouterPattern.rei))

@@ -1,4 +1,3 @@
-type options = RouterRuntime.Link.options;
 type navigationResult = RouterRuntime.Navigation.Result.t;
 type navigate =
   (
@@ -11,12 +10,12 @@ type updateSearch =
   (
     ~owned: list(string),
     ~values: list((string, list(string))),
-    ~options: RouterRuntime.Search.options=?,
+    ~history: RouterRuntime.Navigation.historyAction=?,
     unit
   ) =>
   navigationResult;
 type updateHash =
-  (~hash: string, ~options: RouterRuntime.Search.options=?, unit) =>
+  (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
   navigationResult;
 
 type contextValue = {committed: RouterRuntime.Navigation.committed};
@@ -33,35 +32,48 @@ module Provider = {
         ~protocolVersion as _=1,
         ~registryFingerprint as _,
         ~basePath as _,
+        ~metadata,
         ~children,
       ) =>
     provider(
       React.Context.makeProps(
         ~value=Some({ committed: initial }),
-        ~children,
+        ~children=React.array([|metadata, children|]),
         (),
       ),
     );
 };
 
-let useNavigation = () => (None, RouterRuntime.Navigation.Idle);
+let unavailable = () =>
+  invalid_arg("router commands are unavailable during server rendering");
+let navigate: navigate = (~history as _=?, ~revalidate as _=?, _destination) =>
+  unavailable();
+let updateSearch: updateSearch =
+    (~owned as _, ~values as _, ~history as _=?, ()) =>
+  unavailable();
+let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>
+  unavailable();
+
+let useNavigation = () => (navigate, RouterRuntime.Navigation.Idle);
 let useCommitted = () =>
   switch (React.useContext(context)) {
   | Some(value) => Some(value.committed)
   | None => None
   };
-let useSearchValues = () =>
-  switch (React.useContext(context)) {
-  | Some(value) =>
-    let search = value.committed.location.search;
-    let search =
-      String.length(search) > 0 && search.[0] == '?'
-        ? String.sub(search, 1, String.length(search) - 1) : search;
-    Uri.query_of_encoded(search);
-  | None => []
-  };
-let useUpdateSearch = () => None;
-let useUpdateHash = () => None;
+let useSearch = () => {
+  let values =
+    switch (React.useContext(context)) {
+    | Some(value) =>
+      let search = value.committed.location.search;
+      let search =
+        String.length(search) > 0 && search.[0] == '?'
+          ? String.sub(search, 1, String.length(search) - 1) : search;
+      Uri.query_of_encoded(search);
+    | None => []
+    };
+  (values, updateSearch);
+};
+let useUpdateHash = () => updateHash;
 let useIsActive = (~routeId, ~parameters, ~includeDescendants) =>
   switch (React.useContext(context)) {
   | Some(value) =>
@@ -90,7 +102,8 @@ let link =
       ~target=?,
       ~download=?,
       ~ariaCurrent=?,
-      ~options as _=?,
+      ~history as _=?,
+      ~revalidate as _=?,
       ~children,
       (),
     ) =>

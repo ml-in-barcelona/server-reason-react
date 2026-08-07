@@ -1,4 +1,5 @@
 type destination = RouterTypes.destination;
+type pattern = RouterPattern.t;
 
 module Status = RouterTypes.Status;
 module Loader = RouterTypes.Loader;
@@ -20,36 +21,19 @@ let encodeSegment = value => {
 let destination: (~path: string) => destination = (~path) =>
   RouterTypes.makeDestination(path);
 
+let pattern = path =>
+  switch (RouterPattern.parse(path)) {
+  | Ok(pattern) => pattern
+  | Error(_) => invalid_arg("invalid generated route pattern " ++ path)
+  };
+
 let destinationFromPattern = (~pattern, ~parameters, ~search) => {
-  let parameter = name =>
-    switch (List.assoc_opt(name, parameters)) {
-    | Some(value) => encodeSegment(value)
-    | None => invalid_arg("missing generated route parameter " ++ name)
+  let parameter = name => List.assoc_opt(name, parameters);
+  let path =
+    switch (RouterPattern.render(pattern, ~parameter, ~encode=encodeSegment)) {
+    | Ok(path) => path
+    | Error(InvalidPattern(message)) => invalid_arg(message)
     };
-  let length = String.length(pattern);
-  let buffer = Buffer.create(length);
-  let rec copy = index =>
-    if (index >= length) {
-      ();
-    } else if (pattern.[index] != ':') {
-      Buffer.add_char(buffer, pattern.[index]);
-      copy(index + 1);
-    } else {
-      switch (String.index_from_opt(pattern, index + 1, '<')) {
-      | None => invalid_arg("generated route parameter has no type")
-      | Some(opening) =>
-        switch (String.index_from_opt(pattern, opening + 1, '>')) {
-        | None =>
-          invalid_arg("generated route parameter type is unterminated")
-        | Some(closing) =>
-          let name = String.sub(pattern, index + 1, opening - index - 1);
-          Buffer.add_string(buffer, parameter(name));
-          copy(closing + 1);
-        }
-      };
-    };
-  copy(0);
-  let path = Buffer.contents(buffer);
   let search =
     search
     |> List.sort(((left, _), (right, _)) => String.compare(left, right))

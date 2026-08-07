@@ -11,14 +11,16 @@ let headers = values =>
   };
 
 module RootLayout = {
-  let make = (~page as _, ~searchText as _, ~children, ()) => {
+  [@react.component]
+  let make = (~page as _, ~searchText as _, ~children) => {
     record("root-layout");
     children;
   };
 };
 
 module RootLoading = {
-  let make = (~page as _, ~searchText as _, ()) => React.string("loading");
+  [@react.component]
+  let make = (~page as _, ~searchText as _) => React.string("loading");
 };
 
 module RootMetadata = {
@@ -36,7 +38,8 @@ module RootHeaders = {
 };
 
 module RootBoundary = {
-  let make = (~page as _, ~searchText as _, ~error as _, ()) => {
+  [@react.component]
+  let make = (~page as _, ~searchText as _, ~error as _) => {
     record("root-error");
     React.string("root-error");
   };
@@ -46,17 +49,28 @@ module AppError = {
   type t = string;
 
   let status = _ => RouterRuntime.Status.Forbidden;
+  let makeProps = RootBoundary.makeProps;
   let make = RootBoundary.make;
 };
 
+module InvalidSearch = {
+  [@react.component]
+  let make = (~error as _) => {
+    record("invalid-search");
+    React.string("invalid-search");
+  };
+};
+
 module RootNotFound = {
-  let make = (~page as _, ~searchText as _, ~error as _, ()) => {
+  [@react.component]
+  let make = (~page as _, ~searchText as _, ~error as _) => {
     record("root-not-found");
     React.string("root-not-found");
   };
 };
 
 module WorkspaceLayout = {
+  [@react.component]
   let make =
       (
         ~workspaceId as _,
@@ -65,7 +79,6 @@ module WorkspaceLayout = {
         ~filter as _,
         ~workspace as _,
         ~children,
-        (),
       ) => {
     record("workspace-layout");
     children;
@@ -103,6 +116,7 @@ module WorkspaceHeaders = {
 };
 
 module WorkspaceBoundary = {
+  [@react.component]
   let make =
       (
         ~workspaceId as _,
@@ -110,7 +124,6 @@ module WorkspaceBoundary = {
         ~searchText as _,
         ~filter as _,
         ~error as _,
-        (),
       ) => {
     record("workspace-error");
     React.string("workspace-error");
@@ -118,6 +131,7 @@ module WorkspaceBoundary = {
 };
 
 module WorkspaceNotFound = {
+  [@react.component]
   let make =
       (
         ~workspaceId as _,
@@ -125,7 +139,6 @@ module WorkspaceNotFound = {
         ~searchText as _,
         ~filter as _,
         ~error as _,
-        (),
       ) => {
     record("workspace-not-found");
     React.string("workspace-not-found");

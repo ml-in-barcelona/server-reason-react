@@ -10,7 +10,6 @@
   react
   reactDOM
   server-reason-react.router-native
-  server-reason-react.router-react-native
   server-reason-react.rsc-native)
  (preprocess
   (pps lwt_ppx)))

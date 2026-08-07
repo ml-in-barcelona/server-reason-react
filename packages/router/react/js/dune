@@ -3,7 +3,14 @@
  (public_name server-reason-react.router)
  (modes melange)
  (wrapped false)
- (private_modules RouterClient)
+ (private_modules
+  RouterClient
+  RouterClientRoot
+  RouterHistory
+  RouterOutlet
+  RouterPattern
+  RouterTransaction
+  RouterTypes)
  (libraries
   melange-webapi
   melange-fetch
@@ -11,8 +18,7 @@
   reason-react
   server-reason-react.react-server-dom-esbuild
   server-reason-react.rsc
-  server-reason-react.runtime
-  server-reason-react.router-runtime)
+  server-reason-react.runtime)
  (preprocess
   (pps
    server-reason-react.ppx
@@ -30,3 +36,21 @@
 
 (copy_files
  (files ../shared/RouterClientRoot.re))
+
+(copy_files
+ (files ../../runtime/shared/RouterTypes.re))
+
+(copy_files
+ (files ../../runtime/shared/RouterRuntime.rei))
+
+(copy_files
+ (files ../../runtime/shared/RouterPattern.re))
+
+(copy_files
+ (files ../../runtime/shared/RouterPattern.rei))
+
+(copy_files
+ (files ../../runtime/shared/RouterTransaction.re))
+
+(copy_files
+ (files ../../runtime/shared/RouterTransaction.rei))

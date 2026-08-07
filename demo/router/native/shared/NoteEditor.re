@@ -2,7 +2,7 @@
 let make =
     (~id: option(NoteId.t), ~initialTitle: string, ~initialBody: string) => {
   let (navigate, navigation) = Router.useNavigation();
-  let { Router.searchText } = Router.useSearch();
+  let ({ Router.searchText }, _) = Router.useSearch();
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
   let isNavigating =
@@ -51,19 +51,15 @@ let make =
 
               action
               |> Js.Promise.then_((result: Note.t) => {
-                   switch (navigate) {
-                   | Some(navigate) =>
-                     navigate(
-                       ~revalidate=true,
-                       Router.Note.destination(
-                         ~id=NoteId.ofInt(result.id),
-                         ~searchText?,
-                         (),
-                       ),
-                     )
-                     |> ignore
-                   | None => ()
-                   };
+                   navigate(
+                     ~revalidate=true,
+                     Router.Note.destination(
+                       ~id=NoteId.ofInt(result.id),
+                       ~searchText?,
+                       (),
+                     ),
+                   )
+                   |> ignore;
                    Js.Promise.resolve();
                  })
               |> ignore;

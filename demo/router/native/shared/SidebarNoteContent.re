@@ -23,7 +23,7 @@ let make =
       ~children: React.element,
       ~expandedChildren: React.element,
     ) => {
-  let { Router.searchText } = Router.useSearch();
+  let ({ Router.searchText }, _) = Router.useSearch();
   let (isExpanded, setIsExpanded) = RR.useStateValue(false);
   let isNoteActive = Router.Note.useIsActive(~id, ());
   let isEditActive = Router.EditNote.useIsActive(~id, ());
@@ -38,13 +38,13 @@ let make =
       isActive
         ? Theme.border(Theme.Color.Gray14) : Theme.border(Theme.Color.Gray4),
     ])}>
-    <Router.Note.Link
+    <Router.Note
       id
       ?searchText
       className="relative p-4 w-full justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 flex flex-col gap-1 cursor-pointer"
       ?ariaCurrent>
       children
-    </Router.Note.Link>
+    </Router.Note>
     <div id=detailsId className="px-4" hidden={!isExpanded}>
       expandedChildren
     </div>

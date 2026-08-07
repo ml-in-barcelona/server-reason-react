@@ -48,7 +48,13 @@ type route = {
   loc : Location.t;
 }
 
-type t = { base_path : string; application_error : Longident.t option; root : group; loc : Location.t }
+type t = {
+  base_path : string;
+  application_error : Longident.t option;
+  invalid_search : expression option;
+  root : group;
+  loc : Location.t;
+}
 
 val find : structure -> t option
 val root_search : t -> search list

@@ -9,6 +9,7 @@ Router.make(
   ~metadata=Attachments.RootMetadata.make,
   ~headers=Attachments.RootHeaders.make,
   ~error=Attachments.AppError,
+  ~invalidSearch=Attachments.InvalidSearch.make,
   ~notFound=Attachments.RootNotFound.make,
   [
     Router.group(

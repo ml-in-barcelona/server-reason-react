@@ -165,7 +165,75 @@ let streamFunctionResponse ?(debug = false) ~lookup request =
       in
       Dream.flush stream)
 
-let is_react_component_header str = String.equal str "application/react.component"
+let split_header delimiter value =
+  let length = String.length value in
+  let rec loop index start quoted escaped parts =
+    if index = length then
+      if quoted || escaped then None else Some (List.rev (String.sub value start (index - start) :: parts))
+    else
+      match (quoted, escaped, value.[index]) with
+      | true, true, _ -> loop (index + 1) start true false parts
+      | true, false, '\\' -> loop (index + 1) start true true parts
+      | true, false, '"' -> loop (index + 1) start false false parts
+      | false, false, '"' -> loop (index + 1) start true false parts
+      | false, false, char when Char.equal char delimiter ->
+          loop (index + 1) (index + 1) false false (String.sub value start (index - start) :: parts)
+      | _ -> loop (index + 1) start quoted false parts
+  in
+  loop 0 0 false false []
+
+let quality_is_acceptable value =
+  let value = String.trim value in
+  let length = String.length value in
+  let rec suffix_is_valid index expected =
+    index = length || (Char.equal value.[index] expected && suffix_is_valid (index + 1) expected)
+  in
+  if String.equal value "0" then Some false
+  else if String.equal value "1" then Some true
+  else if length >= 2 && length <= 5 && Char.equal value.[1] '.' then
+    match value.[0] with
+    | '0' ->
+        if suffix_is_valid 2 '0' then Some false
+        else
+          let rec suffix_is_digits index =
+            index = length
+            ||
+            let char = value.[index] in
+            (char >= '0' && char <= '9') && suffix_is_digits (index + 1)
+          in
+          if suffix_is_digits 2 then Some true else None
+    | '1' -> if suffix_is_valid 2 '0' then Some true else None
+    | _ -> None
+  else None
+
+let range_accepts_react_component range =
+  match split_header ';' range with
+  | None | Some [] -> false
+  | Some (media_type :: parameters) ->
+      if not (String.equal (String.lowercase_ascii (String.trim media_type)) "application/react.component") then false
+      else
+        let rec find_quality quality = function
+          | [] -> Option.value ~default:true quality
+          | parameter :: rest -> (
+              let parameter = String.trim parameter in
+              match String.index_opt parameter '=' with
+              | Some equals ->
+                  let name = String.sub parameter 0 equals |> String.trim |> String.lowercase_ascii in
+                  if String.equal name "q" then
+                    if Option.is_some quality then false
+                    else
+                      let value = String.sub parameter (equals + 1) (String.length parameter - equals - 1) in
+                      match quality_is_acceptable value with
+                      | None -> false
+                      | Some acceptable -> find_quality (Some acceptable) rest
+                  else find_quality quality rest
+              | None -> if String.equal (String.lowercase_ascii parameter) "q" then false else find_quality quality rest
+              )
+        in
+        find_quality None parameters
+
+let is_react_component_header value =
+  match split_header ',' value with None -> false | Some ranges -> List.exists range_accepts_react_component ranges
 
 let stream_model_value ?(debug = false) ?(code = 200) ?(headers = []) ~location app =
   let%lwt response =
@@ -231,10 +299,35 @@ let createFromRequest ?(debug = false) =
                 stream_html ~debug ~skipRoot:disableSSR ~bootstrapScriptContent ~bootstrapScripts ~bootstrapModules
                   (layout element))
 
+let metadata_element metadata =
+  let open RouterRuntime.Metadata in
+  let title =
+    Option.map
+      (fun title -> React.createElementWithKey ~key:"router:title" "title" [] [ React.string title ])
+      metadata.title
+  in
+  let description =
+    Option.map
+      (fun content ->
+        React.createElementWithKey ~key:"router:description" "meta"
+          [ React.JSX.String ("name", "name", "description"); React.JSX.String ("content", "content", content) ]
+          [])
+      metadata.description
+  in
+  let entries =
+    List.map
+      (fun entry ->
+        React.createElementWithKey ~key:("router:" ^ entry.key) "meta"
+          [ React.JSX.String ("name", "name", entry.name); React.JSX.String ("content", "content", entry.content) ]
+          [])
+      metadata.entries
+  in
+  React.list (List.filter_map Fun.id [ title; description ] @ entries)
+
 let resolved_element (resolved : (React.element, 'error) RouterServer.Plan.resolved) =
   Option.value ~default:React.null resolved.element
 
-let document_element ~basePath ~document (response : (React.element, 'error) RouterServer.ServerEngine.full) =
+let document_element ~router ~document (response : (React.element, 'error) RouterServer.ServerEngine.full) =
   let pathname, query = Dream.split_target response.canonical_url in
   let search = if String.equal query "" then "" else "?" ^ query in
   let initial : RouterRuntime.Navigation.committed =
@@ -246,9 +339,9 @@ let document_element ~basePath ~document (response : (React.element, 'error) Rou
     }
   in
   let children =
-    RouterClientRoot.make
-      (RouterClientRoot.makeProps ~initial ~protocolVersion:response.protocol_version
-         ~registryFingerprint:response.registry_fingerprint ~basePath ~children:(resolved_element response.resolved) ())
+    RouterServer.Server.clientRoot router ~initial
+      ~metadata:(metadata_element response.resolved.metadata)
+      ~children:(resolved_element response.resolved)
   in
   document children
 
@@ -262,6 +355,7 @@ let full_model (response : (React.element, 'error) RouterServer.ServerEngine.ful
       matches = response.matches;
       layouts = response.layouts;
       targetRevision = response.revision;
+      metadata = metadata_element response.resolved.metadata;
       payload = resolved_element response.resolved;
     }
   in
@@ -279,6 +373,7 @@ let patch_model (response : (React.element, 'error) RouterServer.ServerEngine.pa
       status = RouterRuntime.Status.toInt response.resolved.status;
       matches = response.matches;
       layouts = response.layouts;
+      metadata = metadata_element response.resolved.metadata;
       payload = resolved_element response.resolved;
     }
   in
@@ -290,9 +385,9 @@ let redirect_model ~protocolVersion ~registryFingerprint destination =
   in
   RouterRuntime.NavigationResponse.redirect_to_rsc redirect |> RSC.to_model
 
-let handler ~registry ~basePath ~fallback ~applicationStatus ~diagnosticId ~revision ~protocolVersion
-    ?(bootstrapModules = []) ~document =
-  let registryFingerprint = RouterServer.EndpointRegistry.fingerprint registry in
+let handler ~router ~diagnosticId ~revision ?(bootstrapModules = []) ~document =
+  let protocolVersion = RouterServer.Server.protocolVersion router in
+  let registryFingerprint = RouterServer.Server.fingerprint router in
   fun request ->
     with_render_context request (fun () ->
         let pathname, query = Dream.target request |> Dream.split_target in
@@ -314,8 +409,7 @@ let handler ~registry ~basePath ~fallback ~applicationStatus ~diagnosticId ~revi
                 }
         in
         let outcome =
-          RouterServer.ServerEngine.run ~registry ~basePath ~fallback ~applicationStatus ~diagnosticId ~revision
-            ~protocolVersion
+          RouterServer.Server.run router ~diagnosticId ~revision
             { RouterServer.ServerEngine.pathname; search; hash = ""; kind; navigation }
         in
         Lwt.bind outcome (function
@@ -324,7 +418,13 @@ let handler ~registry ~basePath ~fallback ~applicationStatus ~diagnosticId ~revi
               | RouterServer.ServerEngine.Document -> Dream.redirect request (RouterRuntime.href destination)
               | RouterServer.ServerEngine.Rsc ->
                   stream_model_value ~code:200
-                    ~headers:[ ("Vary", "Accept"); ("SRR-Response", "redirect") ]
+                    ~headers:
+                      [
+                        ("Content-Type", "application/react.component");
+                        ("Cache-Control", "private, no-store");
+                        ("Vary", "Accept");
+                        ("SRR-Response", "redirect");
+                      ]
                     ~location:(Dream.target request)
                     (redirect_model ~protocolVersion ~registryFingerprint destination))
           | RouterServer.ServerEngine.ReloadRequired ->
@@ -341,16 +441,17 @@ let handler ~registry ~basePath ~fallback ~applicationStatus ~diagnosticId ~revi
               let headers = response.resolved.headers |> RouterRuntime.Headers.toList in
               match response.kind with
               | RouterServer.ServerEngine.Document ->
-                  stream_html ~code ~headers ~bootstrapModules (document_element ~basePath ~document response)
+                  stream_html ~code ~headers ~bootstrapModules (document_element ~router ~document response)
               | RouterServer.ServerEngine.Rsc ->
                   stream_model_value ~code ~headers ~location:response.canonical_url (full_model response))))
 
-let routes ~basePath =
- fun ~actionHandler ->
-  fun handler ->
-   [
-     Dream.get basePath handler;
-     Dream.get (basePath ^ "/**") handler;
-     Dream.post basePath actionHandler;
-     Dream.post (basePath ^ "/**") actionHandler;
-   ]
+let routes ~router ~actionHandler ?(diagnosticId = fun _ -> string_of_int (Random.bits ()))
+    ?(revision = fun () -> string_of_int (Random.bits ())) ?(bootstrapModules = []) ~document () =
+  let basePath = RouterServer.Server.basePath router in
+  let handler = handler ~router ~diagnosticId ~revision ~bootstrapModules ~document in
+  [
+    Dream.get basePath handler;
+    Dream.get (basePath ^ "/**") handler;
+    Dream.post basePath actionHandler;
+    Dream.post (basePath ^ "/**") actionHandler;
+  ]

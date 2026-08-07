@@ -1,17 +1,27 @@
 (library
  (name router_cycle_js)
- (modules Client Filter NoteId Router RouterReact WorkspaceId)
+ (modules
+  Client
+  Filter
+  NoteId
+  Router
+  RouterPattern
+  RouterRuntime
+  RouterTransaction
+  RouterTypes
+  RouterReact
+  WorkspaceId)
  (modes melange)
  (wrapped false)
- (libraries reason-react server-reason-react.router-runtime)
+ (libraries melange.js reason-react server-reason-react.rsc)
  (preprocess
-  (pps melange.ppx)))
+  (pps server-reason-react.rsc.ppx melange.ppx)))
 
 (melange.emit
  (target test_cycle_js)
  (modules TestCycleJs)
  (module_systems commonjs)
- (libraries router_cycle_js))
+ (libraries reason-react router_cycle_js))
 
 (rule
  (alias runtest)
@@ -38,3 +48,24 @@
 
 (copy_files
  (files ../shared/Filter.re))
+
+(copy_files
+ (files ../../../react/js/RouterRuntime.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterRuntime.rei))
+
+(copy_files
+ (files ../../../runtime/shared/RouterTypes.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterPattern.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterPattern.rei))
+
+(copy_files
+ (files ../../../runtime/shared/RouterTransaction.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterTransaction.rei))
