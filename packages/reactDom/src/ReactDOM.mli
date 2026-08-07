@@ -46,6 +46,8 @@ val write_to_buffer : Buffer.t -> React.element -> unit
     [renderToStaticMarkup]. *)
 
 val write_element_to_buffer : Buffer.t -> separators:bool -> prev_text:bool -> React.element -> bool
+
+val write_element_to_buffer_internal : Buffer.t -> separators:bool -> prev_text:bool -> React.element -> bool
 (** Threaded String-mode write used by PPX-generated [React.Writer] emit bodies. [prev_text] says whether the previously
     written sibling ended with a text node; the result reports the same for this element. When [separators] is true,
     adjacent text nodes are delimited with [<!-- -->] like [renderToString] does, so hydration can split the merged text

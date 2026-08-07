@@ -98,7 +98,7 @@
         );
         {
           let (_: bool) =
-            ReactDOM.write_element_to_buffer(
+            ReactDOM.write_element_to_buffer_internal(
               __buf,
               ~separators=__separators,
               ~prev_text=false,
@@ -133,7 +133,7 @@
         Buffer.add_string(__buf, "<div>");
         {
           let (_: bool) =
-            ReactDOM.write_element_to_buffer(
+            ReactDOM.write_element_to_buffer_internal(
               __buf,
               ~separators=__separators,
               ~prev_text=false,
@@ -165,7 +165,7 @@
         Buffer.add_string(__buf, "<div>");
         {
           let (_: bool) =
-            ReactDOM.write_element_to_buffer(
+            ReactDOM.write_element_to_buffer_internal(
               __buf,
               ~separators=__separators,
               ~prev_text=false,
@@ -184,7 +184,7 @@
         Buffer.add_string(__buf, "<div>");
         {
           let (_: bool) =
-            ReactDOM.write_element_to_buffer(
+            ReactDOM.write_element_to_buffer_internal(
               __buf,
               ~separators=__separators,
               ~prev_text=false,
@@ -216,14 +216,14 @@
         let __prev_text = ref(false);
         Buffer.add_string(__buf, "<lower>");
         __prev_text :=
-          ReactDOM.write_element_to_buffer(
+          ReactDOM.write_element_to_buffer_internal(
             __buf,
             ~separators=__separators,
             ~prev_text=false,
             foo,
           );
         __prev_text :=
-          ReactDOM.write_element_to_buffer(
+          ReactDOM.write_element_to_buffer_internal(
             __buf,
             ~separators=__separators,
             ~prev_text=__prev_text^,
@@ -240,7 +240,7 @@
         Buffer.add_string(__buf, "<div>");
         {
           let (_: bool) =
-            ReactDOM.write_element_to_buffer(
+            ReactDOM.write_element_to_buffer_internal(
               __buf,
               ~separators=__separators,
               ~prev_text=false,
@@ -260,7 +260,7 @@
         Buffer.add_string(__buf, "<div class=\"flex-container\">");
         {
           let (_: bool) =
-            ReactDOM.write_element_to_buffer(
+            ReactDOM.write_element_to_buffer_internal(
               __buf,
               ~separators=__separators,
               ~prev_text=false,
@@ -269,7 +269,7 @@
                   let __prev_text = ref(false);
                   Buffer.add_string(__buf, "<div class=\"sidebar\">");
                   __prev_text :=
-                    ReactDOM.write_element_to_buffer(
+                    ReactDOM.write_element_to_buffer_internal(
                       __buf,
                       ~separators=__separators,
                       ~prev_text=false,
@@ -278,7 +278,7 @@
                           Buffer.add_string(__buf, "<h2 class=\"title\">");
                           {
                             let (_: bool) =
-                              ReactDOM.write_element_to_buffer(
+                              ReactDOM.write_element_to_buffer_internal(
                                 __buf,
                                 ~separators=__separators,
                                 ~prev_text=false,
@@ -310,7 +310,7 @@
                       }),
                     );
                   __prev_text :=
-                    ReactDOM.write_element_to_buffer(
+                    ReactDOM.write_element_to_buffer_internal(
                       __buf,
                       ~separators=__separators,
                       ~prev_text=__prev_text^,
@@ -319,7 +319,7 @@
                           Buffer.add_string(__buf, "<nav class=\"menu\">");
                           {
                             let (_: bool) =
-                              ReactDOM.write_element_to_buffer(
+                              ReactDOM.write_element_to_buffer_internal(
                                 __buf,
                                 ~separators=__separators,
                                 ~prev_text=false,
@@ -328,7 +328,7 @@
                                     Buffer.add_string(__buf, "<ul>");
                                     {
                                       let (_: bool) =
-                                        ReactDOM.write_element_to_buffer(
+                                        ReactDOM.write_element_to_buffer_internal(
                                           __buf,
                                           ~separators=__separators,
                                           ~prev_text=false,
@@ -346,7 +346,7 @@
                                                    );
                                                    {
                                                      let (_: bool) =
-                                                       ReactDOM.write_element_to_buffer(
+                                                       ReactDOM.write_element_to_buffer_internal(
                                                          __buf,
                                                          ~separators=__separators,
                                                          ~prev_text=false,
@@ -389,7 +389,7 @@
                                                              );
                                                              {
                                                                let (_: bool) =
-                                                                 ReactDOM.write_element_to_buffer(
+                                                                 ReactDOM.write_element_to_buffer_internal(
                                                                    __buf,
                                                                    ~separators=__separators,
                                                                    ~prev_text=
@@ -507,7 +507,7 @@
                                                            );
                                                            {
                                                              let (_: bool) =
-                                                               ReactDOM.write_element_to_buffer(
+                                                               ReactDOM.write_element_to_buffer_internal(
                                                                  __buf,
                                                                  ~separators=__separators,
                                                                  ~prev_text=
@@ -589,7 +589,7 @@
                                                  );
                                                  {
                                                    let (_: bool) =
-                                                     ReactDOM.write_element_to_buffer(
+                                                     ReactDOM.write_element_to_buffer_internal(
                                                        __buf,
                                                        ~separators=__separators,
                                                        ~prev_text=false,
@@ -632,7 +632,7 @@
                                                            );
                                                            {
                                                              let (_: bool) =
-                                                               ReactDOM.write_element_to_buffer(
+                                                               ReactDOM.write_element_to_buffer_internal(
                                                                  __buf,
                                                                  ~separators=__separators,
                                                                  ~prev_text=
@@ -750,7 +750,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -837,7 +837,7 @@
                                   Buffer.add_string(__buf, "<ul>");
                                   {
                                     let (_: bool) =
-                                      ReactDOM.write_element_to_buffer(
+                                      ReactDOM.write_element_to_buffer_internal(
                                         __buf,
                                         ~separators=__separators,
                                         ~prev_text=false,
@@ -855,7 +855,7 @@
                                                  );
                                                  {
                                                    let (_: bool) =
-                                                     ReactDOM.write_element_to_buffer(
+                                                     ReactDOM.write_element_to_buffer_internal(
                                                        __buf,
                                                        ~separators=__separators,
                                                        ~prev_text=false,
@@ -898,7 +898,7 @@
                                                            );
                                                            {
                                                              let (_: bool) =
-                                                               ReactDOM.write_element_to_buffer(
+                                                               ReactDOM.write_element_to_buffer_internal(
                                                                  __buf,
                                                                  ~separators=__separators,
                                                                  ~prev_text=
@@ -1016,7 +1016,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -1094,7 +1094,7 @@
                                                Buffer.add_string(__buf, "<li>");
                                                {
                                                  let (_: bool) =
-                                                   ReactDOM.write_element_to_buffer(
+                                                   ReactDOM.write_element_to_buffer_internal(
                                                      __buf,
                                                      ~separators=__separators,
                                                      ~prev_text=false,
@@ -1137,7 +1137,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -1254,7 +1254,7 @@
                                                        );
                                                        {
                                                          let (_: bool) =
-                                                           ReactDOM.write_element_to_buffer(
+                                                           ReactDOM.write_element_to_buffer_internal(
                                                              __buf,
                                                              ~separators=__separators,
                                                              ~prev_text=false,
@@ -1342,7 +1342,7 @@
                           Buffer.add_string(__buf, "<h2 class=\"title\">");
                           {
                             let (_: bool) =
-                              ReactDOM.write_element_to_buffer(
+                              ReactDOM.write_element_to_buffer_internal(
                                 __buf,
                                 ~separators=__separators,
                                 ~prev_text=false,
@@ -1377,7 +1377,7 @@
                           Buffer.add_string(__buf, "<nav class=\"menu\">");
                           {
                             let (_: bool) =
-                              ReactDOM.write_element_to_buffer(
+                              ReactDOM.write_element_to_buffer_internal(
                                 __buf,
                                 ~separators=__separators,
                                 ~prev_text=false,
@@ -1386,7 +1386,7 @@
                                     Buffer.add_string(__buf, "<ul>");
                                     {
                                       let (_: bool) =
-                                        ReactDOM.write_element_to_buffer(
+                                        ReactDOM.write_element_to_buffer_internal(
                                           __buf,
                                           ~separators=__separators,
                                           ~prev_text=false,
@@ -1404,7 +1404,7 @@
                                                    );
                                                    {
                                                      let (_: bool) =
-                                                       ReactDOM.write_element_to_buffer(
+                                                       ReactDOM.write_element_to_buffer_internal(
                                                          __buf,
                                                          ~separators=__separators,
                                                          ~prev_text=false,
@@ -1447,7 +1447,7 @@
                                                              );
                                                              {
                                                                let (_: bool) =
-                                                                 ReactDOM.write_element_to_buffer(
+                                                                 ReactDOM.write_element_to_buffer_internal(
                                                                    __buf,
                                                                    ~separators=__separators,
                                                                    ~prev_text=
@@ -1565,7 +1565,7 @@
                                                            );
                                                            {
                                                              let (_: bool) =
-                                                               ReactDOM.write_element_to_buffer(
+                                                               ReactDOM.write_element_to_buffer_internal(
                                                                  __buf,
                                                                  ~separators=__separators,
                                                                  ~prev_text=
@@ -1647,7 +1647,7 @@
                                                  );
                                                  {
                                                    let (_: bool) =
-                                                     ReactDOM.write_element_to_buffer(
+                                                     ReactDOM.write_element_to_buffer_internal(
                                                        __buf,
                                                        ~separators=__separators,
                                                        ~prev_text=false,
@@ -1690,7 +1690,7 @@
                                                            );
                                                            {
                                                              let (_: bool) =
-                                                               ReactDOM.write_element_to_buffer(
+                                                               ReactDOM.write_element_to_buffer_internal(
                                                                  __buf,
                                                                  ~separators=__separators,
                                                                  ~prev_text=
@@ -1808,7 +1808,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -1895,7 +1895,7 @@
                                   Buffer.add_string(__buf, "<ul>");
                                   {
                                     let (_: bool) =
-                                      ReactDOM.write_element_to_buffer(
+                                      ReactDOM.write_element_to_buffer_internal(
                                         __buf,
                                         ~separators=__separators,
                                         ~prev_text=false,
@@ -1913,7 +1913,7 @@
                                                  );
                                                  {
                                                    let (_: bool) =
-                                                     ReactDOM.write_element_to_buffer(
+                                                     ReactDOM.write_element_to_buffer_internal(
                                                        __buf,
                                                        ~separators=__separators,
                                                        ~prev_text=false,
@@ -1956,7 +1956,7 @@
                                                            );
                                                            {
                                                              let (_: bool) =
-                                                               ReactDOM.write_element_to_buffer(
+                                                               ReactDOM.write_element_to_buffer_internal(
                                                                  __buf,
                                                                  ~separators=__separators,
                                                                  ~prev_text=
@@ -2074,7 +2074,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -2152,7 +2152,7 @@
                                                Buffer.add_string(__buf, "<li>");
                                                {
                                                  let (_: bool) =
-                                                   ReactDOM.write_element_to_buffer(
+                                                   ReactDOM.write_element_to_buffer_internal(
                                                      __buf,
                                                      ~separators=__separators,
                                                      ~prev_text=false,
@@ -2195,7 +2195,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -2312,7 +2312,7 @@
                                                        );
                                                        {
                                                          let (_: bool) =
-                                                           ReactDOM.write_element_to_buffer(
+                                                           ReactDOM.write_element_to_buffer_internal(
                                                              __buf,
                                                              ~separators=__separators,
                                                              ~prev_text=false,
@@ -2405,7 +2405,7 @@
                 let __prev_text = ref(false);
                 Buffer.add_string(__buf, "<div class=\"sidebar\">");
                 __prev_text :=
-                  ReactDOM.write_element_to_buffer(
+                  ReactDOM.write_element_to_buffer_internal(
                     __buf,
                     ~separators=__separators,
                     ~prev_text=false,
@@ -2414,7 +2414,7 @@
                         Buffer.add_string(__buf, "<h2 class=\"title\">");
                         {
                           let (_: bool) =
-                            ReactDOM.write_element_to_buffer(
+                            ReactDOM.write_element_to_buffer_internal(
                               __buf,
                               ~separators=__separators,
                               ~prev_text=false,
@@ -2446,7 +2446,7 @@
                     }),
                   );
                 __prev_text :=
-                  ReactDOM.write_element_to_buffer(
+                  ReactDOM.write_element_to_buffer_internal(
                     __buf,
                     ~separators=__separators,
                     ~prev_text=__prev_text^,
@@ -2455,7 +2455,7 @@
                         Buffer.add_string(__buf, "<nav class=\"menu\">");
                         {
                           let (_: bool) =
-                            ReactDOM.write_element_to_buffer(
+                            ReactDOM.write_element_to_buffer_internal(
                               __buf,
                               ~separators=__separators,
                               ~prev_text=false,
@@ -2464,7 +2464,7 @@
                                   Buffer.add_string(__buf, "<ul>");
                                   {
                                     let (_: bool) =
-                                      ReactDOM.write_element_to_buffer(
+                                      ReactDOM.write_element_to_buffer_internal(
                                         __buf,
                                         ~separators=__separators,
                                         ~prev_text=false,
@@ -2482,7 +2482,7 @@
                                                  );
                                                  {
                                                    let (_: bool) =
-                                                     ReactDOM.write_element_to_buffer(
+                                                     ReactDOM.write_element_to_buffer_internal(
                                                        __buf,
                                                        ~separators=__separators,
                                                        ~prev_text=false,
@@ -2525,7 +2525,7 @@
                                                            );
                                                            {
                                                              let (_: bool) =
-                                                               ReactDOM.write_element_to_buffer(
+                                                               ReactDOM.write_element_to_buffer_internal(
                                                                  __buf,
                                                                  ~separators=__separators,
                                                                  ~prev_text=
@@ -2643,7 +2643,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -2721,7 +2721,7 @@
                                                Buffer.add_string(__buf, "<li>");
                                                {
                                                  let (_: bool) =
-                                                   ReactDOM.write_element_to_buffer(
+                                                   ReactDOM.write_element_to_buffer_internal(
                                                      __buf,
                                                      ~separators=__separators,
                                                      ~prev_text=false,
@@ -2764,7 +2764,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -2881,7 +2881,7 @@
                                                        );
                                                        {
                                                          let (_: bool) =
-                                                           ReactDOM.write_element_to_buffer(
+                                                           ReactDOM.write_element_to_buffer_internal(
                                                              __buf,
                                                              ~separators=__separators,
                                                              ~prev_text=false,
@@ -2968,7 +2968,7 @@
                                 Buffer.add_string(__buf, "<ul>");
                                 {
                                   let (_: bool) =
-                                    ReactDOM.write_element_to_buffer(
+                                    ReactDOM.write_element_to_buffer_internal(
                                       __buf,
                                       ~separators=__separators,
                                       ~prev_text=false,
@@ -2983,7 +2983,7 @@
                                                Buffer.add_string(__buf, "<li>");
                                                {
                                                  let (_: bool) =
-                                                   ReactDOM.write_element_to_buffer(
+                                                   ReactDOM.write_element_to_buffer_internal(
                                                      __buf,
                                                      ~separators=__separators,
                                                      ~prev_text=false,
@@ -3026,7 +3026,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -3143,7 +3143,7 @@
                                                        );
                                                        {
                                                          let (_: bool) =
-                                                           ReactDOM.write_element_to_buffer(
+                                                           ReactDOM.write_element_to_buffer_internal(
                                                              __buf,
                                                              ~separators=__separators,
                                                              ~prev_text=false,
@@ -3221,7 +3221,7 @@
                                              Buffer.add_string(__buf, "<li>");
                                              {
                                                let (_: bool) =
-                                                 ReactDOM.write_element_to_buffer(
+                                                 ReactDOM.write_element_to_buffer_internal(
                                                    __buf,
                                                    ~separators=__separators,
                                                    ~prev_text=false,
@@ -3264,7 +3264,7 @@
                                                        );
                                                        {
                                                          let (_: bool) =
-                                                           ReactDOM.write_element_to_buffer(
+                                                           ReactDOM.write_element_to_buffer_internal(
                                                              __buf,
                                                              ~separators=__separators,
                                                              ~prev_text=false,
@@ -3378,7 +3378,7 @@
                                                      );
                                                      {
                                                        let (_: bool) =
-                                                         ReactDOM.write_element_to_buffer(
+                                                         ReactDOM.write_element_to_buffer_internal(
                                                            __buf,
                                                            ~separators=__separators,
                                                            ~prev_text=false,
@@ -3466,7 +3466,7 @@
                         Buffer.add_string(__buf, "<h2 class=\"title\">");
                         {
                           let (_: bool) =
-                            ReactDOM.write_element_to_buffer(
+                            ReactDOM.write_element_to_buffer_internal(
                               __buf,
                               ~separators=__separators,
                               ~prev_text=false,
@@ -3501,7 +3501,7 @@
                         Buffer.add_string(__buf, "<nav class=\"menu\">");
                         {
                           let (_: bool) =
-                            ReactDOM.write_element_to_buffer(
+                            ReactDOM.write_element_to_buffer_internal(
                               __buf,
                               ~separators=__separators,
                               ~prev_text=false,
@@ -3510,7 +3510,7 @@
                                   Buffer.add_string(__buf, "<ul>");
                                   {
                                     let (_: bool) =
-                                      ReactDOM.write_element_to_buffer(
+                                      ReactDOM.write_element_to_buffer_internal(
                                         __buf,
                                         ~separators=__separators,
                                         ~prev_text=false,
@@ -3528,7 +3528,7 @@
                                                  );
                                                  {
                                                    let (_: bool) =
-                                                     ReactDOM.write_element_to_buffer(
+                                                     ReactDOM.write_element_to_buffer_internal(
                                                        __buf,
                                                        ~separators=__separators,
                                                        ~prev_text=false,
@@ -3571,7 +3571,7 @@
                                                            );
                                                            {
                                                              let (_: bool) =
-                                                               ReactDOM.write_element_to_buffer(
+                                                               ReactDOM.write_element_to_buffer_internal(
                                                                  __buf,
                                                                  ~separators=__separators,
                                                                  ~prev_text=
@@ -3689,7 +3689,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -3767,7 +3767,7 @@
                                                Buffer.add_string(__buf, "<li>");
                                                {
                                                  let (_: bool) =
-                                                   ReactDOM.write_element_to_buffer(
+                                                   ReactDOM.write_element_to_buffer_internal(
                                                      __buf,
                                                      ~separators=__separators,
                                                      ~prev_text=false,
@@ -3810,7 +3810,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -3927,7 +3927,7 @@
                                                        );
                                                        {
                                                          let (_: bool) =
-                                                           ReactDOM.write_element_to_buffer(
+                                                           ReactDOM.write_element_to_buffer_internal(
                                                              __buf,
                                                              ~separators=__separators,
                                                              ~prev_text=false,
@@ -4014,7 +4014,7 @@
                                 Buffer.add_string(__buf, "<ul>");
                                 {
                                   let (_: bool) =
-                                    ReactDOM.write_element_to_buffer(
+                                    ReactDOM.write_element_to_buffer_internal(
                                       __buf,
                                       ~separators=__separators,
                                       ~prev_text=false,
@@ -4029,7 +4029,7 @@
                                                Buffer.add_string(__buf, "<li>");
                                                {
                                                  let (_: bool) =
-                                                   ReactDOM.write_element_to_buffer(
+                                                   ReactDOM.write_element_to_buffer_internal(
                                                      __buf,
                                                      ~separators=__separators,
                                                      ~prev_text=false,
@@ -4072,7 +4072,7 @@
                                                          );
                                                          {
                                                            let (_: bool) =
-                                                             ReactDOM.write_element_to_buffer(
+                                                             ReactDOM.write_element_to_buffer_internal(
                                                                __buf,
                                                                ~separators=__separators,
                                                                ~prev_text=false,
@@ -4189,7 +4189,7 @@
                                                        );
                                                        {
                                                          let (_: bool) =
-                                                           ReactDOM.write_element_to_buffer(
+                                                           ReactDOM.write_element_to_buffer_internal(
                                                              __buf,
                                                              ~separators=__separators,
                                                              ~prev_text=false,
@@ -4267,7 +4267,7 @@
                                              Buffer.add_string(__buf, "<li>");
                                              {
                                                let (_: bool) =
-                                                 ReactDOM.write_element_to_buffer(
+                                                 ReactDOM.write_element_to_buffer_internal(
                                                    __buf,
                                                    ~separators=__separators,
                                                    ~prev_text=false,
@@ -4310,7 +4310,7 @@
                                                        );
                                                        {
                                                          let (_: bool) =
-                                                           ReactDOM.write_element_to_buffer(
+                                                           ReactDOM.write_element_to_buffer_internal(
                                                              __buf,
                                                              ~separators=__separators,
                                                              ~prev_text=false,
@@ -4424,7 +4424,7 @@
                                                      );
                                                      {
                                                        let (_: bool) =
-                                                         ReactDOM.write_element_to_buffer(
+                                                         ReactDOM.write_element_to_buffer_internal(
                                                            __buf,
                                                            ~separators=__separators,
                                                            ~prev_text=false,
@@ -4498,7 +4498,7 @@
         Buffer.add_string(__buf, "<button class=\"FancyButton\">");
         {
           let (_: bool) =
-            ReactDOM.write_element_to_buffer(
+            ReactDOM.write_element_to_buffer_internal(
               __buf,
               ~separators=__separators,
               ~prev_text=false,
@@ -4531,7 +4531,7 @@
         Buffer.add_string(__buf, "<div translate=\"yes\">");
         {
           let (_: bool) =
-            ReactDOM.write_element_to_buffer(
+            ReactDOM.write_element_to_buffer_internal(
               __buf,
               ~separators=__separators,
               ~prev_text=false,
@@ -4540,7 +4540,7 @@
                   let __prev_text = ref(false);
                   Buffer.add_string(__buf, "<picture id=\"idpicture\">");
                   __prev_text :=
-                    ReactDOM.write_element_to_buffer(
+                    ReactDOM.write_element_to_buffer_internal(
                       __buf,
                       ~separators=__separators,
                       ~prev_text=false,
@@ -4579,7 +4579,7 @@
                       }),
                     );
                   __prev_text :=
-                    ReactDOM.write_element_to_buffer(
+                    ReactDOM.write_element_to_buffer_internal(
                       __buf,
                       ~separators=__separators,
                       ~prev_text=__prev_text^,
@@ -4614,7 +4614,7 @@
                       }),
                     );
                   __prev_text :=
-                    ReactDOM.write_element_to_buffer(
+                    ReactDOM.write_element_to_buffer_internal(
                       __buf,
                       ~separators=__separators,
                       ~prev_text=__prev_text^,
@@ -4782,7 +4782,7 @@
                 let __prev_text = ref(false);
                 Buffer.add_string(__buf, "<picture id=\"idpicture\">");
                 __prev_text :=
-                  ReactDOM.write_element_to_buffer(
+                  ReactDOM.write_element_to_buffer_internal(
                     __buf,
                     ~separators=__separators,
                     ~prev_text=false,
@@ -4821,7 +4821,7 @@
                     }),
                   );
                 __prev_text :=
-                  ReactDOM.write_element_to_buffer(
+                  ReactDOM.write_element_to_buffer_internal(
                     __buf,
                     ~separators=__separators,
                     ~prev_text=__prev_text^,
@@ -4856,7 +4856,7 @@
                     }),
                   );
                 __prev_text :=
-                  ReactDOM.write_element_to_buffer(
+                  ReactDOM.write_element_to_buffer_internal(
                     __buf,
                     ~separators=__separators,
                     ~prev_text=__prev_text^,
