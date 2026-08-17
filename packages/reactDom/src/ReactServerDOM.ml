@@ -657,19 +657,47 @@ module Model = struct
       | Upper_case_component (name, component) -> (
           let saved_ctx = !React.current_tree_context in
           React.reset_component_id_state saved_ctx;
+          let render element =
+            let did_use_id = React.check_did_render_id_hook () in
+            if did_use_id then
+              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+            let result =
+              if debug then
+                attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
+                    turn_element_into_payload ~context ~debug_info element)
+              else turn_element_into_payload ~context ~debug_info element
+            in
+            React.current_tree_context := saved_ctx;
+            result
+          in
+          let render_error exn =
+            React.current_tree_context := saved_ctx;
+            to_chunk (Error (env, exn_to_error exn))
+          in
+          let rec retry () =
+            React.reset_component_id_state saved_ctx;
+            match component () with
+            | element -> Lwt.return (to_chunk (Value (render element)))
+            | exception React.Suspend (Any_promise promise) -> (
+                React.current_tree_context := saved_ctx;
+                try%lwt
+                  let%lwt _ = promise in
+                  retry ()
+                with exn -> Lwt.return (render_error exn))
+            | exception exn -> Lwt.return (render_error exn)
+          in
           match component () with
-          | element ->
-              let did_use_id = React.check_did_render_id_hook () in
-              if did_use_id then
-                React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-              let result =
-                if debug then
-                  attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
-                      turn_element_into_payload ~context ~debug_info element)
-                else turn_element_into_payload ~context ~debug_info element
-              in
+          | element -> render element
+          | exception React.Suspend (Any_promise promise) ->
               React.current_tree_context := saved_ctx;
-              result
+              let retry_after_promise () =
+                try%lwt
+                  let%lwt _ = promise in
+                  retry ()
+                with exn -> Lwt.return (render_error exn)
+              in
+              let index = Stream.push_async retry_after_promise ~context in
+              `String (lazy_value index)
           | exception exn ->
               React.current_tree_context := saved_ctx;
               let error = exn_to_error exn in

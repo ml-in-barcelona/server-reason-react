@@ -303,6 +303,32 @@ let suspense_with_promise () =
     ];
   Lwt.return ()
 
+let suspense_with_use_promise () =
+  let promise =
+    let%lwt () = Lwt.pause () in
+    Lwt.return "DONE :)"
+  in
+  let renders = ref 0 in
+  let suspended_component =
+    React.Upper_case_component
+      ( __FUNCTION__,
+        fun () ->
+          renders := !renders + 1;
+          React.string (React.Experimental.usePromise promise) )
+  in
+  let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:suspended_component () in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"DONE :)\"\n";
+    ];
+  Alcotest.(check int) "component renders again" 2 !renders;
+  Lwt.return ()
+
 let suspense_with_error () =
   let app () =
     mk_suspense ~fallback:(React.string "Loading...")
@@ -1554,6 +1580,7 @@ let tests =
     test "upper_case_with_children" upper_case_with_children;
     test "suspense_without_promise" suspense_without_promise;
     test "suspense_with_promise" suspense_with_promise;
+    test "suspense_with_use_promise" suspense_with_use_promise;
     test "suspense_with_error" suspense_with_error;
     test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_immediate_promise" suspense_with_immediate_promise;
