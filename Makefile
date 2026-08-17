@@ -137,12 +137,27 @@ bench: build-bench ## Run benchmarks
 	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory
 
 .PHONY: bench-json
-bench-json: build-bench ## Run benchmarks with JSON output for CI
-	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory -- --json > bench_results.json
+bench-json: build-bench build-bench-router ## Run benchmarks with JSON output for CI
+	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory -- --json > bench_results.core.json
+	@$(DUNE) exec benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory -- --json > bench_results.router.json
+	@node -e 'const fs = require("node:fs"); const results = process.argv.slice(1).flatMap(path => JSON.parse(fs.readFileSync(path))); process.stdout.write(JSON.stringify(results, null, 2) + "\n")' bench_results.core.json bench_results.router.json > bench_results.json
+	@rm bench_results.core.json bench_results.router.json
 
 .PHONY: bench-watch
 bench-watch: build-bench ## Run benchmark in watch mode
 	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory --watch
+
+.PHONY: build-bench-router
+build-bench-router: ## Build the router benchmark executable
+	$(DUNE) build --profile=release benchmark/router_bench.exe
+
+.PHONY: bench-router
+bench-router: build-bench-router ## Run router matching and parsing benchmarks
+	@$(DUNE) exec benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory
+
+.PHONY: bench-router-json
+bench-router-json: build-bench-router ## Run router benchmarks with JSON output
+	@$(DUNE) exec benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory -- --json
 
 .PHONY: bench-allocation
 bench-allocation: ## Run allocation analysis

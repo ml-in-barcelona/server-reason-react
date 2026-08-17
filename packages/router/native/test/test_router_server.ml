@@ -12,6 +12,32 @@ let static_precedes_dynamic () =
   | Ok (Some matched) -> Alcotest.(check string) "route" "new" (RouterServer.Route.id matched.route)
   | _ -> Alcotest.fail "expected static match"
 
+let total_specificity_precedes_earlier_static () =
+  let registry =
+    registry
+      [
+        route ~id:"more-static" ~path:"/:first<string>/b/c";
+        route ~id:"earlier-static" ~path:"/a/:second<string>/:third<string>";
+      ]
+  in
+  match RouterServer.Match.find registry ~pathname:"/a/b/c" with
+  | Ok (Some matched) ->
+      Alcotest.(check string) "route" "more-static" (RouterServer.Route.id matched.route);
+      Alcotest.(check (list (pair string string))) "params" [ ("first", "a") ] matched.parameters
+  | _ -> Alcotest.fail "expected most-specific match"
+
+let failed_static_branch_backtracks_to_parameter () =
+  let registry = registry [ route ~id:"static" ~path:"/a/b/z"; route ~id:"parameter" ~path:"/a/:value<string>/c" ] in
+  match RouterServer.Match.find registry ~pathname:"/a/b/c" with
+  | Ok (Some matched) -> Alcotest.(check string) "route" "parameter" (RouterServer.Route.id matched.route)
+  | _ -> Alcotest.fail "expected parameter fallback"
+
+let encoded_static_segment () =
+  let registry = registry [ route ~id:"cafe" ~path:"/notes/café" ] in
+  match RouterServer.Match.find registry ~pathname:"/notes/caf%C3%A9" with
+  | Ok (Some matched) -> Alcotest.(check string) "route" "cafe" (RouterServer.Route.id matched.route)
+  | _ -> Alcotest.fail "expected encoded static match"
+
 let decoded_parameters () =
   let registry = registry [ route ~id:"note" ~path:"/notes/:slug<Slug.t>" ] in
   match RouterServer.Match.find registry ~pathname:"/notes/caf%C3%A9" with
@@ -43,6 +69,12 @@ let malformed_escape () =
   match RouterServer.Match.find registry ~pathname:"/%ZZ" with
   | Error (MalformedEscape "%ZZ") -> ()
   | _ -> Alcotest.fail "expected malformed escape"
+
+let malformed_escape_reports_leftmost_segment () =
+  let registry = registry [ route ~id:"route" ~path:"/:first<string>/:second<string>" ] in
+  match RouterServer.Match.find registry ~pathname:"/%ZZ/%GG" with
+  | Error (MalformedEscape "%ZZ") -> ()
+  | _ -> Alcotest.fail "expected leftmost malformed escape"
 
 let encoded_slash () =
   let registry = registry [ route ~id:"note" ~path:"/:id<NoteId.t>" ] in
@@ -92,6 +124,16 @@ let repeated_search () =
       Alcotest.(check (list string)) "empty" [ "" ] (RouterServer.Search.values search "empty");
       Alcotest.(check (list string)) "flag" [ "" ] (RouterServer.Search.values search "flag")
   | Error _ -> Alcotest.fail "expected valid search"
+
+let large_search_index () =
+  match RouterServer.Search.parse "?a=1&b=2&c=3&d=4&e=5&f=6&g=7&h=8&a=9&i=10" with
+  | Ok search ->
+      Alcotest.(check (list string)) "repeated" [ "1"; "9" ] (RouterServer.Search.values search "a");
+      Alcotest.(check (list string))
+        "order"
+        [ "a"; "b"; "c"; "d"; "e"; "f"; "g"; "h"; "i" ]
+        (RouterServer.Search.unknown search ~owned:[] |> List.map fst)
+  | Error _ -> Alcotest.fail "expected valid large search"
 
 let decoded_search () =
   match RouterServer.Search.parse "filter=caf%C3%A9%2Fopen&utm_source=test&q=a+b" with
@@ -578,16 +620,21 @@ let () =
       ( "registry and matching",
         [
           test "static precedes dynamic" static_precedes_dynamic;
+          test "total specificity precedes earlier static" total_specificity_precedes_earlier_static;
+          test "failed static branch backtracks to parameter" failed_static_branch_backtracks_to_parameter;
+          test "encoded static segment" encoded_static_segment;
           test "decoded parameters" decoded_parameters;
           test "duplicate paths" duplicate_paths;
           test "ambiguous patterns" ambiguous_patterns;
           test "overlapping patterns" overlapping_patterns;
           test "malformed escape" malformed_escape;
+          test "malformed escape reports leftmost segment" malformed_escape_reports_leftmost_segment;
           test "encoded slash" encoded_slash;
           test "dot segments" dot_segments;
           test "destination segment encoding" destination_segment_encoding;
           test "destination dot segments" destination_dot_segments;
           test "repeated search" repeated_search;
+          test "large search index" large_search_index;
           test "decoded search" decoded_search;
           test "malformed search" malformed_search;
           test "oversized search" oversized_search;

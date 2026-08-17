@@ -1,52 +1,98 @@
 module Percent = struct
-  let is_hex = function '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> true | _ -> false
+  let hex_value = function
+    | '0' .. '9' as character -> Char.code character - Char.code '0'
+    | 'a' .. 'f' as character -> Char.code character - Char.code 'a' + 10
+    | 'A' .. 'F' as character -> Char.code character - Char.code 'A' + 10
+    | _ -> -1
 
-  let validate value =
-    let rec loop index =
-      if index >= String.length value then true
-      else if value.[index] <> '%' then loop (index + 1)
-      else index + 2 < String.length value && is_hex value.[index + 1] && is_hex value.[index + 2] && loop (index + 3)
-    in
-    loop 0
+  let slice value start stop = if start = stop then "" else String.sub value start (stop - start)
 
-  let decode ?(plus = false) value =
-    if not (validate value) then Error value
+  let rec decoded_size reject_slash value stop read size =
+    if read = stop then Ok size
     else
-      let value = if plus then String.map (function '+' -> ' ' | character -> character) value else value in
-      Ok (Uri.pct_decode value)
+      match value.[read] with
+      | '%' when read + 2 < stop ->
+          let high = hex_value value.[read + 1] in
+          let low = hex_value value.[read + 2] in
+          if high < 0 || low < 0 then Error `Malformed
+          else if reject_slash && high = 2 && low = 15 then Error `Encoded_slash
+          else decoded_size reject_slash value stop (read + 3) (size + 1)
+      | '%' -> Error `Malformed
+      | _ -> decoded_size reject_slash value stop (read + 1) (size + 1)
+
+  let rec decode_valid plus value stop decoded read write =
+    if read = stop then Bytes.unsafe_to_string decoded
+    else
+      match value.[read] with
+      | '%' ->
+          let high = hex_value value.[read + 1] in
+          let low = hex_value value.[read + 2] in
+          Bytes.set decoded write (Char.chr ((high lsl 4) lor low));
+          decode_valid plus value stop decoded (read + 3) (write + 1)
+      | '+' when plus ->
+          Bytes.set decoded write ' ';
+          decode_valid plus value stop decoded (read + 1) (write + 1)
+      | character ->
+          Bytes.set decoded write character;
+          decode_valid plus value stop decoded (read + 1) (write + 1)
+
+  let decode_escaped ?(plus = false) ?(reject_slash = false) value ~start ~stop ~first =
+    match decoded_size reject_slash value stop first (first - start) with
+    | Error error -> Error error
+    | Ok size ->
+        let decoded = Bytes.create size in
+        Bytes.blit_string value start decoded 0 (first - start);
+        Ok (decode_valid plus value stop decoded first (first - start))
+
+  let decode_range ?(plus = false) value ~start ~stop ~first =
+    if first < 0 then Ok (slice value start stop)
+    else
+      match decode_escaped ~plus value ~start ~stop ~first with
+      | Ok decoded -> Ok decoded
+      | Error _ -> Error (slice value start stop)
 end
 
 module Path = struct
   type segment = RouterPattern.segment = Static of string | Parameter of RouterPattern.parameter
   type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
 
-  let split path =
-    if path = "/" then Ok []
-    else if path = "" || path.[0] <> '/' then Error path
+  let decode_segment pathname ~has_escapes ~start ~stop =
+    let first =
+      if not has_escapes then -1
+      else match String.index_from_opt pathname start '%' with Some index when index < stop -> index | _ -> -1
+    in
+    if first < 0 then
+      let segment = Percent.slice pathname start stop in
+      if segment = "." || segment = ".." then Error (InvalidPath segment) else Ok segment
     else
-      let segments = String.split_on_char '/' path |> List.tl in
-      if List.exists (String.equal "") segments then Error path else Ok segments
+      match Percent.decode_escaped ~reject_slash:true pathname ~start ~stop ~first with
+      | Error `Malformed -> Error (MalformedEscape (Percent.slice pathname start stop))
+      | Error `Encoded_slash -> Error (EncodedSlash (Percent.slice pathname start stop))
+      | Ok decoded ->
+          if decoded = "." || decoded = ".." then Error (InvalidPath (Percent.slice pathname start stop))
+          else Ok decoded
 
-  let decode_segment segment =
-    match Percent.decode segment with
-    | Error segment -> Error (MalformedEscape segment)
-    | Ok decoded ->
-        if String.contains decoded '/' then Error (EncodedSlash segment)
-        else if decoded = "." || decoded = ".." then Error (InvalidPath segment)
-        else Ok decoded
+  let rec decode_segments pathname has_escapes decoded error stop =
+    let slash = String.rindex_from pathname (stop - 1) '/' in
+    let start = slash + 1 in
+    if start = stop then
+      if slash = 0 then Error (InvalidPath pathname)
+      else decode_segments pathname has_escapes decoded (Some (InvalidPath pathname)) slash
+    else
+      match decode_segment pathname ~has_escapes ~start ~stop with
+      | Ok segment ->
+          if slash = 0 then match error with Some error -> Error error | None -> Ok (segment :: decoded)
+          else decode_segments pathname has_escapes (segment :: decoded) error slash
+      | Error current ->
+          if slash = 0 then Error current else decode_segments pathname has_escapes decoded (Some current) slash
 
   let decodePathname pathname =
-    match split pathname with
-    | Error path -> Error (InvalidPath path)
-    | Ok segments ->
-        let rec decode_all decoded = function
-          | [] -> Ok (List.rev decoded)
-          | segment :: rest -> (
-              match decode_segment segment with
-              | Ok segment -> decode_all (segment :: decoded) rest
-              | Error error -> Error error)
-        in
-        decode_all [] segments
+    if String.equal pathname "/" then Ok []
+    else if String.equal pathname "" || pathname.[0] <> '/' then Error (InvalidPath pathname)
+    else
+      let length = String.length pathname in
+      let has_escapes = String.contains pathname '%' in
+      decode_segments pathname has_escapes [] None length
 
   let stripBasePath ~basePath pathname =
     if String.equal basePath "/" then Some pathname
@@ -64,11 +110,27 @@ module Path = struct
 end
 
 module Route = struct
-  type t = { id : string; path : string; segments : Path.segment list }
+  type t = {
+    id : string;
+    path : string;
+    segments : Path.segment list;
+    parameter_names : string list;
+    specificity : int;
+  }
 
   let make ~id ~path =
     match RouterPattern.parse path with
-    | Ok pattern -> { id; path; segments = RouterPattern.segments pattern }
+    | Ok pattern ->
+        let segments = RouterPattern.segments pattern in
+        let parameter_names, specificity =
+          List.fold_right
+            (fun segment (names, specificity) ->
+              match segment with
+              | Path.Static _ -> (names, specificity + 1)
+              | Parameter parameter -> (parameter.RouterPattern.name :: names, specificity))
+            segments ([], 0)
+        in
+        { id; path; segments; parameter_names; specificity }
     | Error _ -> invalid_arg ("invalid route path " ^ path)
 
   let id route = route.id
@@ -78,7 +140,14 @@ end
 module Registry = struct
   open Path
 
-  type t = Route.t list
+  type node = {
+    static_children : (string, node) Hashtbl.t;
+    mutable parameter_child : node option;
+    mutable route : Route.t option;
+    mutable max_specificity : int;
+  }
+
+  type t = { routes : Route.t list; exact : (string, Route.t) Hashtbl.t; root : node }
 
   type error =
     | DuplicateId of string
@@ -93,9 +162,6 @@ module Registry = struct
         else duplicate key rest
 
   let ambiguous routes =
-    let specificity route =
-      List.fold_left (fun score -> function Static _ -> score + 1 | Parameter _ -> score) 0 route.Route.segments
-    in
     let rec overlaps left right =
       match (left, right) with
       | [], [] -> true
@@ -109,7 +175,8 @@ module Registry = struct
       | route :: rest -> (
           match
             List.find_opt
-              (fun other -> specificity route = specificity other && overlaps route.Route.segments other.Route.segments)
+              (fun other ->
+                route.Route.specificity = other.Route.specificity && overlaps route.Route.segments other.Route.segments)
               rest
           with
           | Some other when not (String.equal route.Route.path other.Route.path) ->
@@ -117,6 +184,38 @@ module Registry = struct
           | _ -> loop rest)
     in
     loop routes
+
+  let node () = { static_children = Hashtbl.create 4; parameter_child = None; route = None; max_specificity = -1 }
+
+  let add root route =
+    let rec loop current = function
+      | [] ->
+          current.max_specificity <- max current.max_specificity route.Route.specificity;
+          current.route <- Some route
+      | Static value :: segments ->
+          current.max_specificity <- max current.max_specificity route.Route.specificity;
+          let child =
+            match Hashtbl.find_opt current.static_children value with
+            | Some child -> child
+            | None ->
+                let child = node () in
+                Hashtbl.add current.static_children value child;
+                child
+          in
+          loop child segments
+      | Parameter _ :: segments ->
+          current.max_specificity <- max current.max_specificity route.Route.specificity;
+          let child =
+            match current.parameter_child with
+            | Some child -> child
+            | None ->
+                let child = node () in
+                current.parameter_child <- Some child;
+                child
+          in
+          loop child segments
+    in
+    loop root route.Route.segments
 
   let make routes =
     match duplicate (fun route -> route.Route.id) routes with
@@ -127,7 +226,15 @@ module Registry = struct
         | None -> (
             match ambiguous routes with
             | Some (left, right) -> Error (AmbiguousPattern (left, right))
-            | None -> Ok routes))
+            | None ->
+                let root = node () in
+                let exact = Hashtbl.create (List.length routes) in
+                List.iter
+                  (fun route ->
+                    add root route;
+                    if route.Route.parameter_names = [] then Hashtbl.add exact route.Route.path route)
+                  routes;
+                Ok { routes; exact; root }))
 
   let invalid = function
     | DuplicateId id -> invalid_arg ("duplicate route id " ^ id)
@@ -136,76 +243,115 @@ module Registry = struct
     | InvalidPattern path -> invalid_arg ("invalid route pattern " ^ path)
 
   let makeExn routes = match make routes with Ok registry -> registry | Error error -> invalid error
-  let routes registry = registry
+  let routes registry = registry.routes
 end
 
 module Match = struct
-  open Path
-
   type t = { route : Route.t; parameters : (string * string) list }
   type error = Path.error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
 
-  let match_route route segments =
-    let rec loop parameters patterns values =
-      match (patterns, values) with
-      | [], [] -> Some (List.rev parameters)
-      | Static expected :: patterns, value :: values when String.equal expected value -> loop parameters patterns values
-      | Parameter parameter :: patterns, value :: values ->
-          loop ((parameter.RouterPattern.name, value) :: parameters) patterns values
-      | _ -> None
+  let parameters route values =
+    let rec loop parameters names values =
+      match (names, values) with
+      | [], [] -> List.rev parameters
+      | name :: names, value :: values -> loop ((name, value) :: parameters) names values
+      | _ -> assert false
     in
-    loop [] route.Route.segments segments
+    loop [] route.Route.parameter_names (List.rev values)
 
-  let specificity route =
-    List.fold_left (fun score -> function Static _ -> score + 1 | Parameter _ -> score) 0 route.Route.segments
+  let match_segments root segments =
+    let best = ref None in
+    let best_specificity () = match !best with Some (specificity, _, _) -> specificity | None -> -1 in
+    let rec loop (node : Registry.node) captured = function
+      | _ when node.max_specificity <= best_specificity () -> ()
+      | [] -> (
+          match node.route with Some route -> best := Some (route.Route.specificity, route, captured) | None -> ())
+      | value :: segments -> (
+          let static = Hashtbl.find_opt node.static_children value in
+          let parameter = node.parameter_child in
+          match (static, parameter) with
+          | Some static, Some parameter when parameter.max_specificity > static.max_specificity ->
+              loop parameter (value :: captured) segments;
+              loop static captured segments
+          | Some static, Some parameter ->
+              loop static captured segments;
+              loop parameter (value :: captured) segments
+          | Some static, None -> loop static captured segments
+          | None, Some parameter -> loop parameter (value :: captured) segments
+          | None, None -> ())
+    in
+    loop root [] segments;
+    match !best with None -> None | Some (_, route, values) -> Some { route; parameters = parameters route values }
 
   let find registry ~pathname =
-    match Path.decodePathname pathname with
-    | Error error -> Error error
-    | Ok segments ->
-        let matches =
-          Registry.routes registry
-          |> List.filter_map (fun route ->
-              Option.map (fun parameters -> (specificity route, { route; parameters })) (match_route route segments))
-          |> List.sort (fun (left, _) (right, _) -> Int.compare right left)
-        in
-        Ok (match matches with [] -> None | (_, matched) :: _ -> Some matched)
+    match Hashtbl.find_opt registry.Registry.exact pathname with
+    | Some route -> Ok (Some { route; parameters = [] })
+    | None -> (
+        match Path.decodePathname pathname with
+        | Error error -> Error error
+        | Ok segments -> Ok (match_segments registry.Registry.root segments))
 end
 
 module Search = struct
   type t = (string * string list) list
   type error = MalformedEscape of string | QueryTooLong
+  type index = Small | Large of (string, string list ref) Hashtbl.t
 
-  let decode value =
-    match Percent.decode ~plus:true value with Ok value -> Ok value | Error value -> Error (MalformedEscape value)
+  let decode search ~start ~stop ~first =
+    match Percent.decode_range ~plus:true search ~start ~stop ~first with
+    | Ok value -> Ok value
+    | Error value -> Error (MalformedEscape value)
 
-  let parse_pair pair =
-    match String.index_opt pair '=' with
-    | None -> (pair, "")
-    | Some index -> (String.sub pair 0 index, String.sub pair (index + 1) (String.length pair - index - 1))
+  let rec find_values key = function
+    | [] -> None
+    | (current_key, values) :: keys -> if String.equal key current_key then Some values else find_values key keys
 
   let parse search =
     if String.length search > 8192 then Error QueryTooLong
     else
-      let search =
-        if search <> "" && search.[0] = '?' then String.sub search 1 (String.length search - 1) else search
-      in
-      let pairs = if search = "" then [] else String.split_on_char '&' search in
-      let values = Hashtbl.create (List.length pairs) in
-      let keys = ref [] in
-      let rec loop = function
-        | [] -> Ok (List.rev_map (fun key -> (key, Hashtbl.find values key |> List.rev)) !keys)
-        | pair :: rest -> (
-            let key, value = parse_pair pair in
-            match (decode key, decode value) with
+      let length = String.length search in
+      let first = if length > 0 && search.[0] = '?' then 1 else 0 in
+      if first = length then Ok []
+      else
+        let keys = ref [] in
+        let value_index = ref Small in
+        let finish () = Ok (List.rev_map (fun (key, current) -> (key, List.rev !current)) !keys) in
+        let rec loop start equals key_first value_first index =
+          if index < length && search.[index] <> '&' then
+            let character = search.[index] in
+            if equals < 0 && character = '=' then loop start index key_first value_first (index + 1)
+            else
+              let escaped = character = '%' || character = '+' in
+              let key_first = if equals < 0 && key_first < 0 && escaped then index else key_first in
+              let value_first = if equals >= 0 && value_first < 0 && escaped then index else value_first in
+              loop start equals key_first value_first (index + 1)
+          else
+            let key_stop = if equals < 0 then index else equals in
+            let value_start = if equals < 0 then index else equals + 1 in
+            match
+              ( decode search ~start ~stop:key_stop ~first:key_first,
+                decode search ~start:value_start ~stop:index ~first:value_first )
+            with
             | Ok key, Ok value ->
-                if not (Hashtbl.mem values key) then keys := key :: !keys;
-                let current = match Hashtbl.find_opt values key with Some values -> values | None -> [] in
-                Hashtbl.replace values key (value :: current);
-                loop rest
-            | Error error, _ | _, Error error -> Error error)
-      in
-      loop pairs
+                let current =
+                  match !value_index with Small -> find_values key !keys | Large values -> Hashtbl.find_opt values key
+                in
+                (match current with
+                | Some current -> current := value :: !current
+                | None -> (
+                    let current = ref [ value ] in
+                    keys := (key, current) :: !keys;
+                    match !value_index with
+                    | Large values -> Hashtbl.add values key current
+                    | Small when List.length !keys = 8 ->
+                        let values = Hashtbl.create 16 in
+                        List.iter (fun (key, current) -> Hashtbl.add values key current) !keys;
+                        value_index := Large values
+                    | Small -> ()));
+                if index = length then finish () else loop (index + 1) (-1) (-1) (-1) (index + 1)
+            | Error error, _ | _, Error error -> Error error
+        in
+        loop first (-1) (-1) (-1) first
 
   let values search name = match List.assoc_opt name search with Some values -> values | None -> []
   let unknown search ~owned = List.filter (fun (name, _) -> not (List.exists (String.equal name) owned)) search
@@ -463,16 +609,23 @@ module Endpoint = struct
 end
 
 module EndpointRegistry = struct
-  type ('result, 'error) t = { raw : Registry.t; endpoints : ('result, 'error) Endpoint.t list; fingerprint : string }
+  type ('result, 'error) t = {
+    raw : Registry.t;
+    endpoints_by_id : (string, ('result, 'error) Endpoint.t) Hashtbl.t;
+    fingerprint : string;
+  }
+
   type ('result, 'error) matched = { endpoint : ('result, 'error) Endpoint.t; parameters : (string * string) list }
 
   let make endpoints =
     match Registry.make (List.map Endpoint.route endpoints) with
     | Ok raw ->
+        let endpoints_by_id = Hashtbl.create (List.length endpoints) in
+        List.iter (fun endpoint -> Hashtbl.add endpoints_by_id (Endpoint.route endpoint |> Route.id) endpoint) endpoints;
         let fingerprint =
           endpoints |> List.map Endpoint.fingerprint |> String.concat "\n" |> Digest.string |> Digest.to_hex
         in
-        Ok { raw; endpoints; fingerprint }
+        Ok { raw; endpoints_by_id; fingerprint }
     | Error error -> Error error
 
   let makeExn endpoints = match make endpoints with Ok registry -> registry | Error error -> Registry.invalid error
@@ -483,9 +636,7 @@ module EndpointRegistry = struct
     | Ok None -> Ok None
     | Ok (Some matched) ->
         let id = Route.id matched.Match.route in
-        let endpoint =
-          List.find_opt (fun endpoint -> String.equal id (Endpoint.route endpoint |> Route.id)) registry.endpoints
-        in
+        let endpoint = Hashtbl.find_opt registry.endpoints_by_id id in
         Ok (Option.map (fun endpoint -> { endpoint; parameters = matched.parameters }) endpoint)
 
   let decode matched ~search = Endpoint.decode matched.endpoint (Input.make ~parameters:matched.parameters ~search)

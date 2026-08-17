@@ -49,7 +49,7 @@ module Match : sig
   type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
 
   val find : Registry.t -> pathname:string -> (t option, error) result
-  (** Decodes [pathname], finds every matching route, and prefers the route with the most static segments. Registry
+  (** Validates [pathname], selects the route with the most static segments, and decodes its parameters. Registry
       validation makes that choice unique. *)
 end
 

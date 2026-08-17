@@ -26,6 +26,11 @@
  (preprocess
   (pps server-reason-react.ppx)))
 
+(executable
+ (name router_bench)
+ (modules router_bench)
+ (libraries unix server-reason-react.router-native))
+
 (rule
  (alias bench)
  (action

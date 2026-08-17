@@ -100,7 +100,9 @@ jobs:
           retention-days: 1
 
       - name: Run benchmarks
-        run: make bench
+        run: |
+          make bench
+          make bench-router
 
       - name: Run benchmarks as JSON
         if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
