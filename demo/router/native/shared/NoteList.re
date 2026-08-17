@@ -6,13 +6,14 @@ module NoteList = {
   let make = (~notes: list(SidebarNote.notePreview)) => {
     let ({ Router.searchText }, _) = Router.useSearch();
     let searchText = searchText |> Option.value(~default="");
+    let needle = String.lowercase_ascii(searchText);
 
     <ul className="mt-8">
       {Array.of_list(
          notes
          |> List.filter((note: SidebarNote.notePreview) =>
               TextSearch.contains(
-                ~needle=String.lowercase_ascii(searchText),
+                ~needle,
                 ~haystack=String.lowercase_ascii(note.title),
               )
             )

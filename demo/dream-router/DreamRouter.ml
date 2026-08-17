@@ -71,15 +71,13 @@ let require_action_id actionId =
   | Some id -> Ok id
   | None -> Error "Missing ACTION_ID header, this request was not created by server-reason-react"
 
-let dispatch_handler ~lookup =
- fun actionId ->
-  fun dispatch ->
-   match require_action_id actionId with
-   | Error msg -> Lwt.fail_with msg
-   | Ok actionId -> (
-       match lookup actionId with
-       | None -> Lwt.fail_with ("Action " ^ actionId ^ " is not registered")
-       | Some handler -> dispatch actionId handler)
+let dispatch_handler ~lookup actionId dispatch =
+  match require_action_id actionId with
+  | Error msg -> Lwt.fail_with msg
+  | Ok actionId -> (
+      match lookup actionId with
+      | None -> Lwt.fail_with ("Action " ^ actionId ^ " is not registered")
+      | Some handler -> dispatch actionId handler)
 
 let dreamFormDataToJs formData =
   let formDataJs = Js.FormData.make () in
@@ -89,19 +87,16 @@ let dreamFormDataToJs formData =
       Js.FormData.append formDataJs name (`String value));
   formDataJs
 
-let handleFormRequest ~lookup =
- fun actionId ->
-  fun formData ->
-   let formDataJs = dreamFormDataToJs formData in
-   match ReactServerDOM.decodeFormDataReply formDataJs with
-   | Error msg -> Lwt.fail_with msg
-   | Ok (args, formData) ->
-       dispatch_handler ~lookup actionId (fun actionId ->
-           fun handler ->
-            match handler with
-            | ReactServerDOM.FormData handler -> handler args formData
-            | ReactServerDOM.Body _ ->
-                Lwt.fail_with ("Action " ^ actionId ^ " is registered as Body handler but received FormData request"))
+let handleFormRequest ~lookup actionId formData =
+  let formDataJs = dreamFormDataToJs formData in
+  match ReactServerDOM.decodeFormDataReply formDataJs with
+  | Error msg -> Lwt.fail_with msg
+  | Ok (args, formData) ->
+      dispatch_handler ~lookup actionId (fun actionId handler ->
+          match handler with
+          | ReactServerDOM.FormData handler -> handler args formData
+          | ReactServerDOM.Body _ ->
+              Lwt.fail_with ("Action " ^ actionId ^ " is registered as Body handler but received FormData request"))
 
 let handleRequestBody ~lookup request actionId =
   let%lwt body = Dream.body request in
@@ -114,8 +109,7 @@ let handleRequestBody ~lookup request actionId =
           | ReactServerDOM.FormData _ ->
               Lwt.fail_with ("Action " ^ actionId ^ " is registered as FormData handler but received JSON body request"))
 
-let handleNoJsFormRequest ~lookup =
- fun formDataJs ->
+let handleNoJsFormRequest ~lookup formDataJs =
   match ReactServerDOM.decodeAction formDataJs with
   | Some (actionId, userFormData) -> (
       match lookup actionId with
@@ -125,6 +119,13 @@ let handleNoJsFormRequest ~lookup =
           | ReactServerDOM.FormData handler -> handler [||] userFormData
           | ReactServerDOM.Body handler -> handler [||]))
   | None -> Lwt.fail_with "No ACTION_ID header and no $ACTION_* keys in FormData"
+
+let write_chunk ~debug ~label stream chunk =
+  if debug then (
+    Dream.log "%s" label;
+    Dream.log "%s" chunk);
+  let%lwt () = Dream.write stream chunk in
+  Dream.flush stream
 
 let handleRequest ~lookup request =
   let actionId = Dream.header request "ACTION_ID" in
@@ -155,12 +156,7 @@ let streamFunctionResponse ?(debug = false) ~lookup request =
   Dream.stream ~headers:(("Content-Type", "application/react.action") :: cookie_headers) (fun stream ->
       let%lwt () =
         ReactServerDOM.create_action_response ~env:`Dev ~debug
-          ~subscribe:(fun chunk ->
-            if debug then (
-              Dream.log "Action response";
-              Dream.log "%s" chunk);
-            let%lwt () = Dream.write stream chunk in
-            Dream.flush stream)
+          ~subscribe:(write_chunk ~debug ~label:"Action response" stream)
           action_promise
       in
       Dream.flush stream)
@@ -239,14 +235,7 @@ let stream_model_value ?(debug = false) ?(code = 200) ?(headers = []) ~location 
   let%lwt response =
     Dream.stream ~code ~headers (fun stream ->
         let%lwt () =
-          ReactServerDOM.render_model_value ~env:`Dev ~debug
-            ~subscribe:(fun chunk ->
-              if debug then (
-                Dream.log "Chunk";
-                Dream.log "%s" chunk);
-              let%lwt () = Dream.write stream chunk in
-              Dream.flush stream)
-            app
+          ReactServerDOM.render_model_value ~env:`Dev ~debug ~subscribe:(write_chunk ~debug ~label:"Chunk" stream) app
         in
         Dream.flush stream)
   in
@@ -255,10 +244,8 @@ let stream_model_value ?(debug = false) ?(code = 200) ?(headers = []) ~location 
   Dream.set_header response "X-Location" location;
   Lwt.return response
 
-let stream_model ?(debug = false) =
- fun ?(code = 200) ->
-  fun ?(headers = []) ->
-   fun ~location -> fun app -> stream_model_value ~debug ~code ~headers ~location (React.Model.Element app)
+let stream_model ?(debug = false) ?(code = 200) ?(headers = []) ~location app =
+  stream_model_value ~debug ~code ~headers ~location (React.Model.Element app)
 
 let stream_html ?(debug = false) ?(code = 200) ?(headers = []) ?(skipRoot = false) ?bootstrapScriptContent
     ?(bootstrapScripts = []) ?(bootstrapModules = []) app =
@@ -270,34 +257,21 @@ let stream_html ?(debug = false) ?(code = 200) ?(headers = []) ?(skipRoot = fals
         in
         let%lwt () = Dream.write stream html in
         let%lwt () = Dream.flush stream in
-        let%lwt () =
-          subscribe (fun chunk ->
-              if debug then (
-                Dream.log "Chunk";
-                Dream.log "%s" chunk);
-              let%lwt () = Dream.write stream chunk in
-              Dream.flush stream)
-        in
+        let%lwt () = subscribe (write_chunk ~debug ~label:"Chunk" stream) in
         Dream.flush stream)
   in
   Dream.set_header response "Content-Type" Dream.text_html;
   Lwt.return response
 
-let createFromRequest ?(debug = false) =
- fun ?(disableSSR = false) ->
-  fun ?(layout = fun children -> children) ->
-   fun ?(bootstrapModules = []) ->
-    fun ?(bootstrapScripts = []) ->
-     fun ?(bootstrapScriptContent = "") ->
-      fun element ->
-       fun request ->
-        with_render_context request (fun () ->
-            match Dream.header request "Accept" with
-            | Some accept when is_react_component_header accept ->
-                stream_model ~debug ~location:(Dream.target request) element
-            | _ ->
-                stream_html ~debug ~skipRoot:disableSSR ~bootstrapScriptContent ~bootstrapScripts ~bootstrapModules
-                  (layout element))
+let createFromRequest ?(debug = false) ?(disableSSR = false) ?(layout = fun children -> children)
+    ?(bootstrapModules = []) ?(bootstrapScripts = []) ?(bootstrapScriptContent = "") element request =
+  with_render_context request (fun () ->
+      match Dream.header request "Accept" with
+      | Some accept when is_react_component_header accept ->
+          stream_model ~debug ~location:(Dream.target request) element
+      | _ ->
+          stream_html ~debug ~skipRoot:disableSSR ~bootstrapScriptContent ~bootstrapScripts ~bootstrapModules
+            (layout element))
 
 let metadata_element metadata =
   let open RouterRuntime.Metadata in

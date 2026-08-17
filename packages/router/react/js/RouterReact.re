@@ -27,6 +27,7 @@ type contextValue = {
   navigate,
   navigation: Navigation.status,
   committed: Navigation.committed,
+  search: list((string, list(string))),
   updateSearch,
   updateHash,
 };
@@ -152,6 +153,11 @@ module Provider = {
     let scrollPositions = React.useRef([]);
     let contentIdentity = React.useRef("content-0");
     let restoredContentIdentity = React.useRef("");
+    let mutateHistory = (~action, ~state, ~url) =>
+      switch (Navigation.historyMutation(action)) {
+      | Navigation.PushEntry => RouterHistory.push(~state, ~url)
+      | Navigation.ReplaceEntry => RouterHistory.replace(~state, ~url)
+      };
     let rec take = (count, values) =>
       if (count <= 0) {
         [];
@@ -283,11 +289,7 @@ module Provider = {
         key,
         revision: contentIdentity.current,
       };
-      switch (Navigation.historyMutation(action)) {
-      | Navigation.PushEntry => RouterHistory.push(~state=historyState, ~url)
-      | Navigation.ReplaceEntry =>
-        RouterHistory.replace(~state=historyState, ~url)
-      };
+      mutateHistory(~action, ~state=historyState, ~url);
       updateModel({
         ...current,
         navigationState,
@@ -430,9 +432,7 @@ module Provider = {
              ) {
              | Error(Response.SupersededResponse) =>
                Js.Promise.resolve(Navigation.Result.Canceled)
-             | Error(Response.StaleResponse) =>
-               hardNavigate(~replace=action != Navigation.Push, target)
-               |> Js.Promise.resolve
+             | Error(Response.StaleResponse)
              | Error(Response.ProtocolVersionMismatch)
              | Error(Response.RegistryFingerprintMismatch) =>
                hardNavigate(~replace=action != Navigation.Push, target)
@@ -478,18 +478,11 @@ module Provider = {
                      key: prepared.key,
                      revision: nextContentIdentity,
                    };
-                   switch (Navigation.historyMutation(action)) {
-                   | Navigation.PushEntry =>
-                     RouterHistory.push(
-                       ~state=historyState,
-                       ~url=prepared.url,
-                     )
-                   | Navigation.ReplaceEntry =>
-                     RouterHistory.replace(
-                       ~state=historyState,
-                       ~url=prepared.url,
-                     )
-                   };
+                   mutateHistory(
+                     ~action,
+                     ~state=historyState,
+                     ~url=prepared.url,
+                   );
                    contentIdentity.current = nextContentIdentity;
                    let (element, patchOperation) =
                      switch (prepared.render) {
@@ -700,6 +693,7 @@ module Provider = {
                   navigate,
                   navigation: Navigation.status(model.navigationState),
                   committed,
+                  search: searchValuesFromString(committed.location.search),
                   updateSearch,
                   updateHash,
                 }),
@@ -730,10 +724,7 @@ let useCommitted = () =>
 
 let useSearch = () => {
   let value = useContextValue();
-  (
-    searchValuesFromString(value.committed.location.search),
-    value.updateSearch,
-  );
+  (value.search, value.updateSearch);
 };
 
 let useUpdateHash = () => useContextValue().updateHash;

@@ -129,14 +129,13 @@ module Registry = struct
             | Some (left, right) -> Error (AmbiguousPattern (left, right))
             | None -> Ok routes))
 
-  let makeExn routes =
-    match make routes with
-    | Ok registry -> registry
-    | Error (DuplicateId id) -> invalid_arg ("duplicate route id " ^ id)
-    | Error (DuplicatePath path) -> invalid_arg ("duplicate route path " ^ path)
-    | Error (AmbiguousPattern (left, right)) -> invalid_arg ("ambiguous route patterns " ^ left ^ " and " ^ right)
-    | Error (InvalidPattern path) -> invalid_arg ("invalid route pattern " ^ path)
+  let invalid = function
+    | DuplicateId id -> invalid_arg ("duplicate route id " ^ id)
+    | DuplicatePath path -> invalid_arg ("duplicate route path " ^ path)
+    | AmbiguousPattern (left, right) -> invalid_arg ("ambiguous route patterns " ^ left ^ " and " ^ right)
+    | InvalidPattern path -> invalid_arg ("invalid route pattern " ^ path)
 
+  let makeExn routes = match make routes with Ok registry -> registry | Error error -> invalid error
   let routes registry = registry
 end
 
@@ -476,13 +475,7 @@ module EndpointRegistry = struct
         Ok { raw; endpoints; fingerprint }
     | Error error -> Error error
 
-  let makeExn endpoints =
-    match make endpoints with
-    | Ok registry -> registry
-    | Error (Registry.DuplicateId id) -> invalid_arg ("duplicate route id " ^ id)
-    | Error (DuplicatePath path) -> invalid_arg ("duplicate route path " ^ path)
-    | Error (AmbiguousPattern (left, right)) -> invalid_arg ("ambiguous route patterns " ^ left ^ " and " ^ right)
-    | Error (InvalidPattern path) -> invalid_arg ("invalid route pattern " ^ path)
+  let makeExn endpoints = match make endpoints with Ok registry -> registry | Error error -> Registry.invalid error
 
   let find registry ~pathname =
     match Match.find registry.raw ~pathname with

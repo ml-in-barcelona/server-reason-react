@@ -177,6 +177,10 @@ let unlabelled_arguments arguments =
 
 let attachment_labels = [ "layout"; "loading"; "notFound"; "error"; "loader"; "loaderAs_"; "metadata"; "headers" ]
 
+let rec duplicate = function
+  | [] -> None
+  | value :: values -> if List.mem value values then Some value else duplicate values
+
 let validate_arguments ~loc ~allowed ~unlabelled arguments =
   let labels =
     List.filter_map
@@ -184,10 +188,6 @@ let validate_arguments ~loc ~allowed ~unlabelled arguments =
       arguments
   in
   List.iter (fun label -> if not (List.mem label allowed) then error ~loc "unknown router argument ~%s" label) labels;
-  let rec duplicate = function
-    | [] -> None
-    | label :: labels -> if List.mem label labels then Some label else duplicate labels
-  in
   (match duplicate labels with Some label -> error ~loc "duplicate router argument ~%s" label | None -> ());
   if List.length (unlabelled_arguments arguments) <> unlabelled then
     error ~loc "expected %d unlabelled router argument(s)" unlabelled
@@ -393,10 +393,6 @@ let routes declaration =
       (flatten ~parent_path:"" ~parameters:declaration.root.scope.parameters ~search:declaration.root.scope.search
          ~scopes:[ declaration.root.scope ])
       declaration.root.children
-  in
-  let duplicate values =
-    let rec loop = function [] -> None | value :: rest -> if List.mem value rest then Some value else loop rest in
-    loop values
   in
   List.iter
     (fun (route : route) ->

@@ -326,14 +326,7 @@ module Navigation = {
     status: Idle,
   };
 
-  let hashOnly = (state, ~location, ~action as _) => {
-    ...state,
-    committed: {
-      ...state.committed,
-      location,
-    },
-    status: Idle,
-  };
+  let hashOnly = shallow;
 
   let normalizeParameters =
     List.sort(((left, _), (right, _)) => String.compare(left, right));

@@ -39,23 +39,23 @@ let search_value_type ~loc (search : Router_declaration.search) =
   | Optional -> option_type ~loc search.typ
   | Many -> list_type ~loc search.typ
 
-let route_function_type ~loc parameters search result =
-  let with_unit = B.ptyp_arrow ~loc Nolabel (unit_type ~loc) result in
-  let with_search =
+let search_argument_label (search : Router_declaration.search) =
+  match search.kind with Required -> Labelled search.name | Optional | Default _ | Many -> Optional search.name
+
+let route_input_type ~loc parameters search result =
+  let result =
     List.fold_right
       (fun (search : Router_declaration.search) result ->
-        let label =
-          match search.kind with
-          | Required -> Labelled search.name
-          | Optional | Default _ | Many -> Optional search.name
-        in
-        B.ptyp_arrow ~loc label (search_destination_type ~loc search) result)
-      search with_unit
+        B.ptyp_arrow ~loc (search_argument_label search) (search_destination_type ~loc search) result)
+      search result
   in
   List.fold_right
     (fun (parameter : Router_declaration.parameter) result ->
       B.ptyp_arrow ~loc (Labelled parameter.name) parameter.typ result)
-    parameters with_search
+    parameters result
+
+let route_function_type ~loc parameters search result =
+  route_input_type ~loc parameters search (B.ptyp_arrow ~loc Nolabel (unit_type ~loc) result)
 
 let link_component_type ~loc parameters search =
   let result = result_type ~loc "React.element" in
@@ -69,21 +69,7 @@ let link_component_type ~loc parameters search =
   let with_download = B.ptyp_arrow ~loc (Optional "download") (result_type ~loc "string") with_aria_current in
   let with_target = B.ptyp_arrow ~loc (Optional "target") (result_type ~loc "string") with_download in
   let with_class_name = B.ptyp_arrow ~loc (Optional "className") (result_type ~loc "string") with_target in
-  let with_search =
-    List.fold_right
-      (fun (search : Router_declaration.search) result ->
-        let label =
-          match search.kind with
-          | Required -> Labelled search.name
-          | Optional | Default _ | Many -> Optional search.name
-        in
-        B.ptyp_arrow ~loc label (search_destination_type ~loc search) result)
-      search with_class_name
-  in
-  List.fold_right
-    (fun (parameter : Router_declaration.parameter) result ->
-      B.ptyp_arrow ~loc (Labelled parameter.name) parameter.typ result)
-    parameters with_search
+  route_input_type ~loc parameters search with_class_name
 
 let active_function_type ~loc parameters =
   let with_unit = B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (bool_type ~loc) in
@@ -113,23 +99,20 @@ let search_type_declaration ~loc search =
   B.type_declaration ~loc ~name:{ txt = "search"; loc } ~params:[] ~cstrs:[] ~kind:(Ptype_record fields)
     ~private_:Public ~manifest:None
 
-let route_function_expression ~loc parameters search body =
-  let with_unit = B.pexp_fun ~loc Nolabel None (B.punit ~loc) body in
-  let with_search =
+let route_input_expression ~loc parameters search body =
+  let body =
     List.fold_right
       (fun (search : Router_declaration.search) body ->
-        let label =
-          match search.kind with
-          | Required -> Labelled search.name
-          | Optional | Default _ | Many -> Optional search.name
-        in
-        B.pexp_fun ~loc label None (B.pvar ~loc search.name) body)
-      search with_unit
+        B.pexp_fun ~loc (search_argument_label search) None (B.pvar ~loc search.name) body)
+      search body
   in
   List.fold_right
     (fun (parameter : Router_declaration.parameter) body ->
       B.pexp_fun ~loc (Labelled parameter.name) None (B.pvar ~loc parameter.name) body)
-    parameters with_search
+    parameters body
+
+let route_function_expression ~loc parameters search body =
+  route_input_expression ~loc parameters search (B.pexp_fun ~loc Nolabel None (B.punit ~loc) body)
 
 let apply_route_inputs ~loc callee parameters search =
   let arguments =
@@ -137,13 +120,7 @@ let apply_route_inputs ~loc callee parameters search =
       (fun (parameter : Router_declaration.parameter) -> (Labelled parameter.name, B.evar ~loc parameter.name))
       parameters
     @ List.map
-        (fun (search : Router_declaration.search) ->
-          let label =
-            match search.kind with
-            | Required -> Labelled search.name
-            | Optional | Default _ | Many -> Optional search.name
-          in
-          (label, B.evar ~loc search.name))
+        (fun (search : Router_declaration.search) -> (search_argument_label search, B.evar ~loc search.name))
         search
     @ [ (Nolabel, unit_expression ~loc) ]
   in
@@ -328,23 +305,7 @@ let route_module ~base_path (route : Router_declaration.route) =
   let link_with_download = B.pexp_fun ~loc (Optional "download") None (B.pvar ~loc "download") link_with_aria_current in
   let link_with_target = B.pexp_fun ~loc (Optional "target") None (B.pvar ~loc "target") link_with_download in
   let link_with_class_name = B.pexp_fun ~loc (Optional "className") None (B.pvar ~loc "className") link_with_target in
-  let link_with_search =
-    List.fold_right
-      (fun (search : Router_declaration.search) body ->
-        let label =
-          match search.kind with
-          | Required -> Labelled search.name
-          | Optional | Default _ | Many -> Optional search.name
-        in
-        B.pexp_fun ~loc label None (B.pvar ~loc search.name) body)
-      route.search link_with_class_name
-  in
-  let link_expression =
-    List.fold_right
-      (fun (parameter : Router_declaration.parameter) body ->
-        B.pexp_fun ~loc (Labelled parameter.name) None (B.pvar ~loc parameter.name) body)
-      route.parameters link_with_search
-  in
+  let link_expression = route_input_expression ~loc route.parameters route.search link_with_class_name in
   let link_binding = B.value_binding ~loc ~pat:(B.pvar ~loc "make") ~expr:link_expression in
   let link_binding = { link_binding with pvb_attributes = [ react_component_attribute ~loc ] } in
   let active_body =

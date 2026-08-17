@@ -1,5 +1,3 @@
-open Lwt.Syntax;
-
 let repoRoot = () => {
   let exeDir = Filename.dirname(Sys.executable_name);
   let rec findRoot = dir =>
@@ -177,15 +175,6 @@ let readNotesCached =
 
 let readNotes = (~sleep=None, ()) => readNotesCached(sleep);
 
-let findOne =
-  React.cache(((notes, id)) => {
-    switch (notes |> List.find_opt((note: Note.t) => note.id == id)) {
-    | Some(note) => Lwt_result.return(note)
-    | None =>
-      Lwt_result.fail("Note with id " ++ Int.to_string(id) ++ " not found")
-    }
-  });
-
 let insertNote = (~title, ~content, notes) => {
   let id =
     notes
@@ -269,24 +258,6 @@ let deleteNote = id => {
     };
   };
 };
-
-let fetchNoteCached =
-  React.cache(((sleep, id)) => {
-    Dream.log("[DB.fetchNote] Fetching note id=%d from disk", id);
-    let%lwt () =
-      switch (sleep) {
-      | Some(delay) => Lwt_unix.sleep(delay)
-      | None => Lwt.return()
-      };
-
-    let* notes = readNotes(~sleep, ());
-    switch (notes) {
-    | Ok(notes) => findOne((notes, id))
-    | Error(e) => Lwt_result.fail(e)
-    };
-  });
-
-let fetchNote = (~sleep=None, id) => fetchNoteCached((sleep, id));
 
 let fetchNoteOptionCached =
   React.cache(id => {

@@ -19,56 +19,36 @@ type saved = {
 };
 
 let transition = (~owner, ~children, saved, operation) => {
-  let targeted =
-    switch (operation) {
-    | ApplyPatch(patch) when String.equal(patch.graftAt, owner) =>
-      Some(patch)
-    | ApplyPatch(_)
-    | RefreshFull(_)
-    | NoPatch => None
-    };
-  let refreshed =
-    switch (operation) {
-    | ApplyPatch(patch) =>
-      !String.equal(patch.graftAt, owner)
-      && List.mem(owner, patch.targetLayouts)
-    | RefreshFull(_) => true
-    | NoPatch => false
-    };
-  let visible =
-    switch (targeted, operation) {
-    | (Some(patch), _) => patch.payload
-    | (None, RefreshFull(_)) => children
-    | (None, ApplyPatch(_))
-    | (None, NoPatch) => saved.child
-    };
-  let nextSaved =
-    switch (targeted) {
-    | Some(patch) when patch.serial > saved.serial =>
-      Some({
-        serial: patch.serial,
-        child: patch.payload,
-      })
-    | Some(_) => None
-    | None when refreshed =>
-      switch (operation) {
-      | ApplyPatch(patch) when patch.serial > saved.serial =>
-        Some({
-          ...saved,
-          serial: patch.serial,
-        })
-      | ApplyPatch(_) => None
-      | RefreshFull(refresh) when refresh.serial > saved.serial =>
-        Some({
-          serial: refresh.serial,
-          child: children,
-        })
-      | RefreshFull(_)
-      | NoPatch => None
-      }
-    | None => None
-    };
-  (visible, nextSaved);
+  switch (operation) {
+  | NoPatch => (saved.child, None)
+  | RefreshFull(refresh) => (
+      children,
+      refresh.serial > saved.serial
+        ? Some({
+            serial: refresh.serial,
+            child: children,
+          })
+        : None,
+    )
+  | ApplyPatch(patch) when String.equal(patch.graftAt, owner) => (
+      patch.payload,
+      patch.serial > saved.serial
+        ? Some({
+            serial: patch.serial,
+            child: patch.payload,
+          })
+        : None,
+    )
+  | ApplyPatch(patch) => (
+      saved.child,
+      patch.serial > saved.serial && List.mem(owner, patch.targetLayouts)
+        ? Some({
+            ...saved,
+            serial: patch.serial,
+          })
+        : None,
+    )
+  };
 };
 
 [@react.client.component]
