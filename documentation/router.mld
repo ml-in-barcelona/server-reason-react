@@ -34,17 +34,17 @@ Router.make(
 ]}
 
 [Router.route] declares a leaf page with a variant name. [Router.group] nests
-routes under a shared path prefix and layout. Attachments are available at the
-root, on groups, and on routes.
+routes under a shared path prefix and layout. Both accept attachments, as does
+the root.
 
 Attachments take modules, and the generator resolves the convention inside
 each module:
 
 - [~page], [~layout], [~loading], [~notFound], [~invalidSearch] resolve
   [Module.make], a component.
-- [~loader] resolves [Module.load]. The loader result is passed to the scope's
-  components under the module name ([Pages.NoteLoader] becomes [~noteLoader]),
-  or under the [~loaderAs_] name when given.
+- [~loader] resolves [Module.load]. The scope's components receive the loader
+  result under the module name ([Pages.NoteLoader] becomes [~noteLoader]), or
+  under the [~loaderAs_] name when given.
 - [~error] at the root resolves an error policy: a module with a type [t] (the
   application error), [status: t => Router.Status.t], and a [make] component.
   On groups and routes, [~error] is a boundary component.
@@ -52,8 +52,8 @@ each module:
 
 {2 Path parameters}
 
-A path segment written [:name<Module.t>] is decoded with [Module.parse] and
-printed with [Module.to_string]:
+The router decodes a segment written [:name<Module.t>] with [Module.parse]
+and prints it with [Module.to_string]:
 
 {[
 /* NoteId.re */
@@ -66,14 +66,13 @@ let parse = value =>
 let to_string = string_of_int;
 ]}
 
-Codecs receive percent-decoded segments; the router owns URL encoding. [int]
+Codecs receive percent-decoded segments. The router owns URL encoding. [int]
 and [string] are built in. A failed parse renders the nearest error boundary
 with [InvalidPathParameter].
 
 {2 Search parameters}
 
-Search parameters are declared per scope with a typed record and compose from
-parent to child:
+Any scope declares search parameters as a typed record:
 
 {[
 ~search={
@@ -84,13 +83,13 @@ parent to child:
 }
 ]}
 
-Values equal to the declared default are omitted from canonical URLs. A
-required root search parameter together with a root [~error] policy also
-requires [~invalidSearch].
+Child scopes see their ancestors' parameters as well as their own. Canonical
+URLs omit values that equal their declared default. A required root search
+parameter together with a root [~error] policy also requires [~invalidSearch].
 
 {1 Generated application API}
 
-Each route is a component and also owns its typed helpers:
+Each route is a component and owns its typed helpers:
 
 {[
 <Router.Note id> children </Router.Note>
@@ -126,10 +125,10 @@ let isPending =
   };
 ]}
 
-Navigating to a destination is a {e content} navigation: the client requests a
-Flight model over the network and the server answers with a full model or a
-partial patch that reuses unchanged layouts. [~revalidate=true] forces a full
-response. [~history] selects [Push], [Replace], or [Pop].
+Navigating to a destination is a {e content} navigation. The client requests a
+Flight model and the server answers with a full model, or with a partial patch
+that reuses unchanged layouts. [~revalidate=true] forces a full response.
+[~history] selects [Push], [Replace], or [Pop].
 
 {2 Search updates}
 
@@ -142,12 +141,12 @@ let ({Router.text: text}, updateSearch) = Router.useSearch();
 let onChange = value => updateSearch(~text=Some(value), ()) |> ignore;
 ]}
 
-Search updates are {e shallow}: they update the URL and client state
+Search updates are {e shallow}. They update the URL and client state
 synchronously and never contact the server. When server-rendered content
 depends on a search value, navigate to a destination carrying the new value
 instead of calling [updateSearch].
 
-[Router.useUpdateHash] commits hash-only changes, also without a request.
+[Router.useUpdateHash] commits hash-only changes without a request.
 
 {1 Loaders}
 
@@ -170,8 +169,8 @@ module NoteLoader = {
 ]}
 
 Loaders execute parent-first and complete before response headers or RSC
-rendering begin. [Data] flows into the scope's components ([~note] in the
-manifest above), [NotFound] and [Error] render the nearest boundary, and
+rendering begin. The scope's components receive [Data] ([~note] in the
+manifest above). [NotFound] and [Error] render the nearest boundary, and
 [Redirect(destination)] escapes the whole branch.
 
 A loader marks its scope and all descendants as non-reusable for navigation
@@ -198,8 +197,8 @@ module AppError = {
 [Router.Error.t] distinguishes [NotFound], [Application], invalid path or
 search parameters, and [Internal] failures carrying only a diagnostic id.
 Boundary components receive the scope inputs plus [~error]. The nearest
-[~notFound] handles missing routes and loader [NotFound] results, falling back
-to the nearest [~error].
+[~notFound] handles missing routes and loader [NotFound] results. Without one,
+the nearest [~error] renders instead.
 
 {1 Metadata and headers}
 
