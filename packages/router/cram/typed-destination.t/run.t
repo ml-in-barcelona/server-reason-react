@@ -31,6 +31,10 @@
   Fatal error: exception router: ~page takes a component module, for example ~page=Pages.Note
   [2]
 
+  $ server-reason-react.router-gen --mode handles --source loader-attachment.ml < loader-attachment.ml
+  Fatal error: exception router: ~loader takes a loader module, for example ~loader=Pages.NoteLoader
+  [2]
+
   $ server-reason-react.router-gen --mode handles --source duplicate-manifest.ml < duplicate-manifest.ml
   Fatal error: exception router: expected exactly one Router.make declaration
   [2]

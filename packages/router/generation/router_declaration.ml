@@ -251,10 +251,15 @@ let join_path parent child =
   | Ok parent, Ok child -> RouterPattern.append parent child |> RouterPattern.toString
   | _ -> invalid_arg "validated router paths failed to compose"
 
-let loader_label expression =
-  match longident_of_expression expression |> longident_parts |> List.rev with
-  | "load" :: module_name :: _ -> String.uncapitalize_ascii module_name
-  | _ -> error ~loc:expression.pexp_loc "~loader requires ~loaderAs_ when its module name cannot be inferred"
+let loader_attachment expression =
+  match expression.pexp_desc with
+  | Pexp_construct ({ txt; loc }, None) -> (
+      match longident_parts txt |> List.rev with
+      | module_name :: _ ->
+          let run = { expression with pexp_desc = Pexp_ident { txt = Longident.Ldot (txt, "load"); loc } } in
+          (run, String.uncapitalize_ascii module_name)
+      | [] -> error ~loc:expression.pexp_loc "~loader takes a loader module, for example ~loader=Pages.NoteLoader")
+  | _ -> error ~loc:expression.pexp_loc "~loader takes a loader module, for example ~loader=Pages.NoteLoader"
 
 let loader_alias expression =
   match expression.pexp_desc with
@@ -268,13 +273,14 @@ let attachments arguments =
         match argument (Labelled "loaderAs_") arguments with
         | Some alias -> error ~loc:alias.pexp_loc "~loaderAs_ requires ~loader"
         | None -> None)
-    | Some run ->
+    | Some loader ->
+        let run, inferred_label = loader_attachment loader in
         let result_label =
           match argument (Labelled "loaderAs_") arguments with
           | Some alias -> loader_alias alias
-          | None -> loader_label run
+          | None -> inferred_label
         in
-        Some { run; result_label; loc = run.pexp_loc }
+        Some { run; result_label; loc = loader.pexp_loc }
   in
   let component label = Option.map (component_attachment ~label) (argument (Labelled label) arguments) in
   {
