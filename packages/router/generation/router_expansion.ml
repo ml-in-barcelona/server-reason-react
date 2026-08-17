@@ -2,6 +2,7 @@ open Ppxlib
 module B = Ast_builder.Default
 
 let unit_expression ~loc = B.pexp_construct ~loc { txt = Longident.Lident "()"; loc } None
+let optional_argument label = function None -> [] | Some expression -> [ (Labelled label, expression) ]
 let unit_type ~loc = B.ptyp_constr ~loc { txt = Longident.Lident "unit"; loc } []
 let result_type ~loc name = B.ptyp_constr ~loc { txt = Longident.parse name; loc } []
 let option_type ~loc typ = B.ptyp_constr ~loc { txt = Longident.Lident "option"; loc } [ typ ]
@@ -702,12 +703,14 @@ let scope_plan (scope : Router_declaration.scope) parameters search loaders ~reu
                   ]
           in
           [ (Labelled "layout", B.pexp_fun ~loc Nolabel None (B.pvar ~loc "children") body) ])
-    @ (match scope.attachments.metadata with
-      | None -> []
-      | Some metadata -> [ (Labelled "metadata", B.pexp_fun ~loc Nolabel None (B.punit ~loc) (callback metadata)) ])
-    @ (match scope.attachments.headers with
-      | None -> []
-      | Some headers -> [ (Labelled "headers", B.pexp_fun ~loc Nolabel None (B.punit ~loc) (callback headers)) ])
+    @ optional_argument "metadata"
+        (Option.map
+           (fun metadata -> B.pexp_fun ~loc Nolabel None (B.punit ~loc) (callback metadata))
+           scope.attachments.metadata)
+    @ optional_argument "headers"
+        (Option.map
+           (fun headers -> B.pexp_fun ~loc Nolabel None (B.punit ~loc) (callback headers))
+           scope.attachments.headers)
     @ [ (Nolabel, unit_expression ~loc) ]
   in
   B.pexp_apply ~loc (B.evar ~loc "RouterServer.Plan.Scope.make") arguments
@@ -715,8 +718,8 @@ let scope_plan (scope : Router_declaration.scope) parameters search loaders ~reu
 let failure_plan ~loc scopes error not_found error_boundary =
   let arguments =
     [ (Labelled "scopes", B.elist ~loc scopes); (Labelled "error", error) ]
-    @ (match not_found with None -> [] | Some boundary -> [ (Labelled "notFound", boundary) ])
-    @ (match error_boundary with None -> [] | Some boundary -> [ (Labelled "errorBoundary", boundary) ])
+    @ optional_argument "notFound" not_found
+    @ optional_argument "errorBoundary" error_boundary
     @ [ (Nolabel, unit_expression ~loc) ]
   in
   B.pexp_apply ~loc (B.evar ~loc "RouterServer.Plan.failure") arguments
