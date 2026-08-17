@@ -46,7 +46,11 @@ Increase server-side rendering and React Server Components payload-streaming thr
 
 ## What's Been Tried
 
-- Setup only. The existing `benchmark/streaming` executable measures complete-string render methods, not stream production.
+- Baseline: 6,749.12 operations/second geometric mean.
+- Direct HTML serialization into the subscriber buffer was neutral in a paired rerun and was discarded.
+- Allocation-light lowercase hexadecimal formatting for Flight references and row prefixes was kept at a confirmed 6,863.69 operations/second (+1.70%). RSC HTML async streaming improved 7.86% with no confirmed workload regression over 3%.
+- Recursive JSON list and association traversal reached 6,883.01 operations/second, but it was equivalent within noise, overlapped the winner, and remains a runner-up.
+- The 120-minute time budget expired after batch 1. The 10x target was not reached.
 
 ## Initial Evidence
 
