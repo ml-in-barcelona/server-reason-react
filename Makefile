@@ -133,8 +133,9 @@ build-bench: ## Build benchmark executables
 	$(DUNE) build --profile=release benchmark/bench.exe
 
 .PHONY: bench
-bench: build-bench ## Run benchmarks
+bench: build-bench build-bench-router ## Run benchmarks
 	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory
+	@$(DUNE) exec benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory
 
 .PHONY: bench-json
 bench-json: build-bench build-bench-router ## Run benchmarks with JSON output for CI
