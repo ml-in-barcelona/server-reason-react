@@ -26,6 +26,20 @@
  (preprocess
   (pps server-reason-react.ppx)))
 
+(executable
+ (name streaming_payload_bench)
+ (modules streaming_payload_bench)
+ (libraries
+  unix
+  lwt
+  lwt.unix
+  benchmark_scenarios
+  server-reason-react.js
+  server-reason-react.react
+  server-reason-react.reactDom)
+ (preprocess
+  (pps server-reason-react.ppx lwt_ppx)))
+
 (rule
  (alias bench)
  (action
