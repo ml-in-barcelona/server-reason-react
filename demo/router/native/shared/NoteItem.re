@@ -2,7 +2,7 @@
 module NoteView = {
   [@react.component]
   let make = (~note: Note.t) => {
-    let id = NoteId.ofInt(note.id);
+    let id = NoteId.make(note.id);
 
     <div className="h-full">
       <div
@@ -32,7 +32,7 @@ module NoteView = {
 let make = (~note: Note.t, ~isEditing: bool) =>
   isEditing
     ? <NoteEditor
-        id={Some(NoteId.ofInt(note.id))}
+        id={Some(NoteId.make(note.id))}
         initialTitle={note.title}
         initialBody={note.content}
       />

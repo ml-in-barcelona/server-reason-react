@@ -8,5 +8,4 @@ let parse = value =>
   };
 
 let to_string = Int.to_string;
-let toInt = value => value;
-let ofInt = value => value;
+let make = value => value;

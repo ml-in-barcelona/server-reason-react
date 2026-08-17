@@ -1,7 +1,5 @@
 [@react.client.component]
 let make = (~children: React.element) => {
-  let ({ Router.searchText }, _) = Router.useSearch();
-  <Router.NewNote ?searchText className=Theme.button>
-    children
-  </Router.NewNote>;
+  let ({ Router.text }, _) = Router.useSearch();
+  <Router.NewNote ?text className=Theme.button> children </Router.NewNote>;
 };

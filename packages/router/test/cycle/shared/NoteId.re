@@ -7,4 +7,3 @@ let parse = value =>
   };
 let to_string = Int.to_string;
 let make = value => value;
-let toInt = value => value;

@@ -2,7 +2,7 @@
 let make =
     (~id: option(NoteId.t), ~initialTitle: string, ~initialBody: string) => {
   let (navigate, navigation) = Router.useNavigation();
-  let ({ Router.searchText }, _) = Router.useSearch();
+  let ({ Router.text }, _) = Router.useSearch();
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
   let isNavigating =
@@ -40,11 +40,7 @@ let make =
               let action =
                 switch (id) {
                 | Some(id) =>
-                  ServerFunctions.Notes.edit.call(
-                    ~id=NoteId.toInt(id),
-                    ~title,
-                    ~content=body,
-                  )
+                  ServerFunctions.Notes.edit.call(~id, ~title, ~content=body)
                 | None =>
                   ServerFunctions.Notes.create.call(~title, ~content=body)
                 };
@@ -54,8 +50,8 @@ let make =
                    navigate(
                      ~revalidate=true,
                      Router.Note.destination(
-                       ~id=NoteId.ofInt(result.id),
-                       ~searchText?,
+                       ~id=NoteId.make(result.id),
+                       ~text?,
                        (),
                      ),
                    )

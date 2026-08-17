@@ -1,6 +1,6 @@
 Router.make ~basePath:"/demo/router" ~layout:Pages.AppLayout.make ~loading:Pages.GlobalLoading.make
   ~notFound:Pages.NotFound.make ~error:Pages.AppError
-  ~search:{ searchText = Router.Search.optional string }
+  ~search:{ text = Router.Search.optional string }
   [
     Router.route Home ~page:Pages.App.make ~path:"/";
     Router.route NewNote ~page:Pages.NewNote.make ~path:"/new" ~loading:Pages.NewNoteLoading.make;

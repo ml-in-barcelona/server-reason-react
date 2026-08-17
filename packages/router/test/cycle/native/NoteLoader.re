@@ -17,5 +17,5 @@ let load =
     raise(Failure("private loader failure"));
   };
   WorkspaceLoader.record("note:" ++ workspace);
-  Lwt.return(RouterRuntime.Loader.Data(NoteId.toInt(id)));
+  Lwt.return(RouterRuntime.Loader.Data(id));
 };

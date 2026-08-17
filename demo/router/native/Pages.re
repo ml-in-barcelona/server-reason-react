@@ -1,6 +1,6 @@
 module App = {
   [@react.component]
-  let make = (~searchText as _) =>
+  let make = (~text as _) =>
     <div className="flex flex-col h-full items-center justify-center gap-2">
       <Text size=XXLarge> "🥺" </Text>
       <Text> "Click a note on the left to view something!" </Text>
@@ -9,7 +9,7 @@ module App = {
 
 module AppLayout = {
   [@react.component]
-  let make = (~children, ~searchText as _) =>
+  let make = (~children, ~text as _) =>
     <DemoLayout background=Theme.Color.Gray2 mode=DemoLayout.FullScreen>
       <div className="flex flex-row gap-8 h-full">
         <section
@@ -72,7 +72,7 @@ module Document = {
 
 module GlobalLoading = {
   [@react.component]
-  let make = (~searchText as _) =>
+  let make = (~text as _) =>
     <div className="flex items-center justify-center h-full">
       <Text> "Loading..." </Text>
     </div>;
@@ -84,7 +84,7 @@ module AppError = {
   let status = _ => Router.Status.InternalServerError;
 
   [@react.component]
-  let make = (~searchText as _, ~error as _) =>
+  let make = (~text as _, ~error as _) =>
     <div className="flex flex-col h-full items-center justify-center gap-2">
       <Text size=XXLarge> "⚠️" </Text>
       <Text> "The requested note could not be loaded." </Text>
@@ -93,7 +93,7 @@ module AppError = {
 
 module NotFound = {
   [@react.component]
-  let make = (~searchText as _, ~error as _) =>
+  let make = (~text as _, ~error as _) =>
     <div className="flex flex-col h-full items-center justify-center gap-2">
       <Text size=XXLarge> "😵‍💫" </Text>
       <Text> "No route matches this location." </Text>
@@ -102,24 +102,24 @@ module NotFound = {
 
 module NewNoteLoading = {
   [@react.component]
-  let make = (~searchText as _) => <NoteSkeleton isEditing=true />;
+  let make = (~text as _) => <NoteSkeleton isEditing=true />;
 };
 
 module NoteLoading = {
   [@react.component]
-  let make = (~id as _, ~searchText as _, ~note as _) =>
+  let make = (~id as _, ~text as _, ~note as _) =>
     <NoteSkeleton isEditing=false />;
 };
 
 module EditNoteLoading = {
   [@react.component]
-  let make = (~id as _, ~searchText as _, ~note as _) =>
+  let make = (~id as _, ~text as _, ~note as _) =>
     <NoteSkeleton isEditing=true />;
 };
 
 module NoteLoader = {
-  let load = (~id, ~searchText as _, ()) =>
-    DB.fetchNoteOption(NoteId.toInt(id))
+  let load = (~id, ~text as _, ()) =>
+    DB.fetchNoteOption(id)
     |> Lwt.map(result =>
          switch (result) {
          | Ok(Some(note)) => Router.Loader.Data(note)
@@ -131,23 +131,23 @@ module NoteLoader = {
 
 module NoteLayout = {
   [@react.component]
-  let make = (~id as _, ~searchText as _, ~note as _, ~children) => children;
+  let make = (~id as _, ~text as _, ~note as _, ~children) => children;
 };
 
 module NewNote = {
   [@react.component]
-  let make = (~searchText as _) =>
+  let make = (~text as _) =>
     <NoteEditor id=None initialTitle="Untitled" initialBody="" />;
 };
 
 module Note = {
   [@react.component]
-  let make = (~id as _, ~searchText as _, ~note) =>
+  let make = (~id as _, ~text as _, ~note) =>
     <NoteItem note isEditing=false />;
 };
 
 module EditNote = {
   [@react.component]
-  let make = (~id as _, ~searchText as _, ~note) =>
+  let make = (~id as _, ~text as _, ~note) =>
     <NoteItem note isEditing=true />;
 };

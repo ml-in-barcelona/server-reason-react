@@ -1,8 +1,8 @@
 [@react.client.component]
 let make = () => {
-  let ({ Router.searchText }, updateSearch) = Router.useSearch();
+  let ({ Router.text: initialText }, updateSearch) = Router.useSearch();
   let (text, setText) =
-    RR.useStateValue(searchText |> Option.value(~default=""));
+    RR.useStateValue(initialText |> Option.value(~default=""));
   let (isSearching, startSearching) = React.useTransition();
 
   let onSubmit = event => {
@@ -12,10 +12,10 @@ let make = () => {
   let%browser_only onChange = event => {
     let target = React.Event.Form.target(event);
     let nextText = target##value;
-    let searchText = nextText == "" ? None : Some(nextText);
+    let next = nextText == "" ? None : Some(nextText);
     setText(nextText);
     startSearching(() => {
-      let _ = updateSearch(~searchText, ());
+      let _ = updateSearch(~text=next, ());
       ();
     });
   };

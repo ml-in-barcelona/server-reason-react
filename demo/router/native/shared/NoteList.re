@@ -4,9 +4,9 @@ let readNotesCached = React.cache(sleep => DB.readNotes(~sleep, ()));
 module NoteList = {
   [@react.client.component]
   let make = (~notes: list(SidebarNote.notePreview)) => {
-    let ({ Router.searchText }, _) = Router.useSearch();
-    let searchText = searchText |> Option.value(~default="");
-    let needle = String.lowercase_ascii(searchText);
+    let ({ Router.text }, _) = Router.useSearch();
+    let text = text |> Option.value(~default="");
+    let needle = String.lowercase_ascii(text);
 
     <ul className="mt-8">
       {Array.of_list(
@@ -61,7 +61,7 @@ let make = () => {
              };
 
            {
-             SidebarNote.id: NoteId.ofInt(note.id),
+             SidebarNote.id: NoteId.make(note.id),
              title: note.title,
              content: summary,
              updated_at: lastUpdatedAt,
