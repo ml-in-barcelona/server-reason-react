@@ -8,6 +8,7 @@ val render_html :
   ?bootstrapScriptContent:string ->
   ?bootstrapScripts:string list ->
   ?bootstrapModules:string list ->
+  ?nonce:string ->
   ?identifier_prefix:string ->
   React.element ->
   (string * ((string -> unit Lwt.t) -> unit Lwt.t)) Lwt.t

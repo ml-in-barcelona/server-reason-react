@@ -294,6 +294,7 @@ module Fiber = struct
   type t = {
     context : Html.element Stream.t;
     env : env;
+    nonce : string option;
     (* Whether to emit debug-info rows (name/owner/stack) for components into the inlined RSC payload *)
     debug : bool;
     filter_stack_frame : string -> string -> bool;
@@ -941,8 +942,12 @@ module Model = struct
     run_stream ~env ~debug ?filter_stack_frame ?subscribe response
 end
 
-let rsc_start_script =
-  Html.node "script" []
+let script ?nonce attributes children =
+  let attributes = match nonce with None -> attributes | Some nonce -> Html.attribute "nonce" nonce :: attributes in
+  Html.node "script" attributes children
+
+let rsc_start_script ?nonce () =
+  script ?nonce []
     [
       Html.raw
         {|
@@ -959,7 +964,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
     ]
 
 let rc_function_definition = Fizz_instructions.complete_boundary
-let rc_function_script = Html.node "script" [] [ Html.raw rc_function_definition ]
+let rc_function_script ?nonce () = script ?nonce [] [ Html.raw rc_function_definition ]
 let rx_function_definition = Fizz_instructions.client_render_boundary
 
 let timeout_error_message =
@@ -970,27 +975,31 @@ let timeout_error_message =
    emits only the digest in prod). *)
 let timeout_error = { React.message = "The render timed out."; stack = `Null; env = "Server"; digest = "" }
 
-let client_render_boundary_to_chunk ~env ~message ~include_definition index =
+let client_render_boundary_to_chunk ?nonce ~env ~message ~include_definition index =
   let rx_call =
     (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
     match env with
     | `Prod -> Printf.sprintf {|$RX("B:%x","")|} index
     | `Dev -> Printf.sprintf {|$RX("B:%x","","%s")|} index (Html.escape_for_inline_script message)
   in
-  Html.node "script" [] [ Html.raw (if include_definition then rx_function_definition ^ ";" ^ rx_call else rx_call) ]
+  script ?nonce [] [ Html.raw (if include_definition then rx_function_definition ^ ";" ^ rx_call else rx_call) ]
 
 let client_render_error_message exn =
   "Switched to client rendering because the server rendering errored:\n\n" ^ Printexc.to_string exn
 
-let payload_to_html_chunk payload =
-  Html.raw
-    (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>" (Html.escape_attribute_value payload))
+let payload_to_html_chunk ?nonce payload =
+  match nonce with
+  | None ->
+      Html.raw
+        (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>"
+           (Html.escape_attribute_value payload))
+  | Some nonce -> script ~nonce [ Html.attribute "data-payload" payload ] [ Html.raw "window.srr_stream.push()" ]
 
-let model_to_chunk model index = payload_to_html_chunk (Model.to_chunk model index)
-let hint_row_to_html_chunk code payload = payload_to_html_chunk (Model.hint_to_chunk code payload)
+let model_to_chunk ?nonce model index = payload_to_html_chunk ?nonce (Model.to_chunk model index)
+let hint_row_to_html_chunk ?nonce code payload = payload_to_html_chunk ?nonce (Model.hint_to_chunk code payload)
 
-let boundary_to_chunk html index =
-  let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
+let boundary_to_chunk ?nonce html index =
+  let rc_replacement b s = script ?nonce [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
   Html.list ~separator:"\n"
     [
       Html.node "div" [ Html.present "hidden"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
@@ -1021,7 +1030,7 @@ let html_suspense_client_render ~env ~exn ~fallback =
   in
   Html.list [ Html.raw "<!--$!-->"; template; fallback; Html.raw "<!--/$-->" ]
 
-let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
+let chunk_stream_end_script ?nonce () = script ?nonce [] [ Html.raw "window.srr_stream.close()" ]
 
 let map_children_with_tree_context_lwt f children =
   match children with
@@ -1073,12 +1082,12 @@ let apply_form_action_attrs html_props action_id =
   (html_props @ extra_attrs, hidden)
 
 (* Rewrite Action props into String props containing $F<index> RSC references. *)
-let rewrite_action_props ~context attributes =
+let rewrite_action_props ~context ~nonce attributes =
   List.map
     (fun prop ->
       match prop with
       | React.JSX.Action (_, key, f) ->
-          React.JSX.String (key, key, Model.outline_server_function ~context ~to_chunk:model_to_chunk f)
+          React.JSX.String (key, key, Model.outline_server_function ~context ~to_chunk:(model_to_chunk ?nonce) f)
       | _ -> prop)
     attributes
 
@@ -1105,11 +1114,11 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
           (fun (prop : React.JSX.prop) -> match prop with Action (_, _, f) -> Some f.id | _ -> None)
           attributes
       in
-      let attributes = rewrite_action_props ~context attributes in
+      let attributes = rewrite_action_props ~context ~nonce:fiber.nonce attributes in
       render_lower_case ~fiber ~key ~tag ~attributes ~children ~form_action_id
   | Lower_case_element { key; tag; attributes; children } ->
       let context = fiber.context in
-      let attributes = rewrite_action_props ~context attributes in
+      let attributes = rewrite_action_props ~context ~nonce:fiber.nonce attributes in
       render_lower_case ~fiber ~key ~tag ~attributes ~children ~form_action_id:None
   | Upper_case_component (_name, component) ->
       let saved_ctx = !React.current_tree_context in
@@ -1157,14 +1166,15 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
             let async =
               try%lwt
                 let%lwt html = promise in
-                Lwt.return (boundary_to_chunk html)
+                Lwt.return (boundary_to_chunk ?nonce:fiber.nonce html)
               with exn ->
                 (* The placeholder already flushed: stream a $RX client-render instruction so the client flips the
                    boundary to errored and retries rendering it there, mirroring react-dom's post-flush errored
                    boundary. take_rx_definition runs at push time, keeping the $RX definition once-per-stream. *)
                 Lwt.return (fun index ->
-                    client_render_boundary_to_chunk ~env:fiber.env ~message:(client_render_error_message exn)
-                      ~include_definition:(Stream.take_rx_definition context) index)
+                    client_render_boundary_to_chunk ?nonce:fiber.nonce ~env:fiber.env
+                      ~message:(client_render_error_message exn) ~include_definition:(Stream.take_rx_definition context)
+                      index)
             in
             let index = Stream.push_boundary_async ~context (fun () -> async) in
             Lwt.return (html_suspense_placeholder ~fallback:fallback_html index)
@@ -1273,10 +1283,13 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
   | Client_component { key; import_module; import_name; props; client } ->
       let context = fiber.context in
       let env = fiber.env in
-      let props = Model.models_to_payload ~context ~to_chunk:model_to_chunk ~env props in
+      let props = Model.models_to_payload ~context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) ~env props in
       let%lwt html = client_to_html ~fiber client in
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
-      let index = Stream.push_client_ref ~context ~import_module ~import_name (model_to_chunk (Component_ref ref)) in
+      let index =
+        Stream.push_client_ref ~context ~import_module ~import_name
+          (model_to_chunk ?nonce:fiber.nonce (Component_ref ref))
+      in
       (* Client references are lazy references ("$L<id>"), see Model.element_to_payload. *)
       let model = Model.node ~env ~tag:(Model.lazy_value index) ~key ~props [] in
       Lwt.return (html, model)
@@ -1290,7 +1303,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
             Lwt.return (html, Some model)
       in
       (* The outlined suspense symbol row must be pushed before any row that references it (see Model.suspense_tag). *)
-      let tag = Model.suspense_tag ~context ~to_chunk:model_to_chunk in
+      let tag = Model.suspense_tag ~context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) in
       try%lwt
         let promise = render_element_to_html ~fiber ~debug_info children in
         match Lwt.state promise with
@@ -1298,11 +1311,17 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
             let promise =
               try%lwt
                 let%lwt html, model = promise in
-                let to_chunk index = Html.list [ boundary_to_chunk html index; model_to_chunk (Value model) index ] in
+                let to_chunk index =
+                  Html.list
+                    [
+                      boundary_to_chunk ?nonce:fiber.nonce html index;
+                      model_to_chunk ?nonce:fiber.nonce (Value model) index;
+                    ]
+                in
                 Lwt.return to_chunk
               with exn ->
                 let error = Model.exn_to_error exn in
-                let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
+                let to_chunk index = model_to_chunk ?nonce:fiber.nonce (Error (fiber.env, error)) index in
                 Lwt.return to_chunk
             in
             let index = Stream.push_boundary_async ~context (fun () -> promise) in
@@ -1317,7 +1336,11 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
         let context = fiber.context in
         let error = Model.exn_to_error exn in
         let to_chunk index =
-          Html.list [ model_to_chunk (Error (fiber.env, error)) index; boundary_to_chunk Html.null index ]
+          Html.list
+            [
+              model_to_chunk ?nonce:fiber.nonce (Error (fiber.env, error)) index;
+              boundary_to_chunk ?nonce:fiber.nonce Html.null index;
+            ]
         in
         let index = Stream.push ~context to_chunk in
         let html = html_suspense_placeholder ~fallback:html_fallback index in
@@ -1337,21 +1360,24 @@ and continue_with_debug_html ~(fiber : Fiber.t) ~name ~debug_info element =
     match debug_info with
     | None ->
         let debug_info_idx, _ =
-          Model.emit_debug_info_row ~filter_stack_frame ~context ~to_chunk:model_to_chunk ~name ~debug_info:None
+          Model.emit_debug_info_row ~filter_stack_frame ~context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) ~name
+            ~debug_info:None
         in
-        context.push (model_to_chunk (Debug_ref (`String (Model.ref_value debug_info_idx))) 0);
+        context.push (model_to_chunk ?nonce:fiber.nonce (Debug_ref (`String (Model.ref_value debug_info_idx))) 0);
         render_element_to_html ~fiber ~debug_info:(Some (debug_info_idx, None)) element
     | Some _ ->
         let model_index = context.index in
         context.index <- context.index + 1;
         let debug_info_idx, owner_idx =
-          Model.emit_debug_info_row ~filter_stack_frame ~context ~to_chunk:model_to_chunk ~name ~debug_info
+          Model.emit_debug_info_row ~filter_stack_frame ~context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) ~name
+            ~debug_info
         in
         let%lwt html, child_model =
           render_element_to_html ~fiber ~debug_info:(Some (debug_info_idx, owner_idx)) element
         in
-        context.push (model_to_chunk (Debug_ref (`String (Model.ref_value debug_info_idx))) model_index);
-        context.push (model_to_chunk (Value child_model) model_index);
+        context.push
+          (model_to_chunk ?nonce:fiber.nonce (Debug_ref (`String (Model.ref_value debug_info_idx))) model_index);
+        context.push (model_to_chunk ?nonce:fiber.nonce (Value child_model) model_index);
         Lwt.return (html, `String (Model.ref_value model_index))
 
 and render_lower_case_element ~fiber ~debug_info ~key ~tag ~attributes ~children () =
@@ -1414,7 +1440,7 @@ and handle_hoistable_element ~fiber ~debug_info ~key ~tag ~attributes ~children 
     on_push ~fiber html;
     Lwt.return (Html.null, create_model children_model))
 
-and process_attributes ~context ?form_action_id attributes =
+and process_attributes ~context ~nonce ?form_action_id attributes =
   let html_props =
     List.map
       (fun (prop : React.JSX.prop) ->
@@ -1429,14 +1455,15 @@ and process_attributes ~context ?form_action_id attributes =
     List.filter_map
       (fun (prop : React.JSX.prop) ->
         match prop with
-        | Action (_, key, f) -> Some (key, `String (Model.outline_server_function ~context ~to_chunk:model_to_chunk f))
+        | Action (_, key, f) ->
+            Some (key, `String (Model.outline_server_function ~context ~to_chunk:(model_to_chunk ?nonce) f))
         | _ -> Model.prop_to_json prop)
       attributes
   in
   (html_props, json_props)
 
 and render_regular_element ~fiber ~debug_info ~key ~tag ~attributes ~children ~inner_html () =
-  let html_props, json_props = process_attributes ~context:fiber.context attributes in
+  let html_props, json_props = process_attributes ~context:fiber.context ~nonce:fiber.nonce attributes in
   let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
   match (Html.is_self_closing_tag tag, inner_html) with
   | true, _ -> Lwt.return (Html.node tag html_props [], Model.node ~env:fiber.env ~tag ~key ~props:json_props ~owner [])
@@ -1457,7 +1484,7 @@ and render_form_element ~(fiber : Fiber.t) ~debug_info ~key ~tag ~attributes ~ch
       (fun (prop : React.JSX.prop) -> match prop with Action (_, _, f) -> Some f.id | _ -> None)
       attributes
   in
-  let html_props, json_props = process_attributes ~context ?form_action_id:action_id attributes in
+  let html_props, json_props = process_attributes ~context ~nonce:fiber.nonce ?form_action_id:action_id attributes in
   let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
   match (inner_html, action_id) with
   | Some inner_html, _ ->
@@ -1601,18 +1628,18 @@ let create_initial_resources ~bootstrap_scripts ~bootstrap_modules =
   | Some scripts -> List.map create_preload_link scripts
   | None -> ( match bootstrap_modules with Some modules -> List.map create_preload_link modules | None -> [])
 
-let create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules () =
+let create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ?nonce () =
   let bootstrap_script_content =
     match bootstrapScriptContent with
     | None -> Html.null
-    | Some content -> Html.node "script" [] [ Html.raw (Html.escape_entire_inline_script content) ]
+    | Some content -> script ?nonce [] [ Html.raw (Html.escape_entire_inline_script content) ]
   in
   let bootstrap_scripts_nodes =
     match bootstrapScripts with
     | None -> Html.null
     | Some scripts ->
         scripts
-        |> List.map (fun src -> Html.node "script" [ Html.attribute "src" src; Html.attribute "async" "" ] [])
+        |> List.map (fun src -> script ?nonce [ Html.attribute "src" src; Html.attribute "async" "" ] [])
         |> Html.list
   in
   let bootstrap_modules_nodes =
@@ -1621,14 +1648,12 @@ let create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScr
     | Some modules ->
         modules
         |> List.map (fun src ->
-            Html.node "script"
-              [ Html.attribute "src" src; Html.attribute "async" ""; Html.attribute "type" "module" ]
-              [])
+            script ?nonce [ Html.attribute "src" src; Html.attribute "async" ""; Html.attribute "type" "module" ] [])
         |> Html.list
   in
   [
-    rc_function_script;
-    rsc_start_script;
+    rc_function_script ?nonce ();
+    rsc_start_script ?nonce ();
     root_data_payload;
     bootstrap_script_content;
     bootstrap_scripts_nodes;
@@ -1637,7 +1662,7 @@ let create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScr
 
 let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame)
     ?timeout ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent ?bootstrapScripts
-    ?bootstrapModules ?identifier_prefix element =
+    ?bootstrapModules ?nonce ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
   React.Cache.with_request_cache_async (fun () ->
       let progressive_chunk_size = max 1 progressive_chunk_size in
@@ -1653,7 +1678,7 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
          *)
       let stream, context = Stream.make ~initial_index:1 ~pending:1 () in
       let hint_sink { Flight_hints.dedup_key; code; payload } =
-        Stream.push_hint ~context ~dedup_key (hint_row_to_html_chunk code payload)
+        Stream.push_hint ~context ~dedup_key (hint_row_to_html_chunk ?nonce code payload)
       in
       (* Installed before boundary tasks are created so their Lwt resumptions carry the sink: hints from
          late-resolving boundaries still land. *)
@@ -1662,6 +1687,7 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
         {
           context;
           env;
+          nonce;
           debug;
           filter_stack_frame;
           head_element = None;
@@ -1677,7 +1703,7 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
       in
       let%lwt root_html, root_model = render_element_to_html ~fiber ~debug_info:None element in
       (* To return the model value immediately, we don't push it to the stream but return it as a payload script together with the user_scripts *)
-      let root_data_payload = model_to_chunk (Value root_model) 0 in
+      let root_data_payload = model_to_chunk ?nonce (Value root_model) 0 in
       (* Rows deferred while serializing the root model (error rows, resolved
          promise rows) stream right after the initial document, which embeds
          the root payload itself. *)
@@ -1687,7 +1713,7 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
       (* In case of not having any task pending, we can close the stream *)
       if context.pending = 0 then Stream.close context;
       let user_scripts =
-        create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ()
+        create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ?nonce ()
       in
       let html = reconstruct_document ~fiber ~root_html ~user_scripts ~skip_root:skipRoot in
       fiber.shell_flushed <- true;
@@ -1707,7 +1733,7 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
           if !finished then Lwt.return ()
           else begin
             finished := true;
-            Buffer.add_string buf (Html.to_string chunk_stream_end_script);
+            Buffer.add_string buf (Html.to_string (chunk_stream_end_script ?nonce ()));
             flush ()
           end
         in
@@ -1737,13 +1763,13 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
                    (* Reject every still-pending row of the RSC payload (lazy elements, promises passed as props and the content of pending Suspense boundaries) with an error row so the client-side $L/$@ references settle instead of hanging forever. *)
                    List.iter
                      (fun index ->
-                       Buffer.add_string buf (Html.to_string (model_to_chunk (Error (env, timeout_error)) index)))
+                       Buffer.add_string buf (Html.to_string (model_to_chunk ?nonce (Error (env, timeout_error)) index)))
                      pending_rows;
                    List.iter
                      (fun index ->
                        Buffer.add_string buf
                          (Html.to_string
-                            (client_render_boundary_to_chunk ~env ~message:timeout_error_message
+                            (client_render_boundary_to_chunk ?nonce ~env ~message:timeout_error_message
                                ~include_definition:(Stream.take_rx_definition context) index)))
                      pending_boundaries;
                    context.pending <- 0;

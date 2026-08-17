@@ -1404,15 +1404,35 @@ let contains_substring str sub =
 
 let count_occurrences hay needle = List.length (Str.split_delim (Str.regexp_string needle) hay) - 1
 
-let collect_chunks app =
+let collect_chunks ?nonce ?bootstrapScriptContent app =
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 app in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ?nonce ?bootstrapScriptContent app in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
         Lwt.return ())
   in
   Lwt.return (html, !subscribed_elements)
+
+let nonce_is_added_to_generated_scripts () =
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "Delayed",
+             fun () ->
+               let%lwt () = Lwt.pause () in
+               Lwt.return (React.createElement "span" [] [ React.string "done" ]) ))
+      ()
+  in
+  let%lwt html, chunks = collect_chunks ~nonce:"nonce<&" ~bootstrapScriptContent:"window.boot = true" app in
+  let all_content = html ^ String.concat "" chunks in
+  Alcotest.(check int)
+    "every generated script has the escaped nonce"
+    (count_occurrences all_content "<script")
+    (count_occurrences all_content "nonce=");
+  Alcotest.(check bool) "the nonce is escaped" false (contains_substring all_content "nonce<&");
+  Lwt.return ()
 
 let late_boundary_link_stylesheet_is_streamed () =
   let app =
@@ -1609,6 +1629,7 @@ let tests =
     test "progressive_chunk_size_zero_does_not_raise" progressive_chunk_size_zero_does_not_raise;
     test "progressive_chunk_size_negative_does_not_raise" progressive_chunk_size_negative_does_not_raise;
     test "skip_root_omits_html_content" skip_root_omits_html_content;
+    test "nonce_is_added_to_generated_scripts" nonce_is_added_to_generated_scripts;
     test "late_boundary_link_stylesheet_is_streamed" late_boundary_link_stylesheet_is_streamed;
     test "late_boundary_title_is_streamed" late_boundary_title_is_streamed;
     test "immediate_boundary_title_is_hoisted_to_head" immediate_boundary_title_is_hoisted_to_head;
