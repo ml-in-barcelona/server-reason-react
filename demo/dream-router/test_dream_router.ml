@@ -52,6 +52,7 @@ let rsc_request_uses_context_and_headers () =
   Alcotest.(check (option string))
     "content type" (Some "application/react.component") (Dream.header response "Content-Type");
   Alcotest.(check (option string)) "response kind" (Some "full") (Dream.header response "SRR-Response");
+  Alcotest.(check (option string)) "cache control" (Some "private, no-store") (Dream.header response "Cache-Control");
   Alcotest.(check (option string)) "context" (Some "context") !seen
 
 let document_request_uses_html () =

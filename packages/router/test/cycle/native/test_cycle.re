@@ -356,6 +356,13 @@ let testRscFullResponse = () => {
     );
     Alcotest.check(
       Alcotest.string,
+      "cache",
+      "private, no-store",
+      RouterRuntime.Headers.toList(response.resolved.headers)
+      |> List.assoc("Cache-Control"),
+    );
+    Alcotest.check(
+      Alcotest.string,
       "revision",
       "revision-1",
       response.revision,

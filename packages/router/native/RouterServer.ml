@@ -555,8 +555,11 @@ module ServerEngine = struct
       match kind with
       | Document -> []
       | Rsc ->
-          [ ("SRR-Response", response_kind); ("SRR-Registry", string_of_int protocol_version ^ "." ^ fingerprint) ]
-          @ if String.equal response_kind "patch" then [ ("Cache-Control", "private, no-store") ] else []
+          [
+            ("SRR-Response", response_kind);
+            ("SRR-Registry", string_of_int protocol_version ^ "." ^ fingerprint);
+            ("Cache-Control", "private, no-store");
+          ]
     in
     match RouterRuntime.Headers.make values with Ok headers -> headers | Error _ -> assert false
 
