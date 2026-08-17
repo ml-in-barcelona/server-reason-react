@@ -63,7 +63,7 @@ let rsc_request_uses_context_and_headers () =
   Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int);
   Alcotest.(check (option string))
     "content type" (Some "application/react.component") (Dream.header response "Content-Type");
-  Alcotest.(check (option string)) "response kind" (Some "full") (Dream.header response "SRR-Response");
+  Alcotest.(check (option string)) "response kind" (Some "full") (Dream.header response "Router-Response");
   Alcotest.(check (option string)) "cache control" (Some "private, no-store") (Dream.header response "Cache-Control");
   Alcotest.(check (option string)) "context" (Some "context") !seen
 
@@ -149,15 +149,15 @@ let registry_mismatch_returns_reload_required () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("SRR-Registry", "1.wrong");
-          ("SRR-Navigation-From", "/app");
-          ("SRR-Base-Revision", "base");
+          ("Router-Registry", "1.wrong");
+          ("Router-Navigation-From", "/app");
+          ("Router-Base-Revision", "base");
         ]
       ""
   in
   let response = Dream.test (handler seen) request in
   Alcotest.(check int) "status" 409 (Dream.status response |> Dream.status_to_int);
-  Alcotest.(check (option string)) "response kind" (Some "reload-required") (Dream.header response "SRR-Response");
+  Alcotest.(check (option string)) "response kind" (Some "reload-required") (Dream.header response "Router-Response");
   Alcotest.(check (option string)) "endpoint skipped" None !seen
 
 let patch_registry () : ((React.element, string) RouterServer.Plan.t, string) RouterServer.EndpointRegistry.t =
@@ -202,9 +202,9 @@ let patch_payload_is_smaller_than_full () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("SRR-Registry", "1." ^ fingerprint);
-          ("SRR-Navigation-From", "/app");
-          ("SRR-Base-Revision", "base");
+          ("Router-Registry", "1." ^ fingerprint);
+          ("Router-Navigation-From", "/app");
+          ("Router-Base-Revision", "base");
         ]
       ""
   in
@@ -213,7 +213,7 @@ let patch_payload_is_smaller_than_full () =
   let full_body = Lwt_main.run (Dream.body full_response) in
   let patch_body = Lwt_main.run (Dream.body patch_response) in
   Alcotest.(check bool) "smaller" true (String.length patch_body < String.length full_body);
-  Alcotest.(check (option string)) "patch" (Some "patch") (Dream.header patch_response "SRR-Response")
+  Alcotest.(check (option string)) "patch" (Some "patch") (Dream.header patch_response "Router-Response")
 
 let rsc_redirect_uses_navigation_envelope () =
   let endpoint =
@@ -235,15 +235,15 @@ let rsc_redirect_uses_navigation_envelope () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("SRR-Registry", "1." ^ fingerprint);
-          ("SRR-Navigation-From", "/app");
-          ("SRR-Base-Revision", "base");
+          ("Router-Registry", "1." ^ fingerprint);
+          ("Router-Navigation-From", "/app");
+          ("Router-Base-Revision", "base");
         ]
       ""
   in
   let response = Dream.test (patch_handler registry) request in
   Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int);
-  Alcotest.(check (option string)) "kind" (Some "redirect") (Dream.header response "SRR-Response");
+  Alcotest.(check (option string)) "kind" (Some "redirect") (Dream.header response "Router-Response");
   Alcotest.(check (option string))
     "content type" (Some "application/react.component") (Dream.header response "Content-Type");
   Alcotest.(check (option string)) "cache control" (Some "private, no-store") (Dream.header response "Cache-Control")

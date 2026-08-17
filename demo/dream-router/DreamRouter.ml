@@ -309,9 +309,9 @@ let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(boot
           | RouterServer.ServerEngine.Rsc ->
               Some
                 {
-                  RouterServer.ServerEngine.from = Dream.header request "SRR-Navigation-From";
-                  registry = Dream.header request "SRR-Registry";
-                  base_revision = Dream.header request "SRR-Base-Revision";
+                  RouterServer.ServerEngine.from = Dream.header request "Router-Navigation-From";
+                  registry = Dream.header request "Router-Registry";
+                  base_revision = Dream.header request "Router-Base-Revision";
                 }
         in
         let outcome =
@@ -329,14 +329,14 @@ let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(boot
                         ("Content-Type", "application/react.component");
                         ("Cache-Control", "private, no-store");
                         ("Vary", "Accept");
-                        ("SRR-Response", "redirect");
+                        ("Router-Response", "redirect");
                       ]
                     ~location:(Dream.target request)
                     (redirect_model ~protocolVersion ~registryFingerprint destination))
           | RouterServer.ServerEngine.ReloadRequired ->
               Dream.respond ~code:409
                 ~headers:
-                  [ ("Vary", "Accept"); ("SRR-Response", "reload-required"); ("Cache-Control", "private, no-store") ]
+                  [ ("Vary", "Accept"); ("Router-Response", "reload-required"); ("Cache-Control", "private, no-store") ]
                 ""
           | RouterServer.ServerEngine.Patch response ->
               let code = response.resolved.status |> RouterRuntime.Status.toInt in

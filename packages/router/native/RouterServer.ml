@@ -707,8 +707,8 @@ module ServerEngine = struct
       | Document -> []
       | Rsc ->
           [
-            ("SRR-Response", response_kind);
-            ("SRR-Registry", string_of_int protocol_version ^ "." ^ fingerprint);
+            ("Router-Response", response_kind);
+            ("Router-Registry", string_of_int protocol_version ^ "." ^ fingerprint);
             ("Cache-Control", "private, no-store");
           ]
     in

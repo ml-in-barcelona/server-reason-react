@@ -352,7 +352,7 @@ let testRscFullResponse = () => {
       "response kind",
       "full",
       RouterRuntime.Headers.toList(response.resolved.headers)
-      |> List.assoc("SRR-Response"),
+      |> List.assoc("Router-Response"),
     );
     Alcotest.check(
       Alcotest.string,

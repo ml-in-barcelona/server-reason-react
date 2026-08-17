@@ -45,16 +45,16 @@ let fetch =
   let baseHeaders = [|
     ("Accept", "application/react.component"),
     (
-      "SRR-Registry",
+      "Router-Registry",
       string_of_int(protocolVersion) ++ "." ++ registryFingerprint,
     ),
-    ("SRR-Base-Revision", baseRevision),
+    ("Router-Base-Revision", baseRevision),
   |];
   let headers =
     Fetch.HeadersInit.makeWithArray(
       switch (from) {
       | Some(from) =>
-        Array.append(baseHeaders, [|("SRR-Navigation-From", from)|])
+        Array.append(baseHeaders, [|("Router-Navigation-From", from)|])
       | None => baseHeaders
       },
     );
@@ -71,7 +71,7 @@ let fetch =
     |> Js.Promise.then_(httpResponse => {
          let responseHeaders = Fetch.Response.headers(httpResponse);
          let responseKind =
-           Fetch.Headers.get("SRR-Response", responseHeaders);
+           Fetch.Headers.get("Router-Response", responseHeaders);
          let contentType = Fetch.Headers.get("Content-Type", responseHeaders);
          let status = Fetch.Response.status(httpResponse);
          switch (responseKind) {
