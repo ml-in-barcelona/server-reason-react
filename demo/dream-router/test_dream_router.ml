@@ -24,8 +24,8 @@ let registry seen : ((React.element, string) RouterServer.Plan.t, string) Router
   in
   RouterServer.EndpointRegistry.makeExn [ endpoint ]
 
-let server registry =
-  RouterServer.Server.make ~basePath:"/app" ~registry ~fallback
+let server ?(basePath = "/app") registry =
+  RouterServer.Server.make ~basePath ~registry ~fallback
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ()
 
@@ -83,6 +83,17 @@ let rejects_other_accept_values () =
     "application/*";
   ]
   |> List.iter (check_accept ~rsc:false)
+
+let unicode_base_path_is_routed () =
+  let routes =
+    DreamRouter.routes
+      ~router:(server ~basePath:"/m%C3%BCnchen" (registry (ref None)))
+      ~actionHandler:(fun _ -> Dream.empty `OK)
+      ~document:Fun.id ()
+  in
+  let request = Dream.request ~target:"/m%C3%BCnchen/item" "" in
+  let response = Dream.test (Dream.router routes) request in
+  Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int)
 
 let shared_action_dispatcher_handles_mount () =
   let calls = ref 0 in
@@ -213,6 +224,7 @@ let () =
           test "RSC request uses context and headers" rsc_request_uses_context_and_headers;
           test "document request uses HTML" document_request_uses_html;
           test "rejects other Accept values" rejects_other_accept_values;
+          test "routes Unicode base paths" unicode_base_path_is_routed;
           test "shared action dispatcher handles mount" shared_action_dispatcher_handles_mount;
           test "registry mismatch returns reload-required" registry_mismatch_returns_reload_required;
           test "patch payload is smaller than full" patch_payload_is_smaller_than_full;

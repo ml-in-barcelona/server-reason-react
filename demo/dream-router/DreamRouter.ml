@@ -353,7 +353,7 @@ let handler ~router ~diagnosticId ~revision ?(bootstrapModules = []) ~document =
 
 let routes ~router ~actionHandler ?(diagnosticId = fun _ -> string_of_int (Random.bits ()))
     ?(revision = fun () -> string_of_int (Random.bits ())) ?(bootstrapModules = []) ~document () =
-  let basePath = RouterServer.Server.basePath router in
+  let basePath = RouterServer.Server.basePath router |> Dream.from_percent_encoded in
   let handler = handler ~router ~diagnosticId ~revision ~bootstrapModules ~document in
   [
     Dream.get basePath handler;

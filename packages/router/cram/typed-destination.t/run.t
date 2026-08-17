@@ -1,3 +1,4 @@
+  $ export OCAMLRUNPARAM=
   $ server-reason-react.router-gen --mode handles --source input.ml < input.ml > Router.ml
   $ server-reason-react.router-gen --mode interface --source input.ml < input.ml > Router.mli
   $ grep -E 'RouterRuntime\.(Navigation\.|Search\.)|RouterReact' Router.mli
