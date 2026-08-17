@@ -47,6 +47,14 @@ let server =
       ...DreamRouter.routes(
            ~router=RouterRegistry.server,
            ~actionHandler=serverFunctionHandler,
+           ~ssr=
+             request =>
+               switch (Dream.query(request, "ssr")) {
+               | Some("false") => false
+               | Some("true")
+               | Some(_)
+               | None => true
+               },
            ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
            ~document=
              children =>

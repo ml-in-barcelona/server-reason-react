@@ -87,6 +87,7 @@ val routes :
   actionHandler:(Dream.request -> Dream.response Lwt.t) ->
   ?diagnosticId:(exn -> string) ->
   ?revision:(unit -> string) ->
+  ?ssr:(Dream.request -> bool) ->
   ?bootstrapModules:string list ->
   document:(React.element -> React.element) ->
   unit ->
@@ -97,5 +98,8 @@ val routes :
     @param actionHandler server-function POST handler
     @param diagnosticId produce a safe identifier for an internal exception
     @param revision produce the revision attached to a successful response
+    @param ssr
+      decide whether to include the routed root markup in each document response (default: always true). When false, the
+      bootstrap module must mount with [ReactDOM.Client.createRoot] instead of [ReactDOM.Client.hydrateRoot]
     @param bootstrapModules JavaScript modules loaded by document responses
     @param document wrap the routed client root in the HTML document tree *)

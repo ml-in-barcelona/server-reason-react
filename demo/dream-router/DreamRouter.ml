@@ -291,7 +291,7 @@ let redirect_model ~protocolVersion ~registryFingerprint destination =
   in
   RouterRuntime.NavigationResponse.redirect_to_rsc redirect |> RSC.to_model
 
-let handler ~router ~diagnosticId ~revision ?(bootstrapModules = []) ~document =
+let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = []) ~document =
   let protocolVersion = RouterServer.Server.protocolVersion router in
   let registryFingerprint = RouterServer.Server.fingerprint router in
   fun request ->
@@ -347,14 +347,18 @@ let handler ~router ~diagnosticId ~revision ?(bootstrapModules = []) ~document =
               let headers = response.resolved.headers |> RouterRuntime.Headers.toList in
               match response.kind with
               | RouterServer.ServerEngine.Document ->
-                  stream_html ~code ~headers ~bootstrapModules (document_element ~router ~document response)
+                  stream_html ~code ~headers
+                    ~skipRoot:(not (ssr request))
+                    ~bootstrapModules
+                    (document_element ~router ~document response)
               | RouterServer.ServerEngine.Rsc ->
                   stream_model_value ~code ~headers ~location:response.canonical_url (full_model response))))
 
 let routes ~router ~actionHandler ?(diagnosticId = fun _ -> string_of_int (Random.bits ()))
-    ?(revision = fun () -> string_of_int (Random.bits ())) ?(bootstrapModules = []) ~document () =
+    ?(revision = fun () -> string_of_int (Random.bits ())) ?(ssr = fun _request -> true) ?(bootstrapModules = [])
+    ~document () =
   let basePath = RouterServer.Server.basePath router |> Dream.from_percent_encoded in
-  let handler = handler ~router ~diagnosticId ~revision ~bootstrapModules ~document in
+  let handler = handler ~router ~diagnosticId ~revision ~ssr ~bootstrapModules ~document in
   [
     Dream.get basePath handler;
     Dream.get (basePath ^ "/**") handler;

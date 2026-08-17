@@ -4,6 +4,14 @@ external readable_stream: ReadableStream.t =
   "window.srr_stream.readable_stream";
 
 let document: option(Webapi.Dom.Element.t) = [%mel.raw "window.document"];
+let search: string = [%mel.raw "window.location.search"];
+let ssr =
+  switch (URL.SearchParams.get(URL.SearchParams.makeExn(search), "ssr")) {
+  | Some("false") => false
+  | Some("true")
+  | Some(_)
+  | None => true
+  };
 
 let callServer = (path: string, args) => {
   let headers =
@@ -42,7 +50,13 @@ module ClientApp = {
 switch (document) {
 | Some(element) =>
   React.startTransition(() => {
-    let _ = ReactDOM.Client.hydrateRoot(element, <ClientApp />);
+    if (ssr) {
+      let _ = ReactDOM.Client.hydrateRoot(element, <ClientApp />);
+      ();
+    } else {
+      let root = ReactDOM.Client.createRoot(element);
+      ReactDOM.Client.render(root, <ClientApp />);
+    };
     ();
   })
 | None => Js.log("Root element not found")

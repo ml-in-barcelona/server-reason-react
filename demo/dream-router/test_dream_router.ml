@@ -20,7 +20,9 @@ let registry seen : ((React.element, string) RouterServer.Plan.t, string) Router
         seen := DreamRouter.get_header "X-Test";
         Ok
           (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[ metadata ] ~page:(React.string "item")))))
+               RouterServer.Execution.done_
+                 (RouterServer.Plan.success ~scopes:[ metadata ]
+                    ~page:(React.createElement "main" [] [ React.string "item" ])))))
   in
   RouterServer.EndpointRegistry.makeExn [ endpoint ]
 
@@ -29,6 +31,16 @@ let server ?(basePath = "/app") registry =
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ()
 
+let document children =
+  React.createElement "html" []
+    [
+      React.createElement "head" []
+        [ React.createElement "meta" [ React.JSX.String ("name", "name", "router-shell") ] [] ];
+      React.createElement "body" [] [ children ];
+    ]
+
+let ssr request = match Dream.query request "ssr" with Some "false" -> false | Some "true" | Some _ | None -> true
+
 let handler seen request =
   let routes =
     DreamRouter.routes
@@ -36,7 +48,7 @@ let handler seen request =
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~diagnosticId:(fun _ -> "diagnostic")
       ~revision:(fun () -> "revision")
-      ~document:Fun.id ()
+      ~ssr ~document ()
   in
   Dream.router routes request
 
@@ -63,7 +75,26 @@ let document_request_uses_html () =
   Alcotest.(check (option string))
     "content type" (Some "text/html; charset=utf-8") (Dream.header response "Content-Type");
   let body = Lwt_main.run (Dream.body response) in
-  Alcotest.(check bool) "metadata title" true (contains ~needle:"<title>Item</title>" body)
+  Alcotest.(check bool) "metadata title" true (contains ~needle:"<title>Item</title>" body);
+  Alcotest.(check bool) "routed markup" true (contains ~needle:"<main>item</main>" body)
+
+let document_request_can_disable_ssr () =
+  let seen = ref None in
+  let request = Dream.request ~target:"/app/item?ssr=false" "" in
+  let response = Dream.test (handler seen) request in
+  Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int);
+  let body = Lwt_main.run (Dream.body response) in
+  Alcotest.(check bool) "document shell" true (contains ~needle:"<meta name=\"router-shell\" />" body);
+  Alcotest.(check bool) "routed markup" false (contains ~needle:"<main>item</main>" body);
+  Alcotest.(check bool) "RSC payload" true (contains ~needle:"item" body)
+
+let document_request_can_enable_ssr () =
+  let seen = ref None in
+  let request = Dream.request ~target:"/app/item?ssr=true" "" in
+  let response = Dream.test (handler seen) request in
+  Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int);
+  let body = Lwt_main.run (Dream.body response) in
+  Alcotest.(check bool) "routed markup" true (contains ~needle:"<main>item</main>" body)
 
 let check_accept ~rsc accept =
   let seen = ref None in
@@ -224,6 +255,8 @@ let () =
         [
           test "RSC request uses context and headers" rsc_request_uses_context_and_headers;
           test "document request uses HTML" document_request_uses_html;
+          test "document request can disable SSR" document_request_can_disable_ssr;
+          test "document request can enable SSR" document_request_can_enable_ssr;
           test "rejects other Accept values" rejects_other_accept_values;
           test "routes Unicode base paths" unicode_base_path_is_routed;
           test "shared action dispatcher handles mount" shared_action_dispatcher_handles_mount;

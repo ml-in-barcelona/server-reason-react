@@ -23,7 +23,7 @@
   (pps
    server-reason-react.ppx
    -melange
-   -shared-folder-prefix=/js/
+   -shared-folder-prefix=/react/js/
    server-reason-react.rsc.ppx
    melange.ppx
    reason-react-ppx)))
