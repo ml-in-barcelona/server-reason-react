@@ -12,12 +12,18 @@ Each route is a component and also owns its typed helpers:
 
 let destination = Router.Note.destination(~id, ())
 let href = Router.Note.href(~id, ())
-let active = Router.Note.useIsActive(~id, ())
+
+switch Router.useRoute() {
+| Some(Router.Note({id})) => React.string(NoteId.to_string(id))
+| _ => React.null
+}
 ]}
 
-[Router.useNavigation], [Router.useSearch], and [Router.useUpdateHash] expose
-navigation state and commands. [Router.useSearch] returns the decoded search
-record and its typed update function. [Router.Status],
+[Router.useRoute] returns the active route as a generated variant with decoded
+path parameters. It returns [None] when no route matched. [Router.useNavigation],
+[Router.useSearch], and [Router.useUpdateHash] expose navigation state and
+commands. [Router.useSearch] returns the decoded search record and its typed
+update function. [Router.Status],
 [Router.Loader], [Router.Error], [Router.Metadata], [Router.Headers], and
 [Router.Navigation] contain the application-authored server contracts.
 

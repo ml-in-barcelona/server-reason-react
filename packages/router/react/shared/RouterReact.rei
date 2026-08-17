@@ -34,16 +34,9 @@ module Provider: {
 };
 
 let useNavigation: unit => (navigate, RouterRuntime.Navigation.status);
-let useCommitted: unit => option(RouterRuntime.Navigation.committed);
+let useCurrentRoute: unit => option((string, list((string, string))));
 let useSearch: unit => (list((string, list(string))), updateSearch);
 let useUpdateHash: unit => updateHash;
-let useIsActive:
-  (
-    ~routeId: string,
-    ~parameters: list((string, string)),
-    ~includeDescendants: bool
-  ) =>
-  bool;
 let outlet: (~owner: string, ~children: React.element, unit) => React.element;
 let suspense:
   (~fallback: React.element, ~children: React.element, unit) => React.element;

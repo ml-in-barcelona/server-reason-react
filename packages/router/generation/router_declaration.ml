@@ -359,7 +359,6 @@ let generated_labels =
     "error";
     "fallback";
     "href";
-    "includeDescendants";
     "input";
     "item";
     "make";
@@ -369,8 +368,8 @@ let generated_labels =
     "search";
     "target";
     "updateSearch";
-    "useIsActive";
     "useNavigation";
+    "useRoute";
     "useSearch";
     "useUpdateHash";
     "value";

@@ -55,10 +55,14 @@ let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>
   unavailable();
 
 let useNavigation = () => (navigate, RouterRuntime.Navigation.Idle);
-let useCommitted = () =>
+let useCurrentRoute = () =>
   switch (React.useContext(context)) {
-  | Some(value) => Some(value.committed)
-  | None => None
+  | Some(value) =>
+    switch (List.rev(value.committed.matches)) {
+    | [{ routeId, parameters }, ..._] => Some((routeId, parameters))
+    | [] => None
+    }
+  | None => invalid_arg("router hooks require an ancestor Router.Provider")
   };
 let useSearch = () => {
   let values =
@@ -74,17 +78,6 @@ let useSearch = () => {
   (values, updateSearch);
 };
 let useUpdateHash = () => updateHash;
-let useIsActive = (~routeId, ~parameters, ~includeDescendants) =>
-  switch (React.useContext(context)) {
-  | Some(value) =>
-    RouterRuntime.Navigation.isActive(
-      value.committed,
-      ~routeId,
-      ~parameters,
-      ~includeDescendants,
-    )
-  | None => false
-  };
 
 let outlet = (~owner, ~children, ()) =>
   RouterOutlet.make(

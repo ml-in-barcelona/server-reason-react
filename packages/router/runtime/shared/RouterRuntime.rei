@@ -153,14 +153,6 @@ module Navigation: {
   let fail: (state, ~requestId: int, ~message: string) => state;
   let shallow: (state, ~location: location, ~action: historyAction) => state;
   let hashOnly: (state, ~location: location, ~action: historyAction) => state;
-  let isActive:
-    (
-      committed,
-      ~routeId: string,
-      ~parameters: list((string, string)),
-      ~includeDescendants: bool
-    ) =>
-    bool;
   let classifyPop:
     (committed, ~target: location, ~targetRevision: option(string)) => kind;
   let classifyPopByContentIdentity:

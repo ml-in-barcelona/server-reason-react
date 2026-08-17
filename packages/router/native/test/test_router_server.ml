@@ -438,23 +438,6 @@ let hash_only_location_commit () =
   Alcotest.(check string) "hash" "#details" committed.location.hash;
   Alcotest.(check string) "revision" "r1" committed.revision
 
-let active_match_uses_route_and_parameters () =
-  let open RouterRuntime.Navigation in
-  let note = { routeId = "Note"; parameters = [ ("id", "1") ] } in
-  let edit = { routeId = "EditNote"; parameters = [ ("id", "1") ] } in
-  let committed =
-    { location = location "r1" "/notes/1/edit" ""; matches = [ note; edit ]; layouts = []; revision = "r1" }
-  in
-  Alcotest.(check bool)
-    "ancestor" true
-    (isActive committed ~routeId:"Note" ~parameters:[ ("id", "1") ] ~includeDescendants:true);
-  Alcotest.(check bool)
-    "different params" false
-    (isActive committed ~routeId:"Note" ~parameters:[ ("id", "2") ] ~includeDescendants:true);
-  Alcotest.(check bool)
-    "exact" true
-    (isActive committed ~routeId:"EditNote" ~parameters:[ ("id", "1") ] ~includeDescendants:false)
-
 let typed_search_decoding () =
   let open RouterRuntime.Search in
   let values = [ ("page", [ "2" ]); ("tag", [ "one"; "two" ]) ] in
@@ -627,7 +610,6 @@ let () =
           test "redirect and reload navigation responses" redirect_and_reload_navigation_responses;
           test "history action selects mutation" history_action_selects_mutation;
           test "hash-only location commit" hash_only_location_commit;
-          test "active match uses route and parameters" active_match_uses_route_and_parameters;
           test "typed search decoding" typed_search_decoding;
           test "shallow search preserves unowned values" shallow_search_preserves_unowned_values;
           test "pop navigation kind" pop_navigation_kind;

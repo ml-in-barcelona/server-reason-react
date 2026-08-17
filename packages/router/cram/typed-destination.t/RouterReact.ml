@@ -13,5 +13,5 @@ let link ~destination:_ ?className:_ ?target:_ ?download:_ ?ariaCurrent:_ ?histo
 let navigate ?history:_ ?revalidate:_ _destination = failwith "not used"
 let updateHash ~hash:_ ?history:_ () = failwith "not used"
 let useNavigation () = (navigate, RouterRuntime.Navigation.Idle)
+let useCurrentRoute () = None
 let useUpdateHash () = updateHash
-let useIsActive ~routeId:_ ~parameters:_ ~includeDescendants:_ = false

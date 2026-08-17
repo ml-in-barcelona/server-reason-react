@@ -71,14 +71,6 @@ let link_component_type ~loc parameters search =
   let with_class_name = B.ptyp_arrow ~loc (Optional "className") (result_type ~loc "string") with_target in
   route_input_type ~loc parameters search with_class_name
 
-let active_function_type ~loc parameters =
-  let with_unit = B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (bool_type ~loc) in
-  let with_descendants = B.ptyp_arrow ~loc (Optional "includeDescendants") (bool_type ~loc) with_unit in
-  List.fold_right
-    (fun (parameter : Router_declaration.parameter) result ->
-      B.ptyp_arrow ~loc (Labelled parameter.name) parameter.typ result)
-    parameters with_descendants
-
 let update_search_function_type ~loc search =
   let result = result_type ~loc "Navigation.Result.t" in
   let with_unit = B.ptyp_arrow ~loc Nolabel (unit_type ~loc) result in
@@ -98,6 +90,144 @@ let search_type_declaration ~loc search =
   in
   B.type_declaration ~loc ~name:{ txt = "search"; loc } ~params:[] ~cstrs:[] ~kind:(Ptype_record fields)
     ~private_:Public ~manifest:None
+
+let route_type_declaration ~loc routes =
+  let constructors =
+    List.map
+      (fun (route : Router_declaration.route) ->
+        let args =
+          match route.parameters with
+          | [] -> Pcstr_tuple []
+          | parameters ->
+              Pcstr_record
+                (List.map
+                   (fun (parameter : Router_declaration.parameter) ->
+                     B.label_declaration ~loc:parameter.loc
+                       ~name:{ txt = parameter.name; loc = parameter.loc }
+                       ~mutable_:Immutable ~type_:parameter.typ)
+                   parameters)
+        in
+        B.constructor_declaration ~loc:route.loc ~name:{ txt = route.name; loc = route.loc } ~args ~res:None)
+      routes
+  in
+  B.type_declaration ~loc ~name:{ txt = "route"; loc } ~params:[] ~cstrs:[] ~kind:(Ptype_variant constructors)
+    ~private_:Public ~manifest:None
+
+let some_expression ~loc expression = B.pexp_construct ~loc { txt = Longident.Lident "Some"; loc } (Some expression)
+
+let route_constructor_expression (route : Router_declaration.route) =
+  let loc = route.loc in
+  let payload =
+    match route.parameters with
+    | [] -> None
+    | parameters ->
+        Some
+          (B.pexp_record ~loc
+             (List.map
+                (fun (parameter : Router_declaration.parameter) ->
+                  ({ txt = Longident.Lident parameter.name; loc = parameter.loc }, B.evar ~loc parameter.name))
+                parameters)
+             None)
+  in
+  B.pexp_construct ~loc { txt = Longident.Lident route.name; loc } payload
+
+let decode_route_expression (route : Router_declaration.route) =
+  let loc = route.loc in
+  let bindings =
+    List.map
+      (fun (parameter : Router_declaration.parameter) ->
+        let decoded =
+          B.pexp_apply ~loc (B.evar ~loc "decodeRouteParameter")
+            [
+              (Labelled "routeId", B.estring ~loc route.name);
+              (Labelled "name", B.estring ~loc parameter.name);
+              (Labelled "parse", B.pexp_ident ~loc { txt = parameter.parser; loc });
+              (Nolabel, B.evar ~loc "parameters");
+            ]
+        in
+        B.value_binding ~loc ~pat:(B.pvar ~loc parameter.name) ~expr:decoded)
+      route.parameters
+  in
+  let route = some_expression ~loc (route_constructor_expression route) in
+  match bindings with [] -> route | _ -> B.pexp_let ~loc Nonrecursive bindings route
+
+let decode_route_parameter_expression ~loc =
+  let invalid =
+    let message =
+      B.pexp_apply ~loc (B.evar ~loc "^")
+        [ (Nolabel, B.estring ~loc "invalid parameters for active route "); (Nolabel, B.evar ~loc "routeId") ]
+    in
+    B.pexp_apply ~loc (B.evar ~loc "invalid_arg") [ (Nolabel, message) ]
+  in
+  let parsed = B.pexp_apply ~loc (B.evar ~loc "parse") [ (Nolabel, B.evar ~loc "raw") ] in
+  let parse_match =
+    B.pexp_match ~loc parsed
+      [
+        B.case
+          ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (B.pvar ~loc "value")))
+          ~guard:None ~rhs:(B.evar ~loc "value");
+        B.case
+          ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Error"; loc } (Some (B.ppat_any ~loc)))
+          ~guard:None ~rhs:invalid;
+      ]
+  in
+  let raw =
+    B.pexp_apply ~loc (B.evar ~loc "List.assoc_opt")
+      [ (Nolabel, B.evar ~loc "name"); (Nolabel, B.evar ~loc "parameters") ]
+  in
+  let body =
+    B.pexp_match ~loc raw
+      [
+        B.case
+          ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (B.pvar ~loc "raw")))
+          ~guard:None ~rhs:parse_match;
+        B.case ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "None"; loc } None) ~guard:None ~rhs:invalid;
+      ]
+  in
+  B.pexp_fun ~loc (Labelled "routeId") None (B.pvar ~loc "routeId")
+    (B.pexp_fun ~loc (Labelled "name") None (B.pvar ~loc "name")
+       (B.pexp_fun ~loc (Labelled "parse") None (B.pvar ~loc "parse")
+          (B.pexp_fun ~loc Nolabel None (B.pvar ~loc "parameters") body)))
+
+let use_route_expression ~loc routes =
+  let route_cases =
+    List.map
+      (fun (route : Router_declaration.route) ->
+        B.case
+          ~lhs:(B.ppat_constant ~loc:route.loc (Pconst_string (route.name, route.loc, None)))
+          ~guard:None ~rhs:(decode_route_expression route))
+      routes
+  in
+  let unknown_route =
+    B.pexp_apply ~loc (B.evar ~loc "invalid_arg") [ (Nolabel, B.estring ~loc "unknown active route") ]
+  in
+  let route_match =
+    B.pexp_match ~loc (B.evar ~loc "routeId")
+      (route_cases @ [ B.case ~lhs:(B.ppat_any ~loc) ~guard:None ~rhs:unknown_route ])
+  in
+  let current_route =
+    B.pexp_apply ~loc (B.evar ~loc "RouterReact.useCurrentRoute") [ (Nolabel, unit_expression ~loc) ]
+  in
+  let route_body =
+    B.pexp_match ~loc current_route
+      [
+        B.case
+          ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "None"; loc } None)
+          ~guard:None
+          ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "None"; loc } None);
+        B.case
+          ~lhs:
+            (B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc }
+               (Some (B.ppat_tuple ~loc [ B.pvar ~loc "routeId"; B.pvar ~loc "parameters" ])))
+          ~guard:None ~rhs:route_match;
+      ]
+  in
+  let body =
+    B.pexp_let ~loc Nonrecursive
+      [ B.value_binding ~loc ~pat:(B.pvar ~loc "decodeRouteParameter") ~expr:(decode_route_parameter_expression ~loc) ]
+      route_body
+  in
+  B.pexp_fun ~loc Nolabel None (B.punit ~loc) body
 
 let route_input_expression ~loc parameters search body =
   let body =
@@ -146,10 +276,6 @@ let route_signature (route : Router_declaration.route) =
            ~type_:(route_function_type ~loc route.parameters route.search (result_type ~loc "string"))
            ~prim:[]);
       B.psig_value ~loc link_make;
-      B.psig_value ~loc
-        (B.value_description ~loc ~name:{ txt = "useIsActive"; loc }
-           ~type_:(active_function_type ~loc route.parameters)
-           ~prim:[]);
     ]
   in
   B.psig_module ~loc
@@ -187,6 +313,7 @@ let signature (declaration : Router_declaration.t) =
   B.psig_type ~loc Recursive
     [ destination_declaration ~loc ~private_:Public ~manifest:(Some (result_type ~loc "RouterRuntime.destination")) ]
   :: List.map (signature_alias ~loc) public_modules
+  @ [ B.psig_type ~loc Recursive [ route_type_declaration ~loc routes ] ]
   @ [
       B.psig_value ~loc
         (B.value_description ~loc ~name:{ txt = "useNavigation"; loc }
@@ -197,6 +324,10 @@ let signature (declaration : Router_declaration.t) =
       B.psig_value ~loc
         (B.value_description ~loc ~name:{ txt = "useUpdateHash"; loc }
            ~type_:(B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (update_hash_type ~loc))
+           ~prim:[]);
+      B.psig_value ~loc
+        (B.value_description ~loc ~name:{ txt = "useRoute"; loc }
+           ~type_:(B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (option_type ~loc (result_type ~loc "route")))
            ~prim:[]);
     ]
   @ search_contract_signature ~loc root_search
@@ -308,26 +439,6 @@ let route_module ~base_path (route : Router_declaration.route) =
   let link_expression = route_input_expression ~loc route.parameters route.search link_with_class_name in
   let link_binding = B.value_binding ~loc ~pat:(B.pvar ~loc "make") ~expr:link_expression in
   let link_binding = { link_binding with pvb_attributes = [ react_component_attribute ~loc ] } in
-  let active_body =
-    B.pexp_apply ~loc (B.evar ~loc "RouterReact.useIsActive")
-      [
-        (Labelled "routeId", B.estring ~loc route.name);
-        (Labelled "parameters", B.elist ~loc parameter_values);
-        (Labelled "includeDescendants", B.evar ~loc "includeDescendants");
-      ]
-  in
-  let active_with_unit = B.pexp_fun ~loc Nolabel None (B.punit ~loc) active_body in
-  let active_with_descendants =
-    B.pexp_fun ~loc (Optional "includeDescendants")
-      (Some (B.ebool ~loc false))
-      (B.pvar ~loc "includeDescendants") active_with_unit
-  in
-  let active_expression =
-    List.fold_right
-      (fun (parameter : Router_declaration.parameter) body ->
-        B.pexp_fun ~loc (Labelled parameter.name) None (B.pvar ~loc parameter.name) body)
-      route.parameters active_with_descendants
-  in
   let module_expression =
     B.pmod_structure ~loc
       [
@@ -336,7 +447,6 @@ let route_module ~base_path (route : Router_declaration.route) =
           [ B.value_binding ~loc ~pat:(B.pvar ~loc "destination") ~expr:destination_expression ];
         B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "href") ~expr:href_expression ];
         B.pstr_value ~loc Nonrecursive [ link_binding ];
-        B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "useIsActive") ~expr:active_expression ];
       ]
   in
   B.pstr_module ~loc (B.module_binding ~loc ~name:{ txt = Some route.name; loc } ~expr:module_expression)
@@ -454,11 +564,14 @@ let handles (declaration : Router_declaration.t) =
   B.pstr_type ~loc Recursive
     [ destination_declaration ~loc ~private_:Public ~manifest:(Some (result_type ~loc "RouterRuntime.destination")) ]
   :: List.map (structure_alias ~loc) public_modules
+  @ [ B.pstr_type ~loc Recursive [ route_type_declaration ~loc routes ] ]
   @ [
       B.pstr_value ~loc Nonrecursive
         [ B.value_binding ~loc ~pat:(B.pvar ~loc "useNavigation") ~expr:(B.evar ~loc "RouterReact.useNavigation") ];
       B.pstr_value ~loc Nonrecursive
         [ B.value_binding ~loc ~pat:(B.pvar ~loc "useUpdateHash") ~expr:(B.evar ~loc "RouterReact.useUpdateHash") ];
+      B.pstr_value ~loc Nonrecursive
+        [ B.value_binding ~loc ~pat:(B.pvar ~loc "useRoute") ~expr:(use_route_expression ~loc routes) ];
     ]
   @ search_contract_structure ~loc root_search
   @ List.map (route_module ~base_path) routes

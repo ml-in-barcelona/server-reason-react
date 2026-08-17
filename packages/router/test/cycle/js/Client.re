@@ -16,13 +16,7 @@ let quoteHref =
 
 let useGeneratedClientHooks = () => {
   let ({ Router.page, searchText: _ }, updateSearch) = Router.useSearch();
-  let isActive =
-    Router.Note.useIsActive(
-      ~workspaceId=WorkspaceId.make(7),
-      ~id=NoteId.make(42),
-      ~includeDescendants=true,
-      (),
-    );
+  let route = Router.useRoute();
   let updateResult = updateSearch(~page=page + 1, ~searchText=None, ());
-  (isActive, updateResult, Router.useUpdateHash());
+  (route, updateResult, Router.useUpdateHash());
 };

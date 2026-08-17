@@ -25,9 +25,12 @@ let make =
     ) => {
   let ({ Router.text }, _) = Router.useSearch();
   let (isExpanded, setIsExpanded) = RR.useStateValue(false);
-  let isNoteActive = Router.Note.useIsActive(~id, ());
-  let isEditActive = Router.EditNote.useIsActive(~id, ());
-  let isActive = isNoteActive || isEditActive;
+  let isActive =
+    switch (Router.useRoute()) {
+    | Some(Router.Note({ id: activeId }))
+    | Some(Router.EditNote({ id: activeId })) => activeId == id
+    | _ => false
+    };
   let ariaCurrent = isActive ? Some("page") : None;
   let detailsId = "sidebar-note-details-" ++ NoteId.to_string(id);
 

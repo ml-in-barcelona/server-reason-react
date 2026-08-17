@@ -1,6 +1,9 @@
   $ export OCAMLRUNPARAM=
   $ server-reason-react.router-gen --mode handles --source input.ml < input.ml > Router.ml
   $ server-reason-react.router-gen --mode interface --source input.ml < input.ml > Router.mli
+  $ grep -E '^type route|^val useRoute|useIsActive' Router.mli
+  type route =
+  val useRoute : unit -> route option
   $ grep -E 'RouterRuntime\.(Navigation\.|Search\.)|RouterReact' Router.mli
   [1]
   $ ocamlc -c RouterRuntime.ml

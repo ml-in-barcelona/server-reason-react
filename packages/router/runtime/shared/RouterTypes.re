@@ -328,32 +328,6 @@ module Navigation = {
 
   let hashOnly = shallow;
 
-  let normalizeParameters =
-    List.sort(((left, _), (right, _)) => String.compare(left, right));
-
-  let sameMatch = (left, right) =>
-    String.equal(left.routeId, right.routeId)
-    && normalizeParameters(left.parameters)
-    == normalizeParameters(right.parameters);
-
-  let isActive = (committed, ~routeId, ~parameters, ~includeDescendants) => {
-    let expected = {
-      routeId,
-      parameters,
-    };
-    if (includeDescendants) {
-      List.exists(
-        current => sameMatch(current, expected),
-        committed.matches,
-      );
-    } else {
-      switch (List.rev(committed.matches)) {
-      | [current, ..._] => sameMatch(current, expected)
-      | [] => false
-      };
-    };
-  };
-
   let classifyPopLocation = (committed, target) =>
     if (String.equal(target.pathname, committed.location.pathname)
         && String.equal(target.search, committed.location.search)) {

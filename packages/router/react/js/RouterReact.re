@@ -716,11 +716,13 @@ let useNavigation = () => {
   (value.navigate, value.navigation);
 };
 
-let useCommitted = () =>
-  switch (React.useContext(context)) {
-  | Some(value) => Some(value.committed)
-  | None => None
+let useCurrentRoute = () => {
+  let value = useContextValue();
+  switch (List.rev(value.committed.matches)) {
+  | [{ routeId, parameters }, ..._] => Some((routeId, parameters))
+  | [] => None
   };
+};
 
 let useSearch = () => {
   let value = useContextValue();
@@ -728,18 +730,6 @@ let useSearch = () => {
 };
 
 let useUpdateHash = () => useContextValue().updateHash;
-
-let useIsActive = (~routeId, ~parameters, ~includeDescendants) =>
-  switch (React.useContext(context)) {
-  | Some(value) =>
-    Navigation.isActive(
-      value.committed,
-      ~routeId,
-      ~parameters,
-      ~includeDescendants,
-    )
-  | None => false
-  };
 
 module Link = {
   [@react.component]

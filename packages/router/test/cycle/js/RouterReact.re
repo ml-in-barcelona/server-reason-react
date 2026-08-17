@@ -38,7 +38,6 @@ let updateSearch: updateSearch =
 let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>
   assert(false);
 let useNavigation = () => (navigate, RouterRuntime.Navigation.Idle);
+let useCurrentRoute = () => None;
 let useSearch = () => ([], updateSearch);
 let useUpdateHash = () => updateHash;
-let useIsActive = (~routeId as _, ~parameters as _, ~includeDescendants as _) =>
-  false;
