@@ -1,1 +1,1 @@
-Router.make ~basePath:"/" [ Router.route Reports ~page:Page.make ~path:"/bad\255" ]
+Router.make ~basePath:"/" [ Router.route Reports ~page:Page ~path:"/bad\255" ]

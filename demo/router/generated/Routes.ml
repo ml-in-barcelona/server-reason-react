@@ -1,12 +1,12 @@
-Router.make ~basePath:"/demo/router" ~layout:Pages.AppLayout.make ~loading:Pages.GlobalLoading.make
-  ~notFound:Pages.NotFound.make ~error:Pages.AppError
+Router.make ~basePath:"/demo/router" ~layout:Pages.AppLayout ~loading:Pages.GlobalLoading ~notFound:Pages.NotFound
+  ~error:Pages.AppError
   ~search:{ text = Router.Search.optional string }
   [
-    Router.route Home ~page:Pages.App.make ~path:"/";
-    Router.route NewNote ~page:Pages.NewNote.make ~path:"/new" ~loading:Pages.NewNoteLoading.make;
-    Router.group ~path:"/:id<NoteId.t>" ~layout:Pages.NoteLayout.make ~loader:Pages.NoteLoader.load ~loaderAs_:note
+    Router.route Home ~page:Pages.App ~path:"/";
+    Router.route NewNote ~page:Pages.NewNote ~path:"/new" ~loading:Pages.NewNoteLoading;
+    Router.group ~path:"/:id<NoteId.t>" ~layout:Pages.NoteLayout ~loader:Pages.NoteLoader.load ~loaderAs_:note
       [
-        Router.route Note ~page:Pages.Note.make ~path:"/" ~loading:Pages.NoteLoading.make;
-        Router.route EditNote ~page:Pages.EditNote.make ~path:"/edit" ~loading:Pages.EditNoteLoading.make;
+        Router.route Note ~page:Pages.Note ~path:"/" ~loading:Pages.NoteLoading;
+        Router.route EditNote ~page:Pages.EditNote ~path:"/edit" ~loading:Pages.EditNoteLoading;
       ];
   ]

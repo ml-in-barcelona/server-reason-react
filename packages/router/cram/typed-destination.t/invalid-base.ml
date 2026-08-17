@@ -1,1 +1,1 @@
-Router.make ~basePath:"/app?preview" [ Router.route Reports ~page:Page.make ~path:"/reports" ]
+Router.make ~basePath:"/app?preview" [ Router.route Reports ~page:Page ~path:"/reports" ]

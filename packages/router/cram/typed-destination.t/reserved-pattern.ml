@@ -1,1 +1,1 @@
-Router.make ~basePath:"/" [ Router.route Note ~page:Page.make ~path:"/:pattern<string>" ]
+Router.make ~basePath:"/" [ Router.route Note ~page:Page ~path:"/:pattern<string>" ]

@@ -80,6 +80,12 @@ let name_of_route expression =
   | Pexp_construct ({ txt = Longident.Lident name; _ }, None) -> name
   | _ -> error ~loc:expression.pexp_loc "route name must be a module identifier"
 
+let component_attachment ~label expression =
+  match expression.pexp_desc with
+  | Pexp_construct ({ txt; loc }, None) ->
+      { expression with pexp_desc = Pexp_ident { txt = Longident.Ldot (txt, "make"); loc } }
+  | _ -> error ~loc:expression.pexp_loc "~%s takes a component module, for example ~%s=Pages.Note" label label
+
 let type_of_name ~loc name = Ast_builder.Default.ptyp_constr ~loc { txt = Longident.parse name; loc } []
 
 let to_string_of_type ~loc name =
@@ -270,11 +276,12 @@ let attachments arguments =
         in
         Some { run; result_label; loc = run.pexp_loc }
   in
+  let component label = Option.map (component_attachment ~label) (argument (Labelled label) arguments) in
   {
-    layout = argument (Labelled "layout") arguments;
-    loading = argument (Labelled "loading") arguments;
-    not_found = argument (Labelled "notFound") arguments;
-    error = argument (Labelled "error") arguments;
+    layout = component "layout";
+    loading = component "loading";
+    not_found = component "notFound";
+    error = component "error";
     loader;
     metadata = argument (Labelled "metadata") arguments;
     headers = argument (Labelled "headers") arguments;
@@ -296,9 +303,6 @@ let root_error_policy arguments =
   | Some { pexp_desc = Pexp_construct ({ txt; _ }, None); _ } -> Some txt
   | _ -> None
 
-let error_boundary_expression ~loc policy =
-  Ast_builder.Default.pexp_ident ~loc { txt = Longident.Ldot (policy, "make"); loc }
-
 let rec node_of_expression ~address expression =
   let callee, arguments = arguments expression in
   if is_identifier [ "Router"; "route" ] callee then
@@ -314,7 +318,7 @@ let rec node_of_expression ~address expression =
     in
     let page =
       match argument (Labelled "page") arguments with
-      | Some page -> page
+      | Some page -> component_attachment ~label:"page" page
       | None -> error ~loc:expression.pexp_loc "route requires ~page"
     in
     let path =
@@ -450,18 +454,10 @@ let declaration_of_expression expression =
       | _ -> error ~loc:expression.pexp_loc "Router.make requires a route list"
     in
     let application_error = root_error_policy arguments in
-    let invalid_search = argument (Labelled "invalidSearch") arguments in
-    let root_scope = scope ~id:"root" ~path:"" arguments expression in
-    let root_scope =
-      match application_error with
-      | None -> root_scope
-      | Some policy ->
-          {
-            root_scope with
-            attachments =
-              { root_scope.attachments with error = Some (error_boundary_expression ~loc:expression.pexp_loc policy) };
-          }
+    let invalid_search =
+      Option.map (component_attachment ~label:"invalidSearch") (argument (Labelled "invalidSearch") arguments)
     in
+    let root_scope = scope ~id:"root" ~path:"" arguments expression in
     if
       Option.is_some root_scope.attachments.error
       && List.exists (fun (search : search) -> search.kind = Required) root_scope.search

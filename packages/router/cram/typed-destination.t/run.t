@@ -27,6 +27,10 @@
   Fatal error: exception router: unknown router argument ~laoyut
   [2]
 
+  $ server-reason-react.router-gen --mode handles --source make-attachment.ml < make-attachment.ml
+  Fatal error: exception router: ~page takes a component module, for example ~page=Pages.Note
+  [2]
+
   $ server-reason-react.router-gen --mode handles --source duplicate-manifest.ml < duplicate-manifest.ml
   Fatal error: exception router: expected exactly one Router.make declaration
   [2]

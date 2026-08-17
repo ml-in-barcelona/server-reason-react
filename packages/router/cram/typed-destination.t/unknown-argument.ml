@@ -1,2 +1,2 @@
-Router.make ~basePath:"/app" ~laoyut:NotePage.make
-  [ Router.route Note ~page:NotePage.make ~path:"/notes/:id<NoteId.t>" ]
+Router.make ~basePath:"/app" ~laoyut:NotePage
+  [ Router.route Note ~page:NotePage ~path:"/notes/:id<NoteId.t>" ]
