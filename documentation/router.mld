@@ -3,7 +3,92 @@
 The generated [Router] module is the application API. Application components
 should not import [RouterRuntime], [RouterReact], or [RouterServer] directly.
 
-{1 Application API}
+{1 Declaring routes}
+
+Routes live in one manifest file compiled by [server-reason-react.router-gen].
+The manifest is a single [Router.make] expression:
+
+{[
+Router.make(
+  ~basePath="/demo/router",
+  ~search={ text: Router.Search.optional(string) },
+  ~layout=Pages.AppLayout,
+  ~loading=Pages.GlobalLoading,
+  ~error=Pages.AppError,
+  ~notFound=Pages.NotFound,
+  [
+    Router.route(Home, ~page=Pages.App, ~path="/"),
+    Router.route(NewNote, ~page=Pages.NewNote, ~path="/new", ~loading=Pages.NewNoteLoading),
+    Router.group(
+      ~path="/:id<NoteId.t>",
+      ~layout=Pages.NoteLayout,
+      ~loader=Pages.NoteLoader,
+      ~loaderAs_=note,
+      [
+        Router.route(Note, ~page=Pages.Note, ~path="/", ~loading=Pages.NoteLoading),
+        Router.route(EditNote, ~page=Pages.EditNote, ~path="/edit", ~loading=Pages.EditNoteLoading),
+      ],
+    ),
+  ],
+);
+]}
+
+[Router.route] declares a leaf page with a variant name. [Router.group] nests
+routes under a shared path prefix and layout. Attachments are available at the
+root, on groups, and on routes.
+
+Attachments take modules, and the generator resolves the convention inside
+each module:
+
+- [~page], [~layout], [~loading], [~notFound], [~invalidSearch] resolve
+  [Module.make], a component.
+- [~loader] resolves [Module.load]. The loader result is passed to the scope's
+  components under the module name ([Pages.NoteLoader] becomes [~noteLoader]),
+  or under the [~loaderAs_] name when given.
+- [~error] at the root resolves an error policy: a module with a type [t] (the
+  application error), [status: t => Router.Status.t], and a [make] component.
+  On groups and routes, [~error] is a boundary component.
+- [~metadata] and [~headers] are plain functions, not modules.
+
+{2 Path parameters}
+
+A path segment written [:name<Module.t>] is decoded with [Module.parse] and
+printed with [Module.to_string]:
+
+{[
+/* NoteId.re */
+type t = int;
+let parse = value =>
+  switch (int_of_string_opt(value)) {
+  | Some(id) when id >= 0 => Ok(id)
+  | _ => Error("expected a note id")
+  };
+let to_string = string_of_int;
+]}
+
+Codecs receive percent-decoded segments; the router owns URL encoding. [int]
+and [string] are built in. A failed parse renders the nearest error boundary
+with [InvalidPathParameter].
+
+{2 Search parameters}
+
+Search parameters are declared per scope with a typed record and compose from
+parent to child:
+
+{[
+~search={
+  page: Router.Search.default(int, 1),
+  filter: Router.Search.optional(Filter.t),
+  tags: Router.Search.many(string),
+  token: Router.Search.required(string),
+}
+]}
+
+Values equal to the declared default are omitted from canonical URLs. A
+required root search parameter together with a root [~error] policy also
+requires [~invalidSearch].
+
+{1 Generated application API}
 
 Each route is a component and also owns its typed helpers:
 
@@ -20,12 +105,115 @@ switch Router.useRoute() {
 ]}
 
 [Router.useRoute] returns the active route as a generated variant with decoded
-path parameters. It returns [None] when no route matched. [Router.useNavigation],
-[Router.useSearch], and [Router.useUpdateHash] expose navigation state and
-commands. [Router.useSearch] returns the decoded search record and its typed
-update function. [Router.Status],
-[Router.Loader], [Router.Error], [Router.Metadata], [Router.Headers], and
-[Router.Navigation] contain the application-authored server contracts.
+path parameters. It returns [None] when no route matched.
+
+{2 Navigation}
+
+[Router.useNavigation] returns the imperative navigate function and the
+current navigation status:
+
+{[
+let (navigate, status) = Router.useNavigation();
+
+let onSelect = id =>
+  navigate(Router.Note.destination(~id, ())) |> ignore;
+
+let isPending =
+  switch (status) {
+  | Router.Navigation.Loading(_) => true
+  | Idle
+  | Failed(_) => false
+  };
+]}
+
+Navigating to a destination is a {e content} navigation: the client requests a
+Flight model over the network and the server answers with a full model or a
+partial patch that reuses unchanged layouts. [~revalidate=true] forces a full
+response. [~history] selects [Push], [Replace], or [Pop].
+
+{2 Search updates}
+
+[Router.useSearch] returns the decoded search record and its typed update
+function:
+
+{[
+let ({Router.text: text}, updateSearch) = Router.useSearch();
+
+let onChange = value => updateSearch(~text=Some(value), ()) |> ignore;
+]}
+
+Search updates are {e shallow}: they update the URL and client state
+synchronously and never contact the server. When server-rendered content
+depends on a search value, navigate to a destination carrying the new value
+instead of calling [updateSearch].
+
+[Router.useUpdateHash] commits hash-only changes, also without a request.
+
+{1 Loaders}
+
+A loader runs on the server before streaming. It receives the decoded path
+parameters, the scope's search values, and ancestor loader results as labelled
+arguments, and returns a [Router.Loader.result]:
+
+{[
+module NoteLoader = {
+  let load = (~id, ~text as _, ()) =>
+    DB.fetchNoteOption(id)
+    |> Lwt.map(result =>
+         switch (result) {
+         | Ok(Some(note)) => Router.Loader.Data(note)
+         | Ok(None) => Router.Loader.NotFound
+         | Error(error) => Router.Loader.Error(error)
+         }
+       );
+};
+]}
+
+Loaders execute parent-first and complete before response headers or RSC
+rendering begin. [Data] flows into the scope's components ([~note] in the
+manifest above), [NotFound] and [Error] render the nearest boundary, and
+[Redirect(destination)] escapes the whole branch.
+
+A loader marks its scope and all descendants as non-reusable for navigation
+patches. Keep loaders for fast validation, redirects, and route-level
+not-found decisions; stream slow data from async server components inside the
+route elements instead.
+
+{1 Error handling}
+
+The root [~error] policy maps application errors to statuses and renders them:
+
+{[
+module AppError = {
+  type t = string;
+
+  let status = _ => Router.Status.InternalServerError;
+
+  [@react.component]
+  let make = (~text as _, ~error as _) =>
+    <p> "The requested note could not be loaded." </p>;
+};
+]}
+
+[Router.Error.t] distinguishes [NotFound], [Application], invalid path or
+search parameters, and [Internal] failures carrying only a diagnostic id.
+Boundary components receive the scope inputs plus [~error]. The nearest
+[~notFound] handles missing routes and loader [NotFound] results, falling back
+to the nearest [~error].
+
+{1 Metadata and headers}
+
+[~metadata] and [~headers] resolve per scope on every response, including
+patches, and merge from the root down. Like loaders, they receive the decoded
+path parameters, search values, and ancestor loader results, and return
+[Lwt] promises:
+
+{[
+module NoteMetadata = {
+  let make = (~id as _, ~text as _, ~note, ()) =>
+    Lwt.return(Router.Metadata.make(~title=Note.title(note), ()));
+};
+]}
 
 {1 Server integration}
 
