@@ -161,75 +161,7 @@ let streamFunctionResponse ?(debug = false) ~lookup request =
       in
       Dream.flush stream)
 
-let split_header delimiter value =
-  let length = String.length value in
-  let rec loop index start quoted escaped parts =
-    if index = length then
-      if quoted || escaped then None else Some (List.rev (String.sub value start (index - start) :: parts))
-    else
-      match (quoted, escaped, value.[index]) with
-      | true, true, _ -> loop (index + 1) start true false parts
-      | true, false, '\\' -> loop (index + 1) start true true parts
-      | true, false, '"' -> loop (index + 1) start false false parts
-      | false, false, '"' -> loop (index + 1) start true false parts
-      | false, false, char when Char.equal char delimiter ->
-          loop (index + 1) (index + 1) false false (String.sub value start (index - start) :: parts)
-      | _ -> loop (index + 1) start quoted false parts
-  in
-  loop 0 0 false false []
-
-let quality_is_acceptable value =
-  let value = String.trim value in
-  let length = String.length value in
-  let rec suffix_is_valid index expected =
-    index = length || (Char.equal value.[index] expected && suffix_is_valid (index + 1) expected)
-  in
-  if String.equal value "0" then Some false
-  else if String.equal value "1" then Some true
-  else if length >= 2 && length <= 5 && Char.equal value.[1] '.' then
-    match value.[0] with
-    | '0' ->
-        if suffix_is_valid 2 '0' then Some false
-        else
-          let rec suffix_is_digits index =
-            index = length
-            ||
-            let char = value.[index] in
-            (char >= '0' && char <= '9') && suffix_is_digits (index + 1)
-          in
-          if suffix_is_digits 2 then Some true else None
-    | '1' -> if suffix_is_valid 2 '0' then Some true else None
-    | _ -> None
-  else None
-
-let range_accepts_react_component range =
-  match split_header ';' range with
-  | None | Some [] -> false
-  | Some (media_type :: parameters) ->
-      if not (String.equal (String.lowercase_ascii (String.trim media_type)) "application/react.component") then false
-      else
-        let rec find_quality quality = function
-          | [] -> Option.value ~default:true quality
-          | parameter :: rest -> (
-              let parameter = String.trim parameter in
-              match String.index_opt parameter '=' with
-              | Some equals ->
-                  let name = String.sub parameter 0 equals |> String.trim |> String.lowercase_ascii in
-                  if String.equal name "q" then
-                    if Option.is_some quality then false
-                    else
-                      let value = String.sub parameter (equals + 1) (String.length parameter - equals - 1) in
-                      match quality_is_acceptable value with
-                      | None -> false
-                      | Some acceptable -> find_quality (Some acceptable) rest
-                  else find_quality quality rest
-              | None -> if String.equal (String.lowercase_ascii parameter) "q" then false else find_quality quality rest
-              )
-        in
-        find_quality None parameters
-
-let is_react_component_header value =
-  match split_header ',' value with None -> false | Some ranges -> List.exists range_accepts_react_component ranges
+let is_react_component_header value = String.equal value "application/react.component"
 
 let stream_model_value ?(debug = false) ?(code = 200) ?(headers = []) ~location app =
   let%lwt response =

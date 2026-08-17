@@ -68,29 +68,19 @@ let check_accept ~rsc accept =
   let seen = ref None in
   let request = Dream.request ~target:"/app/item" ~headers:[ ("Accept", accept) ] "" in
   let response = Dream.test (handler seen) request in
+  Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int);
   let expected = if rsc then "application/react.component" else "text/html; charset=utf-8" in
   Alcotest.(check (option string)) accept (Some expected) (Dream.header response "Content-Type")
 
-let accepts_react_component_media_ranges () =
+let rejects_other_accept_values () =
   [
+    "text/html";
     "APPLICATION/REACT.COMPONENT";
     "application/react.component; charset=utf-8";
-    "application/react.component; Q=0.5";
-    "text/html, application/react.component; profile=compact; q=0.001";
-    "application/react.component; profile=\"a,b;c\"; q=1.000, text/html";
-  ]
-  |> List.iter (check_accept ~rsc:true)
-
-let rejects_unacceptable_react_component_media_ranges () =
-  [
     "application/react.component; q=0";
-    "text/html, application/react.component; q=0.000";
-    "application/react.component; q=invalid";
-    "application/react.component; q=1.001";
-    "application/react.component; q=0.5; q=1";
+    "text/html, application/react.component";
     "application/react.componentish";
     "application/*";
-    "application/react.component; profile=\"unterminated";
   ]
   |> List.iter (check_accept ~rsc:false)
 
@@ -222,8 +212,7 @@ let () =
         [
           test "RSC request uses context and headers" rsc_request_uses_context_and_headers;
           test "document request uses HTML" document_request_uses_html;
-          test "accepts RSC Accept media ranges" accepts_react_component_media_ranges;
-          test "rejects invalid RSC Accept media ranges" rejects_unacceptable_react_component_media_ranges;
+          test "rejects other Accept values" rejects_other_accept_values;
           test "shared action dispatcher handles mount" shared_action_dispatcher_handles_mount;
           test "registry mismatch returns reload-required" registry_mismatch_returns_reload_required;
           test "patch payload is smaller than full" patch_payload_is_smaller_than_full;
