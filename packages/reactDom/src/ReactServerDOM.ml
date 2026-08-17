@@ -375,11 +375,32 @@ module Model = struct
     let stack = create_stack_trace () in
     { React.message; stack; env = "Server"; digest = "" }
 
-  let lazy_value id = Printf.sprintf "$L%x" id
-  let promise_value id = Printf.sprintf "$@%x" id
-  let ref_value id = Printf.sprintf "$%x" id
-  let error_value id = Printf.sprintf "$Z%x" id
-  let action_value id = Printf.sprintf "$F%x" id
+  let hex_digits = "0123456789abcdef"
+  let rec hex_length value length = if value < 16 then length else hex_length (value lsr 4) (length + 1)
+
+  let hex_with_prefix prefix value =
+    let prefix_length = String.length prefix in
+    let bytes = Bytes.create (prefix_length + hex_length value 1) in
+    Bytes.blit_string prefix 0 bytes 0 prefix_length;
+    let rec write index value =
+      Bytes.set bytes index hex_digits.[value land 0xf];
+      if index > prefix_length then write (index - 1) (value lsr 4)
+    in
+    write (Bytes.length bytes - 1) value;
+    Bytes.unsafe_to_string bytes
+
+  let add_hex buf value =
+    let rec write value =
+      if value >= 16 then write (value lsr 4);
+      Buffer.add_char buf hex_digits.[value land 0xf]
+    in
+    write value
+
+  let lazy_value id = hex_with_prefix "$L" id
+  let promise_value id = hex_with_prefix "$@" id
+  let ref_value id = hex_with_prefix "$" id
+  let error_value id = hex_with_prefix "$Z" id
+  let action_value id = hex_with_prefix "$F" id
 
   (* User strings starting with '$' are escaped with an extra '$' mirrors escapeStringValue in React's ReactFlightServer.js *)
   let escape_string_value value =
@@ -536,28 +557,32 @@ module Model = struct
 
   let value_to_chunk id value =
     let buf = Buffer.create (4 * 1024) in
-    Buffer.add_string buf (Printf.sprintf "%x:" id);
+    add_hex buf id;
+    Buffer.add_char buf ':';
     write_json buf value;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
   let debug_info_to_chunk id debug_info =
     let buf = Buffer.create (4 * 1024) in
-    Buffer.add_string buf (Printf.sprintf "%x:D" id);
+    add_hex buf id;
+    Buffer.add_string buf ":D";
     write_json buf debug_info;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
   let client_reference_to_chunk id ref =
     let buf = Buffer.create 256 in
-    Buffer.add_string buf (Printf.sprintf "%x:I" id);
+    add_hex buf id;
+    Buffer.add_string buf ":I";
     write_json buf ref;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
   let error_to_chunk id error =
     let buf = Buffer.create 256 in
-    Buffer.add_string buf (Printf.sprintf "%x:E" id);
+    add_hex buf id;
+    Buffer.add_string buf ":E";
     write_json buf error;
     Buffer.add_string buf "\n";
     Buffer.contents buf
