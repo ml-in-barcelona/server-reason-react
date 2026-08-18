@@ -166,10 +166,19 @@ let write_text_node buf (element : React.element) =
   | Float f -> Buffer.add_string buf (Js.Float.toString f)
   | _ -> raise (Invalid_argument "write_text_node expects a Text, Int or Float element")
 
-exception Unsupported_sync_render of string
+let async_component_sync_error =
+  "Async components can't be rendered synchronously. Please use `renderToStream` instead."
 
-let unsupported_sync message = raise (Unsupported_sync_render message)
-let translate_unsupported message = raise (Invalid_argument message)
+let client_component_sync_error_prefix =
+  "Client components can't be rendered synchronously on the server. Please use the React server components API \
+   instead. module: "
+
+let client_component_sync_error import_module = client_component_sync_error_prefix ^ import_module
+let unsupported_sync message = raise (Invalid_argument message)
+
+let is_unsupported_sync_message message =
+  String.equal message async_component_sync_error
+  || String.starts_with ~prefix:client_component_sync_error_prefix message
 
 (* The sync tree walker behind renderToString, renderToStaticMarkup and the
    ppx Writer fast path. [separators] and [prev_text] are documented on
@@ -193,10 +202,7 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
         doctype_pending := false;
         emit buf ~separators;
         false
-    | Client_component { import_module; _ } ->
-        unsupported_sync
-          ("Client components can't be rendered synchronously on the server. Please use the React server components \
-            API instead. module: " ^ import_module)
+    | Client_component { import_module; _ } -> unsupported_sync (client_component_sync_error import_module)
     | Provider { children; push; _ } ->
         let pop = push () in
         Fun.protect ~finally:pop (fun () -> render buf prev_text children)
@@ -205,8 +211,7 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
     | List list -> render_children_list buf prev_text list
     | Array arr -> render_children_array buf prev_text arr
     | Upper_case_component (_, component) -> render_upper_case_component buf prev_text component
-    | Async_component (_name, _component) ->
-        unsupported_sync "Async components can't be rendered synchronously. Please use `renderToStream` instead."
+    | Async_component (_name, _component) -> unsupported_sync async_component_sync_error
     | Lower_case_element { key = _; tag; attributes; children } ->
         render_lower_case buf tag attributes children;
         false
@@ -223,7 +228,8 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
             Buffer.add_buffer buf suspense_inner_buf;
             Buffer.add_string buf "<!--/$-->";
             ends_text
-        | exception (Unsupported_sync_render _ as unsupported) -> raise unsupported
+        | exception (Invalid_argument message as unsupported) when is_unsupported_sync_message message ->
+            raise unsupported
         | exception ((Stack_overflow | Out_of_memory | Assert_failure _) as fatal) -> raise fatal
         | exception _e ->
             Buffer.add_string buf "<!--$!-->";
@@ -322,14 +328,11 @@ let write_element_to_buffer_internal buf ~separators ~prev_text element : bool =
   render_tree buf ~separators ~doctype:false ~prev_text element
 
 let write_element_to_buffer buf ~separators ~prev_text element =
-  match write_element_to_buffer_internal buf ~separators ~prev_text element with
-  | ends_text -> ends_text
-  | exception Unsupported_sync_render message -> translate_unsupported message
+  write_element_to_buffer_internal buf ~separators ~prev_text element
 
 let write_to_buffer buf element =
-  match render_tree buf ~separators:false ~doctype:false ~prev_text:false element with
-  | (_ : bool) -> ()
-  | exception Unsupported_sync_render message -> translate_unsupported message
+  let (_ : bool) = render_tree buf ~separators:false ~doctype:false ~prev_text:false element in
+  ()
 
 let escape_to_buffer = Html.escape
 
@@ -355,11 +358,9 @@ let render_sync ~mode ?identifier_prefix element =
   (* TODO: try catch to avoid React.use usages *)
   React.reset_id_rendering ?prefix:identifier_prefix ();
   let buf = Buffer.create !last_render_size in
-  match render_to_buffer ~mode buf element with
-  | () ->
-      remember_render_size (Buffer.length buf);
-      Buffer.contents buf
-  | exception Unsupported_sync_render message -> translate_unsupported message
+  render_to_buffer ~mode buf element;
+  remember_render_size (Buffer.length buf);
+  Buffer.contents buf
 
 let renderToString ?identifier_prefix element = render_sync ~mode:String ?identifier_prefix element
 let renderToStaticMarkup ?identifier_prefix element = render_sync ~mode:Markup ?identifier_prefix element
@@ -474,7 +475,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         (* [renderToString] hydration relies on the [<!-- -->] text separators *)
         match emit buf ~separators:true with
         | () -> Lwt.return ()
-        | exception Unsupported_sync_render _ ->
+        | exception Invalid_argument message when is_unsupported_sync_message message ->
             Buffer.truncate buf buffer_length;
             should_add_doctype := saved_should_add_doctype;
             previous_node_was_text := saved_previous_node_was_text;
