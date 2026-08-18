@@ -56,9 +56,7 @@ let server =
                | None => true
                },
            ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
-           ~document=
-             children =>
-               Pages.Document.make(Pages.Document.makeProps(~children, ())),
+           ~document=children => <Pages.Document> children </Pages.Document>,
            (),
          ),
     ]),
