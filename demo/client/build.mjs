@@ -3,11 +3,10 @@ import Path from "path";
 import extractClientComponents from "../../packages/esbuild-plugin/plugin.mjs";
 
 async function build(entryPoints, { env, output, extract, mockWebpackRequire }) {
-	const outfile = output;
-	const outdir = Path.dirname(outfile);
+	const outdir = output;
 	const splitting = true;
 
-	const bootstrapOutput = Path.join(Path.dirname(outfile), "bootstrap.js");
+	const bootstrapOutput = Path.join(outdir, "bootstrap.js");
 
 	let plugins = [];
 	if (extract) {

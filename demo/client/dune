@@ -27,6 +27,10 @@
  (enabled_if
   (= %{profile} dev))
  (alias client)
+ ; the bundle output is a directory target so dune tracks the hashed chunks;
+ ; it must live outside the melange-managed app/ directory
+ (targets
+  (dir dist))
  (deps
   (package server-reason-react)
   (alias_rec melange)
@@ -45,6 +49,6 @@
    node
    %{script}
    %{entrypoints}
-   --output=app/demo/client/
+   --output=dist/demo
    --extract=true
    --env=%{env:DEMO_ENV='production'})))

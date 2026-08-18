@@ -21,7 +21,7 @@ let server =
       ),
       Dream.get(
         "/static/**",
-        Dream.static("./_build/default/demo/client/app"),
+        Dream.static("./_build/default/demo/client/dist"),
       ),
       getAndPost(Routes.renderToString, _request =>
         Dream.html(
