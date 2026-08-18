@@ -45,9 +45,9 @@ each module:
 - [~loader] resolves [Module.load]. The scope's components receive the loader
   result under the module name ([Pages.NoteLoader] becomes [~noteLoader]), or
   under the [~loaderAs_] name when given.
-- [~error] at the root resolves an error policy: a module with a type [t] (the
-  application error), [status: t => Router.Status.t], and a [make] component.
-  On groups and routes, [~error] is a boundary component.
+- [~error] at the root resolves an error policy: a module with a [status]
+  function and a [make] component. On groups and routes, [~error] is a boundary
+  component.
 - [~metadata] and [~headers] are plain functions, not modules.
 
 {2 Path parameters}
@@ -184,8 +184,6 @@ The root [~error] policy maps application errors to statuses and renders them:
 
 {[
 module AppError = {
-  type t = string;
-
   let status = _ => Router.Status.InternalServerError;
 
   [@react.component]

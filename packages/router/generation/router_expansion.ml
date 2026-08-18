@@ -1025,24 +1025,10 @@ let registry (declaration : Router_declaration.t) =
     B.pstr_value ~loc Nonrecursive
       [ B.value_binding ~loc ~pat:(B.pvar ~loc "basePath") ~expr:(B.estring ~loc (encoded_path declaration.base_path)) ]
   in
-  let error_type =
-    match declaration.application_error with
-    | Some policy -> B.ptyp_constr ~loc { txt = Longident.Ldot (policy, "t"); loc } []
-    | None -> unit_type ~loc
-  in
-  let plan_type =
-    B.ptyp_constr ~loc
-      { txt = Longident.parse "RouterServer.Plan.t"; loc }
-      [ result_type ~loc "React.element"; error_type ]
-  in
-  let registry_type =
-    B.ptyp_constr ~loc { txt = Longident.parse "RouterServer.EndpointRegistry.t"; loc } [ plan_type; error_type ]
-  in
   let registry =
     B.pstr_value ~loc Nonrecursive
       [
-        B.value_binding ~loc
-          ~pat:(B.ppat_constraint ~loc (B.pvar ~loc "registry") registry_type)
+        B.value_binding ~loc ~pat:(B.pvar ~loc "registry")
           ~expr:
             (B.pexp_apply ~loc
                (B.evar ~loc "RouterServer.EndpointRegistry.makeExn")

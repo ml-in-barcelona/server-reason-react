@@ -46,8 +46,6 @@ module RootBoundary = {
 };
 
 module AppError = {
-  type t = string;
-
   let status = _ => RouterRuntime.Status.Forbidden;
   let makeProps = RootBoundary.makeProps;
   let make = RootBoundary.make;

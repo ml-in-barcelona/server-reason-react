@@ -79,8 +79,6 @@ module GlobalLoading = {
 };
 
 module AppError = {
-  type t = string;
-
   let status = _ => Router.Status.InternalServerError;
 
   [@react.component]
