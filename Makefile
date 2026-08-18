@@ -31,6 +31,10 @@ clean: ## Clean artifacts
 test: ## Run the unit tests
 	$(DUNE) build @runtest
 
+.PHONY: check-react-compat
+check-react-compat: ## Check the native React interface against reason-react
+	$(DUNE) build --profile=react-compat packages/react/compat/react_compat.cma
+
 .PHONY: test-watch
 test-watch: ## Run the unit tests in watch mode
 	$(DUNE) build @runtest -w

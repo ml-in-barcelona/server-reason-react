@@ -57,7 +57,7 @@ val escape_to_buffer : Buffer.t -> string -> unit
 
 (** {2 The rest of the API is there for compatibility with ReactDOM's reason-react} *)
 
-module Ref = React.Ref
+module Ref = React.DOMRef
 
 type domRef = Ref.t
 

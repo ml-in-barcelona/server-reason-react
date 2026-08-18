@@ -53,7 +53,7 @@
   (melange-json (>= 2.0.0))
   (melange-json-native (>= 2.0.0))
   (melange-webapi (>= 0.21.0))
-  (reason-react (>= 0.16.0))
+  (reason-react (>= 0.17.0))
 
   ; Documentation
   (odoc :with-doc)
