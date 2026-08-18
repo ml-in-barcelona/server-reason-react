@@ -4,8 +4,6 @@ external readable_stream: ReadableStream.t =
   "window.srr_stream.readable_stream";
 
 let document: option(Webapi.Dom.Element.t) = [%mel.raw "window.document"];
-/* The server wraps the routed root in a #ssr-query-param marker only when it
-   rendered the root markup, so its presence tells us whether to hydrate. */
 let ssr =
   switch (
     Webapi.Dom.Document.getElementById("ssr-query-param", Webapi.Dom.document)

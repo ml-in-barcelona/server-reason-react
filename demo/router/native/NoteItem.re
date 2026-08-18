@@ -1,4 +1,3 @@
-[@platform native]
 module NoteView = {
   [@react.component]
   let make = (~note: Note.t) => {
@@ -27,7 +26,6 @@ module NoteView = {
   };
 };
 
-[@platform native]
 [@react.component]
 let make = (~note: Note.t, ~isEditing: bool) =>
   isEditing
