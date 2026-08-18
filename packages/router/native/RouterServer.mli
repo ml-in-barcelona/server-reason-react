@@ -329,6 +329,21 @@ module Server : sig
     children:React.element ->
     React.element
 
+  val clientRootWith :
+    (React.element, 'error) t ->
+    make:
+      (initial:RouterRuntime.Navigation.committed ->
+      protocolVersion:int ->
+      registryFingerprint:string ->
+      basePath:string ->
+      metadata:React.element ->
+      children:React.element ->
+      React.element) ->
+    initial:RouterRuntime.Navigation.committed ->
+    metadata:React.element ->
+    children:React.element ->
+    React.element
+
   val run :
     ('view, 'error) t ->
     diagnosticId:(exn -> string) ->

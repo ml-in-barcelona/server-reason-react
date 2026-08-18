@@ -892,10 +892,14 @@ module Server = struct
   let protocolVersion server = server.protocol_version
   let fingerprint server = EndpointRegistry.fingerprint server.registry
 
-  let clientRoot server ~initial ~metadata ~children =
-    RouterClientRoot.make
-      (RouterClientRoot.makeProps ~initial ~protocolVersion:server.protocol_version
-         ~registryFingerprint:(fingerprint server) ~basePath:server.base_path ~metadata ~children ())
+  let clientRootWith server ~make ~initial ~metadata ~children =
+    make ~initial ~protocolVersion:server.protocol_version ~registryFingerprint:(fingerprint server)
+      ~basePath:server.base_path ~metadata ~children
+
+  let clientRoot server =
+    clientRootWith server ~make:(fun ~initial ~protocolVersion ~registryFingerprint ~basePath ~metadata ~children ->
+        RouterClientRoot.make
+          (RouterClientRoot.makeProps ~initial ~protocolVersion ~registryFingerprint ~basePath ~metadata ~children ()))
 
   let run server ~diagnosticId ~revision request =
     ServerEngine.run ~registry:server.registry ~basePath:server.base_path ~fallback:server.fallback
