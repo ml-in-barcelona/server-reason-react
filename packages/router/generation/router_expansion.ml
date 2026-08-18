@@ -173,7 +173,7 @@ let decode_route_parameter_expression ~loc =
       ]
   in
   let raw =
-    B.pexp_apply ~loc (B.evar ~loc "List.assoc_opt")
+    B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.assoc_opt")
       [ (Nolabel, B.evar ~loc "name"); (Nolabel, B.evar ~loc "parameters") ]
   in
   let body =
@@ -381,10 +381,10 @@ let route_module ~base_path (route : Router_declaration.route) =
               B.pexp_apply ~loc (B.evar ~loc "Option.map") [ (Nolabel, mapper); (Nolabel, B.evar ~loc search.name) ]
             in
             let nested = B.pexp_apply ~loc (B.evar ~loc "Option.to_list") [ (Nolabel, mapped) ] in
-            B.pexp_apply ~loc (B.evar ~loc "List.concat") [ (Nolabel, nested) ]
+            B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.concat") [ (Nolabel, nested) ]
         | Many ->
             let values =
-              B.pexp_apply ~loc (B.evar ~loc "List.map")
+              B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.map")
                 [
                   (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc "item") (printed (B.evar ~loc "item")));
                   (Nolabel, B.evar ~loc "value");
@@ -393,7 +393,7 @@ let route_module ~base_path (route : Router_declaration.route) =
             optional_search_entries search (search_pair search.name values))
       route.search
   in
-  let search_values = B.pexp_apply ~loc (B.evar ~loc "List.concat") [ (Nolabel, B.elist ~loc search_entries) ] in
+  let search_values = B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.concat") [ (Nolabel, B.elist ~loc search_entries) ] in
   let pattern_source =
     if String.equal route.path "/" && not (String.equal base_path "") then base_path else base_path ^ route.path
   in
@@ -495,7 +495,7 @@ let search_update_entry ~loc (search : Router_declaration.search) =
         (Some (B.elist ~loc [ search_pair ~loc search.name (B.elist ~loc [ printed_value ]) ]))
   | Many ->
       let values =
-        B.pexp_apply ~loc (B.evar ~loc "List.map")
+        B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.map")
           [
             ( Nolabel,
               B.pexp_fun ~loc Nolabel None (B.pvar ~loc "value") (print_search_value ~loc search (B.evar ~loc "value"))
@@ -510,7 +510,7 @@ let search_contract_structure ~loc search =
   else
     let update_body =
       let values =
-        B.pexp_apply ~loc (B.evar ~loc "List.concat")
+        B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.concat")
           [ (Nolabel, B.elist ~loc (List.map (search_update_entry ~loc) search)) ]
       in
       B.pexp_apply ~loc (B.evar ~loc "updateSearch")
