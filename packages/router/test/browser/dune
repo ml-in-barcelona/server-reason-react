@@ -1,13 +1,14 @@
 (melange.emit
  (target test_router_browser)
  (modules
+  RouterHistory
   RouterOutlet
   RouterPattern
   RouterRuntime
   RouterTypes
   TestRouterBrowser)
  (module_systems commonjs)
- (libraries melange.js reason-react server-reason-react.rsc)
+ (libraries melange-webapi melange.js reason-react server-reason-react.rsc)
  (preprocess
   (pps server-reason-react.rsc.ppx melange.ppx)))
 
@@ -25,6 +26,9 @@
 
 (copy_files
  (files ../../react/shared/RouterOutlet.re))
+
+(copy_files
+ (files ../../react/js/RouterHistory.re))
 
 (copy_files
  (files ../../react/js/RouterRuntime.re))

@@ -151,7 +151,9 @@ module Provider = {
     let activeRequest = React.useRef(None);
     let nextLocationKey = React.useRef(1);
     let scrollPositions = React.useRef([]);
-    let contentIdentity = React.useRef("content-0");
+    let (contentIdentityPrefix, _) =
+      React.useState(RouterHistory.freshContentIdentity);
+    let contentIdentity = React.useRef(contentIdentityPrefix ++ "-0");
     let restoredContentIdentity = React.useRef("");
     let mutateHistory = (~action, ~state, ~url) =>
       switch (Navigation.historyMutation(action)) {
@@ -379,13 +381,7 @@ module Provider = {
       let from = committed.location.pathname ++ committed.location.search;
       let failNavigation = message =>
         switch (action) {
-        | Navigation.Pop =>
-          hardNavigate(
-            ~replace=true,
-            committed.location.pathname
-            ++ committed.location.search
-            ++ committed.location.hash,
-          )
+        | Navigation.Pop => hardNavigate(~replace=true, target)
         | Navigation.Push
         | Navigation.Replace => finishFailure(~requestId, ~message)
         };
@@ -453,7 +449,7 @@ module Provider = {
                    | (Navigation.Pop, None)
                    | (Navigation.Push, _)
                    | (Navigation.Replace, _) =>
-                     "content-" ++ string_of_int(requestId)
+                     contentIdentityPrefix ++ "-" ++ string_of_int(requestId)
                    };
                  switch (
                    RouterTransaction.prepare(

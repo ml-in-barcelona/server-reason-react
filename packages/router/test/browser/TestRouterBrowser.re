@@ -3,6 +3,15 @@ let expect = (message, condition) =>
     failwith(message);
   };
 
+expect(
+  "content identities were reused across documents",
+  !
+    String.equal(
+      RouterHistory.freshContentIdentity(),
+      RouterHistory.freshContentIdentity(),
+    ),
+);
+
 let original = React.string("original");
 let firstPayload = React.string("first patch");
 let initial: RouterOutlet.saved = {

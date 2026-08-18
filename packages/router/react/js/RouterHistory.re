@@ -5,6 +5,10 @@ type state = {
   revision: string,
 };
 
+[@mel.scope "crypto"] external randomUUID: unit => string = "randomUUID";
+
+let freshContentIdentity = () => "content-" ++ randomUUID();
+
 [@mel.send]
 external pushState: (DOM.History.t, state, string, string) => unit =
   "pushState";
