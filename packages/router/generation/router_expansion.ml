@@ -354,9 +354,9 @@ let route_module ~base_path (route : Router_declaration.route) =
   let optional_search_entries (search : Router_declaration.search) value_body =
     let mapper = B.pexp_fun ~loc Nolabel None (B.pvar ~loc "value") value_body in
     let mapped =
-      B.pexp_apply ~loc (B.evar ~loc "Option.map") [ (Nolabel, mapper); (Nolabel, B.evar ~loc search.name) ]
+      B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.map") [ (Nolabel, mapper); (Nolabel, B.evar ~loc search.name) ]
     in
-    B.pexp_apply ~loc (B.evar ~loc "Option.to_list") [ (Nolabel, mapped) ]
+    B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.to_list") [ (Nolabel, mapped) ]
   in
   let search_entries =
     List.map
@@ -371,16 +371,17 @@ let route_module ~base_path (route : Router_declaration.route) =
             let printed_default = printed default in
             let value_body =
               B.pexp_ifthenelse ~loc
-                (B.pexp_apply ~loc (B.evar ~loc "String.equal")
+                (B.pexp_apply ~loc (B.evar ~loc "Stdlib.String.equal")
                    [ (Nolabel, printed_value); (Nolabel, printed_default) ])
                 (B.elist ~loc [])
                 (Some (B.elist ~loc [ search_pair search.name (B.elist ~loc [ printed_value ]) ]))
             in
             let mapper = B.pexp_fun ~loc Nolabel None (B.pvar ~loc "value") value_body in
             let mapped =
-              B.pexp_apply ~loc (B.evar ~loc "Option.map") [ (Nolabel, mapper); (Nolabel, B.evar ~loc search.name) ]
+              B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.map")
+                [ (Nolabel, mapper); (Nolabel, B.evar ~loc search.name) ]
             in
-            let nested = B.pexp_apply ~loc (B.evar ~loc "Option.to_list") [ (Nolabel, mapped) ] in
+            let nested = B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.to_list") [ (Nolabel, mapped) ] in
             B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.concat") [ (Nolabel, nested) ]
         | Many ->
             let values =
@@ -482,15 +483,15 @@ let search_update_entry ~loc (search : Router_declaration.search) =
       let value = B.evar ~loc "value" in
       let pair = search_pair ~loc search.name (B.elist ~loc [ print_search_value ~loc search value ]) in
       let mapped =
-        B.pexp_apply ~loc (B.evar ~loc "Option.map")
+        B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.map")
           [ (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc "value") pair); (Nolabel, variable) ]
       in
-      B.pexp_apply ~loc (B.evar ~loc "Option.to_list") [ (Nolabel, mapped) ]
+      B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.to_list") [ (Nolabel, mapped) ]
   | Default fallback ->
       let printed_value = print_search_value ~loc search variable in
       let printed_default = print_search_value ~loc search fallback in
       B.pexp_ifthenelse ~loc
-        (B.pexp_apply ~loc (B.evar ~loc "String.equal") [ (Nolabel, printed_value); (Nolabel, printed_default) ])
+        (B.pexp_apply ~loc (B.evar ~loc "Stdlib.String.equal") [ (Nolabel, printed_value); (Nolabel, printed_default) ])
         (B.elist ~loc [])
         (Some (B.elist ~loc [ search_pair ~loc search.name (B.elist ~loc [ printed_value ]) ]))
   | Many ->
@@ -635,7 +636,7 @@ let native_search_decoder ~loc (search : Router_declaration.search) =
   B.pexp_apply ~loc (B.evar ~loc callee) arguments
 
 let bind_decode ~loc name decoder body =
-  B.pexp_apply ~loc (B.evar ~loc "Result.bind")
+  B.pexp_apply ~loc (B.evar ~loc "Stdlib.Result.bind")
     [ (Nolabel, decoder); (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc name) body) ]
 
 let boundary_callback ~loc attachment parameters search loaders =
@@ -986,8 +987,8 @@ let fallback (declaration : Router_declaration.t) =
     B.pexp_fun ~loc Nolabel None (B.pvar ~loc "decodeError") failed
   in
   let folded =
-    B.pexp_apply ~loc (B.evar ~loc "Result.fold")
-      [ (Labelled "ok", B.evar ~loc "Fun.id"); (Labelled "error", decode_failure); (Nolabel, decoded) ]
+    B.pexp_apply ~loc (B.evar ~loc "Stdlib.Result.fold")
+      [ (Labelled "ok", B.evar ~loc "Stdlib.Fun.id"); (Labelled "error", decode_failure); (Nolabel, decoded) ]
   in
   let with_input =
     B.pexp_let ~loc Nonrecursive
