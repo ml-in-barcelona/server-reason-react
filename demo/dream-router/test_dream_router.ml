@@ -76,6 +76,7 @@ let document_request_uses_html () =
     "content type" (Some "text/html; charset=utf-8") (Dream.header response "Content-Type");
   let body = Lwt_main.run (Dream.body response) in
   Alcotest.(check bool) "metadata title" true (contains ~needle:"<title>Item</title>" body);
+  Alcotest.(check bool) "ssr marker" true (contains ~needle:"id=\"ssr-query-param\"" body);
   Alcotest.(check bool) "routed markup" true (contains ~needle:"<main>item</main>" body)
 
 let document_request_can_disable_ssr () =
@@ -85,6 +86,7 @@ let document_request_can_disable_ssr () =
   Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int);
   let body = Lwt_main.run (Dream.body response) in
   Alcotest.(check bool) "document shell" true (contains ~needle:"<meta name=\"router-shell\" />" body);
+  Alcotest.(check bool) "ssr marker" false (contains ~needle:"id=\"ssr-query-param\"" body);
   Alcotest.(check bool) "routed markup" false (contains ~needle:"<main>item</main>" body);
   Alcotest.(check bool) "RSC payload" true (contains ~needle:"item" body)
 

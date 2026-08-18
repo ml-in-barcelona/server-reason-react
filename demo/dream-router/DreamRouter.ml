@@ -233,6 +233,13 @@ let metadata_element metadata =
 let resolved_element (resolved : (React.element, 'error) RouterServer.Plan.resolved) =
   Option.value ~default:React.null resolved.element
 
+(* The marker lets the bootstrap module detect from the DOM whether the server rendered the root markup: it sits next
+   to the routed root, so [skipRoot] drops it together with the markup it signals. *)
+let ssr_marker =
+  React.createElementWithKey ~key:"router:ssr" "div"
+    [ React.JSX.String ("id", "id", "ssr-query-param"); React.JSX.Style [ ("display", "display", "none") ] ]
+    []
+
 let document_element ~router ~document (response : (React.element, 'error) RouterServer.ServerEngine.full) =
   let pathname, query = Dream.split_target response.canonical_url in
   let search = if String.equal query "" then "" else "?" ^ query in
@@ -249,7 +256,7 @@ let document_element ~router ~document (response : (React.element, 'error) Route
       ~metadata:(metadata_element response.resolved.metadata)
       ~children:(resolved_element response.resolved)
   in
-  document children
+  document (React.list [ ssr_marker; children ])
 
 let full_model (response : (React.element, 'error) RouterServer.ServerEngine.full) =
   let full : React.element RouterRuntime.NavigationResponse.full =

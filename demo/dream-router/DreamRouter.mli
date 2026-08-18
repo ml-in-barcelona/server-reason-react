@@ -99,7 +99,8 @@ val routes :
     @param diagnosticId produce a safe identifier for an internal exception
     @param revision produce the revision attached to a successful response
     @param ssr
-      decide whether to include the routed root markup in each document response (default: always true). When false, the
-      bootstrap module must mount with [ReactDOM.Client.createRoot] instead of [ReactDOM.Client.hydrateRoot]
+      decide whether to include the routed root markup in each document response (default: always true). The root markup
+      is wrapped in a [div#ssr-query-param] marker, so the bootstrap module can check the DOM for it: present means
+      mount with [ReactDOM.Client.hydrateRoot], absent means [ReactDOM.Client.createRoot]
     @param bootstrapModules JavaScript modules loaded by document responses
     @param document wrap the routed client root in the HTML document tree *)

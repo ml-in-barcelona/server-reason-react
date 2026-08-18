@@ -4,13 +4,14 @@ external readable_stream: ReadableStream.t =
   "window.srr_stream.readable_stream";
 
 let document: option(Webapi.Dom.Element.t) = [%mel.raw "window.document"];
-let search: string = [%mel.raw "window.location.search"];
+/* The server wraps the routed root in a #ssr-query-param marker only when it
+   rendered the root markup, so its presence tells us whether to hydrate. */
 let ssr =
-  switch (URL.SearchParams.get(URL.SearchParams.makeExn(search), "ssr")) {
-  | Some("false") => false
-  | Some("true")
-  | Some(_)
-  | None => true
+  switch (
+    Webapi.Dom.Document.getElementById("ssr-query-param", Webapi.Dom.document)
+  ) {
+  | Some(_) => true
+  | None => false
   };
 
 let callServer = (path: string, args) => {
