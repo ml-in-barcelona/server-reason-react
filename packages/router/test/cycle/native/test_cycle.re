@@ -47,6 +47,16 @@ let testEncodeURIComponentParity = () => {
   );
 };
 
+let testCatchAllHref = () => {
+  let href = Router.Asset.href(~parts=["img", "café", "a+b"], ());
+  Alcotest.check(
+    Alcotest.string,
+    "catch-all href",
+    "/fixture/assets/img/caf%C3%A9/a%2Bb",
+    href,
+  );
+};
+
 let testGeneratedLink = () => {
   let link =
     Router.Note.make(
@@ -310,6 +320,7 @@ let runEngine =
     RouterServer.ServerEngine.run(
       ~registry=RouterRegistry.registry,
       ~basePath=RouterRegistry.basePath,
+      ~trailingSlash=RouterServer.TrailingSlash.Redirect,
       ~fallback=RouterRegistry.fallback,
       ~applicationStatus=RouterRegistry.applicationStatus,
       ~diagnosticId=_ => "diagnostic-1",
@@ -330,7 +341,8 @@ let testRscFullResponse = () => {
   Attachments.reset();
   NotePage.reset();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/42", ())) {
-  | Redirect(_) => Alcotest.fail("expected full response")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -385,7 +397,8 @@ let testDocumentNotFoundResponse = () => {
       (),
     )
   ) {
-  | Redirect(_) => Alcotest.fail("expected full response")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -416,7 +429,8 @@ let testInternalResponseIsSafe = () => {
   Attachments.reset();
   NoteLoader.fail();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/42", ())) {
-  | Redirect(_) => Alcotest.fail("expected full response")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -444,7 +458,8 @@ let testInternalResponseIsSafe = () => {
 let testEngineDecodeError = () => {
   Attachments.reset();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/nope", ())) {
-  | Redirect(_) => Alcotest.fail("expected full response")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -472,7 +487,8 @@ let testInvalidRootSearchBoundary = () => {
       (),
     )
   ) {
-  | Redirect(_) => Alcotest.fail("expected full response")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -497,6 +513,7 @@ let testEngineRedirect = () => {
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/42", ())) {
   | Full(_) => Alcotest.fail("expected redirect")
   | Patch(_)
+  | PermanentRedirect(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Redirect(destination) =>
     Alcotest.check(
@@ -508,11 +525,41 @@ let testEngineRedirect = () => {
   };
 };
 
+let testDeclaredRedirect = () => {
+  WorkspaceLoader.reset();
+  switch (
+    runEngine(
+      ~pathname="/fixture/legacy/7/notes/42",
+      ~search="?page=2&searchText=legacy",
+      (),
+    )
+  ) {
+  | Full(_)
+  | Patch(_)
+  | PermanentRedirect(_)
+  | ReloadRequired => Alcotest.fail("expected redirect")
+  | Redirect(destination) =>
+    Alcotest.check(
+      Alcotest.string,
+      "destination",
+      "/fixture/workspaces/7/notes/42?page=2&searchText=legacy",
+      RouterRuntime.href(destination),
+    )
+  };
+  Alcotest.check(
+    Alcotest.list(Alcotest.string),
+    "no loaders",
+    [],
+    WorkspaceLoader.events(),
+  );
+};
+
 let testApplicationErrorPolicy = () => {
   WorkspaceLoader.reset();
   WorkspaceLoader.error();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/42", ())) {
-  | Redirect(_) => Alcotest.fail("expected full response")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -572,7 +619,8 @@ let testPatchResponse = () => {
     );
   | Full(_)
   | ReloadRequired
-  | Redirect(_) => Alcotest.fail("expected patch")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected patch")
   };
 };
 
@@ -600,7 +648,8 @@ let testRegistryMismatchReloadsBeforeLoaders = () => {
     )
   | Full(_)
   | Patch(_)
-  | Redirect(_) => Alcotest.fail("expected reload-required")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected reload-required")
   };
 };
 
@@ -609,7 +658,8 @@ let testMissingNavigationFactsDegradeToFull = () => {
   | Full(_) => ()
   | Patch(_)
   | ReloadRequired
-  | Redirect(_) => Alcotest.fail("expected full response")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full response")
   };
 };
 
@@ -632,7 +682,8 @@ let testOversizedNavigationFromDegradesToFull = () => {
   | Full(_) => ()
   | Patch(_)
   | ReloadRequired
-  | Redirect(_) => Alcotest.fail("expected full response")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full response")
   };
 };
 
@@ -650,6 +701,7 @@ let () =
             `Quick,
             testEncodeURIComponentParity,
           ),
+          Alcotest.test_case("catch-all href", `Quick, testCatchAllHref),
           Alcotest.test_case("generated link", `Quick, testGeneratedLink),
           Alcotest.test_case(
             "generated endpoint",
@@ -702,6 +754,11 @@ let () =
             testInvalidRootSearchBoundary,
           ),
           Alcotest.test_case("engine redirect", `Quick, testEngineRedirect),
+          Alcotest.test_case(
+            "declared redirect",
+            `Quick,
+            testDeclaredRedirect,
+          ),
           Alcotest.test_case(
             "application error policy",
             `Quick,

@@ -1,6 +1,7 @@
 (library
  (name router_cycle_native)
  (modules
+  AssetPage
   Attachments
   Filter
   NoteId
@@ -19,6 +20,7 @@
  (preprocess
   (per_module
    ((pps server-reason-react.ppx)
+    AssetPage
     Attachments
     NotePage))))
 

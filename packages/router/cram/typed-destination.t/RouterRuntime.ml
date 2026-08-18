@@ -20,8 +20,18 @@ module Navigation = struct
   end
 end
 
+module CatchAll = struct
+  let parse value = Ok (String.split_on_char '/' value)
+  let toString segments = String.concat "/" segments
+end
+
 module Search = struct
   type options = unit
+
+  let parseString value = Ok value
+
+  let parseBool value =
+    match bool_of_string_opt value with Some value -> Ok value | None -> Error "expected true or false"
 end
 
 module Link = struct
@@ -29,5 +39,6 @@ module Link = struct
 end
 
 let pattern path = path
+let destination ~path = path
 let destinationFromPattern ~pattern:_ ~parameters:_ ~search:_ = ""
 let href destination = destination

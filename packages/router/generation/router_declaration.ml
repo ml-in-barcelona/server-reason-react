@@ -34,9 +34,10 @@ type scope = {
 }
 
 type leaf = { name : string; page : expression; scope : scope; loc : Location.t }
+type redirect_leaf = { id : string; target : expression; scope : scope; loc : Location.t }
 
 type group = { scope : scope; children : node list }
-and node = Group of group | Route of leaf
+and node = Group of group | Route of leaf | Redirect of redirect_leaf
 
 type route = {
   name : string;
@@ -48,8 +49,21 @@ type route = {
   loc : Location.t;
 }
 
+type redirect = {
+  id : string;
+  target : expression;
+  path : string;
+  parameters : parameter list;
+  search : search list;
+  loc : Location.t;
+}
+
+type endpoint = Page of route | RedirectTo of redirect
+type trailing_slash = Redirect | Reject
+
 type t = {
   base_path : string;
+  trailing_slash : trailing_slash;
   application_error : Longident.t option;
   invalid_search : expression option;
   root : group;
@@ -90,6 +104,7 @@ let type_of_name ~loc name = Ast_builder.Default.ptyp_constr ~loc { txt = Longid
 
 let to_string_of_type ~loc name =
   match String.split_on_char '.' name with
+  | [ "bool" ] -> Longident.Lident "string_of_bool"
   | [ "int" ] -> Longident.Lident "string_of_int"
   | [ "string" ] -> Longident.parse "Fun.id"
   | parts -> (
@@ -100,6 +115,7 @@ let to_string_of_type ~loc name =
 
 let parser_of_type ~loc name =
   match String.split_on_char '.' name with
+  | [ "bool" ] -> Longident.parse "RouterRuntime.Search.parseBool"
   | [ "int" ] -> Longident.parse "RouterRuntime.Search.parseInt"
   | [ "string" ] -> Longident.parse "RouterRuntime.Search.parseString"
   | parts -> (
@@ -110,65 +126,32 @@ let parser_of_type ~loc name =
 
 let type_name_of_expression expression = longident_of_expression expression |> longident_parts |> String.concat "."
 
-let valid_utf8 value =
-  let length = String.length value in
-  let byte index = Char.code value.[index] in
-  let continuation index = index < length && byte index >= 0x80 && byte index <= 0xbf in
-  let rec loop index =
-    if index >= length then true
-    else
-      let first = byte index in
-      if first <= 0x7f then loop (index + 1)
-      else if first >= 0xc2 && first <= 0xdf then continuation (index + 1) && loop (index + 2)
-      else if first = 0xe0 then
-        index + 2 < length
-        && byte (index + 1) >= 0xa0
-        && byte (index + 1) <= 0xbf
-        && continuation (index + 2)
-        && loop (index + 3)
-      else if (first >= 0xe1 && first <= 0xec) || (first >= 0xee && first <= 0xef) then
-        continuation (index + 1) && continuation (index + 2) && loop (index + 3)
-      else if first = 0xed then
-        index + 2 < length
-        && byte (index + 1) >= 0x80
-        && byte (index + 1) <= 0x9f
-        && continuation (index + 2)
-        && loop (index + 3)
-      else if first = 0xf0 then
-        index + 3 < length
-        && byte (index + 1) >= 0x90
-        && byte (index + 1) <= 0xbf
-        && continuation (index + 2)
-        && continuation (index + 3)
-        && loop (index + 4)
-      else if first >= 0xf1 && first <= 0xf3 then
-        continuation (index + 1) && continuation (index + 2) && continuation (index + 3) && loop (index + 4)
-      else if first = 0xf4 then
-        index + 3 < length
-        && byte (index + 1) >= 0x80
-        && byte (index + 1) <= 0x8f
-        && continuation (index + 2)
-        && continuation (index + 3)
-        && loop (index + 4)
-      else false
-  in
-  loop 0
-
 let parameters_of_path ~loc path =
-  match (valid_utf8 path, RouterPattern.parse path) with
+  match (RouterUtf8.valid path, RouterPattern.parse path) with
   | false, _ -> error ~loc "invalid route path %s" path
   | true, Error _ -> error ~loc "invalid route path %s" path
   | true, Ok pattern ->
       RouterPattern.parameters pattern
       |> List.map (fun (parameter : RouterPattern.parameter) ->
-          let type_name = parameter.typeName in
-          {
-            name = parameter.name;
-            typ = type_of_name ~loc type_name;
-            parser = parser_of_type ~loc type_name;
-            to_string = to_string_of_type ~loc type_name;
-            loc;
-          })
+          match parameter.typeName with
+          | "string..." ->
+              {
+                name = parameter.name;
+                typ =
+                  Ast_builder.Default.ptyp_constr ~loc { txt = Longident.Lident "list"; loc }
+                    [ type_of_name ~loc "string" ];
+                parser = Longident.parse "RouterRuntime.CatchAll.parse";
+                to_string = Longident.parse "RouterRuntime.CatchAll.toString";
+                loc;
+              }
+          | type_name ->
+              {
+                name = parameter.name;
+                typ = type_of_name ~loc type_name;
+                parser = parser_of_type ~loc type_name;
+                to_string = to_string_of_type ~loc type_name;
+                loc;
+              })
 
 let arguments expression =
   match expression.pexp_desc with
@@ -309,6 +292,13 @@ let root_error_policy arguments =
   | Some { pexp_desc = Pexp_construct ({ txt; _ }, None); _ } -> Some txt
   | _ -> None
 
+let trailing_slash_policy arguments =
+  match argument (Labelled "trailingSlash") arguments with
+  | None -> Redirect
+  | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "Redirect"; _ }, None); _ } -> Redirect
+  | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "Reject"; _ }, None); _ } -> Reject
+  | Some expression -> error ~loc:expression.pexp_loc "~trailingSlash must be Redirect or Reject"
+
 let rec node_of_expression ~address expression =
   let callee, arguments = arguments expression in
   if is_identifier [ "Router"; "route" ] callee then
@@ -342,6 +332,15 @@ let rec node_of_expression ~address expression =
     let local_path =
       match argument (Labelled "path") arguments with Some path -> string_of_expression path | None -> "/"
     in
+    let () =
+      match RouterPattern.parse local_path with
+      | Ok pattern
+        when List.exists
+               (function RouterPattern.CatchAll _ -> true | Static _ | Parameter _ -> false)
+               (RouterPattern.segments pattern) ->
+          error ~loc:expression.pexp_loc "group path %s cannot contain a catch-all segment" local_path
+      | Ok _ | Error _ -> ()
+    in
     match List.rev arguments with
     | (Nolabel, children) :: _ ->
         Group
@@ -352,7 +351,26 @@ let rec node_of_expression ~address expression =
               |> List.mapi (fun index child -> node_of_expression ~address:(address ^ "." ^ Int.to_string index) child);
           }
     | _ -> error ~loc:expression.pexp_loc "group requires a child list"
-  else error ~loc:expression.pexp_loc "expected Router.route or Router.group"
+  else if is_identifier [ "Router"; "redirect" ] callee then
+    let () = validate_arguments ~loc:expression.pexp_loc ~allowed:[ "path"; "search"; "to_" ] ~unlabelled:0 arguments in
+    let path =
+      match argument (Labelled "path") arguments with
+      | Some path -> string_of_expression path
+      | None -> error ~loc:expression.pexp_loc "redirect requires ~path"
+    in
+    let target =
+      match argument (Labelled "to_") arguments with
+      | Some target -> target
+      | None -> error ~loc:expression.pexp_loc "redirect requires ~to_"
+    in
+    Redirect
+      {
+        id = "redirect:" ^ address;
+        target;
+        scope = scope ~id:("redirect:" ^ address) ~path arguments expression;
+        loc = expression.pexp_loc;
+      }
+  else error ~loc:expression.pexp_loc "expected Router.route, Router.group, or Router.redirect"
 
 let root_search declaration = declaration.root.scope.search
 
@@ -378,6 +396,7 @@ let generated_labels =
     "search";
     "target";
     "updateSearch";
+    "unsafeDestination";
     "useNavigation";
     "useRoute";
     "useSearch";
@@ -386,44 +405,54 @@ let generated_labels =
     "values";
   ]
 
-let routes declaration =
+let endpoints declaration =
   let rec flatten ~parent_path ~parameters ~search ~scopes node =
-    let local_scope = match node with Group group -> group.scope | Route leaf -> leaf.scope in
+    let local_scope =
+      match node with Group group -> group.scope | Route leaf -> leaf.scope | Redirect leaf -> leaf.scope
+    in
     let path = join_path parent_path local_scope.path in
     let parameters = parameters @ local_scope.parameters in
     let search = search @ local_scope.search in
     let scopes = scopes @ [ local_scope ] in
     match node with
-    | Route leaf -> [ { name = leaf.name; page = leaf.page; path; parameters; search; scopes; loc = leaf.loc } ]
+    | Route leaf -> [ Page { name = leaf.name; page = leaf.page; path; parameters; search; scopes; loc = leaf.loc } ]
+    | Redirect leaf -> [ RedirectTo { id = leaf.id; target = leaf.target; path; parameters; search; loc = leaf.loc } ]
     | Group group -> List.concat_map (flatten ~parent_path:path ~parameters ~search ~scopes) group.children
   in
-  let routes =
+  let endpoints =
     List.concat_map
       (flatten ~parent_path:"" ~parameters:declaration.root.scope.parameters ~search:declaration.root.scope.search
          ~scopes:[ declaration.root.scope ])
       declaration.root.children
   in
   List.iter
-    (fun (route : route) ->
-      let loader_labels =
-        List.filter_map
-          (fun (scope : scope) -> Option.map (fun loader -> loader.result_label) scope.attachments.loader)
-          route.scopes
+    (fun endpoint ->
+      let parameters, search, loader_labels, loc =
+        match endpoint with
+        | Page route ->
+            ( route.parameters,
+              route.search,
+              List.filter_map
+                (fun (scope : scope) -> Option.map (fun loader -> loader.result_label) scope.attachments.loader)
+                route.scopes,
+              route.loc )
+        | RedirectTo redirect -> (redirect.parameters, redirect.search, [], redirect.loc)
       in
       let labels =
-        List.map (fun (parameter : parameter) -> parameter.name) route.parameters
-        @ List.map (fun (search : search) -> search.name) route.search
+        List.map (fun (parameter : parameter) -> parameter.name) parameters
+        @ List.map (fun (search : search) -> search.name) search
         @ loader_labels
       in
       match duplicate labels with
-      | Some label -> error ~loc:route.loc "duplicate branch input label %s" label
+      | Some label -> error ~loc "duplicate branch input label %s" label
       | None ->
           List.iter
             (fun label ->
               if List.mem label generated_labels then
-                error ~loc:route.loc "branch input label %s conflicts with a generated router argument" label)
+                error ~loc "branch input label %s conflicts with a generated router argument" label)
             labels)
-    routes;
+    endpoints;
+  let routes = List.filter_map (function Page route -> Some route | RedirectTo _ -> None) endpoints in
   (match duplicate (List.map (fun (route : route) -> route.name) routes) with
   | Some name -> error ~loc:declaration.loc "duplicate generated route name %s" name
   | None -> ());
@@ -432,7 +461,42 @@ let routes declaration =
     (fun route ->
       if List.mem route.name reserved then error ~loc:route.loc "generated route name %s is reserved" route.name)
     routes;
-  routes
+  let endpoint_path = function Page route -> route.path | RedirectTo redirect -> redirect.path in
+  let endpoint_loc = function Page route -> route.loc | RedirectTo redirect -> redirect.loc in
+  let parsed endpoint =
+    match RouterPattern.parse (endpoint_path endpoint) with
+    | Ok pattern -> pattern
+    | Error _ -> invalid_arg "validated router path failed to parse"
+  in
+  let validate_pair (left, left_pattern) (right, right_pattern) =
+    match RouterPattern.relationship left_pattern right_pattern with
+    | Duplicate -> error ~loc:(endpoint_loc right) "duplicate route path %s" (endpoint_path right)
+    | Ambiguous ->
+        error ~loc:(endpoint_loc right) "ambiguous route patterns %s and %s" (endpoint_path left) (endpoint_path right)
+    | IncompatiblePrefix -> (
+        match (left, right) with
+        | Page _, Page _ ->
+            let prefix, pattern =
+              if List.length (RouterPattern.segments left_pattern) < List.length (RouterPattern.segments right_pattern)
+              then (left, right)
+              else (right, left)
+            in
+            error ~loc:(endpoint_loc pattern) "route prefix parameters differ between %s and %s" (endpoint_path prefix)
+              (endpoint_path pattern)
+        | Page _, RedirectTo _ | RedirectTo _, Page _ | RedirectTo _, RedirectTo _ -> ())
+    | Distinct | CompatiblePrefix -> ()
+  in
+  let rec validate_pairs = function
+    | [] -> ()
+    | route :: rest ->
+        List.iter (validate_pair route) rest;
+        validate_pairs rest
+  in
+  validate_pairs (List.map (fun endpoint -> (endpoint, parsed endpoint)) endpoints);
+  endpoints
+
+let routes declaration =
+  List.filter_map (function Page route -> Some route | RedirectTo _ -> None) (endpoints declaration)
 
 let declaration_of_expression expression =
   let callee, arguments = arguments expression in
@@ -440,14 +504,14 @@ let declaration_of_expression expression =
   else
     let () =
       validate_arguments ~loc:expression.pexp_loc
-        ~allowed:([ "basePath"; "search"; "invalidSearch" ] @ attachment_labels)
+        ~allowed:([ "basePath"; "trailingSlash"; "search"; "invalidSearch" ] @ attachment_labels)
         ~unlabelled:1 arguments
     in
     let base_path =
       match argument (Labelled "basePath") arguments with
       | Some base_path -> (
           let base_path = string_of_expression base_path in
-          match (valid_utf8 base_path, RouterPattern.parse base_path) with
+          match (RouterUtf8.valid base_path, RouterPattern.parse base_path) with
           | true, Ok pattern when (not (String.equal base_path "")) && RouterPattern.parameters pattern = [] ->
               base_path
           | false, _ | true, Ok _ | true, Error _ ->
@@ -472,6 +536,7 @@ let declaration_of_expression expression =
     Some
       {
         base_path;
+        trailing_slash = trailing_slash_policy arguments;
         application_error;
         invalid_search;
         root =

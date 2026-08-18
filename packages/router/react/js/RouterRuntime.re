@@ -8,6 +8,7 @@ module Metadata = RouterTypes.Metadata;
 module Headers = RouterTypes.Headers;
 module Navigation = RouterTypes.Navigation;
 module Search = RouterTypes.Search;
+module CatchAll = RouterTypes.CatchAll;
 module NavigationResponse = RouterTypes.NavigationResponse;
 module Link = RouterTypes.Link;
 
@@ -30,7 +31,14 @@ let pattern = path =>
 let destinationFromPattern = (~pattern, ~parameters, ~search) => {
   let parameter = name => List.assoc_opt(name, parameters);
   let path =
-    switch (RouterPattern.render(pattern, ~parameter, ~encode=encodeSegment)) {
+    switch (
+      RouterPattern.render(
+        pattern,
+        ~parameter,
+        ~encodeStatic=RouterPattern.encodeStaticSegment,
+        ~encodeParameter=encodeSegment,
+      )
+    ) {
     | Ok(path) => path
     | Error(InvalidPattern(message)) => invalid_arg(message)
     };

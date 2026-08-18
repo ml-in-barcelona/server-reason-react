@@ -34,9 +34,10 @@ type scope = {
 }
 
 type leaf = { name : string; page : expression; scope : scope; loc : Location.t }
+type redirect_leaf = { id : string; target : expression; scope : scope; loc : Location.t }
 
 type group = { scope : scope; children : node list }
-and node = Group of group | Route of leaf
+and node = Group of group | Route of leaf | Redirect of redirect_leaf
 
 type route = {
   name : string;
@@ -48,8 +49,21 @@ type route = {
   loc : Location.t;
 }
 
+type redirect = {
+  id : string;
+  target : expression;
+  path : string;
+  parameters : parameter list;
+  search : search list;
+  loc : Location.t;
+}
+
+type endpoint = Page of route | RedirectTo of redirect
+type trailing_slash = Redirect | Reject
+
 type t = {
   base_path : string;
+  trailing_slash : trailing_slash;
   application_error : Longident.t option;
   invalid_search : expression option;
   root : group;
@@ -58,4 +72,5 @@ type t = {
 
 val find : structure -> t option
 val root_search : t -> search list
+val endpoints : t -> endpoint list
 val routes : t -> route list

@@ -53,8 +53,19 @@ module Percent = struct
 end
 
 module Path = struct
-  type segment = RouterPattern.segment = Static of string | Parameter of RouterPattern.parameter
+  type segment = RouterPattern.segment =
+    | Static of string
+    | Parameter of RouterPattern.parameter
+    | CatchAll of { name : string }
+
   type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
+
+  let valid_segment value =
+    RouterUtf8.valid value
+    && String.for_all (fun character -> Char.code character >= 0x20 && Char.code character <> 0x7f) value
+
+  let decoded_segment raw decoded =
+    if decoded = "." || decoded = ".." || not (valid_segment decoded) then Error (InvalidPath raw) else Ok decoded
 
   let decode_segment pathname ~has_escapes ~start ~stop =
     let first =
@@ -63,14 +74,12 @@ module Path = struct
     in
     if first < 0 then
       let segment = Percent.slice pathname start stop in
-      if segment = "." || segment = ".." then Error (InvalidPath segment) else Ok segment
+      decoded_segment segment segment
     else
       match Percent.decode_escaped ~reject_slash:true pathname ~start ~stop ~first with
       | Error `Malformed -> Error (MalformedEscape (Percent.slice pathname start stop))
       | Error `Encoded_slash -> Error (EncodedSlash (Percent.slice pathname start stop))
-      | Ok decoded ->
-          if decoded = "." || decoded = ".." then Error (InvalidPath (Percent.slice pathname start stop))
-          else Ok decoded
+      | Ok decoded -> decoded_segment (Percent.slice pathname start stop) decoded
 
   let rec decode_segments pathname has_escapes decoded error stop =
     let slash = String.rindex_from pathname (stop - 1) '/' in
@@ -94,6 +103,22 @@ module Path = struct
       let has_escapes = String.contains pathname '%' in
       decode_segments pathname has_escapes [] None length
 
+  let validBasePath pathname =
+    if String.contains pathname '?' || String.contains pathname '#' then false
+    else
+      match decodePathname pathname with
+      | Error _ -> false
+      | Ok segments -> (
+          let decoded = match segments with [] -> "/" | _ -> "/" ^ String.concat "/" segments in
+          match RouterPattern.parse decoded with
+          | Ok pattern ->
+              RouterPattern.parameters pattern = []
+              && String.equal pathname
+                   (match segments with
+                   | [] -> "/"
+                   | _ -> "/" ^ String.concat "/" (List.map RouterPattern.encodeStaticSegment segments))
+          | Error _ -> false)
+
   let stripBasePath ~basePath pathname =
     if String.equal basePath "/" then Some pathname
     else if String.equal pathname basePath then Some "/"
@@ -107,31 +132,46 @@ module Path = struct
     match String.index_opt location '?' with
     | None -> (location, "")
     | Some index -> (String.sub location 0 index, String.sub location index (String.length location - index))
+
+  let stripTrailingSlashes pathname =
+    let length = String.length pathname in
+    let rec first_trailing index =
+      if index > 1 && pathname.[index - 1] = '/' then first_trailing (index - 1) else index
+    in
+    let stop = first_trailing length in
+    if stop = length then None else Some (String.sub pathname 0 stop)
+end
+
+module TrailingSlash = struct
+  type t = Redirect | Reject
 end
 
 module Route = struct
   type t = {
     id : string;
     path : string;
+    pattern : RouterPattern.t;
     segments : Path.segment list;
     parameter_names : string list;
     specificity : int;
   }
 
   let make ~id ~path =
-    match RouterPattern.parse path with
-    | Ok pattern ->
+    match (RouterUtf8.valid path, RouterPattern.parse path) with
+    | false, _ -> invalid_arg ("invalid route path " ^ path)
+    | true, Ok pattern ->
         let segments = RouterPattern.segments pattern in
-        let parameter_names, specificity =
+        let parameter_names =
           List.fold_right
-            (fun segment (names, specificity) ->
+            (fun segment names ->
               match segment with
-              | Path.Static _ -> (names, specificity + 1)
-              | Parameter parameter -> (parameter.RouterPattern.name :: names, specificity))
-            segments ([], 0)
+              | Path.Static _ -> names
+              | Parameter parameter -> parameter.RouterPattern.name :: names
+              | CatchAll { name } -> name :: names)
+            segments []
         in
-        { id; path; segments; parameter_names; specificity }
-    | Error _ -> invalid_arg ("invalid route path " ^ path)
+        { id; path; pattern; segments; parameter_names; specificity = RouterPattern.specificity pattern }
+    | true, Error _ -> invalid_arg ("invalid route path " ^ path)
 
   let id route = route.id
   let path route = route.path
@@ -143,6 +183,7 @@ module Registry = struct
   type node = {
     static_children : (string, node) Hashtbl.t;
     mutable parameter_child : node option;
+    mutable catch_all : Route.t option;
     mutable route : Route.t option;
     mutable max_specificity : int;
   }
@@ -161,31 +202,26 @@ module Registry = struct
         if List.exists (fun other -> String.equal (key item) (key other)) rest then Some (key item)
         else duplicate key rest
 
-  let ambiguous routes =
-    let rec overlaps left right =
-      match (left, right) with
-      | [], [] -> true
-      | Static left_value :: left, Static right_value :: right ->
-          String.equal left_value right_value && overlaps left right
-      | _ :: left, _ :: right -> overlaps left right
-      | _ -> false
-    in
+  let conflict routes =
     let rec loop = function
       | [] -> None
       | route :: rest -> (
           match
-            List.find_opt
+            List.find_map
               (fun other ->
-                route.Route.specificity = other.Route.specificity && overlaps route.Route.segments other.Route.segments)
+                match RouterPattern.relationship route.Route.pattern other.Route.pattern with
+                | Duplicate -> Some (DuplicatePath route.Route.path)
+                | Ambiguous -> Some (AmbiguousPattern (route.Route.path, other.Route.path))
+                | Distinct | CompatiblePrefix | IncompatiblePrefix -> None)
               rest
           with
-          | Some other when not (String.equal route.Route.path other.Route.path) ->
-              Some (route.Route.path, other.Route.path)
+          | Some error -> Some error
           | _ -> loop rest)
     in
     loop routes
 
-  let node () = { static_children = Hashtbl.create 4; parameter_child = None; route = None; max_specificity = -1 }
+  let node () =
+    { static_children = Hashtbl.create 4; parameter_child = None; catch_all = None; route = None; max_specificity = -1 }
 
   let add root route =
     let rec loop current = function
@@ -214,6 +250,9 @@ module Registry = struct
                 child
           in
           loop child segments
+      | CatchAll _ :: _ ->
+          current.max_specificity <- max current.max_specificity route.Route.specificity;
+          current.catch_all <- Some route
     in
     loop root route.Route.segments
 
@@ -221,20 +260,17 @@ module Registry = struct
     match duplicate (fun route -> route.Route.id) routes with
     | Some id -> Error (DuplicateId id)
     | None -> (
-        match duplicate (fun route -> route.Route.path) routes with
-        | Some path -> Error (DuplicatePath path)
-        | None -> (
-            match ambiguous routes with
-            | Some (left, right) -> Error (AmbiguousPattern (left, right))
-            | None ->
-                let root = node () in
-                let exact = Hashtbl.create (List.length routes) in
-                List.iter
-                  (fun route ->
-                    add root route;
-                    if route.Route.parameter_names = [] then Hashtbl.add exact route.Route.path route)
-                  routes;
-                Ok { routes; exact; root }))
+        match conflict routes with
+        | Some error -> Error error
+        | None ->
+            let root = node () in
+            let exact = Hashtbl.create (List.length routes) in
+            List.iter
+              (fun route ->
+                add root route;
+                if route.Route.parameter_names = [] then Hashtbl.add exact route.Route.path route)
+              routes;
+            Ok { routes; exact; root })
 
   let invalid = function
     | DuplicateId id -> invalid_arg ("duplicate route id " ^ id)
@@ -267,18 +303,22 @@ module Match = struct
       | [] -> (
           match node.route with Some route -> best := Some (route.Route.specificity, route, captured) | None -> ())
       | value :: segments -> (
-          let static = Hashtbl.find_opt node.static_children value in
-          let parameter = node.parameter_child in
-          match (static, parameter) with
-          | Some static, Some parameter when parameter.max_specificity > static.max_specificity ->
-              loop parameter (value :: captured) segments;
-              loop static captured segments
-          | Some static, Some parameter ->
-              loop static captured segments;
-              loop parameter (value :: captured) segments
-          | Some static, None -> loop static captured segments
-          | None, Some parameter -> loop parameter (value :: captured) segments
-          | None, None -> ())
+          (let static = Hashtbl.find_opt node.static_children value in
+           let parameter = node.parameter_child in
+           match (static, parameter) with
+           | Some static, Some parameter when parameter.max_specificity > static.max_specificity ->
+               loop parameter (value :: captured) segments;
+               loop static captured segments
+           | Some static, Some parameter ->
+               loop static captured segments;
+               loop parameter (value :: captured) segments
+           | Some static, None -> loop static captured segments
+           | None, Some parameter -> loop parameter (value :: captured) segments
+           | None, None -> ());
+          match node.catch_all with
+          | Some route when route.Route.specificity > best_specificity () ->
+              best := Some (route.Route.specificity, route, String.concat "/" (value :: segments) :: captured)
+          | Some _ | None -> ())
     in
     loop root [] segments;
     match !best with None -> None | Some (_, route, values) -> Some { route; parameters = parameters route values }
@@ -407,6 +447,7 @@ let fatal_exception = function Lwt.Canceled | Out_of_memory | Stack_overflow | S
 module Execution = struct
   type ('result, 'error) t =
     | Done : 'result -> ('result, 'error) t
+    | Redirect : RouterRuntime.destination -> ('result, 'error) t
     | Load : {
         run : unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t;
         next : 'data -> ('result, 'error) t;
@@ -420,12 +461,14 @@ module Execution = struct
         -> ('result, 'error) t
 
   let done_ result = Done result
+  let redirect destination = Redirect destination
   let load run next = Load { run; next }
   let loadWithBoundary ~run ~failure ~next = LoadWithBoundary { run; failure; next }
 
   let run ?(diagnosticId = fun _ -> "internal") execution =
     let rec loop : type result error. (result, error) t -> (result, error) RouterRuntime.Loader.result Lwt.t = function
       | Done result -> Lwt.return (RouterRuntime.Loader.Data result)
+      | Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination)
       | Load loader ->
           Lwt.bind (loader.run ()) (function
             | RouterRuntime.Loader.Data data -> loop (loader.next data)
@@ -693,6 +736,7 @@ module ServerEngine = struct
     | Patch of ('view, 'error) patch
     | ReloadRequired
     | Redirect of RouterRuntime.destination
+    | PermanentRedirect of RouterRuntime.destination
 
   let empty_search = match Search.parse "" with Ok search -> search | Error _ -> assert false
 
@@ -714,7 +758,8 @@ module ServerEngine = struct
     in
     match RouterRuntime.Headers.make values with Ok headers -> headers | Error _ -> assert false
 
-  let run ~registry ~basePath ~fallback ~applicationStatus ~diagnosticId ~revision ~protocolVersion request =
+  let run ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId ~revision ~protocolVersion
+      request =
     let fingerprint = EndpointRegistry.fingerprint registry in
     let canonical_url = request.pathname ^ request.search ^ request.hash in
     let full ~matches ~layouts plan =
@@ -777,62 +822,71 @@ module ServerEngine = struct
     let execute () =
       if registry_mismatch then Lwt.return ReloadRequired
       else
-        match Path.stripBasePath ~basePath request.pathname with
-        | None -> fail (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
-        | Some pathname -> (
-            match Search.parse request.search with
-            | Error _ -> fail (RouterRuntime.Error.InvalidSearchParameter { name = "search" })
-            | Ok search -> (
-                match EndpointRegistry.find registry ~pathname with
-                | Error _ -> fail ~search (RouterRuntime.Error.InvalidPathParameter { name = "pathname" })
-                | Ok None ->
-                    fail ~search (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
-                | Ok (Some matched) -> (
-                    match EndpointRegistry.decode matched ~search with
-                    | Error error -> fail ~search error
-                    | Ok prepared ->
-                        let target_branch = Endpoint.branch prepared in
-                        let execution = Endpoint.execution prepared in
-                        let matches = EndpointRegistry.matches matched in
-                        let layouts = Branch.layouts target_branch in
-                        Lwt.bind (Execution.run ~diagnosticId execution) (function
-                          | RouterRuntime.Loader.Data plan -> (
-                              match patch_base ~target_branch with
-                              | None -> full ~matches ~layouts plan
-                              | Some (base_revision, shared, replace_from) ->
-                                  Lwt.map
-                                    (fun (resolved : ('view, 'error) Plan.resolved) ->
-                                      let required =
-                                        required_headers ~kind:request.kind ~response_kind:"patch"
-                                          ~protocol_version:protocolVersion ~fingerprint
-                                      in
-                                      let resolved =
-                                        {
-                                          resolved with
-                                          headers = RouterRuntime.Headers.merge resolved.headers required;
-                                        }
-                                      in
-                                      Patch
-                                        {
-                                          kind = request.kind;
-                                          canonical_url;
-                                          base_revision;
-                                          revision = revision ();
-                                          registry_fingerprint = fingerprint;
-                                          protocol_version = protocolVersion;
-                                          matches;
-                                          layouts;
-                                          replace_from;
-                                          resolved;
-                                        })
-                                    (Plan.resolve plan
-                                       ~render:(Plan.Suffix { omitted_scopes = shared })
-                                       ~applicationStatus))
-                          | RouterRuntime.Loader.Error error -> fail ~search (RouterRuntime.Error.Application error)
-                          | RouterRuntime.Loader.NotFound ->
-                              fail ~search
-                                (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })
-                          | RouterRuntime.Loader.Redirect destination -> Lwt.return (Redirect destination)))))
+        match Path.stripTrailingSlashes request.pathname with
+        | Some canonical -> (
+            match trailingSlash with
+            | TrailingSlash.Redirect ->
+                Lwt.return
+                  (PermanentRedirect (RouterRuntime.destination ~path:(canonical ^ request.search ^ request.hash)))
+            | TrailingSlash.Reject ->
+                fail (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute }))
+        | None -> (
+            match Path.stripBasePath ~basePath request.pathname with
+            | None -> fail (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
+            | Some pathname -> (
+                match Search.parse request.search with
+                | Error _ -> fail (RouterRuntime.Error.InvalidSearchParameter { name = "search" })
+                | Ok search -> (
+                    match EndpointRegistry.find registry ~pathname with
+                    | Error _ -> fail ~search (RouterRuntime.Error.InvalidPathParameter { name = "pathname" })
+                    | Ok None ->
+                        fail ~search (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
+                    | Ok (Some matched) -> (
+                        match EndpointRegistry.decode matched ~search with
+                        | Error error -> fail ~search error
+                        | Ok prepared ->
+                            let target_branch = Endpoint.branch prepared in
+                            let execution = Endpoint.execution prepared in
+                            let matches = EndpointRegistry.matches matched in
+                            let layouts = Branch.layouts target_branch in
+                            Lwt.bind (Execution.run ~diagnosticId execution) (function
+                              | RouterRuntime.Loader.Data plan -> (
+                                  match patch_base ~target_branch with
+                                  | None -> full ~matches ~layouts plan
+                                  | Some (base_revision, shared, replace_from) ->
+                                      Lwt.map
+                                        (fun (resolved : ('view, 'error) Plan.resolved) ->
+                                          let required =
+                                            required_headers ~kind:request.kind ~response_kind:"patch"
+                                              ~protocol_version:protocolVersion ~fingerprint
+                                          in
+                                          let resolved =
+                                            {
+                                              resolved with
+                                              headers = RouterRuntime.Headers.merge resolved.headers required;
+                                            }
+                                          in
+                                          Patch
+                                            {
+                                              kind = request.kind;
+                                              canonical_url;
+                                              base_revision;
+                                              revision = revision ();
+                                              registry_fingerprint = fingerprint;
+                                              protocol_version = protocolVersion;
+                                              matches;
+                                              layouts;
+                                              replace_from;
+                                              resolved;
+                                            })
+                                        (Plan.resolve plan
+                                           ~render:(Plan.Suffix { omitted_scopes = shared })
+                                           ~applicationStatus))
+                              | RouterRuntime.Loader.Error error -> fail ~search (RouterRuntime.Error.Application error)
+                              | RouterRuntime.Loader.NotFound ->
+                                  fail ~search
+                                    (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })
+                              | RouterRuntime.Loader.Redirect destination -> Lwt.return (Redirect destination))))))
     in
     let blank_internal error =
       let required =
@@ -874,19 +928,24 @@ module Server = struct
   type ('view, 'error) t = {
     base_path : string;
     registry : (('view, 'error) Plan.t, 'error) EndpointRegistry.t;
+    trailing_slash : TrailingSlash.t;
     fallback : search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t;
     application_status : 'error -> RouterRuntime.Status.t;
     protocol_version : int;
   }
 
-  let make ~basePath ~registry ~fallback ~applicationStatus ?(protocolVersion = 1) () =
-    {
-      base_path = basePath;
-      registry;
-      fallback;
-      application_status = applicationStatus;
-      protocol_version = protocolVersion;
-    }
+  let make ~basePath ~registry ?(trailingSlash = TrailingSlash.Redirect) ~fallback ~applicationStatus
+      ?(protocolVersion = 1) () =
+    if not (Path.validBasePath basePath) then invalid_arg ("invalid router base path " ^ basePath)
+    else
+      {
+        base_path = basePath;
+        registry;
+        trailing_slash = trailingSlash;
+        fallback;
+        application_status = applicationStatus;
+        protocol_version = protocolVersion;
+      }
 
   let basePath server = server.base_path
   let protocolVersion server = server.protocol_version
@@ -902,9 +961,9 @@ module Server = struct
           (RouterClientRoot.makeProps ~initial ~protocolVersion ~registryFingerprint ~basePath ~metadata ~children ()))
 
   let run server ~diagnosticId ~revision request =
-    ServerEngine.run ~registry:server.registry ~basePath:server.base_path ~fallback:server.fallback
-      ~applicationStatus:server.application_status ~diagnosticId ~revision ~protocolVersion:server.protocol_version
-      request
+    ServerEngine.run ~registry:server.registry ~basePath:server.base_path ~trailingSlash:server.trailing_slash
+      ~fallback:server.fallback ~applicationStatus:server.application_status ~diagnosticId ~revision
+      ~protocolVersion:server.protocol_version request
 end
 
 let statusOfError = status_of_error

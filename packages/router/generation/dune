@@ -1,7 +1,7 @@
 (executable
  (name router_gen)
  (public_name server-reason-react.router-gen)
- (libraries ppxlib ppxlib.astlib)
+ (libraries ppxlib ppxlib.astlib uutf)
  (preprocess
   (pps ppxlib.metaquot)))
 
@@ -10,3 +10,6 @@
 
 (copy_files
  (files ../runtime/shared/RouterPattern.rei))
+
+(copy_files
+ (files ../runtime/RouterUtf8.ml))

@@ -8,27 +8,11 @@ module Metadata = RouterTypes.Metadata
 module Headers = RouterTypes.Headers
 module Navigation = RouterTypes.Navigation
 module Search = RouterTypes.Search
+module CatchAll = RouterTypes.CatchAll
 module NavigationResponse = RouterTypes.NavigationResponse
 module Link = RouterTypes.Link
 
-let hex = "0123456789ABCDEF"
-
-let unescaped = function
-  | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '-' | '_' | '.' | '!' | '~' | '*' | '\'' | '(' | ')' -> true
-  | _ -> false
-
-let encode value =
-  let buffer = Buffer.create (String.length value) in
-  String.iter
-    (fun character ->
-      if unescaped character then Buffer.add_char buffer character
-      else
-        let code = Char.code character in
-        Buffer.add_char buffer '%';
-        Buffer.add_char buffer hex.[code lsr 4];
-        Buffer.add_char buffer hex.[code land 0x0f])
-    value;
-  Buffer.contents buffer
+let encode = RouterPattern.encodeStaticSegment
 
 let encodeSegment value =
   if value = "" || value = "." || value = ".." then invalid_arg "route parameters must be non-empty path segments";
@@ -44,7 +28,10 @@ let pattern path =
 let destinationFromPattern ~pattern ~parameters ~search =
   let parameter name = List.assoc_opt name parameters in
   let path =
-    match RouterPattern.render pattern ~parameter ~encode:encodeSegment with
+    match
+      RouterPattern.render pattern ~parameter ~encodeStatic:RouterPattern.encodeStaticSegment
+        ~encodeParameter:encodeSegment
+    with
     | Ok path -> path
     | Error (InvalidPattern message) -> invalid_arg message
   in

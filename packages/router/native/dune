@@ -2,13 +2,19 @@
  (name router_native)
  (public_name server-reason-react.router-native)
  (wrapped false)
- (private_modules RouterClientRoot RouterOutlet RouterPattern RouterTypes)
+ (private_modules
+  RouterClientRoot
+  RouterOutlet
+  RouterPattern
+  RouterTypes
+  RouterUtf8)
  (libraries
   lwt
   server-reason-react.js
   server-reason-react.react
   server-reason-react.reactDom
   server-reason-react.rsc-native
+  uutf
   uri)
  (preprocess
   (pps
@@ -27,6 +33,9 @@
 
 (copy_files
  (files ../runtime/shared/RouterPattern.rei))
+
+(copy_files
+ (files ../runtime/RouterUtf8.ml))
 
 (copy_files
  (files ../react/shared/RouterReact.rei))

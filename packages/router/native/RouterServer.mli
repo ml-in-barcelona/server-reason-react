@@ -17,6 +17,17 @@ module Path : sig
   val decodePathname : string -> (string list, error) result
   val stripBasePath : basePath:string -> string -> string option
   val splitLocation : string -> string * string
+
+  val stripTrailingSlashes : string -> string option
+  (** Returns the canonical pathname when [pathname] ends with one or more slashes, or [None] when it is already
+      canonical. The root pathname ["/"] is canonical. *)
+end
+
+(** Policy for request pathnames that end with a slash. Generated hrefs never end with a slash, so the canonical form of
+    every route is slash-free. [Redirect] answers with a permanent redirect to the canonical pathname; [Reject] treats
+    the request as not found. *)
+module TrailingSlash : sig
+  type t = Redirect | Reject
 end
 
 module Route : sig
@@ -103,7 +114,7 @@ module Decode : sig
     ('value list, 'error RouterRuntime.Error.t) result
 end
 
-(** A deferred, sequential description of route loaders.
+(** A deferred, sequential description of route work.
 
     Generated routes build this value while walking from the outermost layout to the page. Running it later keeps
     decoding and branch comparison free of loader side effects, which is important when deciding whether a navigation
@@ -112,6 +123,9 @@ module Execution : sig
   type ('result, 'error) t
 
   val done_ : 'result -> ('result, 'error) t
+
+  val redirect : RouterRuntime.destination -> ('result, 'error) t
+  (** Ends execution with a redirect without running a loader. *)
 
   val load :
     (unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t) -> ('data -> ('result, 'error) t) -> ('result, 'error) t
@@ -289,10 +303,15 @@ module ServerEngine : sig
     | Patch of ('view, 'error) patch
     | ReloadRequired
     | Redirect of RouterRuntime.destination
+        (** A navigation redirect requested by a route loader. Adapters answer with a see-other response. *)
+    | PermanentRedirect of RouterRuntime.destination
+        (** A pathname canonicalization redirect. Adapters answer documents with status 308 so the request method
+            survives the redirect. *)
 
   val run :
     registry:(('view, 'error) Plan.t, 'error) EndpointRegistry.t ->
     basePath:string ->
+    trailingSlash:TrailingSlash.t ->
     fallback:(search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
     applicationStatus:('error -> RouterRuntime.Status.t) ->
     diagnosticId:(exn -> string) ->
@@ -312,11 +331,13 @@ module Server : sig
   val make :
     basePath:string ->
     registry:(('view, 'error) Plan.t, 'error) EndpointRegistry.t ->
+    ?trailingSlash:TrailingSlash.t ->
     fallback:(search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
     applicationStatus:('error -> RouterRuntime.Status.t) ->
     ?protocolVersion:int ->
     unit ->
     ('view, 'error) t
+  (** [trailingSlash] defaults to {!TrailingSlash.Redirect}. *)
 
   val basePath : ('view, 'error) t -> string
   val protocolVersion : ('view, 'error) t -> int

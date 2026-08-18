@@ -28,6 +28,13 @@ let update_hash_type ~loc =
        (result_type ~loc "Navigation.historyAction")
        (B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (result_type ~loc "Navigation.Result.t")))
 
+let unsafe_destination_type ~loc =
+  B.ptyp_arrow ~loc Nolabel (result_type ~loc "string") (result_type ~loc "destination")
+
+let unsafe_destination_expression ~loc =
+  B.pexp_fun ~loc Nolabel None (B.pvar ~loc "href")
+    (B.pexp_apply ~loc (B.evar ~loc "RouterRuntime.destination") [ (Labelled "path", B.evar ~loc "href") ])
+
 let react_component_attribute ~loc =
   { attr_name = { txt = "react.component"; loc }; attr_payload = PStr []; attr_loc = loc }
 
@@ -324,6 +331,8 @@ let signature (declaration : Router_declaration.t) =
   let root_search = Router_declaration.root_search declaration in
   B.psig_type ~loc Recursive
     [ destination_declaration ~loc ~private_:Public ~manifest:(Some (result_type ~loc "RouterRuntime.destination")) ]
+  :: B.psig_value ~loc
+       (B.value_description ~loc ~name:{ txt = "unsafeDestination"; loc } ~type_:(unsafe_destination_type ~loc) ~prim:[])
   :: List.map (signature_alias ~loc) public_modules
   @ [ B.psig_type ~loc Recursive [ route_type_declaration ~loc routes ] ]
   @ [
@@ -576,6 +585,8 @@ let handles (declaration : Router_declaration.t) =
   let root_search = Router_declaration.root_search declaration in
   B.pstr_type ~loc Recursive
     [ destination_declaration ~loc ~private_:Public ~manifest:(Some (result_type ~loc "RouterRuntime.destination")) ]
+  :: B.pstr_value ~loc Nonrecursive
+       [ B.value_binding ~loc ~pat:(B.pvar ~loc "unsafeDestination") ~expr:(unsafe_destination_expression ~loc) ]
   :: List.map (structure_alias ~loc) public_modules
   @ [ B.pstr_type ~loc Recursive [ route_type_declaration ~loc routes ] ]
   @ [
@@ -807,26 +818,12 @@ let parsed_path path =
   | Ok pattern -> pattern
   | Error _ -> invalid_arg "validated router path failed to parse"
 
-let percent_encode value =
-  let hex = "0123456789ABCDEF" in
-  let unescaped = function
-    | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '-' | '_' | '.' | '!' | '~' | '*' | '\'' | '(' | ')' -> true
-    | _ -> false
-  in
-  let buffer = Buffer.create (String.length value) in
-  String.iter
-    (fun character ->
-      if unescaped character then Buffer.add_char buffer character
-      else
-        let code = Char.code character in
-        Buffer.add_char buffer '%';
-        Buffer.add_char buffer hex.[code lsr 4];
-        Buffer.add_char buffer hex.[code land 0x0f])
-    value;
-  Buffer.contents buffer
-
 let encoded_path path =
-  match RouterPattern.render (parsed_path path) ~parameter:(fun _ -> None) ~encode:percent_encode with
+  match
+    RouterPattern.render (parsed_path path)
+      ~parameter:(fun _ -> None)
+      ~encodeStatic:RouterPattern.encodeStaticSegment ~encodeParameter:RouterPattern.encodeStaticSegment
+  with
   | Ok path -> path
   | Error _ -> invalid_arg "static router path unexpectedly required a parameter"
 
@@ -939,6 +936,68 @@ let endpoint ~base_path ~invalid_search ~routes (route : Router_declaration.rout
       (Labelled "decode", decode);
     ]
 
+let redirect_endpoint ~base_path ~invalid_search (redirect : Router_declaration.redirect) =
+  let loc = redirect.loc in
+  let destination =
+    apply_native_inputs ~loc redirect.target redirect.parameters redirect.search [] |> fun destination ->
+    B.pexp_constraint ~loc destination (result_type ~loc "RouterRuntime.destination")
+  in
+  let execution = B.pexp_apply ~loc (B.evar ~loc "RouterServer.Execution.redirect") [ (Nolabel, destination) ] in
+  let prepared =
+    B.pexp_apply ~loc
+      (B.evar ~loc "RouterServer.Endpoint.prepared")
+      [
+        (Labelled "branch", B.elist ~loc []);
+        (Labelled "execution", B.pexp_fun ~loc Nolabel None (B.punit ~loc) execution);
+      ]
+    |> fun prepared -> B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some prepared)
+  in
+  let decoded_search =
+    List.fold_right
+      (fun (search : Router_declaration.search) body ->
+        bind_decode ~loc:search.loc search.name (native_search_decoder ~loc:search.loc search) body)
+      redirect.search prepared
+  in
+  let decoded =
+    List.fold_right
+      (fun (parameter : Router_declaration.parameter) body ->
+        bind_decode ~loc:parameter.loc parameter.name (native_path_decoder ~loc:parameter.loc parameter) body)
+      redirect.parameters decoded_search
+  in
+  let decode = B.pexp_fun ~loc Nolabel None (B.pvar ~loc "input") decoded in
+  let parameter_parts =
+    List.map
+      (fun (parameter : Router_declaration.parameter) ->
+        "parameter:" ^ parameter.name ^ ":" ^ type_string parameter.typ)
+      redirect.parameters
+  in
+  let search_parts =
+    List.map
+      (fun (search : Router_declaration.search) ->
+        "search:" ^ search.name ^ ":" ^ type_string search.typ ^ ":" ^ search_kind_part search)
+      redirect.search
+  in
+  let fingerprint =
+    [
+      "basePath:" ^ base_path;
+      attachment_part "invalidSearch" invalid_search;
+      "redirect:" ^ redirect.id;
+      "path:" ^ redirect.path;
+      "target:" ^ expression_string redirect.target;
+    ]
+    @ parameter_parts @ search_parts
+    |> String.concat "\n" |> Digest.string |> Digest.to_hex
+  in
+  B.pexp_apply ~loc
+    (B.evar ~loc "RouterServer.Endpoint.make")
+    [
+      (Labelled "id", B.estring ~loc redirect.id);
+      (Labelled "path", B.estring ~loc redirect.path);
+      (Labelled "activeRoutes", B.elist ~loc []);
+      (Labelled "fingerprint", B.estring ~loc fingerprint);
+      (Labelled "decode", decode);
+    ]
+
 let fallback (declaration : Router_declaration.t) =
   let loc = declaration.loc in
   let scope = declaration.root.scope in
@@ -1014,12 +1073,22 @@ let fallback (declaration : Router_declaration.t) =
 
 let registry (declaration : Router_declaration.t) =
   let loc = declaration.loc in
-  let routes = Router_declaration.routes declaration in
+  let endpoints = Router_declaration.endpoints declaration in
+  let routes =
+    List.filter_map
+      (function Router_declaration.Page route -> Some route | Router_declaration.RedirectTo _ -> None)
+      endpoints
+  in
   let parsed_routes = List.map (fun (route : Router_declaration.route) -> (route, parsed_path route.path)) routes in
   let route_values =
     List.map
-      (endpoint ~base_path:declaration.base_path ~invalid_search:declaration.invalid_search ~routes:parsed_routes)
-      routes
+      (function
+        | Router_declaration.Page route ->
+            endpoint ~base_path:declaration.base_path ~invalid_search:declaration.invalid_search ~routes:parsed_routes
+              route
+        | Router_declaration.RedirectTo redirect ->
+            redirect_endpoint ~base_path:declaration.base_path ~invalid_search:declaration.invalid_search redirect)
+      endpoints
   in
   let base_path =
     B.pstr_value ~loc Nonrecursive
@@ -1051,12 +1120,21 @@ let registry (declaration : Router_declaration.t) =
     B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "applicationStatus") ~expr:expression ]
   in
   let server =
+    let trailing_slash =
+      let constructor =
+        match declaration.trailing_slash with
+        | Router_declaration.Redirect -> "RouterServer.TrailingSlash.Redirect"
+        | Router_declaration.Reject -> "RouterServer.TrailingSlash.Reject"
+      in
+      B.pexp_construct ~loc { txt = Longident.parse constructor; loc } None
+    in
     let expression =
       B.pexp_apply ~loc
         (B.evar ~loc "RouterServer.Server.make")
         [
           (Labelled "basePath", B.evar ~loc "basePath");
           (Labelled "registry", B.evar ~loc "registry");
+          (Labelled "trailingSlash", trailing_slash);
           (Labelled "fallback", B.evar ~loc "fallback");
           (Labelled "applicationStatus", B.evar ~loc "applicationStatus");
           (Nolabel, unit_expression ~loc);

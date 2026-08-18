@@ -6,6 +6,19 @@ let () =
 if (Client.quoteHref != "/fixture/workspaces/7/notes/42?filter=it's") {
   failwith("generated Melange href did not match encodeURIComponent");
 };
+if (Client.assetHref != "/fixture/assets/img/caf%C3%A9/a%2Bb") {
+  failwith("generated Melange catch-all href did not encode segments");
+};
+let unicodeHref =
+  RouterRuntime.destinationFromPattern(
+    ~pattern=RouterRuntime.pattern("/café/東京"),
+    ~parameters=[],
+    ~search=[],
+  )
+  |> RouterRuntime.href;
+if (unicodeHref != "/caf%C3%A9/%E6%9D%B1%E4%BA%AC") {
+  failwith("Melange static paths did not use UTF-8 encoding");
+};
 
 let location =
   RouterRuntime.Navigation.{

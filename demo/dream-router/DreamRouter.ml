@@ -325,21 +325,24 @@ let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(boot
           RouterServer.Server.run router ~diagnosticId ~revision
             { RouterServer.ServerEngine.pathname; search; hash = ""; kind; navigation }
         in
+        let redirect ?status destination =
+          match kind with
+          | RouterServer.ServerEngine.Document -> Dream.redirect ?status request (RouterRuntime.href destination)
+          | RouterServer.ServerEngine.Rsc ->
+              stream_model_value ~code:200
+                ~headers:
+                  [
+                    ("Content-Type", "application/react.component");
+                    ("Cache-Control", "private, no-store");
+                    ("Vary", "Accept");
+                    ("Router-Response", "redirect");
+                  ]
+                ~location:(Dream.target request)
+                (redirect_model ~protocolVersion ~registryFingerprint destination)
+        in
         Lwt.bind outcome (function
-          | RouterServer.ServerEngine.Redirect destination -> (
-              match kind with
-              | RouterServer.ServerEngine.Document -> Dream.redirect request (RouterRuntime.href destination)
-              | RouterServer.ServerEngine.Rsc ->
-                  stream_model_value ~code:200
-                    ~headers:
-                      [
-                        ("Content-Type", "application/react.component");
-                        ("Cache-Control", "private, no-store");
-                        ("Vary", "Accept");
-                        ("Router-Response", "redirect");
-                      ]
-                    ~location:(Dream.target request)
-                    (redirect_model ~protocolVersion ~registryFingerprint destination))
+          | RouterServer.ServerEngine.Redirect destination -> redirect destination
+          | RouterServer.ServerEngine.PermanentRedirect destination -> redirect ~status:`Permanent_Redirect destination
           | RouterServer.ServerEngine.ReloadRequired ->
               Dream.respond ~code:409
                 ~headers:

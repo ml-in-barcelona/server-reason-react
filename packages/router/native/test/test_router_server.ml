@@ -44,6 +44,86 @@ let decoded_parameters () =
   | Ok (Some matched) -> Alcotest.(check (list (pair string string))) "params" [ ("slug", "café") ] matched.parameters
   | _ -> Alcotest.fail "expected decoded match"
 
+let catch_all_precedence_and_capture () =
+  let registry =
+    registry
+      [
+        route ~id:"asset" ~path:"/assets/:parts<string...>";
+        route ~id:"named" ~path:"/assets/:name<string>";
+        route ~id:"static" ~path:"/assets/logo";
+        route ~id:"deep" ~path:"/assets/img/:name<string>";
+      ]
+  in
+  let find pathname = RouterServer.Match.find registry ~pathname in
+  (match find "/assets/logo" with
+  | Ok (Some matched) -> Alcotest.(check string) "static wins" "static" (RouterServer.Route.id matched.route)
+  | _ -> Alcotest.fail "expected static match");
+  (match find "/assets/one" with
+  | Ok (Some matched) -> Alcotest.(check string) "parameter wins" "named" (RouterServer.Route.id matched.route)
+  | _ -> Alcotest.fail "expected parameter match");
+  (match find "/assets/img/logo" with
+  | Ok (Some matched) -> Alcotest.(check string) "deeper finite wins" "deep" (RouterServer.Route.id matched.route)
+  | _ -> Alcotest.fail "expected deeper finite match");
+  (match find "/assets/one/two/caf%C3%A9" with
+  | Ok (Some matched) ->
+      Alcotest.(check string) "catch-all" "asset" (RouterServer.Route.id matched.route);
+      Alcotest.(check (list (pair string string))) "captured" [ ("parts", "one/two/café") ] matched.parameters
+  | _ -> Alcotest.fail "expected catch-all match");
+  match find "/assets" with Ok None -> () | _ -> Alcotest.fail "expected no match without a captured segment"
+
+let ambiguous_catch_all_patterns () =
+  match
+    RouterServer.Registry.make
+      [ route ~id:"left" ~path:"/assets/:a<string...>"; route ~id:"right" ~path:"/assets/:b<string...>" ]
+  with
+  | Error (AmbiguousPattern _) -> ()
+  | _ -> Alcotest.fail "expected ambiguous catch-all patterns"
+
+let catch_all_endpoint_decoding () =
+  let endpoint =
+    RouterServer.Endpoint.make ~id:"asset" ~path:"/assets/:parts<string...>" ~activeRoutes:[] ~fingerprint:"asset"
+      ~decode:(fun input ->
+        match RouterServer.Decode.path ~input ~name:"parts" ~parse:RouterRuntime.CatchAll.parse with
+        | Ok parts ->
+            Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () -> RouterServer.Execution.done_ parts))
+        | Error error -> Error error)
+  in
+  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let search =
+    match RouterServer.Search.parse "" with Ok search -> search | Error _ -> Alcotest.fail "expected search"
+  in
+  match RouterServer.EndpointRegistry.find registry ~pathname:"/assets/a%2Bb/c" with
+  | Ok (Some matched) -> (
+      match RouterServer.EndpointRegistry.decode matched ~search with
+      | Ok prepared -> (
+          match Lwt_main.run (RouterServer.Execution.run (RouterServer.Endpoint.execution prepared)) with
+          | RouterRuntime.Loader.Data parts -> Alcotest.(check (list string)) "decoded" [ "a+b"; "c" ] parts
+          | _ -> Alcotest.fail "expected data")
+      | Error _ -> Alcotest.fail "expected prepared endpoint")
+  | _ -> Alcotest.fail "expected endpoint match"
+
+let catch_all_to_string_validation () =
+  Alcotest.(check string) "joined" "a/b" (RouterRuntime.CatchAll.toString [ "a"; "b" ]);
+  List.iter
+    (fun segments ->
+      let rejected =
+        try
+          ignore (RouterRuntime.CatchAll.toString segments);
+          false
+        with Invalid_argument _ -> true
+      in
+      Alcotest.(check bool) "rejected" true rejected)
+    [ []; [ "" ]; [ "." ]; [ ".." ]; [ "a/b" ] ]
+
+let destination_catch_all_encoding () =
+  let destination =
+    RouterRuntime.destinationFromPattern
+      ~pattern:(RouterRuntime.pattern "/assets/:parts<string...>")
+      ~parameters:[ ("parts", RouterRuntime.CatchAll.toString [ "a+b"; "café" ]) ]
+      ~search:[]
+  in
+  Alcotest.(check string) "path" "/assets/a%2Bb/caf%C3%A9" (RouterRuntime.href destination)
+
 let duplicate_paths () =
   match RouterServer.Registry.make [ route ~id:"left" ~path:"/notes"; route ~id:"right" ~path:"/notes" ] with
   | Error (DuplicatePath "/notes") -> ()
@@ -94,6 +174,22 @@ let dot_segments () =
   match RouterServer.Match.find registry ~pathname:"/%2e%2e/other" with
   | Error (InvalidPath _) -> ()
   | _ -> Alcotest.fail "expected dot segment rejection before route matching"
+
+let invalid_utf8_path () =
+  let registry = registry [ route ~id:"note" ~path:"/:id<string>" ] in
+  List.iter
+    (fun pathname ->
+      match RouterServer.Match.find registry ~pathname with
+      | Error (InvalidPath _) -> ()
+      | _ -> Alcotest.fail "expected invalid UTF-8 path")
+    [ "/\255"; "/%FF"; "/%00"; "/%1F"; "/%7F" ];
+  let rejected_route =
+    try
+      ignore (route ~id:"invalid" ~path:"/\255");
+      false
+    with Invalid_argument _ -> true
+  in
+  Alcotest.(check bool) "invalid route pattern" true rejected_route
 
 let destination_segment_encoding () =
   let destination =
@@ -216,7 +312,7 @@ let rejected_loader_uses_nearest_boundary () =
   in
   let outcome =
     Lwt_main.run
-      (RouterServer.ServerEngine.run ~registry ~basePath:"/"
+      (RouterServer.ServerEngine.run ~registry ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
          ~fallback:(fun ~search:_ ~error ->
            fallback_called := true;
            RouterServer.Plan.failure ~scopes:[] ~error ~errorBoundary:(boundary "fallback") ())
@@ -480,6 +576,14 @@ let hash_only_location_commit () =
   Alcotest.(check string) "hash" "#details" committed.location.hash;
   Alcotest.(check string) "revision" "r1" committed.revision
 
+let builtin_bool_codec () =
+  let open RouterRuntime.Search in
+  Alcotest.(check bool) "true" true (parseBool "true" = Ok true);
+  Alcotest.(check bool) "false" true (parseBool "false" = Ok false);
+  List.iter
+    (fun value -> match parseBool value with Ok _ -> Alcotest.failf "accepted %s" value | Error _ -> ())
+    [ "True"; "FALSE"; "1"; "0"; ""; "yes" ]
+
 let typed_search_decoding () =
   let open RouterRuntime.Search in
   let values = [ ("page", [ "2" ]); ("tag", [ "one"; "two" ]) ] in
@@ -551,6 +655,90 @@ let typed_endpoint_decode_error () =
       | Error (RouterRuntime.Error.InvalidPathParameter { name = "id" }) -> ()
       | _ -> Alcotest.fail "expected invalid path parameter")
   | _ -> Alcotest.fail "expected endpoint match"
+
+let run_trailing_slash_engine ~trailingSlash ~basePath ~pathname ?(search = "") () =
+  let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+    RouterServer.Endpoint.make ~id:"notes" ~path:"/notes" ~activeRoutes:[] ~fingerprint:"notes" ~decode:(fun _ ->
+        Ok
+          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:"notes"))))
+  in
+  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  Lwt_main.run
+    (RouterServer.ServerEngine.run ~registry ~basePath ~trailingSlash
+       ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+       ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+       ~diagnosticId:(fun _ -> "diagnostic")
+       ~revision:(fun () -> "revision")
+       ~protocolVersion:1
+       { pathname; search; hash = ""; kind = Document; navigation = None })
+
+let trailing_slash_redirects_to_canonical () =
+  match
+    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/app"
+      ~pathname:"/app/notes/" ~search:"?page=2" ()
+  with
+  | RouterServer.ServerEngine.PermanentRedirect destination ->
+      Alcotest.(check string) "destination" "/app/notes?page=2" (RouterRuntime.href destination)
+  | _ -> Alcotest.fail "expected permanent redirect"
+
+let trailing_slash_redirect_collapses_repeated_slashes () =
+  match
+    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname:"/notes///" ()
+  with
+  | RouterServer.ServerEngine.PermanentRedirect destination ->
+      Alcotest.(check string) "destination" "/notes" (RouterRuntime.href destination)
+  | _ -> Alcotest.fail "expected permanent redirect"
+
+let trailing_slash_redirects_base_path_root () =
+  match
+    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/app" ~pathname:"/app/" ()
+  with
+  | RouterServer.ServerEngine.PermanentRedirect destination ->
+      Alcotest.(check string) "destination" "/app" (RouterRuntime.href destination)
+  | _ -> Alcotest.fail "expected permanent redirect"
+
+let trailing_slash_reject_is_not_found () =
+  match
+    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Reject ~basePath:"/" ~pathname:"/notes/" ()
+  with
+  | RouterServer.ServerEngine.Full full ->
+      Alcotest.(check int) "status" 404 (RouterRuntime.Status.toInt full.resolved.status)
+  | _ -> Alcotest.fail "expected not-found response"
+
+let root_pathname_is_canonical () =
+  match run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname:"/" () with
+  | RouterServer.ServerEngine.PermanentRedirect _ -> Alcotest.fail "expected no redirect for the root pathname"
+  | RouterServer.ServerEngine.Full full ->
+      Alcotest.(check int) "status" 404 (RouterRuntime.Status.toInt full.resolved.status)
+  | _ -> Alcotest.fail "expected full response"
+
+let server_base_path_validation () =
+  let endpoint : ((unit, unit) RouterServer.Plan.t, unit) RouterServer.Endpoint.t =
+    RouterServer.Endpoint.make ~id:"root" ~path:"/" ~activeRoutes:[] ~fingerprint:"root" ~decode:(fun _ ->
+        Ok
+          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:()))))
+  in
+  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let make basePath =
+    RouterServer.Server.make ~basePath ~registry
+      ~fallback:(fun ~search:_ ~error:_ -> RouterServer.Plan.success ~scopes:[] ~page:())
+      ~applicationStatus:(fun () -> RouterRuntime.Status.InternalServerError)
+      ()
+  in
+  ignore (make "/");
+  ignore (make "/m%C3%BCnchen");
+  List.iter
+    (fun basePath ->
+      let rejected =
+        try
+          ignore (make basePath);
+          false
+        with Invalid_argument _ -> true
+      in
+      Alcotest.(check bool) basePath true rejected)
+    [ ""; "app"; "/app/"; "/app?preview"; "/münchen"; "/%61pp" ]
 
 let full_plan_composition () =
   let open RouterRuntime in
@@ -624,6 +812,11 @@ let () =
           test "failed static branch backtracks to parameter" failed_static_branch_backtracks_to_parameter;
           test "encoded static segment" encoded_static_segment;
           test "decoded parameters" decoded_parameters;
+          test "catch-all precedence and capture" catch_all_precedence_and_capture;
+          test "ambiguous catch-all patterns" ambiguous_catch_all_patterns;
+          test "catch-all endpoint decoding" catch_all_endpoint_decoding;
+          test "catch-all toString validation" catch_all_to_string_validation;
+          test "destination catch-all encoding" destination_catch_all_encoding;
           test "duplicate paths" duplicate_paths;
           test "ambiguous patterns" ambiguous_patterns;
           test "overlapping patterns" overlapping_patterns;
@@ -631,6 +824,7 @@ let () =
           test "malformed escape reports leftmost segment" malformed_escape_reports_leftmost_segment;
           test "encoded slash" encoded_slash;
           test "dot segments" dot_segments;
+          test "invalid UTF-8 path" invalid_utf8_path;
           test "destination segment encoding" destination_segment_encoding;
           test "destination dot segments" destination_dot_segments;
           test "repeated search" repeated_search;
@@ -657,11 +851,18 @@ let () =
           test "redirect and reload navigation responses" redirect_and_reload_navigation_responses;
           test "history action selects mutation" history_action_selects_mutation;
           test "hash-only location commit" hash_only_location_commit;
+          test "builtin bool codec" builtin_bool_codec;
           test "typed search decoding" typed_search_decoding;
           test "shallow search preserves unowned values" shallow_search_preserves_unowned_values;
           test "pop navigation kind" pop_navigation_kind;
           test "typed endpoint decoding" typed_endpoint_decoding;
           test "typed endpoint decode error" typed_endpoint_decode_error;
+          test "trailing slash redirects to canonical" trailing_slash_redirects_to_canonical;
+          test "trailing slash redirect collapses repeated slashes" trailing_slash_redirect_collapses_repeated_slashes;
+          test "trailing slash redirects base path root" trailing_slash_redirects_base_path_root;
+          test "trailing slash reject is not found" trailing_slash_reject_is_not_found;
+          test "root pathname is canonical" root_pathname_is_canonical;
+          test "server base path validation" server_base_path_validation;
           test "full plan composition" full_plan_composition;
           test "failure plan selects not-found boundary" failure_plan_selects_not_found_boundary;
           test "shared layout prefix uses canonical identity" shared_layout_prefix_uses_canonical_identity;

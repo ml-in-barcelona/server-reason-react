@@ -14,6 +14,12 @@ let quoteHref =
     (),
   );
 
+let assetHref =
+  Router.Asset.href(
+    ~parts=["img", "caf" ++ Js.String.fromCharCode(233), "a+b"],
+    (),
+  );
+
 let useGeneratedClientHooks = () => {
   let ({ Router.page, searchText: _ }, updateSearch) = Router.useSearch();
   let route = Router.useRoute();

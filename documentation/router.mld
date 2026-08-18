@@ -1,8 +1,5 @@
 {0 Type-safe router}
 
-The generated [Router] module is the application API. Application components
-should not import [RouterRuntime], [RouterReact], or [RouterServer] directly.
-
 {1 Declaring routes}
 
 Routes live in one manifest file compiled by [server-reason-react.router-gen].
@@ -37,6 +34,34 @@ Router.make(
 routes under a shared path prefix and layout. Both accept attachments, as does
 the root.
 
+[Router.redirect] declares an inbound temporary redirect without adding a
+route constructor or link helper to the generated application API:
+
+{[
+Router.redirect(
+  ~path="/old-notes/:id<NoteId.t>",
+  ~to_=(~id, ()) => Router.Note.destination(~id, ()),
+)
+]}
+
+The destination callback receives the redirect's decoded path and search
+values, including values inherited from parent groups and the root. Redirects
+inside groups inherit their path and search schemas, but do not run group
+loaders or attachments.
+
+Use [Router.unsafeDestination] when the target is outside the generated route
+manifest or must preserve a legacy URL exactly:
+
+{[
+Router.redirect(
+  ~path="/docs",
+  ~to_=() => Router.unsafeDestination("https://docs.example.com"),
+)
+]}
+
+[unsafeDestination] does not validate or encode its argument. Prefer a
+generated route destination when the router owns the target URL.
+
 Attachments take modules, and the generator resolves the convention inside
 each module:
 
@@ -50,7 +75,54 @@ each module:
   component.
 - [~metadata] and [~headers] are plain functions, not modules.
 
-{2 Path parameters}
+{2 Path syntax}
+
+[~path] is an absolute path made of slash-separated segments. Use ["/"] for an
+empty path. A group path is a prefix for its child group and route paths, so
+["/notes"] and ["/:id<int>"] compose to ["/notes/:id<int>"]. Each path must
+start with [/]. Empty segments, trailing slashes, [.] segments, and [..]
+segments are invalid.
+
+A segment is one of:
+
+- A static value such as [notes], [new], or [café]. Write decoded text in the
+  manifest. The router percent-encodes it when it builds an href. A static
+  segment can contain letters, digits, valid UTF-8, and URI path punctuation,
+  but it cannot contain [/], [%], [?], or [#].
+- A typed parameter in the form [:name<type>]. The parameter must occupy the
+  complete segment. The name follows Reason labelled-argument syntax. [bool],
+  [int], and [string] are built in. A custom type must have the form
+  [Module.t].
+- A final catch-all in the form [:name<string...>]. It matches one or more
+  remaining segments and the page receives them as [list(string)]. It must be
+  the last segment of the route path, it cannot appear in a group path, and it
+  never matches zero segments: [/assets/:parts<string...>] does not match
+  [/assets]. Declare a separate [/assets] route when both forms exist.
+
+Optional parameters and mixed segments such as [file-:id<int>] are not
+supported. Put search values after [?] in a destination through [~search],
+rather than in [~path].
+
+[~basePath] uses the static path syntax and cannot contain parameters. The
+registry rejects duplicate paths and patterns that can match the same pathname
+with equal specificity. When two valid patterns overlap, the pattern with more
+static segments takes precedence, and a route without a catch-all takes
+precedence over a catch-all route with the same static count. When one route
+path is a prefix of another, parameters at the same position must use the same
+name and type.
+
+{3 Trailing slashes}
+
+Generated hrefs never end with a slash, so the canonical form of every route
+is slash-free. [~trailingSlash] on [Router.make] sets the policy for request
+pathnames that end with one or more slashes:
+
+- [Redirect], the default, answers with a permanent redirect to the canonical
+  pathname. Document requests receive status 308, so the request method
+  survives the redirect. The query string is preserved.
+- [Reject] treats the request as not found.
+
+{3 Path parameter codecs}
 
 The router decodes a segment written [:name<Module.t>] with [Module.parse]
 and prints it with [Module.to_string]:
@@ -66,9 +138,9 @@ let parse = value =>
 let to_string = string_of_int;
 ]}
 
-Codecs receive percent-decoded segments. The router owns URL encoding. [int]
-and [string] are built in. A failed parse renders the nearest error boundary
-with [InvalidPathParameter].
+Codecs receive percent-decoded segments. The router owns URL encoding. [bool],
+[int], and [string] are built in. [bool] accepts exactly [true] and [false]. A
+failed parse renders the nearest error boundary with [InvalidPathParameter].
 
 {2 Search parameters}
 

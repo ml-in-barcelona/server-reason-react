@@ -375,6 +375,33 @@ module Navigation = {
     };
 };
 
+/* A catch-all capture travels as one string. Percent decoding rejects encoded
+   slashes, so a decoded segment can never contain '/', which makes the join
+   reversible. */
+module CatchAll = {
+  let parse = value => Ok(String.split_on_char('/', value));
+
+  let toString = segments =>
+    switch (segments) {
+    | [] =>
+      invalid_arg("catch-all route parameters require at least one segment")
+    | segments =>
+      List.iter(
+        segment =>
+          if (segment == ""
+              || segment == "."
+              || segment == ".."
+              || String.contains(segment, '/')) {
+            invalid_arg(
+              "catch-all route parameters must be non-empty path segments",
+            );
+          },
+        segments,
+      );
+      String.concat("/", segments);
+    };
+};
+
 module Search = {
   type options = {history: Navigation.historyAction};
 
@@ -385,6 +412,11 @@ module Search = {
     switch (int_of_string_opt(value)) {
     | Some(value) => Ok(value)
     | None => Error("expected an integer")
+    };
+  let parseBool = value =>
+    switch (bool_of_string_opt(value)) {
+    | Some(value) => Ok(value)
+    | None => Error("expected true or false")
     };
 
   let values = (name, search) =>

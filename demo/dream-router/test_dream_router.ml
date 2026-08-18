@@ -250,6 +250,42 @@ let rsc_redirect_uses_navigation_envelope () =
     "content type" (Some "application/react.component") (Dream.header response "Content-Type");
   Alcotest.(check (option string)) "cache control" (Some "private, no-store") (Dream.header response "Cache-Control")
 
+let trailing_slash_document_redirects_permanently () =
+  let seen = ref None in
+  let request = Dream.request ~target:"/app/item/?tag=one" "" in
+  let response = Dream.test (handler seen) request in
+  Alcotest.(check int) "status" 308 (Dream.status response |> Dream.status_to_int);
+  Alcotest.(check (option string)) "location" (Some "/app/item?tag=one") (Dream.header response "Location");
+  Alcotest.(check (option string)) "decode skipped" None !seen
+
+let trailing_slash_rsc_uses_navigation_envelope () =
+  let seen = ref None in
+  let request = Dream.request ~target:"/app/item/" ~headers:[ ("Accept", "application/react.component") ] "" in
+  let response = Dream.test (handler seen) request in
+  Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int);
+  Alcotest.(check (option string)) "kind" (Some "redirect") (Dream.header response "Router-Response");
+  let body = Lwt_main.run (Dream.body response) in
+  Alcotest.(check bool) "location" true (contains ~needle:"/app/item" body)
+
+let trailing_slash_reject_returns_not_found () =
+  let seen = ref None in
+  let router =
+    RouterServer.Server.make ~basePath:"/app" ~registry:(registry seen) ~trailingSlash:RouterServer.TrailingSlash.Reject
+      ~fallback
+      ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+      ()
+  in
+  let routes =
+    DreamRouter.routes ~router
+      ~actionHandler:(fun _ -> Dream.empty `OK)
+      ~diagnosticId:(fun _ -> "diagnostic")
+      ~revision:(fun () -> "revision")
+      ~ssr ~document ()
+  in
+  let request = Dream.request ~target:"/app/item/" "" in
+  let response = Dream.test (fun request -> Dream.router routes request) request in
+  Alcotest.(check int) "status" 404 (Dream.status response |> Dream.status_to_int)
+
 let () =
   Alcotest.run "dream router adapter"
     [
@@ -265,5 +301,8 @@ let () =
           test "registry mismatch returns reload-required" registry_mismatch_returns_reload_required;
           test "patch payload is smaller than full" patch_payload_is_smaller_than_full;
           test "RSC redirect uses navigation envelope" rsc_redirect_uses_navigation_envelope;
+          test "trailing slash document redirects permanently" trailing_slash_document_redirects_permanently;
+          test "trailing slash RSC uses navigation envelope" trailing_slash_rsc_uses_navigation_envelope;
+          test "trailing slash reject returns not found" trailing_slash_reject_returns_not_found;
         ] );
     ]

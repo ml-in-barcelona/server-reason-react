@@ -179,12 +179,21 @@ module Navigation: {
   let historyMutation: historyAction => historyMutation;
 };
 
+module CatchAll: {
+  let parse: string => result(list(string), string);
+
+  /** Joins decoded segments with a slash. Raises [Invalid_argument] on an
+      empty list and on empty, dot, or slash-containing segments. */
+  let toString: list(string) => string;
+};
+
 module Search: {
   type options = {history: Navigation.historyAction};
 
   let defaultOptions: options;
   let parseString: string => result(string, string);
   let parseInt: string => result(int, string);
+  let parseBool: string => result(bool, string);
   let required:
     (
       ~name: string,

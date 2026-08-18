@@ -43,5 +43,11 @@ Router.make(
         ),
       ],
     ),
+    Router.route(Asset, ~page=AssetPage, ~path="/assets/:parts<string...>"),
+    Router.redirect(
+      ~path="/legacy/:workspaceId<WorkspaceId.t>/notes/:id<NoteId.t>",
+      ~to_=(~workspaceId, ~id, ~page, ~searchText, ()) =>
+      Router.Note.destination(~workspaceId, ~id, ~page, ~searchText?, ())
+    ),
   ],
 );
