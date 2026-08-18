@@ -191,6 +191,11 @@ let decode_route_parameter_expression ~loc =
           (B.pexp_fun ~loc Nolabel None (B.pvar ~loc "parameters") body)))
 
 let use_route_expression ~loc routes =
+  let has_parameters =
+    List.exists
+      (fun (route : Router_declaration.route) -> match route.parameters with [] -> false | _ :: _ -> true)
+      routes
+  in
   let route_cases =
     List.map
       (fun (route : Router_declaration.route) ->
@@ -219,14 +224,20 @@ let use_route_expression ~loc routes =
         B.case
           ~lhs:
             (B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc }
-               (Some (B.ppat_tuple ~loc [ B.pvar ~loc "routeId"; B.pvar ~loc "parameters" ])))
+               (Some
+                  (B.ppat_tuple ~loc
+                     [ B.pvar ~loc "routeId"; (if has_parameters then B.pvar ~loc "parameters" else B.ppat_any ~loc) ])))
           ~guard:None ~rhs:route_match;
       ]
   in
   let body =
-    B.pexp_let ~loc Nonrecursive
-      [ B.value_binding ~loc ~pat:(B.pvar ~loc "decodeRouteParameter") ~expr:(decode_route_parameter_expression ~loc) ]
-      route_body
+    if has_parameters then
+      B.pexp_let ~loc Nonrecursive
+        [
+          B.value_binding ~loc ~pat:(B.pvar ~loc "decodeRouteParameter") ~expr:(decode_route_parameter_expression ~loc);
+        ]
+        route_body
+    else route_body
   in
   B.pexp_fun ~loc Nolabel None (B.punit ~loc) body
 
