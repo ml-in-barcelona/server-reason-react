@@ -81,6 +81,21 @@ end = struct
 end
 
 module Stream = struct
+  (* An async row still rendering. On an abort/timeout every task gets an error row rejecting its client-side
+     reference, [`Boundary] tasks (Suspense content whose B:<id> placeholder already flushed) additionally get a $RX
+     client-render instruction, and [promise] is canceled (best-effort: a no-op for non-cancelable promises). *)
+  type task = {
+    row : int;
+    kind : [ `Boundary | `Model_row ];
+    (* The running serialization. A placeholder until the task starts; only the abort path reads it, after the task
+       was detached from [active_tasks], and no yield separates registration from the assignment, so the placeholder
+       is never the promise being canceled. *)
+    mutable promise : unit Lwt.t;
+  }
+
+  (* [Aborting] spans begin_abort to close: regular writes are blocked and only settlement rows go through. *)
+  type lifecycle = Open | Aborting | Closed
+
   type 'a t = {
     push : 'a -> unit;
     (* Import (I) rows bypass the pending-hints drain: React flushes
@@ -88,16 +103,16 @@ module Stream = struct
        encountered after a hint call still streams before the hint. *)
     push_import : 'a -> unit;
     close : unit -> unit;
-    mutable closed : bool;
+    mutable lifecycle : lifecycle;
     (* Whether the $RX function definition was already streamed: it is injected once per stream, with whichever
        client-render instruction (errored Suspense boundary or timeout) streams first. *)
     mutable rx_injected : bool;
     mutable index : int;
-    mutable pending : int;
-    (* Async rows still rendering, in registration order (most recent first). On an abort/timeout every entry gets
-       an error row rejecting its client-side reference, and [`Boundary] entries (Suspense content whose B:<id>
-       placeholder already flushed) additionally get a $RX client-render instruction. *)
-    mutable pending_rows : (int * [ `Boundary | `Model_row ]) list;
+    (* render_html's root shell: a pending unit with no task promise and no row to settle, cleared after the shell
+       flushes. It only delays the close; an abort produces no error row for it. *)
+    mutable root_pending : bool;
+    (* Tasks still rendering, in registration order (most recent first). *)
+    mutable active_tasks : task list;
     written_client_references : (string * string, int) Hashtbl.t;
     written_symbols : (string, string) Hashtbl.t;
     (* React's request.hints set: one H row per dedup key per request. *)
@@ -123,13 +138,31 @@ module Stream = struct
     mutable deferred_rows : (unit -> unit) list;
   }
 
-  (* Closing is idempotent and pushes are guarded on [closed]: async work that completes after an abort/timeout must
-     not push into (or re-close) the closed stream, which would raise Lwt_stream.Closed inside Lwt.async and crash the
-     process. *)
+  (* Closing is idempotent and pushes are guarded on [lifecycle]: async work that completes after an abort/timeout
+     must not push into (or re-close) the closed stream, which would raise Lwt_stream.Closed inside Lwt.async and
+     crash the process. *)
   let close context =
-    if not context.closed then (
-      context.closed <- true;
-      context.close ())
+    match context.lifecycle with
+    | Closed -> ()
+    | Open | Aborting ->
+        context.lifecycle <- Closed;
+        context.close ()
+
+  (* Regular writes happen only while the stream is open: late work resumed after an abort (a non-cancelable promise,
+     a nested serialization) is dropped here. *)
+  let write context chunk = match context.lifecycle with Open -> context.push chunk | Aborting | Closed -> ()
+
+  let write_import context chunk =
+    match context.lifecycle with Open -> context.push_import chunk | Aborting | Closed -> ()
+
+  (* Abort settlement rows are the only writes allowed between begin_abort and close. *)
+  let write_settlement context chunk =
+    match context.lifecycle with Aborting -> context.push chunk | Open | Closed -> ()
+
+  (* Like [write], but the chunk is only serialized while the stream is open: late serialization after an abort
+     would build a payload the guards drop anyway. *)
+  let write_delayed context to_chunk index =
+    match context.lifecycle with Open -> context.push (to_chunk index) | Aborting | Closed -> ()
 
   (* Returns whether the caller must inline the $RX function definition before its $RX call, flipping the
      once-per-stream flag. *)
@@ -142,7 +175,7 @@ module Stream = struct
   let push to_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
-    if not context.closed then context.push (to_chunk index);
+    write_delayed context to_chunk index;
     index
 
   (* Mirror React's flush ordering: the row id is allocated at encounter time
@@ -154,7 +187,7 @@ module Stream = struct
   let push_deferred to_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
-    context.deferred_rows <- (fun () -> context.push (to_chunk index)) :: context.deferred_rows;
+    context.deferred_rows <- (fun () -> write_delayed context to_chunk index) :: context.deferred_rows;
     index
 
   (* Runs after every task row (the root row and every async row): writes the
@@ -176,7 +209,7 @@ module Stream = struct
     | None ->
         let index = context.index in
         context.index <- context.index + 1;
-        context.push_import (to_chunk index);
+        write_import context (to_chunk index);
         Hashtbl.replace context.written_client_references key index;
         index
 
@@ -210,31 +243,71 @@ module Stream = struct
         Hashtbl.replace context.written_symbols symbol reference;
         reference
 
-  (* An asynchronous task row: the id is allocated BEFORE [make_chunk] runs so rows pushed while the task's payload is serialized get later ids. The row is written when the promise resolves — unless the stream was aborted/closed in the meantime, in which case the chunk is dropped. *)
+  (* An asynchronous task row: the id is allocated BEFORE [make_chunk] runs so rows pushed while the task's payload is serialized get later ids. The row is written when the promise resolves — unless an abort detached the task in the meantime, in which case the chunk is dropped. After an abort the registration itself is refused; the id is still allocated so late serialization inside a detached task keeps producing rows the write guards can drop. *)
   let push_task ~kind make_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
-    context.pending <- context.pending + 1;
-    context.pending_rows <- (index, kind) :: context.pending_rows;
-    Lwt.async (fun () ->
-        let%lwt to_chunk = make_chunk () in
-        context.pending <- context.pending - 1;
-        context.pending_rows <- List.filter (fun (i, _) -> i <> index) context.pending_rows;
-        if not context.closed then (
-          context.push (to_chunk index);
-          (* Rows deferred during this row's serialization flush right after it, and may register new pending work, so flush before the close check. *)
-          flush_deferred ~context;
-          if context.pending = 0 then close context);
-        Lwt.return ());
+    (match context.lifecycle with
+    | Aborting | Closed -> ()
+    | Open ->
+        let task = { row = index; kind; promise = Lwt.return_unit } in
+        context.active_tasks <- task :: context.active_tasks;
+        let promise =
+          let%lwt to_chunk = Lwt.apply make_chunk () in
+          (match context.lifecycle with
+          (* Leaving [Open] detached every task ([begin_abort]): a detached task must not write, re-close, or
+             complete twice. In [Open] this task is necessarily still registered, since completion runs once. *)
+          | Aborting | Closed -> ()
+          | Open -> (
+              context.active_tasks <- List.filter (fun other -> other != task) context.active_tasks;
+              context.push (to_chunk index);
+              (* Rows deferred during this row's serialization flush right after it, and may register new pending work, so flush before the close check. *)
+              flush_deferred ~context;
+              match (context.active_tasks, context.root_pending) with [], false -> close context | _ -> ()));
+          Lwt.return ()
+        in
+        task.promise <- promise;
+        (* An abort cancels [promise]; the cancellation must not reach Lwt.async_exception_hook. *)
+        Lwt.on_failure promise (function
+          | Lwt.Canceled -> ()
+          | exn -> !Lwt.async_exception_hook exn));
     index
 
-  (* An async row of the RSC payload (a lazy element, a promise passed as prop, or the root task) with no placeholder in the flushed HTML. Tracked in [pending_rows] so an abort/timeout can reject its client-side reference with an error row. *)
+  (* An async row of the RSC payload (a lazy element, a promise passed as prop, or the root task) with no placeholder in the flushed HTML. Tracked in [active_tasks] so an abort/timeout can reject its client-side reference with an error row. *)
   let push_async make_chunk ~context = push_task ~kind:`Model_row make_chunk ~context
 
-  (* The async HTML content of a Suspense boundary whose placeholder (<template id="B:n">) and fallback were already flushed. Tracked in [pending_rows] so an abort/timeout can emit a $RX client-render instruction for it. *)
+  (* The async HTML content of a Suspense boundary whose placeholder (<template id="B:n">) and fallback were already flushed. Tracked in [active_tasks] so an abort/timeout can emit a $RX client-render instruction for it. *)
   let push_boundary_async make_chunk ~context = push_task ~kind:`Boundary make_chunk ~context
 
-  let make ?(initial_index = 0) ?(pending = 0) () =
+  (* The atomic abort transition: detaches every active task and blocks regular writes, without emitting output or
+     canceling anything. The caller settles the returned tasks (error rows, $RX instructions), closes, and only then
+     cancels them: cancellation runs callbacks synchronously, so it must not observe a stream that still accepts
+     regular writes. Returns [None] when the stream already aborted or closed, making repeated aborts harmless. *)
+  let begin_abort context =
+    match context.lifecycle with
+    | Aborting | Closed -> None
+    | Open ->
+        context.lifecycle <- Aborting;
+        let tasks = context.active_tasks in
+        context.active_tasks <- [];
+        context.root_pending <- false;
+        Some tasks
+
+  (* Ascending row ids of an abort snapshot. *)
+  let task_rows tasks = List.sort Int.compare (List.map (fun task -> task.row) tasks)
+
+  (* Registration-order row ids of the snapshot tasks whose Suspense placeholder already flushed. *)
+  let boundary_rows tasks =
+    List.rev
+      (List.filter_map (fun task -> match task.kind with `Boundary -> Some task.row | `Model_row -> None) tasks)
+
+  (* The settlement epilogue shared by every abort path: cancellation runs callbacks synchronously, so the stream
+     must be closed before the detached tasks are canceled. *)
+  let close_and_cancel context tasks =
+    close context;
+    List.iter (fun task -> Lwt.cancel task.promise) tasks
+
+  let make ?(initial_index = 0) ?(root_pending = false) () =
     let stream, push_raw, close_raw = Push_stream.make () in
     let pending_hints = Queue.create () in
     let drain_hints () =
@@ -253,11 +326,11 @@ module Stream = struct
           (fun () ->
             drain_hints ();
             close_raw ());
-        closed = false;
+        lifecycle = Open;
         rx_injected = false;
-        pending;
+        root_pending;
         index = initial_index;
-        pending_rows = [];
+        active_tasks = [];
         written_client_references = Hashtbl.create 16;
         written_symbols = Hashtbl.create 4;
         written_hints = Hashtbl.create 8;
@@ -356,6 +429,15 @@ let with_provider_value ~push ~async_key ~async_value fn =
   with exn ->
     pop ();
     Lwt.reraise exn
+
+type abort_reason = Timeout | Aborted
+
+let abort_message = function Timeout -> "The render timed out." | Aborted -> "The render was aborted."
+
+(* The error used to reject every still-pending row when the render stops, mirroring React Flight's abort which
+   errors all pending tasks with the abort reason. Error detail is dev-only (make_error_json emits only the digest
+   in prod). *)
+let abort_error reason = { React.message = abort_message reason; stack = `Null; env = "Server"; digest = "" }
 
 module Model = struct
   type chunk = Value of json | Debug_ref of json | Component_ref of json | Error of env * React.error
@@ -614,15 +696,15 @@ module Model = struct
       let debug_info_idx, owner_idx = emit_debug_info ~name ~debug_info in
       let new_debug_info = Some (debug_info_idx, owner_idx) in
       let child_payload = render_child ~debug_info:new_debug_info in
-      context.push (to_chunk (Debug_ref (`String (ref_value debug_info_idx))) model_index);
-      context.push (to_chunk (Value child_payload) model_index);
+      Stream.write context (to_chunk (Debug_ref (`String (ref_value debug_info_idx))) model_index);
+      Stream.write context (to_chunk (Value child_payload) model_index);
       `String (ref_value model_index)
     in
     let attach_debug_info ~name ~debug_info ~render_child =
       match debug_info with
       | None ->
           let debug_info_idx, _ = emit_debug_info ~name ~debug_info:None in
-          context.push (to_chunk (Debug_ref (`String (ref_value debug_info_idx))) 0);
+          Stream.write context (to_chunk (Debug_ref (`String (ref_value debug_info_idx))) 0);
           render_child ~debug_info:(Some (debug_info_idx, None))
       | Some _ -> outline_with_debug_ref ~name ~debug_info ~render_child
     in
@@ -679,25 +761,21 @@ module Model = struct
             React.reset_component_id_state saved_ctx;
             match component () with
             | element -> Lwt.return (to_chunk (Value (render element)))
-            | exception React.Suspend (Any_promise promise) -> (
+            | exception React.Suspend any_promise ->
                 React.current_tree_context := saved_ctx;
-                try%lwt
-                  let%lwt _ = promise in
-                  retry ()
-                with exn -> Lwt.return (render_error exn))
+                retry_after any_promise
             | exception exn -> Lwt.return (render_error exn)
+          and retry_after (React.Any_promise promise) =
+            try%lwt
+              let%lwt _ = promise in
+              retry ()
+            with exn -> Lwt.return (render_error exn)
           in
           match component () with
           | element -> render element
-          | exception React.Suspend (Any_promise promise) ->
+          | exception React.Suspend any_promise ->
               React.current_tree_context := saved_ctx;
-              let retry_after_promise () =
-                try%lwt
-                  let%lwt _ = promise in
-                  retry ()
-                with exn -> Lwt.return (render_error exn)
-              in
-              let index = Stream.push_async retry_after_promise ~context in
+              let index = Stream.push_async (fun () -> retry_after any_promise) ~context in
               `String (lazy_value index)
           | exception exn ->
               React.current_tree_context := saved_ctx;
@@ -893,7 +971,7 @@ module Model = struct
              referenced from the root row (id 0, allocated before this task's
              serialization started). *)
           let debug_info_idx, _ = emit_debug_info_row ~filter_stack_frame ~context ~to_chunk ~name ~debug_info:None in
-          context.push (to_chunk (Debug_ref (`String (ref_value debug_info_idx))) 0);
+          Stream.write context (to_chunk (Debug_ref (`String (ref_value debug_info_idx))) 0);
           go ~debug_info:(Some (debug_info_idx, None)) element
       | _ -> go ~debug_info element
     in
@@ -909,10 +987,13 @@ module Model = struct
   (* The root row is a task like any other (React allocates its id first via
      createTask): its serialization may suspend (async component on the root
      chain) and its row is written when the payload resolves. A failure on the
-     root chain errors the root row itself (`0:E{...}`). *)
+     root chain errors the root row itself (`0:E{...}`). [model] is a promise
+     so a pending action response is bounded by the same abort/timeout as any
+     other task; element renders pass an already-resolved model. *)
   let push_root_task ?debug ?filter_stack_frame ~context ~env model =
     Stream.push_async ~context (fun () ->
         try%lwt
+          let%lwt model = model in
           let%lwt payload = model_to_root_payload ?debug ?filter_stack_frame ~context ~to_chunk ~env model in
           Lwt.return (to_chunk (Value payload))
         with exn -> Lwt.return (to_chunk (Error (env, exn_to_error exn))))
@@ -920,18 +1001,89 @@ module Model = struct
   let hint_sink ~context { Flight_hints.dedup_key; code; payload } =
     Stream.push_hint ~context ~dedup_key (hint_to_chunk code payload)
 
-  let run_stream ~env ~debug ?filter_stack_frame ?subscribe model =
+  (* Rejects every task pending at abort time with a Flight error row so the client-side $L/$@ references settle
+     instead of hanging, then closes and cancels the tasks. Rows keep their already-allocated ids, emitted in
+     ascending order. Model streams have no $RX instructions: an errored row is enough for the Flight client. The
+     rows must enter the stream BEFORE the close so Lwt_stream.iter_s delivers them. *)
+  let abort ~env ~reason context =
+    match Stream.begin_abort context with
+    | None -> ()
+    | Some tasks ->
+        let error = abort_error reason in
+        List.iter
+          (fun index -> Stream.write_settlement context (to_chunk (Error (env, error)) index))
+          (Stream.task_rows tasks);
+        Stream.close_and_cancel context tasks
+
+  (* Resolves with [Aborted] when the host signal settles, fulfilled or not: a rejected or canceled abort promise is
+     still an abort request, and must not leak through Lwt.async_exception_hook. Lwt.protected shields the
+     caller-owned promise from our own cancellation of the trigger. A trigger canceled after the render completed can
+     still convert into an abort request; begin_abort drops it. *)
+  let abort_signal_trigger abort =
+    Lwt.try_bind (fun () -> Lwt.protected abort) (fun () -> Lwt.return Aborted) (fun _exn -> Lwt.return Aborted)
+
+  let abort_triggers ~timeout ~abort =
+    let timeout =
+      match timeout with
+      | None -> []
+      | Some seconds ->
+          [
+            (let%lwt () = Lwt_unix.sleep seconds in
+             Lwt.return Timeout);
+          ]
+    in
+    let abort = match abort with None -> [] | Some abort -> [ abort_signal_trigger abort ] in
+    timeout @ abort
+
+  let run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort:abort_signal model =
     let stream, context = Stream.make () in
     Flight_hints.with_sink (hint_sink ~context) (fun () ->
+        (* The root task must be registered before the trigger can fire: an already-resolved abort signal settles it
+           as an error row instead of closing an empty stream. *)
         let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env model in
-        match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream)
+        match (subscribe, abort_triggers ~timeout ~abort:abort_signal) with
+        | None, [] -> Lwt.return ()
+        | subscribe, triggers ->
+            (* With a deadline but no subscriber the stream still needs a consumer, so the returned promise
+               represents the bounded render. *)
+            let subscribe = Option.value subscribe ~default:(fun _ -> Lwt.return ()) in
+            let subscription = Lwt_stream.iter_s subscribe stream in
+            let watcher =
+              match triggers with
+              | [] -> None
+              | triggers ->
+                  Some
+                    (let%lwt reason = Lwt.pick triggers in
+                     abort ~env ~reason context;
+                     Lwt.return ())
+            in
+            (* Canceling the watcher cancels the sleep and detaches from the host abort promise without canceling it;
+               the watcher would otherwise retain the completed render context until the host promise settles. *)
+            let stop_watching () = Option.iter Lwt.cancel watcher in
+            Lwt.try_bind
+              (fun () -> subscription)
+              (fun () ->
+                stop_watching ();
+                Lwt.return ())
+              (fun exn ->
+                (* The subscriber failed or the render was canceled: stop the pending work without writing settlement
+                   rows nobody can read. *)
+                (match Stream.begin_abort context with
+                | None -> ()
+                | Some tasks -> Stream.close_and_cancel context tasks);
+                stop_watching ();
+                Lwt.reraise exn))
 
-  let render ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
+  let render ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort ?identifier_prefix model =
     React.reset_id_rendering ?prefix:identifier_prefix ();
-    run_stream ~env ~debug ?filter_stack_frame ?subscribe model
+    run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort (Lwt.return model)
 
-  let create_action_response ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe response =
-    let%lwt response =
+  let create_action_response ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort response =
+    (* The action promise is the stream's root task, so the deadline bounds a hung action. Ordinary rejection stays
+       an outlined error value (root `0:"$Z1"` plus `1:E`), not a root `0:E` row. An abort settles the root with the
+       abort reason before it cancels [response]; the error value this catch builds from that cancellation is dropped
+       by the lifecycle guards. *)
+    let root =
       try%lwt response
       with exn ->
         let message = Printexc.to_string exn in
@@ -939,7 +1091,7 @@ module Model = struct
         let digest = generate_uuid () in
         Lwt.return (React.Model.Error { message; stack; env = "Server"; digest })
     in
-    run_stream ~env ~debug ?filter_stack_frame ?subscribe response
+    run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort root
 end
 
 let script ?nonce attributes children =
@@ -967,13 +1119,8 @@ let rc_function_definition = Fizz_instructions.complete_boundary
 let rc_function_script ?nonce () = script ?nonce [] [ Html.raw rc_function_definition ]
 let rx_function_definition = Fizz_instructions.client_render_boundary
 
-let timeout_error_message =
-  "Switched to client rendering because the server rendering aborted due to:\n\nThe render timed out."
-
-(* The error used to reject every still-pending row of the RSC payload when the render times out, mirroring React
-   Flight's abort which errors all pending tasks with the abort reason. Error detail is dev-only (make_error_json
-   emits only the digest in prod). *)
-let timeout_error = { React.message = "The render timed out."; stack = `Null; env = "Server"; digest = "" }
+let client_render_abort_message reason =
+  "Switched to client rendering because the server rendering aborted due to:\n\n" ^ abort_message reason
 
 let client_render_boundary_to_chunk ?nonce ~env ~message ~include_definition index =
   let rx_call =
@@ -1363,7 +1510,8 @@ and continue_with_debug_html ~(fiber : Fiber.t) ~name ~debug_info element =
           Model.emit_debug_info_row ~filter_stack_frame ~context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) ~name
             ~debug_info:None
         in
-        context.push (model_to_chunk ?nonce:fiber.nonce (Debug_ref (`String (Model.ref_value debug_info_idx))) 0);
+        Stream.write context
+          (model_to_chunk ?nonce:fiber.nonce (Debug_ref (`String (Model.ref_value debug_info_idx))) 0);
         render_element_to_html ~fiber ~debug_info:(Some (debug_info_idx, None)) element
     | Some _ ->
         let model_index = context.index in
@@ -1375,9 +1523,9 @@ and continue_with_debug_html ~(fiber : Fiber.t) ~name ~debug_info element =
         let%lwt html, child_model =
           render_element_to_html ~fiber ~debug_info:(Some (debug_info_idx, owner_idx)) element
         in
-        context.push
+        Stream.write context
           (model_to_chunk ?nonce:fiber.nonce (Debug_ref (`String (Model.ref_value debug_info_idx))) model_index);
-        context.push (model_to_chunk ?nonce:fiber.nonce (Value child_model) model_index);
+        Stream.write context (model_to_chunk ?nonce:fiber.nonce (Value child_model) model_index);
         Lwt.return (html, `String (Model.ref_value model_index))
 
 and render_lower_case_element ~fiber ~debug_info ~key ~tag ~attributes ~children () =
@@ -1661,7 +1809,7 @@ let create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScr
   ]
 
 let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame)
-    ?timeout ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent ?bootstrapScripts
+    ?timeout ?abort ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent ?bootstrapScripts
     ?bootstrapModules ?nonce ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
   React.Cache.with_request_cache_async (fun () ->
@@ -1672,11 +1820,11 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
       (* Since we don't push the root_data_payload to the stream but return it immediately with the initial HTML,
          the stream's initial index starts at 1, with index 0 reserved for the root_data_payload.
 
-         The root is also treated as a pending segment that must complete before the stream can be closed,
-         as we don't push_async it to the stream, the pending counter starts at 1.
+         The root is also treated as a pending unit that must complete before the stream can be closed,
+         as we don't push_async it to the stream, root_pending starts true.
          Similar on how react does: https://github.com/facebook/react/blob/7d9f876cbc7e9363092e60436704cf8ae435b969/packages/react-server/src/ReactFizzServer.js#L572-L581
          *)
-      let stream, context = Stream.make ~initial_index:1 ~pending:1 () in
+      let stream, context = Stream.make ~initial_index:1 ~root_pending:true () in
       let hint_sink { Flight_hints.dedup_key; code; payload } =
         Stream.push_hint ~context ~dedup_key (hint_row_to_html_chunk ?nonce code payload)
       in
@@ -1708,10 +1856,8 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
          promise rows) stream right after the initial document, which embeds
          the root payload itself. *)
       Stream.flush_deferred ~context;
-      (* Decrement the pending counter to signal that the root data payload is complete. *)
-      context.pending <- context.pending - 1;
-      (* In case of not having any task pending, we can close the stream *)
-      if context.pending = 0 then Stream.close context;
+      context.root_pending <- false;
+      (match context.active_tasks with [] -> Stream.close context | _ :: _ -> ());
       let user_scripts =
         create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ?nonce ()
       in
@@ -1741,53 +1887,51 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
           let%lwt () = Push_stream.subscribe ~fn:buffered stream in
           finish ()
         in
-        match timeout with
-        | None -> subscription
-        | Some seconds ->
+        match Model.abort_triggers ~timeout ~abort with
+        | [] -> subscription
+        | triggers ->
             Lwt.pick
               [
                 subscription;
-                (* On timeout, emit a $RX client-render instruction per still-pending Suspense boundary (the client flips each boundary to errored and retries rendering it there), then close the stream.
+                (* On timeout/abort, emit a $RX client-render instruction per still-pending Suspense boundary (the client flips each boundary to errored and retries rendering it there), then close the stream and cancel the detached tasks.
 
-                  The $RX scripts are written straight into the subscriber's buffer since the stream subscription is about to be cancelled by Lwt.pick. Closing sets [closed], which guards the async pushes of boundary promises that resolve later. *)
-                (let%lwt () = Lwt_unix.sleep seconds in
-                 if not context.closed then (
-                   let pending_boundaries =
-                     List.rev
-                       (List.filter_map
-                          (fun (index, kind) -> match kind with `Boundary -> Some index | `Model_row -> None)
-                          context.pending_rows)
-                   in
-                   let pending_rows = List.sort compare (List.map fst context.pending_rows) in
-                   context.pending_rows <- [];
-                   (* Reject every still-pending row of the RSC payload (lazy elements, promises passed as props and the content of pending Suspense boundaries) with an error row so the client-side $L/$@ references settle instead of hanging forever. *)
-                   List.iter
-                     (fun index ->
-                       Buffer.add_string buf (Html.to_string (model_to_chunk ?nonce (Error (env, timeout_error)) index)))
-                     pending_rows;
-                   List.iter
-                     (fun index ->
-                       Buffer.add_string buf
-                         (Html.to_string
-                            (client_render_boundary_to_chunk ?nonce ~env ~message:timeout_error_message
-                               ~include_definition:(Stream.take_rx_definition context) index)))
-                     pending_boundaries;
-                   context.pending <- 0;
-                   Stream.close context);
+                  The $RX scripts are written straight into the subscriber's buffer since the stream subscription is about to be cancelled by Lwt.pick. The [Aborting]/[Closed] lifecycle guards the pushes of tasks that resolve later. *)
+                (let%lwt reason = Lwt.pick triggers in
+                 (match Stream.begin_abort context with
+                 | None -> ()
+                 | Some tasks ->
+                     let pending_boundaries = Stream.boundary_rows tasks in
+                     let pending_rows = Stream.task_rows tasks in
+                     let error = abort_error reason in
+                     let message = client_render_abort_message reason in
+                     (* Reject every still-pending row of the RSC payload (lazy elements, promises passed as props and the content of pending Suspense boundaries) with an error row so the client-side $L/$@ references settle instead of hanging forever. *)
+                     List.iter
+                       (fun index ->
+                         Buffer.add_string buf (Html.to_string (model_to_chunk ?nonce (Error (env, error)) index)))
+                       pending_rows;
+                     List.iter
+                       (fun index ->
+                         Buffer.add_string buf
+                           (Html.to_string
+                              (client_render_boundary_to_chunk ?nonce ~env ~message
+                                 ~include_definition:(Stream.take_rx_definition context) index)))
+                       pending_boundaries;
+                     Stream.close_and_cancel context tasks);
                  finish ());
               ]
       in
       Lwt.return (Html.to_string html, subscribe))
 
-let render_model_value ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe model =
-  React.Cache.with_request_cache_async (fun () -> Model.render ~env ~debug ?filter_stack_frame ?subscribe model)
-
-let render_model ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe model =
-  render_model_value ~env ~debug ?filter_stack_frame ?subscribe (React.Model.Element model)
-
-let create_action_response ?env ?debug ?filter_stack_frame ?subscribe response =
+let render_model_value ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort model =
   React.Cache.with_request_cache_async (fun () ->
-      Model.create_action_response ?env ?debug ?filter_stack_frame ?subscribe response)
+      Model.render ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort model)
+
+let render_model ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort model =
+  render_model_value ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort (React.Model.Element model)
+
+let create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?abort response =
+  React.Cache.with_request_cache_async (fun () ->
+      Model.create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?abort response)
 
 (* Reply decoding: deserialize client-to-server action arguments. Handles React's special $-prefixed string encoding from processReply/encodeReply.
    Reference: https://github.com/facebook/react/blob/main/packages/react-server/src/ReactFlightReplyServer.js

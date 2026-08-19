@@ -1,9 +1,17 @@
+(** [timeout] (seconds) and [abort] stop a render that is still streaming: every pending row settles as a Flight error
+    row (dev carries the reason, prod only the digest), pending Suspense boundaries additionally get a $RX client-render
+    instruction in [render_html], the stream closes, and the pending Lwt work is canceled (best-effort: promises without
+    cancellation support keep running, but their late output is dropped). [abort] is a host-supplied promise, typically
+    resolved on client disconnect; a rejected or canceled signal also aborts. [render_html]'s deadline starts when the
+    returned subscribe function is called, not during shell rendering. *)
+
 val render_html :
   ?skipRoot:bool ->
   ?env:[ `Dev | `Prod ] ->
   ?debug:bool ->
   ?filter_stack_frame:(string -> string -> bool) ->
   ?timeout:float ->
+  ?abort:unit Lwt.t ->
   ?progressive_chunk_size:int ->
   ?bootstrapScriptContent:string ->
   ?bootstrapScripts:string list ->
@@ -18,6 +26,8 @@ val render_model :
   ?debug:bool ->
   ?filter_stack_frame:(string -> string -> bool) ->
   ?subscribe:(string -> unit Lwt.t) ->
+  ?timeout:float ->
+  ?abort:unit Lwt.t ->
   React.element ->
   unit Lwt.t
 
@@ -26,6 +36,8 @@ val render_model_value :
   ?debug:bool ->
   ?filter_stack_frame:(string -> string -> bool) ->
   ?subscribe:(string -> unit Lwt.t) ->
+  ?timeout:float ->
+  ?abort:unit Lwt.t ->
   React.model_value ->
   unit Lwt.t
 
@@ -34,6 +46,8 @@ val create_action_response :
   ?debug:bool ->
   ?filter_stack_frame:(string -> string -> bool) ->
   ?subscribe:(string -> unit Lwt.t) ->
+  ?timeout:float ->
+  ?abort:unit Lwt.t ->
   React.model_value Lwt.t ->
   unit Lwt.t
 

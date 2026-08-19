@@ -1310,6 +1310,34 @@ let timeout_with_late_resolving_boundary_does_not_crash () =
     (String.ends_with ~suffix:"<script>window.srr_stream.close()</script>" all_content);
   Lwt.return ()
 
+let external_abort_settles_pending_boundary () =
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...") ~children:(never_resolving_component "NeverResolves") ()
+  in
+  let abort, resolve_abort = Lwt.wait () in
+  let subscribed_elements = ref [] in
+  let%lwt _html, subscribe = ReactServerDOM.render_html ~env:`Dev ~progressive_chunk_size:1 ~abort app in
+  let subscription =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  Lwt.wakeup_later resolve_abort ();
+  let%lwt () = subscription in
+  (* On an external abort: an error row with the abort reason rejects the pending row, the $RX call carries the
+     wrapped abort message (dev-only), and the stream closes. *)
+  assert_list_of_strings !subscribed_elements
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:E{\"message\":\"The render was \
+       aborted.\",\"stack\":null,\"env\":\"Server\",\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script><script>$RX=function(b,c,d,e,f){var \
+       a=document.getElementById(b);a&&(b=a.previousSibling,b.data=\"$!\",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};;$RX(\"B:2\",\"\",\"Switched \
+       to client rendering because the server rendering aborted due to:\\n\\nThe render was \
+       aborted.\")</script><script>window.srr_stream.close()</script>";
+    ];
+  Lwt.return ()
+
 let progressive_chunk_size_batches_small_chunks () =
   let app =
     mk_suspense ~fallback:(React.string "Loading...")
@@ -1623,6 +1651,7 @@ let tests =
     test ~timeout:500 "timeout_rejects_pending_promise_prop_row" timeout_rejects_pending_promise_prop_row;
     test ~timeout:500 "timeout_with_late_resolving_boundary_does_not_crash"
       timeout_with_late_resolving_boundary_does_not_crash;
+    test ~timeout:500 "external_abort_settles_pending_boundary" external_abort_settles_pending_boundary;
     test ~timeout:500 "timeout_does_not_affect_fast_renders" timeout_does_not_affect_fast_renders;
     test ~timeout:500 "progressive_chunk_size_batches_small_chunks" progressive_chunk_size_batches_small_chunks;
     test ~timeout:500 "timeout_end_script_appears_exactly_once" timeout_end_script_appears_exactly_once;

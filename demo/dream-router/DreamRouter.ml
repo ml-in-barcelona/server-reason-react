@@ -120,6 +120,10 @@ let handleNoJsFormRequest ~lookup formDataJs =
           | ReactServerDOM.Body handler -> handler [||]))
   | None -> Lwt.fail_with "No ACTION_ID header and no $ACTION_* keys in FormData"
 
+(* Dream has no request-disconnect promise: a failed write is the only disconnect signal and cannot fire while the
+   renderer waits on a hung resource, so the timeout is the reliable backstop for RSC responses. *)
+let stream_timeout = 30.0
+
 let write_chunk ~debug ~label stream chunk =
   if debug then (
     Dream.log "%s" label;
@@ -155,7 +159,7 @@ let streamFunctionResponse ?(debug = false) ~lookup request =
   in
   Dream.stream ~headers:(("Content-Type", "application/react.action") :: cookie_headers) (fun stream ->
       let%lwt () =
-        ReactServerDOM.create_action_response ~env:`Dev ~debug
+        ReactServerDOM.create_action_response ~env:`Dev ~debug ~timeout:stream_timeout
           ~subscribe:(write_chunk ~debug ~label:"Action response" stream)
           action_promise
       in
@@ -167,7 +171,9 @@ let stream_model_value ?(debug = false) ?(code = 200) ?(headers = []) ~location 
   let%lwt response =
     Dream.stream ~code ~headers (fun stream ->
         let%lwt () =
-          ReactServerDOM.render_model_value ~env:`Dev ~debug ~subscribe:(write_chunk ~debug ~label:"Chunk" stream) app
+          ReactServerDOM.render_model_value ~env:`Dev ~debug ~timeout:stream_timeout
+            ~subscribe:(write_chunk ~debug ~label:"Chunk" stream)
+            app
         in
         Dream.flush stream)
   in
