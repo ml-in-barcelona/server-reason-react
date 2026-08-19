@@ -102,8 +102,8 @@ Two independent observations:
 
 1. Concurrent ids differ from sequential ids for the same tree. This is
    the cross-render corruption.
-2. The sequential baseline for tree A is `«R1», «R1», «R2», «R3»` — it
-   contains a duplicate `«R1»`. Tree A has four `useId` call sites at four
+2. The sequential baseline for tree A is `«R1», «R1», «R2», «R3»`, with
+   a duplicate `«R1»`. Tree A has four `useId` call sites at four
    distinct tree positions, so four distinct ids are expected. This is the
    single-render async-continuation bug. It reproduces with one render and
    no concurrency.
@@ -133,7 +133,6 @@ stream completion. The monorepo test above runs through that lock and
 passes. The lock caps admin render concurrency at 1 per process, so it must
 be removed once the upstream fix lands.
 
-Note that the single-render duplicate-id bug is **not** covered by the
-mitigation: it needs the upstream continuation-context fix. Downstream
+The single-render duplicate-id bug is not covered by the mitigation: it needs the upstream continuation-context fix. Downstream
 impact today is limited because the admin pages that stream do not yet rely
 on unique server-generated ids across an async boundary.
