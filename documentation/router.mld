@@ -105,11 +105,12 @@ rather than in [~path].
 
 [~basePath] uses the static path syntax and cannot contain parameters. The
 registry rejects duplicate paths and patterns that can match the same pathname
-with equal specificity. When two valid patterns overlap, the pattern with more
-static segments takes precedence, and a route without a catch-all takes
-precedence over a catch-all route with the same static count. When one route
-path is a prefix of another, parameters at the same position must use the same
-name and type.
+with equal specificity. This includes crossing catch-all patterns such as
+[/foo/:left<string...>] and [/:scope<string>/bar/:right<string...>]. When an
+overlap has a unique winner, the pattern with more static segments takes
+precedence, and a route without a catch-all takes precedence over a catch-all
+route with the same static count. When one route path is a prefix of another,
+parameters at the same position must use the same name and type.
 
 {3 Trailing slashes}
 
@@ -139,8 +140,11 @@ let to_string = string_of_int;
 ]}
 
 Codecs receive percent-decoded segments. The router owns URL encoding. [bool],
-[int], and [string] are built in. [bool] accepts exactly [true] and [false]. A
-failed parse renders the nearest error boundary with [InvalidPathParameter].
+[int], and [string] are built in. [bool] accepts exactly [true] and [false].
+[to_string] must return one non-empty, valid UTF-8 path segment. Destination
+construction raises [Invalid_argument] for an empty value, [/], [.], [..],
+control characters, or invalid UTF-8. Valid output is percent-encoded. A failed
+parse produces [InvalidPathParameter].
 
 {2 Search parameters}
 
@@ -268,7 +272,10 @@ module AppError = {
 search parameters, and [Internal] failures carrying only a diagnostic id.
 Boundary components receive the scope inputs plus [~error]. The nearest
 [~notFound] handles missing routes and loader [NotFound] results. Without one,
-the nearest [~error] renders instead.
+the nearest [~error] renders instead. A path or search decode failure in a
+nested scope renders the nearest ancestor [~error] boundary before any loader
+at or below the failing scope runs. Root search failures use [~invalidSearch]
+when declared.
 
 {1 Metadata and headers}
 
@@ -286,24 +293,21 @@ module NoteMetadata = {
 
 {1 Server integration}
 
-The native generator emits [RouterRegistry.server]. A Dream application mounts
-the generated router with one call:
+The native generator emits [RouterRegistry.server], a configured
+[RouterServer.Server.t]. A native HTTP adapter builds a
+[RouterServer.ServerEngine.request] from the request location and router
+navigation headers, then calls [RouterServer.Server.run]. The adapter maps the
+resulting full, patch, redirect, permanent-redirect, or reload-required outcome
+to its HTTP server and streams render data through [ReactServerDOM].
 
-{[
-DreamRouter.routes(
-  ~router=RouterRegistry.server,
-  ~actionHandler,
-  ~bootstrapModules=["/static/app.js"],
-  ~document=children => <Document> children </Document>,
-  (),
-)
-]}
-
-The registry, matching engine, protocol version, response envelopes, and client
-provider are implementation details of the generator and adapter.
+The repository's [demo/dream-router/DreamRouter.ml] implements this boundary
+for Dream and can be used as an adapter reference. [DreamRouter] is demo-only:
+it is not installed by any published package.
 
 {1 Libraries}
 
 Melange applications depend on [server-reason-react.router]. Native
 applications depend on [server-reason-react.router-native]. Route generation
-uses [server-reason-react.router-gen].
+uses [server-reason-react.router-gen]. A native adapter that calls
+[ReactServerDOM] also depends on [server-reason-react.reactDom]. There is no
+installed Dream router package.

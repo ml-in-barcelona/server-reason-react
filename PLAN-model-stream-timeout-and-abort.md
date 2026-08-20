@@ -1,57 +1,113 @@
-# Plan: timeout and client-disconnect abort for Flight model streams
+# Plan: timeout and abort for Flight model streams
 
-Status: proposed. Written 2026-08-19 for the Admin Site Inspector RSC
-migration (monorepo `docs/admin-site-inspector-rsc-plan.md`, task 17).
+Status: implemented on 2026-08-20 after code and Lwt lifecycle review.
 
-Related code in this repository:
+This work supports the Admin Site Inspector RSC migration in the Ahrefs
+monorepo (`docs/admin-site-inspector-rsc-plan.md`, task 17).
 
-- `packages/reactDom/src/ReactServerDOM.ml`
-  - `render_html` (`?timeout` already implemented)
-  - `Model.run_stream`, `Model.render`, `render_model`,
-    `render_model_value`, `Model.create_action_response`
-  - `Stream.make`, `context.pending`, `context.pending_rows`,
-    `Stream.close`
+Related code:
 
-## Problem
+- `packages/reactDom/src/ReactServerDOM.ml`: `Stream.make`,
+  `Stream.push_task`, `Stream.close`, `Model.push_root_task`,
+  `Model.run_stream`, `Model.render`, `Model.create_action_response`, and the
+  public render functions
+- `packages/reactDom/src/ReactServerDOM.mli`
+- `packages/reactDom/test/test_RSC_model.ml`
+- `packages/reactDom/test/test_RSC_html.ml`
+- `demo/dream-router/DreamRouter.ml`
 
-`render_html` accepts `?timeout`. On timeout it settles every pending row
-and Suspense boundary as an error and closes the stream, so a slow data
-resource cannot hang the connection.
+## Goal
 
-The Flight model renderers have no equivalent:
+Bound Flight model responses and stop request work when the caller no longer
+needs the response.
 
-1. **No timeout.** `render_model`, `render_model_value`, and
-   `create_action_response` stream until every pending row resolves. A
-   hung resource promise keeps the HTTP response open forever. Downstream,
-   every router navigation (full model and patch) uses this path, so
-   navigation responses are unbounded while document responses are not.
-2. **No abort on client disconnect.** When the client goes away, the
-   subscriber callback stops consuming, but the render keeps evaluating:
-   pending `push_async` retries still run their resource promises
-   (ClickHouse queries, endpoint actions) to completion, and their chunks
-   are then dropped by the `closed` guard. The work is wasted and there is
-   no hook for the host server to stop it.
+The public model renderers support:
 
-## Current mechanics (what the design builds on)
+- a timeout in seconds;
+- an external abort promise supplied by the host server;
+- Flight error rows for references that were pending when the render stopped;
+- best-effort cancellation of pending Lwt work; and
+- cleanup when the subscriber fails or the caller cancels the render promise.
 
-- `Stream.make` returns a `context` with a `pending` counter and
-  `pending_rows : (int * [ `Boundary | `Model_row ]) list`. Pushes are
-  guarded on `context.closed` and `Stream.close` is idempotent, so late
-  async completions after an abort are already safe.
-- `render_html`'s timeout is an `Lwt.pick` between the subscription and a
-  sleep. On timeout it writes an error row per pending model row, a `$RX`
-  client-render instruction per pending boundary, sets `pending <- 0`, and
-  closes. `timeout_error` mirrors React Flight's abort reason; production
-  output carries only the digest.
-- `Model.run_stream` drives the subscriber with
-  `Lwt_stream.iter_s subscribe stream`; there is no branch that can settle
-  pending rows early.
+`render_html` accepts the same external abort input. Its existing timeout wire
+output is unchanged.
 
-## Design
+## Problems addressed
 
-### 1. One abort primitive, two triggers
+### Unbounded model renders
 
-Add an abort signal to the model renderers instead of only a timer:
+`render_model`, `render_model_value`, and `create_action_response` previously
+waited without a deadline until every pending row resolved.
+
+### Work outliving the response
+
+`Stream.close` previously left tasks running, and some output paths could still
+allocate rows or try to write after close.
+
+### Action execution outside the stream
+
+`Model.create_action_response` previously awaited the action promise before it
+called `run_stream`, so the stream deadline could not bound a hung action.
+
+### Subscriber failures leaving tasks running
+
+`Model.run_stream` previously returned the subscription directly. A failed
+write did not cancel pending resource tasks.
+
+## Constraints found during review
+
+### Lwt cancellation is best effort
+
+`Lwt.cancel` propagates through normal bind chains and cancelable I/O promises.
+It does not stop work behind `Lwt.wait`, `Lwt.no_cancel`, or
+`Lwt.protected`. The stream must remain safe when canceled work later resumes.
+
+Cancellation can run callbacks immediately. Abort code must detach pending
+tasks and close output before it calls `Lwt.cancel`.
+
+An uncaught `Lwt.Canceled` from a promise passed to `Lwt.async` reaches
+`Lwt.async_exception_hook`. The task driver must consume cancellation.
+
+### An abort watcher must have a bounded lifetime
+
+A detached watcher on an unresolved host promise retains the stream context
+after a normal render. The watcher must be canceled when the stream completes.
+Canceling the watcher must not cancel the host-owned abort promise, so the
+watcher must use `Lwt.protected`.
+
+### Model and HTML settlement need different writers
+
+Model abort rows must enter the internal `Lwt_stream` before it closes so
+`Lwt_stream.iter_s` can deliver them.
+
+The HTML timeout branch writes into the subscriber buffer because its current
+`Lwt.pick` cancels the stream subscription. HTML also emits `$RX` instructions
+for pending Suspense boundaries. A single output-producing `Stream.abort`
+function does not fit both paths.
+
+Share the state transition and task snapshot. Keep the two output emitters
+separate.
+
+### Dream cannot report every disconnect immediately
+
+The installed Dream API has no high-level request-disconnect promise. A failed
+`Dream.write` or `Dream.flush` detects a disconnected client when a write is in
+progress. It cannot detect an idle disconnect while the renderer waits on a
+hung resource.
+
+The timeout is the reliable backstop for Dream. Full immediate disconnect
+detection needs a Dream or httpaf transport hook. HTTP/2 needs a per-stream
+reset hook rather than a connection-wide signal.
+
+### The existing HTML timeout starts after shell rendering
+
+`render_html` creates its timer inside the returned `subscribe` function. It
+does not bound initial shell rendering. The implementation preserves that behavior.
+Changing the two-stage HTML API or timing the shell render is separate work.
+
+## Public API
+
+All model renderers accept `?timeout` and `?abort`:
 
 ```ocaml
 val render_model_value :
@@ -59,119 +115,232 @@ val render_model_value :
   ?debug:bool ->
   ?filter_stack_frame:(string -> string -> bool) ->
   ?subscribe:(string -> unit Lwt.t) ->
-  ?timeout:float ->                    (* sugar: abort after N seconds *)
-  ?abort:unit Lwt.t ->                 (* resolves => abort the stream *)
+  ?timeout:float ->
+  ?abort:unit Lwt.t ->
   React.model_value ->
   unit Lwt.t
 ```
 
-- `?timeout` is implemented as `abort = Lwt_unix.sleep seconds`, matching
-  `render_html`.
-- `?abort` is a promise supplied by the host server. The adapter resolves
-  it when the client disconnects (or on its own deadline policy). This is
-  the OCaml equivalent of React's `abort(reason)` on the Flight stream.
-- When both are given, whichever resolves first aborts. Omitting both
-  keeps today's behavior.
-- `render_html` gains the same `?abort` parameter for symmetry; its
-  timeout branch becomes the same code path.
+`render_model` and `create_action_response` accept the same additions.
+`render_html` adds `?abort` to its existing `?timeout` parameter.
 
-### 2. Abort semantics for model streams
+Semantics:
 
-Extract the settlement block from `render_html`'s timeout branch into a
-shared `Stream.abort ~reason context` that:
+- `timeout` starts when the model renderer starts.
+- A fulfilled `abort` promise requests an external abort.
+- A rejected or canceled `abort` promise also requests an external abort. This
+  keeps a bad host signal from leaking through `Lwt.async_exception_hook`.
+- When both inputs exist, the first one to settle wins.
+- Timeout and external abort use different development messages.
+- Production error rows contain only the digest.
+- Omitting both inputs preserves current successful render output.
 
-1. Takes the current `pending_rows`, clears the list, and emits one error
-   row (`timeout_error`-style reason, digest-only in `Prod`) per pending
-   row **through the normal push path**, before closing. Model streams
-   have no HTML `$RX` instructions; every pending entry settles as a
-   Flight error row so client-side `$L`/`$@` references reject instead of
-   hanging.
-2. Sets `pending <- 0` and calls `Stream.close`.
+With `subscribe = None` and no timeout or abort, `render_model` and
+`render_model_value` preserve their fire-and-return behavior.
+`create_action_response` first waits for the action to settle, then preserves
+the same fire-and-return serialization behavior. When a timeout or abort is
+supplied, the renderer drains through an internal no-op subscriber so the
+returned promise waits for completion or the trigger.
 
-Difference from the `render_html` implementation: the HTML path writes the
-error chunks straight into the subscriber's buffer because `Lwt.pick` is
-about to cancel the subscription. For the model path, `run_stream` must
-push the rows into the stream *before* closing it, so
-`Lwt_stream.iter_s` delivers them and then terminates normally — no
-`Lwt.pick` race with a buffered writer. Shape:
+## Implementation
 
-```ocaml
-let run_stream ~env ~debug ?filter_stack_frame ?subscribe ?abort model =
-  let stream, context = Stream.make () in
-  Option.iter
-    (fun abort ->
-      Lwt.async (fun () ->
-        let%lwt () = abort in
-        if not context.closed then Stream.abort ~reason:timeout_error ~env context;
-        Lwt.return ()))
-    abort;
-  ...
+### Root task and action compatibility
+
+The model driver accepts a root model promise. `render_model` and
+`render_model_value` supply an already-resolved model, while
+`create_action_response` supplies the action promise. The driver registers row
+`0` before it starts the abort monitor, so an already-settled abort signal
+cannot miss the root task.
+
+A normal rejected action still produces a root model that references an
+outlined error row:
+
+```text
+0:"$Z1"
+1:E{...}
 ```
 
-`Stream.abort` reuses the push/close guards, so a race between a resolving
-row and the abort is benign: whichever runs first wins, the other is
-dropped by the `closed` check.
+The action wrapper catches ordinary rejection and serializes a
+`React.Model.Error` with the generated digest. A timeout or abort instead
+settles the still-pending root as `0:E` and attempts to cancel the action.
 
-### 3. Cancel pending resource work on abort
+### Stream lifecycle
 
-Settling the rows fixes the protocol; the server work must stop too:
+Each active task record contains its row ID, its `Model_row` or `Boundary`
+kind, and its running promise. The stream has three lifecycle states:
 
-- Track the in-flight task promises: `push_async` (and the
-  `Upper_case_component` retry path) currently registers only the row
-  index. Extend the registration to keep the `unit Lwt.t` of the running
-  task in the context.
-- On `Stream.abort`, call `Lwt.cancel` on each tracked promise after the
-  error rows are written. Cancellation propagates into `Lwt_unix` I/O and
-  typical database client promises, releasing the connection instead of
-  running the query to completion.
-- Best-effort caveat: `Lwt.cancel` is a no-op for promises created without
-  cancellation support (e.g. `Lwt.wait`-based). Document this; the guard
-  on `closed` already makes their late completion harmless.
-- The React request cache (`React.Cache`) is request-scoped, so cancelled
-  entries die with the request; no cache poisoning is possible across
-  requests.
+```ocaml
+type lifecycle = Open | Aborting | Closed
+```
 
-### 4. Host integration (downstream, for reference)
+Task registration happens before task execution can yield. Normal completion
+removes an active task once and closes the stream when no work remains.
+`render_html` tracks its root shell separately because it has no task promise
+or row to settle.
 
-The Ahrefs monorepo adapter (`backend/api/src/lib/admin_rsc_router_adapter.ml`)
-will:
+### Output guards
 
-- pass `~timeout:stream_timeout` to `render_model_value` (same default as
-  its document path, currently 30s), and
-- create `let disconnected, resolve_disconnected = Lwt.wait ()` per
-  response, resolve it from the HTTP server's connection-teardown hook
-  (or on the first failed write in the subscriber callback), and pass it
-  as `~abort`.
+Lifecycle-aware helpers enforce these rules:
 
-A Dream integration does the same from `Dream.request` disconnect
-detection in `demo/dream-router/DreamRouter.ml`.
+- regular pushes work only in `Open`;
+- abort settlement pushes work only in `Aborting`;
+- task registration works only in `Open`;
+- import, hint, deferred, debug, and existing-ID row writes cannot reach the
+  closed `Lwt_stream`.
+
+The guards remain necessary after cancellation because `Lwt.wait` and other
+non-cancelable promises can resume later. Refused registration still allocates
+an inert row index, which keeps late serialization total while write guards
+drop its output. A resource canceled by its owner while the stream remains open
+settles its row as an error.
+
+### Abort transition
+
+For an open stream, `Stream.begin_abort` performs one non-yielding transition:
+
+1. Change the lifecycle from `Open` to `Aborting`.
+2. Take a stable snapshot of active task records.
+3. Clear the active task collection.
+4. Return the snapshot to the caller.
+
+For an aborting or closed stream, it returns no snapshot. The transition does
+not serialize rows or call `Lwt.cancel`, so repeated aborts are harmless.
+
+### Model settlement
+
+The model abort emitter receives the task snapshot and:
+
+1. Sort pending row IDs in ascending order.
+2. Push one `E` row for each existing ID without allocating new row IDs.
+3. Close the internal stream after the last error row.
+4. Cancel the captured task promises after close.
+
+Rows already queued remain before abort rows. Model streams emit no `$RX`
+instructions and have no close chunk. Closing is the out-of-band `None` from
+`Lwt_stream`.
+
+Use these development messages:
+
+- timeout: `The render timed out.`
+- external abort: `The render was aborted.`
+
+Production serialization redacts both messages and stacks.
+
+### Monitor and subscription
+
+`Lwt.pick` selects the first timeout or external abort trigger. The renderer
+protects the abort promise so cleanup can detach the watcher without canceling
+the host-owned signal. When a trigger wins, the renderer queues settlement
+rows, closes and cancels tasks, then waits for the subscription to drain the
+queued rows. Normal completion cancels the watcher.
+
+If the subscriber raises or the caller cancels the returned render promise,
+the renderer closes output and cancels active tasks without writing settlement
+rows to the failed subscriber.
+
+An external abort can still wait on a subscriber callback that is already
+blocked. Host adapters should make failed writes reject promptly. The renderer
+cannot force an arbitrary callback to return.
+
+### HTML settlement
+
+`render_html` combines `?abort` with its existing timeout. The trigger starts
+when the caller invokes `subscribe`, after shell rendering. The HTML emitter
+uses the same abort transition, then:
+
+1. Writes one model error row per pending task into the subscriber buffer.
+2. Writes one `$RX` instruction per pending `Boundary` task.
+3. Writes the `$RX` function definition once.
+4. Writes the stream end script once.
+5. Closes the internal stream.
+6. Cancels the captured tasks.
+
+It keeps this ordering:
+
+- error rows in ascending row-ID order;
+- boundary instructions in registration order; and
+- the end script after all settlement output.
+
+`$RX` messages wrap the reason the same way the timeout path does:
+
+```text
+Switched to client rendering because the server rendering aborted due to:
+
+<reason>
+```
+
+Timeout keeps its existing wrapped message. External abort uses the wrapped
+form of `The render was aborted.` in development. Production emits a
+digest-only `$RX` call in both cases.
+
+## Host integration
+
+### Ahrefs adapter
+
+The monorepo adapter can pass the existing document timeout to
+`render_model_value` and `create_action_response`.
+
+If its HTTP layer exposes a response teardown or per-request cancellation
+promise, pass that promise as `~abort`. The subscriber should also resolve the
+abort signal or fail when its first write fails.
+
+### Dream demo
+
+`demo/dream-router/DreamRouter.ml` is a repository-only reference adapter, not
+an installed package. It applies a timeout to model and action responses. The
+action timer starts before handler dispatch, and the remaining time is passed
+to `create_action_response`, so action execution and serialization share one
+deadline. A failed `Dream.write` or `Dream.flush` becomes a subscriber failure,
+which cancels pending tasks.
+
+The Dream demo does not claim immediate client-disconnect cancellation because
+Dream and its exposed transport provide no suitable hook.
 
 ## Tests
 
-Extend the existing Flight test suite (the `suspense_with_use_promise`
-family):
+`packages/reactDom/test/test_RSC_model.ml` covers pending roots and promise
+rows, production redaction, row order, cancelable and non-cancelable work,
+subscriber failure, canceled render promises, subscriber-less model and action
+calls, action success and rejection compatibility, action timeout, and action
+abort.
 
-1. **Model timeout settles pending rows**: a model with one resolved and
-   one never-resolving `usePromise` row; `~timeout:0.01`; assert the
-   subscription terminates, the resolved row streamed, and the pending row
-   streamed as an error row with the timeout digest.
-2. **Abort signal**: same tree with `~abort` resolved manually mid-stream;
-   assert identical settlement.
-3. **Late completion after abort**: a promise that resolves after the
-   abort; assert no chunk is emitted after the close chunk (guarded push).
-4. **Cancellation**: a cancelable task (e.g. `Lwt_unix.sleep`) tracked by
-   the stream; on abort assert the promise ends in `Lwt.Canceled`.
-5. **`create_action_response`** with `~timeout`: the wrapper promise is
-   also bounded.
-6. **No-regression**: `render_html ~timeout` behavior unchanged when
-   expressed through the shared `Stream.abort`.
-7. **Prod redaction**: with `~env:\`Prod`, abort error rows contain only
-   the digest, no message or stack.
+`packages/reactDom/test/test_RSC_html.ml` covers timeout and external-abort
+settlement, `$RX` output, production redaction, late completion, and a single
+end script. `demo/dream-router/test_dream_router.ml` verifies that the Dream
+deadline includes action execution and preserves successful and rejected
+action responses.
+
+## Validation
+
+1. Run `make format` and inspect the diff.
+2. Run `make format-check`.
+3. Run `make build`.
+4. Run `make test`.
+5. Run `make spec-check` when the Flight fixture dependencies are installed.
+   Existing non-aborted Flight output must remain unchanged.
+6. Run `make bench` and compare model-render results. Lifecycle checks affect
+   every async row, so measure their cost.
+
+## Final guarantees
+
+- Every model renderer accepts timeout and external abort inputs.
+- The timeout covers a pending action response from API entry.
+- Pending Flight references receive one error row each before model stream
+  close.
+- Normal action success and failure output remain unchanged.
+- Cancelable pending work receives `Lwt.Canceled` after abort or subscriber
+  failure.
+- Non-cancelable late work cannot write, register effective work, decrement
+  stale counters, or raise through `Lwt.async_exception_hook`.
+- Abort monitors do not retain completed render contexts.
+- Existing HTML timeout output remains unchanged.
+- Dream integration uses timeout as its disconnect backstop.
 
 ## Non-goals
 
-- Per-resource timeouts. Resources that need their own deadline wrap their
-  promise before handing it to `usePromise`.
-- Partial abort (aborting one boundary but continuing the stream). React
-  Flight aborts the whole response; this plan matches that.
-- Backpressure changes. `Lwt_stream.iter_s` semantics stay as they are.
+- Per-resource timeouts. Resources can wrap their own promises.
+- Partial boundary abort. Abort stops the whole response.
+- Backpressure changes to `Lwt_stream.iter_s`.
+- A new Dream or httpaf disconnect API.
+- Changing when the `render_html` shell timeout starts.
+- Guaranteeing cancellation for libraries that return non-cancelable promises.
