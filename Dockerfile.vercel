@@ -51,6 +51,9 @@ WORKDIR /app
 COPY --from=builder /app/_build/default/demo/server/server.exe _build/default/demo/server/server.exe
 COPY --from=builder /app/_build/default/demo/output.css _build/default/demo/output.css
 COPY --from=builder /app/_build/default/demo/client/app _build/default/demo/client/app
+COPY --from=builder /app/_build/default/demo/client/dist _build/default/demo/client/dist
+RUN test -s _build/default/demo/client/dist/demo/RouterDemo.re.js && \
+    test -n "$(find _build/default/demo/client/dist/demo -type f -name 'chunk-*.js' -print -quit)"
 
 ENV SERVER_INTERFACE=0.0.0.0
 
