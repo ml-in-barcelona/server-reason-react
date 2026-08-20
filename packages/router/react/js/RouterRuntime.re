@@ -14,10 +14,23 @@ module Link = RouterTypes.Link;
 
 let encode = Js.Global.encodeURIComponent;
 let encodeSegment = value => {
-  if (value == "" || value == "." || value == "..") {
-    invalid_arg("route parameters must be non-empty path segments");
+  if (value == ""
+      || value == "."
+      || value == ".."
+      || String.contains(value, '/')
+      || !
+           String.for_all(
+             character => {
+               let code = Char.code(character);
+               code >= 0x20 && code != 0x7f;
+             },
+             value,
+           )) {
+    invalid_arg("route parameters must be valid non-empty path segments");
   };
-  encode(value);
+  try(encode(value)) {
+  | _ => invalid_arg("route parameters must be valid non-empty path segments")
+  };
 };
 let destination: (~path: string) => destination = (~path) =>
   RouterTypes.makeDestination(path);

@@ -301,6 +301,8 @@ let overlaps = (left, right) => {
   let rec loop = (left, right) =>
     switch (left, right) {
     | ([], []) => true
+    | ([CatchAll(_), ..._], [_, ..._])
+    | ([_, ..._], [CatchAll(_), ..._]) => true
     | (
         [Static(leftValue), ...leftRest],
         [Static(rightValue), ...rightRest],
@@ -317,10 +319,11 @@ let relationship = (left, right) => {
   let rightSegments = segments(right);
   if (String.equal(toString(left), toString(right))) {
     Duplicate;
+  } else if (specificity(left) == specificity(right)
+             && overlaps(leftSegments, rightSegments)) {
+    Ambiguous;
   } else if (List.length(leftSegments) == List.length(rightSegments)) {
-    specificity(left) == specificity(right)
-    && overlaps(leftSegments, rightSegments)
-      ? Ambiguous : Distinct;
+    Distinct;
   } else {
     let (prefix, pattern) =
       List.length(leftSegments) < List.length(rightSegments)

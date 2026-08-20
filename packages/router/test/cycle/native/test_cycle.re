@@ -57,6 +57,55 @@ let testCatchAllHref = () => {
   );
 };
 
+let testCustomScalarHref = () => {
+  let value = ScalarId.make("café+@");
+  let href = Router.Scalar.href(~scalarId=value, ());
+  Alcotest.check(
+    Alcotest.string,
+    "custom scalar href",
+    "/fixture/scalar/caf%C3%A9%2B%40",
+    href,
+  );
+  let search =
+    switch (RouterServer.Search.parse("")) {
+    | Ok(search) => search
+    | Error(_) => Alcotest.fail("expected valid search")
+    };
+  ScalarId.reset();
+  switch (
+    RouterServer.EndpointRegistry.find(
+      RouterRegistry.registry,
+      ~pathname="/scalar/caf%C3%A9%2B%40",
+    )
+  ) {
+  | Ok(Some(matched)) =>
+    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    | Error(_) => Alcotest.fail("expected custom scalar decode")
+    | Ok(_) =>
+      Alcotest.check(
+        Alcotest.option(Alcotest.string),
+        "decoded custom scalar",
+        Some("café+@"),
+        ScalarId.parsed(),
+      )
+    }
+  | _ => Alcotest.fail("expected custom scalar match")
+  };
+};
+
+let testCustomScalarRejectsSlash = () => {
+  let rejected =
+    try(
+      {
+        ignore(Router.Scalar.href(~scalarId=ScalarId.make("a/b"), ()));
+        false;
+      }
+    ) {
+    | Invalid_argument(_) => true
+    };
+  Alcotest.check(Alcotest.bool, "slash rejected", true, rejected);
+};
+
 let testGeneratedLink = () => {
   let link =
     Router.Note.make(
@@ -190,6 +239,7 @@ let testGeneratedDecodeIsLazy = () => {
 
 let testGeneratedDecodeError = () => {
   WorkspaceLoader.reset();
+  Attachments.reset();
   let search =
     switch (RouterServer.Search.parse("")) {
     | Ok(search) => search
@@ -203,14 +253,41 @@ let testGeneratedDecodeError = () => {
   ) {
   | Ok(Some(matched)) =>
     switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
-    | Error(RouterRuntime.Error.InvalidPathParameter({ name: "id" })) =>
-      Alcotest.check(
-        Alcotest.list(Alcotest.string),
-        "loaders skipped",
-        [],
-        WorkspaceLoader.events(),
-      )
-    | _ => Alcotest.fail("expected typed path error")
+    | Error(_) => Alcotest.fail("expected recoverable typed path error")
+    | Ok(prepared) =>
+      switch (
+        Lwt_main.run(
+          RouterServer.Execution.run(
+            RouterServer.Endpoint.execution(prepared),
+          ),
+        )
+      ) {
+      | RouterRuntime.Loader.Data(plan) =>
+        let resolved =
+          Lwt_main.run(
+            RouterServer.Plan.resolve(plan, ~applicationStatus=_ =>
+              RouterRuntime.Status.InternalServerError
+            ),
+          );
+        switch (resolved.error) {
+        | Some(RouterRuntime.Error.InvalidPathParameter({ name: "id" })) =>
+          ()
+        | _ => Alcotest.fail("expected typed path error")
+        };
+        Alcotest.check(
+          Alcotest.bool,
+          "workspace boundary",
+          true,
+          List.mem("workspace-error", Attachments.events()),
+        );
+        Alcotest.check(
+          Alcotest.list(Alcotest.string),
+          "loaders skipped",
+          [],
+          WorkspaceLoader.events(),
+        );
+      | _ => Alcotest.fail("expected decode failure plan")
+      }
     }
   | _ => Alcotest.fail("expected structural route match")
   };
@@ -382,7 +459,7 @@ let testRscFullResponse = () => {
     Alcotest.check(
       Alcotest.int,
       "matches",
-      1,
+      2,
       List.length(response.matches),
     );
   };
@@ -456,6 +533,7 @@ let testInternalResponseIsSafe = () => {
 };
 
 let testEngineDecodeError = () => {
+  WorkspaceLoader.reset();
   Attachments.reset();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/nope", ())) {
   | Redirect(_)
@@ -475,10 +553,116 @@ let testEngineDecodeError = () => {
       true,
       Option.is_some(response.resolved.element),
     );
+    Alcotest.check(
+      Alcotest.bool,
+      "workspace boundary",
+      true,
+      List.mem("workspace-error", Attachments.events()),
+    );
+    Alcotest.check(
+      Alcotest.bool,
+      "root boundary skipped",
+      false,
+      List.mem("root-error", Attachments.events()),
+    );
+    Alcotest.check(
+      Alcotest.list(Alcotest.string),
+      "loaders skipped",
+      [],
+      WorkspaceLoader.events(),
+    );
+    Alcotest.check(
+      Alcotest.list(Alcotest.string),
+      "safe active routes",
+      ["Workspaces"],
+      response.matches
+      |> List.map(({ RouterRuntime.Navigation.routeId, _ }) => routeId),
+    );
+    let initial =
+      RouterRuntime.Navigation.{
+        location: {
+          pathname: "/fixture/workspaces/7/notes/nope",
+          search: "",
+          hash: "",
+          key: "decode-error",
+        },
+        matches: response.matches,
+        layouts: response.layouts,
+        revision: response.revision,
+      };
+    let probe =
+      Attachments.ActiveRouteProbe.make(
+        Attachments.ActiveRouteProbe.makeProps(),
+      );
+    let provider =
+      RouterReact.Provider.make(
+        RouterReact.Provider.makeProps(
+          ~initial,
+          ~registryFingerprint=response.registry_fingerprint,
+          ~basePath=RouterRegistry.basePath,
+          ~metadata=React.null,
+          ~children=probe,
+          (),
+        ),
+      );
+    Alcotest.check(
+      Alcotest.string,
+      "generated active route decodes",
+      "workspaces",
+      ReactDOM.renderToStaticMarkup(provider),
+    );
+  };
+};
+
+let testNestedSearchDecodeError = () => {
+  WorkspaceLoader.reset();
+  Attachments.reset();
+  switch (
+    runEngine(
+      ~pathname="/fixture/workspaces/7/search",
+      ~search="?view=nope",
+      (),
+    )
+  ) {
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | Patch(_)
+  | ReloadRequired => Alcotest.fail("unexpected navigation response")
+  | Full(response) =>
+    Alcotest.check(
+      Alcotest.int,
+      "status",
+      400,
+      RouterRuntime.Status.toInt(response.resolved.status),
+    );
+    switch (response.resolved.error) {
+    | Some(RouterRuntime.Error.InvalidSearchParameter({ name: "view" })) =>
+      ()
+    | _ => Alcotest.fail("expected nested search error")
+    };
+    Alcotest.check(
+      Alcotest.bool,
+      "workspace boundary",
+      true,
+      List.mem("workspace-error", Attachments.events()),
+    );
+    Alcotest.check(
+      Alcotest.bool,
+      "root boundary skipped",
+      false,
+      List.mem("root-error", Attachments.events()),
+    );
+    Alcotest.check(
+      Alcotest.list(Alcotest.string),
+      "loaders skipped",
+      [],
+      WorkspaceLoader.events(),
+    );
   };
 };
 
 let testInvalidRootSearchBoundary = () => {
+  WorkspaceLoader.reset();
   Attachments.reset();
   switch (
     runEngine(
@@ -503,6 +687,24 @@ let testInvalidRootSearchBoundary = () => {
       "boundary",
       true,
       Option.is_some(response.resolved.element),
+    );
+    Alcotest.check(
+      Alcotest.bool,
+      "root invalid-search fallback",
+      true,
+      List.mem("invalid-search", Attachments.events()),
+    );
+    Alcotest.check(
+      Alcotest.bool,
+      "nested boundary skipped",
+      false,
+      List.mem("workspace-error", Attachments.events()),
+    );
+    Alcotest.check(
+      Alcotest.list(Alcotest.string),
+      "loaders skipped",
+      [],
+      WorkspaceLoader.events(),
     );
   };
 };
@@ -624,6 +826,46 @@ let testPatchResponse = () => {
   };
 };
 
+let testDecodeErrorPatchResponse = () => {
+  WorkspaceLoader.reset();
+  let registry =
+    "1." ++ RouterServer.EndpointRegistry.fingerprint(RouterRegistry.registry);
+  let navigation =
+    navigationFacts(
+      ~from="/fixture/workspaces",
+      ~registry,
+      ~baseRevision="base-1",
+    );
+  switch (
+    runEngine(~pathname="/fixture/workspaces/7/notes/nope", ~navigation, ())
+  ) {
+  | Patch(response) =>
+    Alcotest.check(
+      Alcotest.int,
+      "status",
+      400,
+      RouterRuntime.Status.toInt(response.resolved.status),
+    );
+    Alcotest.check(
+      Alcotest.list(Alcotest.string),
+      "safe active routes",
+      ["Workspaces"],
+      response.matches
+      |> List.map(({ RouterRuntime.Navigation.routeId, _ }) => routeId),
+    );
+    Alcotest.check(
+      Alcotest.list(Alcotest.string),
+      "loaders skipped",
+      [],
+      WorkspaceLoader.events(),
+    );
+  | Full(_)
+  | ReloadRequired
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected decode-error patch")
+  };
+};
+
 let testRegistryMismatchReloadsBeforeLoaders = () => {
   WorkspaceLoader.reset();
   let navigation =
@@ -702,6 +944,16 @@ let () =
             testEncodeURIComponentParity,
           ),
           Alcotest.test_case("catch-all href", `Quick, testCatchAllHref),
+          Alcotest.test_case(
+            "custom scalar href",
+            `Quick,
+            testCustomScalarHref,
+          ),
+          Alcotest.test_case(
+            "custom scalar rejects slash",
+            `Quick,
+            testCustomScalarRejectsSlash,
+          ),
           Alcotest.test_case("generated link", `Quick, testGeneratedLink),
           Alcotest.test_case(
             "generated endpoint",
@@ -749,6 +1001,11 @@ let () =
             testEngineDecodeError,
           ),
           Alcotest.test_case(
+            "nested search decode error",
+            `Quick,
+            testNestedSearchDecodeError,
+          ),
+          Alcotest.test_case(
             "invalid root search boundary",
             `Quick,
             testInvalidRootSearchBoundary,
@@ -765,6 +1022,11 @@ let () =
             testApplicationErrorPolicy,
           ),
           Alcotest.test_case("patch response", `Quick, testPatchResponse),
+          Alcotest.test_case(
+            "decode-error patch response",
+            `Quick,
+            testDecodeErrorPatchResponse,
+          ),
           Alcotest.test_case(
             "registry mismatch reloads before loaders",
             `Quick,

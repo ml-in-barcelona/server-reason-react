@@ -15,7 +15,11 @@ module Link = RouterTypes.Link
 let encode = RouterPattern.encodeStaticSegment
 
 let encodeSegment value =
-  if value = "" || value = "." || value = ".." then invalid_arg "route parameters must be non-empty path segments";
+  if
+    value = "" || value = "." || value = ".." || String.contains value '/'
+    || (not (RouterUtf8.valid value))
+    || not (String.for_all (fun character -> Char.code character >= 0x20 && Char.code character <> 0x7f) value)
+  then invalid_arg "route parameters must be valid non-empty path segments";
   encode value
 
 let destination ~path = RouterTypes.makeDestination path

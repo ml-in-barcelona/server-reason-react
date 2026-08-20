@@ -10,6 +10,7 @@
   RouterTransaction
   RouterTypes
   RouterReact
+  ScalarId
   WorkspaceId)
  (modes melange)
  (wrapped false)
@@ -48,6 +49,9 @@
 
 (copy_files
  (files ../shared/Filter.re))
+
+(copy_files
+ (files ../shared/ScalarId.re))
 
 (copy_files
  (files ../../../react/js/RouterRuntime.re))

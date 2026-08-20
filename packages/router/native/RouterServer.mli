@@ -214,8 +214,9 @@ end
 
 (** A generated route endpoint.
 
-    Decoding produces one [prepared] value containing both the branch identity and the deferred execution. Keeping them
-    together ensures patch planning and loader execution use the same decoded parameters. *)
+    Decoding produces one [prepared] value containing the branch identity, publishable active routes, and deferred
+    execution. Keeping them together ensures response state, patch planning, and loader execution use the same decoded
+    parameters. *)
 module Endpoint : sig
   type ('result, 'error) t
   type ('result, 'error) prepared
@@ -230,6 +231,13 @@ module Endpoint : sig
 
   val prepared : branch:Branch.t -> execution:(unit -> ('result, 'error) Execution.t) -> ('result, 'error) prepared
   (** [execution] is a thunk so inspecting a candidate branch never starts its loaders. *)
+
+  val recovered :
+    branch:Branch.t ->
+    activeRoutes:string list ->
+    execution:(unit -> ('result, 'error) Execution.t) ->
+    ('result, 'error) prepared
+  (** Builds a decode-failure preparation whose response exposes only the listed successfully decoded active routes. *)
 
   val branch : ('result, 'error) prepared -> Branch.t
   val execution : ('result, 'error) prepared -> ('result, 'error) Execution.t
@@ -251,7 +259,9 @@ module EndpointRegistry : sig
 
   val route : ('result, 'error) matched -> Route.t
   val parameters : ('result, 'error) matched -> (string * string) list
-  val matches : ('result, 'error) matched -> RouterRuntime.Navigation.matched list
+
+  val matches :
+    ('result, 'error) matched -> ('result, 'error) Endpoint.prepared -> RouterRuntime.Navigation.matched list
 
   val fingerprint : ('result, 'error) t -> string
   (** A stable digest of generated endpoint fingerprints, used to detect a client whose route definitions no longer

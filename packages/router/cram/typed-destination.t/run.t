@@ -22,6 +22,10 @@
   $ server-reason-react.router-gen --mode registry --source catch-all-ambiguous.ml < catch-all-ambiguous.ml
   Fatal error: exception router: ambiguous route patterns /assets/:a<string...> and /assets/:b<string...>
   [2]
+
+  $ server-reason-react.router-gen --mode registry --source catch-all-crossing.ml < catch-all-crossing.ml
+  Fatal error: exception router: ambiguous route patterns /foo/:left<string...> and /:scope<string>/bar/:right<string...>
+  [2]
   $ grep -E 'old-notes|redirect:2' Router.mli
   [1]
   $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -Eo 'activeRoutes:\[\]|RouterServer.Execution.redirect|Router.Note.destination' | sort -u

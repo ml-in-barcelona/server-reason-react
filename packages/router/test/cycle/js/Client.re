@@ -20,6 +20,9 @@ let assetHref =
     (),
   );
 
+let scalarHref = value =>
+  Router.Scalar.href(~scalarId=ScalarId.make(value), ());
+
 let useGeneratedClientHooks = () => {
   let ({ Router.page, searchText: _ }, updateSearch) = Router.useSearch();
   let route = Router.useRoute();

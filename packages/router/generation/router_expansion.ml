@@ -799,6 +799,23 @@ let loader_execution (route : Router_declaration.route) =
   in
   build route.scopes [] [] [] [] None None false
 
+let parsed_path path =
+  match RouterPattern.parse path with
+  | Ok pattern -> pattern
+  | Error _ -> invalid_arg "validated router path failed to parse"
+
+let active_route_candidates routes pattern =
+  routes
+  |> List.filter (fun (_, candidate_pattern) -> RouterPattern.isPrefix ~prefix:candidate_pattern pattern)
+  |> List.sort (fun ((left : Router_declaration.route), left_pattern) (right, right_pattern) ->
+      match
+        Int.compare
+          (List.length (RouterPattern.segments left_pattern))
+          (List.length (RouterPattern.segments right_pattern))
+      with
+      | 0 -> String.compare left.name right.name
+      | order -> order)
+
 let projected_branch (route : Router_declaration.route) =
   let loc = route.loc in
   let rec build scopes parameters loader_seen projected =
@@ -813,10 +830,86 @@ let projected_branch (route : Router_declaration.route) =
   in
   build route.scopes [] false []
 
-let parsed_path path =
-  match RouterPattern.parse path with
-  | Ok pattern -> pattern
-  | Error _ -> invalid_arg "validated router path failed to parse"
+let recover_decode_failure ~loc ~branch ~scopes ~active_routes error_boundary =
+  let plan = failure_plan ~loc scopes (B.evar ~loc "decodeError") None (Some error_boundary) in
+  let execution =
+    B.pexp_fun ~loc Nolabel None (B.punit ~loc)
+      (B.pexp_apply ~loc (B.evar ~loc "RouterServer.Execution.done_") [ (Nolabel, plan) ])
+  in
+  let prepared =
+    B.pexp_apply ~loc
+      (B.evar ~loc "RouterServer.Endpoint.recovered")
+      [
+        (Labelled "branch", B.elist ~loc branch);
+        (Labelled "activeRoutes", B.elist ~loc (List.map (fun route -> B.estring ~loc route) active_routes));
+        (Labelled "execution", execution);
+      ]
+  in
+  B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some prepared)
+
+let decode_endpoint ~routes (route : Router_declaration.route) prepared =
+  let rec build scopes pattern parameters search completed branch error_boundary loader_seen root =
+    match scopes with
+    | [] -> prepared
+    | (scope : Router_declaration.scope) :: scopes -> (
+        let loc = scope.loc in
+        let next_parameters = parameters @ scope.parameters in
+        let next_search = search @ scope.search in
+        let next_pattern = RouterPattern.append pattern (parsed_path scope.path) in
+        let has_loader = Option.is_some scope.attachments.loader in
+        let reusable = (not loader_seen) && (not has_loader) && Option.is_some scope.attachments.layout in
+        let next_branch = branch @ [ branch_scope ~loc scope next_parameters ~reusable ] in
+        let next_error_boundary =
+          if loader_seen then error_boundary
+          else
+            match scope.attachments.error with
+            | Some boundary -> Some (boundary_callback ~loc boundary next_parameters next_search [])
+            | None -> error_boundary
+        in
+        let next_completed =
+          if loader_seen || has_loader then completed
+          else completed @ [ scope_plan scope next_parameters next_search [] ~reusable ]
+        in
+        let success =
+          build scopes next_pattern next_parameters next_search next_completed next_branch next_error_boundary
+            (loader_seen || has_loader) false
+        in
+        let decoded_search =
+          List.fold_right
+            (fun (search : Router_declaration.search) body ->
+              bind_decode ~loc:search.loc search.name (native_search_decoder ~loc:search.loc search) body)
+            scope.search success
+        in
+        let decoded =
+          List.fold_right
+            (fun (parameter : Router_declaration.parameter) body ->
+              bind_decode ~loc:parameter.loc parameter.name (native_path_decoder ~loc:parameter.loc parameter) body)
+            scope.parameters decoded_search
+        in
+        if scope.parameters = [] && scope.search = [] then decoded
+        else if root then decoded
+        else
+          match error_boundary with
+          | None -> decoded
+          | Some boundary ->
+              let active_routes =
+                active_route_candidates routes pattern
+                |> List.map (fun ((route : Router_declaration.route), _) -> route.name)
+              in
+              let recover = recover_decode_failure ~loc ~branch ~scopes:completed ~active_routes boundary in
+              B.pexp_match ~loc decoded
+                [
+                  B.case
+                    ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (B.pvar ~loc "prepared")))
+                    ~guard:None
+                    ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (B.evar ~loc "prepared")));
+                  B.case
+                    ~lhs:
+                      (B.ppat_construct ~loc { txt = Longident.Lident "Error"; loc } (Some (B.pvar ~loc "decodeError")))
+                    ~guard:None ~rhs:recover;
+                ])
+  in
+  build route.scopes (parsed_path "/") [] [] [] [] None false true
 
 let encoded_path path =
   match
@@ -888,30 +981,10 @@ let endpoint ~base_path ~invalid_search ~routes (route : Router_declaration.rout
       ]
     |> fun prepared -> B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some prepared)
   in
-  let decoded_search =
-    List.fold_right
-      (fun (search : Router_declaration.search) body ->
-        bind_decode ~loc:search.loc search.name (native_search_decoder ~loc:search.loc search) body)
-      route.search prepared
-  in
-  let decoded =
-    List.fold_right
-      (fun (parameter : Router_declaration.parameter) body ->
-        bind_decode ~loc:parameter.loc parameter.name (native_path_decoder ~loc:parameter.loc parameter) body)
-      route.parameters decoded_search
-  in
+  let decoded = decode_endpoint ~routes route prepared in
   let decode = B.pexp_fun ~loc Nolabel None (B.pvar ~loc "input") decoded in
   let active_routes =
-    routes
-    |> List.filter (fun (_, candidate_pattern) -> RouterPattern.isPrefix ~prefix:candidate_pattern route_pattern)
-    |> List.sort (fun ((left : Router_declaration.route), left_pattern) (right, right_pattern) ->
-        match
-          Int.compare
-            (List.length (RouterPattern.segments left_pattern))
-            (List.length (RouterPattern.segments right_pattern))
-        with
-        | 0 -> String.compare left.name right.name
-        | order -> order)
+    active_route_candidates routes route_pattern
     |> List.map (fun ((candidate : Router_declaration.route), _) ->
         B.pexp_tuple ~loc
           [

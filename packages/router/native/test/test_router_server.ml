@@ -79,6 +79,17 @@ let ambiguous_catch_all_patterns () =
   | Error (AmbiguousPattern _) -> ()
   | _ -> Alcotest.fail "expected ambiguous catch-all patterns"
 
+let crossing_catch_all_patterns_are_order_independent () =
+  let left = route ~id:"left" ~path:"/foo/:left<string...>" in
+  let right = route ~id:"right" ~path:"/:scope<string>/bar/:right<string...>" in
+  let check routes expected =
+    match RouterServer.Registry.make routes with
+    | Error (AmbiguousPattern (left, right)) -> Alcotest.(check (pair string string)) "patterns" expected (left, right)
+    | _ -> Alcotest.fail "expected crossing catch-all ambiguity"
+  in
+  check [ left; right ] ("/foo/:left<string...>", "/:scope<string>/bar/:right<string...>");
+  check [ right; left ] ("/:scope<string>/bar/:right<string...>", "/foo/:left<string...>")
+
 let catch_all_endpoint_decoding () =
   let endpoint =
     RouterServer.Endpoint.make ~id:"asset" ~path:"/assets/:parts<string...>" ~activeRoutes:[] ~fingerprint:"asset"
@@ -200,7 +211,24 @@ let destination_segment_encoding () =
   in
   Alcotest.(check string) "path" "/notes/a%2Bb" (RouterRuntime.href destination)
 
-let destination_dot_segments () =
+let scalar_destinations_round_trip () =
+  let pattern = RouterRuntime.pattern "/notes/:id<string>" in
+  let registry = registry [ route ~id:"note" ~path:"/notes/:id<string>" ] in
+  List.iter
+    (fun (value, expected) ->
+      let destination = RouterRuntime.destinationFromPattern ~pattern ~parameters:[ ("id", value) ] ~search:[] in
+      let href = RouterRuntime.href destination in
+      Alcotest.(check string) value expected href;
+      match RouterServer.Match.find registry ~pathname:href with
+      | Ok (Some matched) -> Alcotest.(check (list (pair string string))) "decoded" [ ("id", value) ] matched.parameters
+      | _ -> Alcotest.failf "generated destination did not match: %s" href)
+    [
+      ("café", "/notes/caf%C3%A9");
+      ("東京", "/notes/%E6%9D%B1%E4%BA%AC");
+      ("!$&'()*+,:;=@_~-", "/notes/!%24%26'()*%2B%2C%3A%3B%3D%40_~-");
+    ]
+
+let invalid_scalar_destinations () =
   let pattern = RouterRuntime.pattern "/notes/:id<string>" in
   List.iter
     (fun value ->
@@ -210,8 +238,8 @@ let destination_dot_segments () =
           false
         with Invalid_argument _ -> true
       in
-      Alcotest.(check bool) value true rejected)
-    [ "."; ".." ]
+      Alcotest.(check bool) "rejected" true rejected)
+    [ ""; "."; ".."; "a/b"; "\000"; "\031"; "\127"; "\255" ]
 
 let repeated_search () =
   match RouterServer.Search.parse "?tag=one&tag=two&empty=&flag" with
@@ -814,6 +842,7 @@ let () =
           test "decoded parameters" decoded_parameters;
           test "catch-all precedence and capture" catch_all_precedence_and_capture;
           test "ambiguous catch-all patterns" ambiguous_catch_all_patterns;
+          test "crossing catch-all patterns are order independent" crossing_catch_all_patterns_are_order_independent;
           test "catch-all endpoint decoding" catch_all_endpoint_decoding;
           test "catch-all toString validation" catch_all_to_string_validation;
           test "destination catch-all encoding" destination_catch_all_encoding;
@@ -826,7 +855,8 @@ let () =
           test "dot segments" dot_segments;
           test "invalid UTF-8 path" invalid_utf8_path;
           test "destination segment encoding" destination_segment_encoding;
-          test "destination dot segments" destination_dot_segments;
+          test "scalar destinations round trip" scalar_destinations_round_trip;
+          test "invalid scalar destinations" invalid_scalar_destinations;
           test "repeated search" repeated_search;
           test "large search index" large_search_index;
           test "decoded search" decoded_search;

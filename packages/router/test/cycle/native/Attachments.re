@@ -37,11 +37,18 @@ module RootHeaders = {
   };
 };
 
-module RootBoundary = {
+module RootBoundaryView = {
   [@react.component]
   let make = (~page as _, ~searchText as _, ~error as _) => {
-    record("root-error");
     React.string("root-error");
+  };
+};
+
+module RootBoundary = {
+  let makeProps = RootBoundaryView.makeProps;
+  let make = props => {
+    record("root-error");
+    RootBoundaryView.make(props);
   };
 };
 
@@ -51,11 +58,18 @@ module AppError = {
   let make = RootBoundary.make;
 };
 
-module InvalidSearch = {
+module InvalidSearchView = {
   [@react.component]
   let make = (~error as _) => {
-    record("invalid-search");
     React.string("invalid-search");
+  };
+};
+
+module InvalidSearch = {
+  let makeProps = InvalidSearchView.makeProps;
+  let make = props => {
+    record("invalid-search");
+    InvalidSearchView.make(props);
   };
 };
 
@@ -113,7 +127,7 @@ module WorkspaceHeaders = {
   };
 };
 
-module WorkspaceBoundary = {
+module WorkspaceBoundaryView = {
   [@react.component]
   let make =
       (
@@ -122,9 +136,15 @@ module WorkspaceBoundary = {
         ~searchText as _,
         ~filter as _,
         ~error as _,
-      ) => {
-    record("workspace-error");
+      ) =>
     React.string("workspace-error");
+};
+
+module WorkspaceBoundary = {
+  let makeProps = WorkspaceBoundaryView.makeProps;
+  let make = props => {
+    record("workspace-error");
+    WorkspaceBoundaryView.make(props);
   };
 };
 
@@ -141,6 +161,16 @@ module WorkspaceNotFound = {
     record("workspace-not-found");
     React.string("workspace-not-found");
   };
+};
+
+module ActiveRouteProbe = {
+  [@react.component]
+  let make = () =>
+    switch (Router.useRoute()) {
+    | Some(Router.Workspaces) => React.string("workspaces")
+    | Some(_)
+    | None => React.string("unexpected")
+    };
 };
 
 module NoteMetadata = {

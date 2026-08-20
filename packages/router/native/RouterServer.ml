@@ -630,7 +630,11 @@ module Plan = struct
 end
 
 module Endpoint = struct
-  type ('result, 'error) prepared = { branch : Branch.t; execution : unit -> ('result, 'error) Execution.t }
+  type ('result, 'error) prepared = {
+    branch : Branch.t;
+    active_routes : string list option;
+    execution : unit -> ('result, 'error) Execution.t;
+  }
 
   type ('result, 'error) t = {
     route : Route.t;
@@ -642,9 +646,11 @@ module Endpoint = struct
   let make ~id ~path ~activeRoutes ~fingerprint ~decode =
     { route = Route.make ~id ~path; active_routes = activeRoutes; fingerprint; decode }
 
-  let prepared ~branch ~execution = { branch; execution }
+  let prepared ~branch ~execution = { branch; active_routes = None; execution }
+  let recovered ~branch ~activeRoutes ~execution = { branch; active_routes = Some activeRoutes; execution }
   let route endpoint = endpoint.route
   let active_routes endpoint = endpoint.active_routes
+  let prepared_active_routes (prepared : ('result, 'error) prepared) = prepared.active_routes
   let decode endpoint = endpoint.decode
   let branch prepared = prepared.branch
   let execution prepared = prepared.execution ()
@@ -686,8 +692,16 @@ module EndpointRegistry = struct
   let route matched = Endpoint.route matched.endpoint
   let parameters matched = matched.parameters
 
-  let matches matched =
-    Endpoint.active_routes matched.endpoint
+  let matches matched prepared =
+    let active_routes =
+      match Endpoint.prepared_active_routes prepared with
+      | None -> Endpoint.active_routes matched.endpoint
+      | Some allowed ->
+          List.filter
+            (fun (route_id, _) -> List.exists (String.equal route_id) allowed)
+            (Endpoint.active_routes matched.endpoint)
+    in
+    active_routes
     |> List.map (fun (route_id, parameter_names) ->
         let parameters = List.filter (fun (name, _) -> List.mem name parameter_names) matched.parameters in
         RouterRuntime.Navigation.{ routeId = route_id; parameters })
@@ -847,7 +861,7 @@ module ServerEngine = struct
                         | Ok prepared ->
                             let target_branch = Endpoint.branch prepared in
                             let execution = Endpoint.execution prepared in
-                            let matches = EndpointRegistry.matches matched in
+                            let matches = EndpointRegistry.matches matched prepared in
                             let layouts = Branch.layouts target_branch in
                             Lwt.bind (Execution.run ~diagnosticId execution) (function
                               | RouterRuntime.Loader.Data plan -> (

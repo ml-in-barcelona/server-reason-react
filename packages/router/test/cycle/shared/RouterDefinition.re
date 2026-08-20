@@ -12,6 +12,7 @@ Router.make(
   ~invalidSearch=Attachments.InvalidSearch,
   ~notFound=Attachments.RootNotFound,
   [
+    Router.route(Workspaces, ~page=WorkspacesPage, ~path="/workspaces"),
     Router.group(
       ~path="/workspaces/:workspaceId<WorkspaceId.t>",
       ~search={ filter: Router.Search.optional(Filter.t) },
@@ -41,9 +42,20 @@ Router.make(
           ~metadata=Attachments.NoteMetadata.make,
           ~headers=Attachments.NoteHeaders.make,
         ),
+        Router.route(
+          SearchResults,
+          ~page=SearchPage,
+          ~path="/search",
+          ~search={ view: Router.Search.optional(NoteId.t) },
+        ),
       ],
     ),
     Router.route(Asset, ~page=AssetPage, ~path="/assets/:parts<string...>"),
+    Router.route(
+      Scalar,
+      ~page=ScalarPage,
+      ~path="/scalar/:scalarId<ScalarId.t>",
+    ),
     Router.redirect(
       ~path="/legacy/:workspaceId<WorkspaceId.t>/notes/:id<NoteId.t>",
       ~to_=(~workspaceId, ~id, ~page, ~searchText, ()) =>

@@ -9,8 +9,12 @@
   NotePage
   Router
   RouterRegistry
+  ScalarId
+  ScalarPage
+  SearchPage
   WorkspaceId
-  WorkspaceLoader)
+  WorkspaceLoader
+  WorkspacesPage)
  (wrapped false)
  (libraries
   js
@@ -22,7 +26,10 @@
    ((pps server-reason-react.ppx)
     AssetPage
     Attachments
-    NotePage))))
+    NotePage
+    ScalarPage
+    SearchPage
+    WorkspacesPage))))
 
 (test
  (name test_cycle)
@@ -52,3 +59,6 @@
 
 (copy_files
  (files ../shared/Filter.re))
+
+(copy_files
+ (files ../shared/ScalarId.re))

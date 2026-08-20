@@ -9,6 +9,18 @@ if (Client.quoteHref != "/fixture/workspaces/7/notes/42?filter=it's") {
 if (Client.assetHref != "/fixture/assets/img/caf%C3%A9/a%2Bb") {
   failwith("generated Melange catch-all href did not encode segments");
 };
+if (Client.scalarHref("caf" ++ Js.String.fromCharCode(233) ++ "+@")
+    != "/fixture/scalar/caf%C3%A9%2B%40") {
+  failwith("generated Melange custom scalar href did not encode the value");
+};
+try(
+  {
+    ignore(Client.scalarHref("a/b"));
+    failwith("generated Melange custom scalar href accepted a slash");
+  }
+) {
+| Invalid_argument(_) => ()
+};
 let unicodeHref =
   RouterRuntime.destinationFromPattern(
     ~pattern=RouterRuntime.pattern("/café/東京"),
@@ -19,6 +31,42 @@ let unicodeHref =
 if (unicodeHref != "/caf%C3%A9/%E6%9D%B1%E4%BA%AC") {
   failwith("Melange static paths did not use UTF-8 encoding");
 };
+let scalarPattern = RouterRuntime.pattern("/notes/:id<string>");
+let scalarHref = value =>
+  RouterRuntime.destinationFromPattern(
+    ~pattern=scalarPattern,
+    ~parameters=[("id", value)],
+    ~search=[],
+  )
+  |> RouterRuntime.href;
+if (scalarHref("!$&'()*+,:;=@_~-")
+    != "/notes/!%24%26'()*%2B%2C%3A%3B%3D%40_~-") {
+  failwith("Melange scalar paths did not encode URI punctuation");
+};
+let rejectedScalar = value =>
+  try(
+    {
+      ignore(scalarHref(value));
+      false;
+    }
+  ) {
+  | _ => true
+  };
+[
+  "",
+  ".",
+  "..",
+  "a/b",
+  Js.String.fromCharCode(0),
+  Js.String.fromCharCode(31),
+  Js.String.fromCharCode(127),
+  Js.String.fromCharCode(0xD800),
+]
+|> List.iter(value =>
+     if (!rejectedScalar(value)) {
+       failwith("Melange scalar destination accepted an invalid segment");
+     }
+   );
 
 let location =
   RouterRuntime.Navigation.{
