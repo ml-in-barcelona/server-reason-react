@@ -144,6 +144,80 @@ let shared_action_dispatcher_handles_mount () =
   let _response = Dream.test router root in
   Alcotest.(check int) "calls" 2 !calls
 
+let action_timeout_bounds_execution () =
+  let action, _resolve_action = Lwt.task () in
+  let canceled = ref false in
+  Lwt.on_cancel action (fun () -> canceled := true);
+  let lookup = function
+    | "hang" ->
+        Some
+          (ReactServerDOM.Body
+             (fun _args -> Lwt.bind action (fun () -> Lwt.return (React.Model.Element (React.string "Too late")))))
+    | _ -> None
+  in
+  let request =
+    Dream.request ~method_:`POST ~target:"/app"
+      ~headers:[ ("ACTION_ID", "hang"); ("Content-Type", "application/json") ]
+      "[]"
+  in
+  let response =
+    Lwt_main.run
+      (Lwt.pick
+         [
+           DreamRouter.streamFunctionResponse ~timeout:0.01 ~lookup request;
+           Lwt.bind (Lwt_unix.sleep 0.2) (fun () -> Alcotest.fail "the action exceeded its response timeout");
+         ])
+  in
+  let body = Lwt_main.run (Dream.body response) in
+  Alcotest.(check bool) "action canceled" true !canceled;
+  Alcotest.(check string)
+    "timeout row" "0:E{\"message\":\"The render timed out.\",\"stack\":null,\"env\":\"Server\",\"digest\":\"\"}\n" body
+
+let successful_action_preserves_cookie_and_wire_output () =
+  let lookup = function
+    | "save" ->
+        Some
+          (ReactServerDOM.Body
+             (fun _args ->
+               Lwt.bind (Lwt.pause ()) (fun () ->
+                   DreamRouter.set_cookie ~path:"/app" ~http_only:true ~same_site:`Lax "session" "saved";
+                   Lwt.return (React.Model.Element (React.string "Saved")))))
+    | _ -> None
+  in
+  let request =
+    Dream.request ~method_:`POST ~target:"/app"
+      ~headers:[ ("ACTION_ID", "save"); ("Content-Type", "application/json") ]
+      "[]"
+  in
+  let response = Dream.test (DreamRouter.streamFunctionResponse ~timeout:0.1 ~lookup) request in
+  let body = Lwt_main.run (Dream.body response) in
+  Alcotest.(check (option string))
+    "content type" (Some "application/react.action") (Dream.header response "Content-Type");
+  Alcotest.(check (option string))
+    "cookie" (Some "session=saved; Path=/app; HttpOnly; SameSite=Lax") (Dream.header response "Set-Cookie");
+  Alcotest.(check string) "wire output" "0:\"Saved\"\n" body
+
+let rejected_action_discards_cookie_and_streams_error () =
+  let lookup = function
+    | "reject" ->
+        Some
+          (ReactServerDOM.Body
+             (fun _args ->
+               DreamRouter.set_cookie "discarded" "yes";
+               Lwt.fail (Failure "Action failed")))
+    | _ -> None
+  in
+  let request =
+    Dream.request ~method_:`POST ~target:"/app"
+      ~headers:[ ("ACTION_ID", "reject"); ("Content-Type", "application/json") ]
+      "[]"
+  in
+  let response = Dream.test (DreamRouter.streamFunctionResponse ~timeout:0.1 ~lookup) request in
+  let body = Lwt_main.run (Dream.body response) in
+  Alcotest.(check (option string)) "cookie discarded" None (Dream.header response "Set-Cookie");
+  Alcotest.(check bool) "error reference" true (contains ~needle:"0:\"$Z1\"" body);
+  Alcotest.(check bool) "error message" true (contains ~needle:"Failure(\\\"Action failed\\\")" body)
+
 let registry_mismatch_returns_reload_required () =
   let seen = ref None in
   let request =
@@ -298,6 +372,9 @@ let () =
           test "rejects other Accept values" rejects_other_accept_values;
           test "routes Unicode base paths" unicode_base_path_is_routed;
           test "shared action dispatcher handles mount" shared_action_dispatcher_handles_mount;
+          test "action timeout bounds execution" action_timeout_bounds_execution;
+          test "successful action preserves cookie and wire output" successful_action_preserves_cookie_and_wire_output;
+          test "rejected action discards cookie and streams error" rejected_action_discards_cookie_and_streams_error;
           test "registry mismatch returns reload-required" registry_mismatch_returns_reload_required;
           test "patch payload is smaller than full" patch_payload_is_smaller_than_full;
           test "RSC redirect uses navigation envelope" rsc_redirect_uses_navigation_envelope;

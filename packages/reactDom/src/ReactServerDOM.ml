@@ -931,18 +931,29 @@ module Model = struct
           Lwt.return (element_to_payload ~debug ~filter_stack_frame ?debug_info ~context ~to_chunk ~env element)
       | Upper_case_component (name, component) ->
           let saved_ctx = !React.current_tree_context in
-          React.reset_component_id_state saved_ctx;
-          let element =
-            try component ()
-            with exn ->
-              React.current_tree_context := saved_ctx;
-              raise exn
+          let rec render () =
+            React.reset_component_id_state saved_ctx;
+            match component () with
+            | element ->
+                let did_use_id = React.check_did_render_id_hook () in
+                if did_use_id then
+                  React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+                let%lwt payload = continue_with_debug ~name ~debug_info element in
+                React.current_tree_context := saved_ctx;
+                Lwt.return payload
+            | exception React.Suspend (Any_promise promise) -> (
+                React.current_tree_context := saved_ctx;
+                try%lwt
+                  let%lwt _ = promise in
+                  render ()
+                with exn ->
+                  React.current_tree_context := saved_ctx;
+                  Lwt.reraise exn)
+            | exception exn ->
+                React.current_tree_context := saved_ctx;
+                raise exn
           in
-          let did_use_id = React.check_did_render_id_hook () in
-          if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-          let%lwt payload = continue_with_debug ~name ~debug_info element in
-          React.current_tree_context := saved_ctx;
-          Lwt.return payload
+          render ()
       | Async_component (name, component) -> (
           let saved_ctx = !React.current_tree_context in
           React.reset_component_id_state saved_ctx;
@@ -1044,8 +1055,6 @@ module Model = struct
         match (subscribe, abort_triggers ~timeout ~abort:abort_signal) with
         | None, [] -> Lwt.return ()
         | subscribe, triggers ->
-            (* With a deadline but no subscriber the stream still needs a consumer, so the returned promise
-               represents the bounded render. *)
             let subscribe = Option.value subscribe ~default:(fun _ -> Lwt.return ()) in
             let subscription = Lwt_stream.iter_s subscribe stream in
             let watcher =
@@ -1091,7 +1100,12 @@ module Model = struct
         let digest = generate_uuid () in
         Lwt.return (React.Model.Error { message; stack; env = "Server"; digest })
     in
-    run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort root
+    let run root = run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort root in
+    match (subscribe, timeout, abort) with
+    | None, None, None ->
+        let%lwt root = root in
+        run (Lwt.return root)
+    | _ -> run root
 end
 
 let script ?nonce attributes children =

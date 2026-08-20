@@ -30,6 +30,7 @@ depends: [
   "ocamlformat" {= "0.28.1" & with-test}
   "ocaml-lsp-server" {with-dev-setup}
   "dream" {= "1.0.0~alpha8" & with-dev-setup}
+  "mtime" {with-dev-setup}
   "reason-react-ppx" {with-dev-setup}
   "alcotest" {with-test}
   "alcotest-lwt" {with-test}

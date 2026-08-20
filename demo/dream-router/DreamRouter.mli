@@ -71,7 +71,11 @@ val createFromRequest :
     @param request current Dream request *)
 
 val streamFunctionResponse :
-  ?debug:bool -> lookup:(string -> ReactServerDOM.server_function option) -> Dream.request -> Dream.response Lwt.t
+  ?debug:bool ->
+  ?timeout:float ->
+  lookup:(string -> ReactServerDOM.server_function option) ->
+  Dream.request ->
+  Dream.response Lwt.t
 (** Handle a server function POST request.
 
     Installs an action-phase request context in which [get_header], [get_cookie], and [set_cookie] are available.
@@ -79,6 +83,7 @@ val streamFunctionResponse :
     discarded.
 
     @param debug enable action-response logging (default: false)
+    @param timeout maximum action execution and response streaming time in seconds (default: 30)
     @param lookup maps an action ID to a registered {!ReactServerDOM.server_function}
     @param request current Dream request *)
 

@@ -145,21 +145,40 @@ let handleRequest ~lookup request =
       | _ -> Lwt.fail_with "Missing form data, this request was not created by server-reason-react")
   | _ -> handleRequestBody ~lookup request actionId
 
-let streamFunctionResponse ?(debug = false) ~lookup request =
+let streamFunctionResponse ?(debug = false) ?(timeout = stream_timeout) ~lookup request =
+  let started_at = Mtime_clock.counter () in
   let pending, run = with_action_context request (fun () -> handleRequest ~lookup request) in
-  let%lwt action_promise, cookie_headers =
+  let action =
     Lwt.catch
       (fun () ->
         let%lwt result = run () in
         let cookies = serialize_pending_cookies !pending in
-        Lwt.return (Lwt.return result, cookies))
+        Lwt.return (`Settled (Lwt.return result, cookies)))
       (fun exn ->
         pending := [];
-        Lwt.return (Lwt.fail exn, []))
+        Lwt.return (`Settled (Lwt.fail exn, [])))
+  in
+  let deadline =
+    let%lwt () = Lwt_unix.sleep timeout in
+    Lwt.return `Timed_out
+  in
+  let%lwt outcome = Lwt.choose [ action; deadline ] in
+  let action_promise, cookie_headers =
+    match outcome with
+    | `Settled result ->
+        Lwt.cancel deadline;
+        result
+    | `Timed_out ->
+        Lwt.cancel action;
+        pending := [];
+        let pending_response, _resolve_response = Lwt.wait () in
+        (pending_response, [])
   in
   Dream.stream ~headers:(("Content-Type", "application/react.action") :: cookie_headers) (fun stream ->
+      let elapsed = Mtime_clock.count started_at |> Mtime.Span.to_uint64_ns |> Int64.to_float in
+      let remaining_timeout = max 0. (timeout -. (elapsed /. 1_000_000_000.)) in
       let%lwt () =
-        ReactServerDOM.create_action_response ~env:`Dev ~debug ~timeout:stream_timeout
+        ReactServerDOM.create_action_response ~env:`Dev ~debug ~timeout:remaining_timeout
           ~subscribe:(write_chunk ~debug ~label:"Action response" stream)
           action_promise
       in

@@ -329,6 +329,66 @@ let suspense_with_use_promise () =
   Alcotest.(check int) "component renders again" 2 !renders;
   Lwt.return ()
 
+let root_use_promise_retries_in_root_row () =
+  let promise =
+    let%lwt () = Lwt.pause () in
+    Lwt.return "DONE :)"
+  in
+  let renders = ref 0 in
+  let app =
+    React.Upper_case_component
+      ( __FUNCTION__,
+        fun () ->
+          incr renders;
+          React.string (React.Experimental.usePromise promise) )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  assert_list_of_strings !output [ "0:\"DONE :)\"\n" ];
+  Alcotest.(check int) "component renders again" 2 !renders;
+  Lwt.return ()
+
+let root_use_promise_retry_restores_use_id_state () =
+  let promise =
+    let%lwt () = Lwt.pause () in
+    Lwt.return "DONE :)"
+  in
+  let child =
+    React.Upper_case_component
+      ( "Child",
+        fun () ->
+          let id = React.useId () in
+          React.createElement "span" [ React.JSX.String ("id", "id", id) ] [ React.string "child" ] )
+  in
+  let app =
+    React.Upper_case_component
+      ( __FUNCTION__,
+        fun () ->
+          let id = React.useId () in
+          let value = React.Experimental.usePromise promise in
+          React.createElement "div" [ React.JSX.String ("id", "id", id) ] [ React.string value; child ] )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"div\",null,{\"children\":[\"DONE \
+       :)\",[\"$\",\"span\",null,{\"children\":\"child\",\"id\":\"\xc2\xabR5\xc2\xbb\"},null,null,1]],\"id\":\"\xc2\xabR0\xc2\xbb\"},null,null,1]\n";
+    ];
+  Lwt.return ()
+
+let root_use_promise_rejection_errors_root_row () =
+  let promise =
+    let%lwt () = Lwt.pause () in
+    Lwt.fail (Failure "root promise failed")
+  in
+  let app = React.Upper_case_component (__FUNCTION__, fun () -> React.string (React.Experimental.usePromise promise)) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  assert_list_of_strings !output
+    [ "0:E{\"message\":\"Failure(\\\"root promise failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
+  Lwt.return ()
+
 let suspense_with_error () =
   let app () =
     mk_suspense ~fallback:(React.string "Loading...")
@@ -1833,6 +1893,22 @@ let externally_canceled_resource_settles_row () =
     ];
   Lwt.return ()
 
+let pending_model_without_controls_returns_immediately () =
+  let gate, resolve_gate = Lwt.wait () in
+  let app =
+    React.Async_component
+      ( "Pending",
+        fun () ->
+          let%lwt () = gate in
+          Lwt.return (React.string "Done") )
+  in
+  let completion = ReactServerDOM.render_model app in
+  let returned_immediately = match Lwt.state completion with Return () -> true | Sleep | Fail _ -> false in
+  Lwt.wakeup_later resolve_gate ();
+  let%lwt () = Lwt.pause () in
+  Alcotest.(check bool) "render returns immediately" true returned_immediately;
+  Lwt.return ()
+
 let timeout_without_subscriber_bounds_render () =
   (* Without a subscriber the stream drains internally: the returned promise still represents the bounded render. *)
   let app = never_resolving_component "NeverResolves" in
@@ -1848,6 +1924,15 @@ let act_with_pending_action_resolves () =
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
   assert_list_of_strings !output [ "0:\"Late result\"\n" ];
   Lwt.return ()
+
+let act_without_subscriber_waits_for_pending_action () =
+  let response, resolve_response = Lwt.wait () in
+  let completion = ReactServerDOM.create_action_response response in
+  (match Lwt.state completion with
+  | Sleep -> ()
+  | Return () | Fail _ -> Alcotest.fail "the response completed before the action settled");
+  Lwt.wakeup_later resolve_response (React.Model.Json (`String "Late result"));
+  completion
 
 let act_with_pending_action_times_out () =
   let response, _resolver = Lwt.wait () in
@@ -1893,6 +1978,9 @@ let tests =
     test "suspense_without_promise" suspense_without_promise;
     test "suspense_with_promise" suspense_with_promise;
     test "suspense_with_use_promise" suspense_with_use_promise;
+    test "root_use_promise_retries_in_root_row" root_use_promise_retries_in_root_row;
+    test "root_use_promise_retry_restores_use_id_state" root_use_promise_retry_restores_use_id_state;
+    test "root_use_promise_rejection_errors_root_row" root_use_promise_rejection_errors_root_row;
     test "suspense_with_error" suspense_with_error;
     test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_immediate_promise" suspense_with_immediate_promise;
@@ -1958,8 +2046,10 @@ let tests =
     test "subscriber_failure_cancels_pending_work" subscriber_failure_cancels_pending_work;
     test "canceling_render_promise_cancels_pending_work" canceling_render_promise_cancels_pending_work;
     test "externally_canceled_resource_settles_row" externally_canceled_resource_settles_row;
+    test "pending_model_without_controls_returns_immediately" pending_model_without_controls_returns_immediately;
     test ~watchdog_ms:500 "timeout_without_subscriber_bounds_render" timeout_without_subscriber_bounds_render;
     test "act_with_pending_action_resolves" act_with_pending_action_resolves;
+    test "act_without_subscriber_waits_for_pending_action" act_without_subscriber_waits_for_pending_action;
     test ~watchdog_ms:500 "act_with_pending_action_times_out" act_with_pending_action_times_out;
     test "act_abort_cancels_pending_action" act_abort_cancels_pending_action;
   ]
