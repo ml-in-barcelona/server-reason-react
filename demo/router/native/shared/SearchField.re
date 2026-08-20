@@ -1,9 +1,17 @@
 [@react.client.component]
 let make = () => {
-  let ({ Router.text: initialText }, updateSearch) = Router.useSearch();
-  let (text, setText) =
-    RR.useStateValue(initialText |> Option.value(~default=""));
+  let ({ Router.text }, updateSearch) = Router.useSearch();
+  let routerText = text |> Option.value(~default="");
+  let (text, setText) = RR.useStateValue(routerText);
   let (isSearching, startSearching) = React.useTransition();
+
+  React.useLayoutEffect1(
+    () => {
+      setText(routerText);
+      None;
+    },
+    [|routerText|],
+  );
 
   let onSubmit = event => {
     React.Event.Form.preventDefault(event);
