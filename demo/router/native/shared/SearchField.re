@@ -2,16 +2,9 @@
 let make = () => {
   let ({ Router.text }, updateSearch) = Router.useSearch();
   let routerText = text |> Option.value(~default="");
-  let (text, setText) = RR.useStateValue(routerText);
+  let (text, setText) =
+    React.Experimental.useOptimistic(routerText, (_current, next) => next);
   let (isSearching, startSearching) = React.useTransition();
-
-  React.useLayoutEffect1(
-    () => {
-      setText(routerText);
-      None;
-    },
-    [|routerText|],
-  );
 
   let onSubmit = event => {
     React.Event.Form.preventDefault(event);
@@ -21,8 +14,8 @@ let make = () => {
     let target = React.Event.Form.target(event);
     let nextText = target##value;
     let next = nextText == "" ? None : Some(nextText);
-    setText(nextText);
     startSearching(() => {
+      setText(nextText);
       let _ = updateSearch(~text=next, ());
       ();
     });
