@@ -812,10 +812,24 @@ let shared_layout_prefix_uses_canonical_identity () =
   let note = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:true in
   let same = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:true in
   let other = scope ~id:"group:note" ~parameters:[ ("id", "2") ] ~reusable:true in
-  let loaded = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:false in
+  let outletless = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:false in
   Alcotest.(check int) "same" 2 (RouterServer.Branch.sharedPrefix [ root; note ] [ root; same ]);
   Alcotest.(check int) "different params" 1 (RouterServer.Branch.sharedPrefix [ root; note ] [ root; other ]);
-  Alcotest.(check int) "loader scope" 1 (RouterServer.Branch.sharedPrefix [ root; note ] [ root; loaded ])
+  Alcotest.(check int)
+    "scope without an outlet" 1
+    (RouterServer.Branch.sharedPrefix [ root; note ] [ root; outletless ])
+
+let plan_scope_count_bounds_the_graft () =
+  let scope = RouterServer.Plan.Scope.make ~layout:(fun child -> child) () in
+  Alcotest.(check int)
+    "success" 2
+    (RouterServer.Plan.scopeCount (RouterServer.Plan.success ~scopes:[ scope; scope ] ~page:"page"));
+  Alcotest.(check int)
+    "failure drops the failing scope" 1
+    (RouterServer.Plan.scopeCount
+       (RouterServer.Plan.failure ~scopes:[ scope ]
+          ~error:(RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })
+          ()))
 
 let suffix_plan_omits_shared_layouts () =
   let open RouterRuntime in
@@ -896,6 +910,7 @@ let () =
           test "full plan composition" full_plan_composition;
           test "failure plan selects not-found boundary" failure_plan_selects_not_found_boundary;
           test "shared layout prefix uses canonical identity" shared_layout_prefix_uses_canonical_identity;
+          test "plan scope count bounds the graft" plan_scope_count_bounds_the_graft;
           test "suffix plan omits shared layouts" suffix_plan_omits_shared_layouts;
         ] );
     ]

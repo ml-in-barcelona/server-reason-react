@@ -149,7 +149,7 @@ module Branch : sig
 
     val make : id:string -> parameters:(string * string) list -> reusable:bool -> t
     (** [parameters] are framed into [instanceKey], avoiding ambiguous keys when names or values have shared prefixes.
-    *)
+        [reusable] marks a scope that owns an outlet and can therefore receive a navigation patch. *)
 
     val id : t -> string
     val instanceKey : t -> string
@@ -160,7 +160,8 @@ module Branch : sig
 
   val sharedPrefix : t -> t -> int
   (** Returns the number of leading layout instances that can survive a navigation. Comparison stops as soon as either
-      scope is not reusable. *)
+      scope is not reusable. The result is an upper bound: {!Plan.scopeCount} bounds it further once loaders have run.
+  *)
 
   val layouts : t -> RouterRuntime.Navigation.layout list
 end
@@ -200,6 +201,10 @@ module Plan : sig
     ?errorBoundary:('error RouterRuntime.Error.t -> 'view) ->
     unit ->
     ('view, 'error) t
+
+  val scopeCount : ('view, 'error) t -> int
+  (** The number of layout scopes the plan renders. A loader failure drops the failing scope and everything below it, so
+      this can be shorter than the matched {!Branch.t} and bounds how deep a patch may graft. *)
 
   type render = Full | Suffix of { omitted_scopes : int }
 

@@ -1,8 +1,17 @@
 let events = ref([]);
+let layoutEvents = ref([]);
 
-let reset = () => events := [];
+let reset = () => {
+  events := [];
+  layoutEvents := [];
+};
 let record = event => events := [event, ...events^];
 let events = () => List.rev(events^);
+
+/* [Plan.apply_layouts] folds from the right, so it applies the innermost
+   layout first and prepending yields outermost-first. */
+let recordLayout = event => layoutEvents := [event, ...layoutEvents^];
+let layouts = () => layoutEvents^;
 
 let headers = values =>
   switch (RouterRuntime.Headers.make(values)) {
@@ -10,11 +19,16 @@ let headers = values =>
   | Error(_) => invalid_arg("invalid fixture headers")
   };
 
-module RootLayout = {
+module RootLayoutView = {
   [@react.component]
-  let make = (~page as _, ~searchText as _, ~children) => {
-    record("root-layout");
-    children;
+  let make = (~page as _, ~searchText as _, ~children) => children;
+};
+
+module RootLayout = {
+  let makeProps = RootLayoutView.makeProps;
+  let make = props => {
+    recordLayout("root-layout");
+    RootLayoutView.make(props);
   };
 };
 
@@ -81,7 +95,7 @@ module RootNotFound = {
   };
 };
 
-module WorkspaceLayout = {
+module WorkspaceLayoutView = {
   [@react.component]
   let make =
       (
@@ -91,9 +105,14 @@ module WorkspaceLayout = {
         ~filter as _,
         ~workspace as _,
         ~children,
-      ) => {
-    record("workspace-layout");
-    children;
+      ) => children;
+};
+
+module WorkspaceLayout = {
+  let makeProps = WorkspaceLayoutView.makeProps;
+  let make = props => {
+    recordLayout("workspace-layout");
+    WorkspaceLayoutView.make(props);
   };
 };
 
@@ -204,5 +223,40 @@ module NoteHeaders = {
       ) => {
     record("note-headers");
     Lwt.return(headers([("X-Route", "note")]));
+  };
+};
+
+module TeamLayoutView = {
+  [@react.component]
+  let make = (~teamId as _, ~page as _, ~searchText as _, ~children) => children;
+};
+
+module TeamLayout = {
+  let makeProps = TeamLayoutView.makeProps;
+  let make = props => {
+    recordLayout("team-layout");
+    TeamLayoutView.make(props);
+  };
+};
+
+module TeamBoundaryView = {
+  [@react.component]
+  let make = (~teamId as _, ~page as _, ~searchText as _, ~error as _) =>
+    React.string("team-error");
+};
+
+module TeamBoundary = {
+  let makeProps = TeamBoundaryView.makeProps;
+  let make = props => {
+    record("team-error");
+    TeamBoundaryView.make(props);
+  };
+};
+
+module TeamNotFound = {
+  [@react.component]
+  let make = (~teamId as _, ~page as _, ~searchText as _, ~error as _) => {
+    record("team-not-found");
+    React.string("team-not-found");
   };
 };

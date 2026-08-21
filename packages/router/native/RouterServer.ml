@@ -566,6 +566,10 @@ module Plan = struct
   let failure ~scopes ~error ?notFound ?errorBoundary () =
     Failure { scopes; error; not_found = notFound; error_boundary = errorBoundary }
 
+  let scopeCount = function
+    | Success success -> List.length success.scopes
+    | Failure failure -> List.length failure.scopes
+
   let empty_headers = match RouterRuntime.Headers.make [] with Ok headers -> headers | Error _ -> assert false
 
   let resolve_values scopes =
@@ -809,7 +813,7 @@ module ServerEngine = struct
           | _ -> false)
       | _ -> false
     in
-    let patch_base ~target_branch =
+    let patch_target ~target_branch ~plan =
       match (request.kind, request.navigation) with
       | Rsc, Some { from = Some from; base_revision = Some base_revision; _ } when String.length from <= 2048 -> (
           let from_pathname, from_search = Path.splitLocation from in
@@ -827,9 +831,14 @@ module ServerEngine = struct
                         let shared = Branch.sharedPrefix from_branch target_branch in
                         if shared <= 0 || shared >= List.length target_branch then None
                         else
-                          Option.map
-                            (fun scope -> (base_revision, shared, Branch.Scope.instanceKey scope))
-                            (List.nth_opt target_branch (shared - 1)))
+                          (* A loader failure drops the failing scope and everything below it from the plan, so the
+                             client no longer owns an outlet at the full shared depth. *)
+                          let depth = min shared (Plan.scopeCount plan) in
+                          if depth <= 0 then None
+                          else
+                            Option.map
+                              (fun scope -> (base_revision, depth, Branch.Scope.instanceKey scope))
+                              (List.nth_opt target_branch (depth - 1)))
                 | _ -> None))
       | _ -> None
     in
@@ -865,9 +874,9 @@ module ServerEngine = struct
                             let layouts = Branch.layouts target_branch in
                             Lwt.bind (Execution.run ~diagnosticId execution) (function
                               | RouterRuntime.Loader.Data plan -> (
-                                  match patch_base ~target_branch with
+                                  match patch_target ~target_branch ~plan with
                                   | None -> full ~matches ~layouts plan
-                                  | Some (base_revision, shared, replace_from) ->
+                                  | Some (base_revision, depth, replace_from) ->
                                       Lwt.map
                                         (fun (resolved : ('view, 'error) Plan.resolved) ->
                                           let required =
@@ -894,7 +903,7 @@ module ServerEngine = struct
                                               resolved;
                                             })
                                         (Plan.resolve plan
-                                           ~render:(Plan.Suffix { omitted_scopes = shared })
+                                           ~render:(Plan.Suffix { omitted_scopes = depth })
                                            ~applicationStatus))
                               | RouterRuntime.Loader.Error error -> fail ~search (RouterRuntime.Error.Application error)
                               | RouterRuntime.Loader.NotFound ->

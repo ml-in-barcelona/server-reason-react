@@ -780,6 +780,9 @@ let testApplicationErrorPolicy = () => {
   };
 };
 
+let registryFingerprint = () =>
+  "1." ++ RouterServer.EndpointRegistry.fingerprint(RouterRegistry.registry);
+
 let navigationFacts = (~from, ~registry, ~baseRevision) =>
   Some({
     RouterServer.ServerEngine.from: Some(from),
@@ -787,16 +790,24 @@ let navigationFacts = (~from, ~registry, ~baseRevision) =>
     base_revision: Some(baseRevision),
   });
 
+let navigateFrom = from =>
+  navigationFacts(
+    ~from,
+    ~registry=registryFingerprint(),
+    ~baseRevision="base-1",
+  );
+
+/* [~revalidate=true] on the client drops the [from] fact. */
+let revalidate =
+  Some({
+    RouterServer.ServerEngine.from: None,
+    registry: Some(registryFingerprint()),
+    base_revision: Some("base-1"),
+  });
+
 let testPatchResponse = () => {
   WorkspaceLoader.reset();
-  let registry =
-    "1." ++ RouterServer.EndpointRegistry.fingerprint(RouterRegistry.registry);
-  let navigation =
-    navigationFacts(
-      ~from="/fixture/workspaces/7/notes/42",
-      ~registry,
-      ~baseRevision="base-1",
-    );
+  let navigation = navigateFrom("/fixture/workspaces/7/notes/42");
   switch (
     runEngine(
       ~pathname="/fixture/workspaces/7/notes/42/edit",
@@ -811,7 +822,12 @@ let testPatchResponse = () => {
       "base-1",
       response.base_revision,
     );
-    Alcotest.check(Alcotest.string, "graft", "4:root", response.replace_from);
+    Alcotest.check(
+      Alcotest.string,
+      "graft",
+      "7:group:111:workspaceId1:7",
+      response.replace_from,
+    );
     Alcotest.check(
       Alcotest.string,
       "cache",
@@ -826,16 +842,213 @@ let testPatchResponse = () => {
   };
 };
 
+/* [Branch.Scope.instanceKey] prefixes every part with its length so that
+   names and values cannot alias. */
+let frame = value => string_of_int(String.length(value)) ++ ":" ++ value;
+let rootGraft = frame("root");
+let workspaceGraft = workspaceId =>
+  frame("group:1") ++ frame("workspaceId") ++ frame(workspaceId);
+let teamGraft = teamId =>
+  frame("group:2") ++ frame("teamId") ++ frame(teamId);
+
+let resetFixture = () => {
+  WorkspaceLoader.reset();
+  NoteLoader.reset();
+  MemberLoader.reset();
+  NotePage.reset();
+  Attachments.reset();
+};
+
+let expectPatch = (~to_, ~navigation) =>
+  switch (runEngine(~pathname=to_, ~navigation, ())) {
+  | Patch(response) => response
+  | Full(_) => Alcotest.fail("expected patch, got full")
+  | ReloadRequired => Alcotest.fail("expected patch, got reload")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected patch, got redirect")
+  };
+
+let expectFull = (~to_, ~navigation) =>
+  switch (runEngine(~pathname=to_, ~navigation, ())) {
+  | Full(response) => response
+  | Patch(_) => Alcotest.fail("expected full, got patch")
+  | ReloadRequired => Alcotest.fail("expected full, got reload")
+  | Redirect(_)
+  | PermanentRedirect(_) => Alcotest.fail("expected full, got redirect")
+  };
+
+let checkLayouts = expected =>
+  Alcotest.check(
+    Alcotest.list(Alcotest.string),
+    "rendered layouts",
+    expected,
+    Attachments.layouts(),
+  );
+
+let checkPatchGraft = (~from, ~to_, ~graft, ~layouts) => {
+  let response = expectPatch(~to_, ~navigation=navigateFrom(from));
+  Alcotest.check(Alcotest.string, "graft", graft, response.replace_from);
+  Alcotest.check(
+    Alcotest.int,
+    "status",
+    200,
+    RouterRuntime.Status.toInt(response.resolved.status),
+  );
+  checkLayouts(layouts);
+};
+
+let checkFullResponse = (~to_, ~navigation, ~layouts) => {
+  let response = expectFull(~to_, ~navigation);
+  Alcotest.check(
+    Alcotest.int,
+    "status",
+    200,
+    RouterRuntime.Status.toInt(response.resolved.status),
+  );
+  checkLayouts(layouts);
+};
+
+/* A patch omits exactly the layouts the client already owns, so the layouts a
+   patch renders plus the layouts above the graft must equal the layouts a full
+   response renders for the same destination. */
+let checkPatchMatchesFull = (~from, ~to_, ~arrange, ~graft, ~above) => {
+  resetFixture();
+  arrange();
+  let response = expectPatch(~to_, ~navigation=navigateFrom(from));
+  Alcotest.check(Alcotest.string, "graft", graft, response.replace_from);
+  let patchLayouts = Attachments.layouts();
+  resetFixture();
+  arrange();
+  ignore(expectFull(~to_, ~navigation=None));
+  Alcotest.check(
+    Alcotest.list(Alcotest.string),
+    "patch omits only the layouts above the graft",
+    Attachments.layouts(),
+    above @ patchLayouts,
+  );
+};
+
+let testPatchLoaderGroupRegularNavigation = () => {
+  resetFixture();
+  checkPatchGraft(
+    ~from="/fixture/workspaces/7/notes/42",
+    ~to_="/fixture/workspaces/7/notes/42/edit",
+    ~graft=workspaceGraft("7"),
+    ~layouts=[],
+  );
+};
+
+let testPatchLoaderGroupRevalidate = () => {
+  resetFixture();
+  checkFullResponse(
+    ~to_="/fixture/workspaces/7/notes/42/edit",
+    ~navigation=revalidate,
+    ~layouts=["root-layout", "workspace-layout"],
+  );
+};
+
+let testPatchLoaderGroupCrossInstance = () => {
+  resetFixture();
+  checkPatchGraft(
+    ~from="/fixture/workspaces/7/notes/42",
+    ~to_="/fixture/workspaces/8/notes/42",
+    ~graft=rootGraft,
+    ~layouts=["workspace-layout"],
+  );
+};
+
+let testPatchPlainGroupRegularNavigation = () => {
+  resetFixture();
+  checkPatchGraft(
+    ~from="/fixture/teams/9",
+    ~to_="/fixture/teams/9/members",
+    ~graft=teamGraft("9"),
+    ~layouts=[],
+  );
+};
+
+let testPatchPlainGroupRevalidate = () => {
+  resetFixture();
+  checkFullResponse(
+    ~to_="/fixture/teams/9/members",
+    ~navigation=revalidate,
+    ~layouts=["root-layout", "team-layout"],
+  );
+};
+
+let testPatchPlainGroupCrossInstance = () => {
+  resetFixture();
+  checkPatchGraft(
+    ~from="/fixture/teams/9",
+    ~to_="/fixture/teams/10/members",
+    ~graft=rootGraft,
+    ~layouts=["team-layout"],
+  );
+};
+
+let testPatchGroupLoaderFailureClampsGraft = () =>
+  checkPatchMatchesFull(
+    ~from="/fixture/workspaces/7/notes/42",
+    ~to_="/fixture/workspaces/7/notes/42/edit",
+    ~arrange=WorkspaceLoader.error,
+    ~graft=rootGraft,
+    ~above=["root-layout"],
+  );
+
+let testPatchGroupLoaderNotFoundClampsGraft = () =>
+  checkPatchMatchesFull(
+    ~from="/fixture/workspaces/7/notes/42",
+    ~to_="/fixture/workspaces/7/notes/42/edit",
+    ~arrange=WorkspaceLoader.notFound,
+    ~graft=rootGraft,
+    ~above=["root-layout"],
+  );
+
+let testPatchRouteLoaderFailureKeepsGroupGraft = () =>
+  checkPatchMatchesFull(
+    ~from="/fixture/workspaces/7/notes/42",
+    ~to_="/fixture/workspaces/7/notes/42/edit",
+    ~arrange=NoteLoader.notFound,
+    ~graft=workspaceGraft("7"),
+    ~above=["root-layout", "workspace-layout"],
+  );
+
+let testPatchPlainGroupRouteLoaderFailureKeepsGraft = () =>
+  checkPatchMatchesFull(
+    ~from="/fixture/teams/9",
+    ~to_="/fixture/teams/9/members",
+    ~arrange=MemberLoader.notFound,
+    ~graft=teamGraft("9"),
+    ~above=["root-layout", "team-layout"],
+  );
+
+let testPatchGroupLoaderRedirectEscapes = () => {
+  resetFixture();
+  WorkspaceLoader.redirect();
+  switch (
+    runEngine(
+      ~pathname="/fixture/workspaces/7/notes/42/edit",
+      ~navigation=navigateFrom("/fixture/workspaces/7/notes/42"),
+      (),
+    )
+  ) {
+  | Redirect(destination) =>
+    Alcotest.check(
+      Alcotest.string,
+      "destination",
+      "/login",
+      RouterRuntime.href(destination),
+    )
+  | Full(_)
+  | Patch(_)
+  | ReloadRequired
+  | PermanentRedirect(_) => Alcotest.fail("expected redirect")
+  };
+};
+
 let testDecodeErrorPatchResponse = () => {
   WorkspaceLoader.reset();
-  let registry =
-    "1." ++ RouterServer.EndpointRegistry.fingerprint(RouterRegistry.registry);
-  let navigation =
-    navigationFacts(
-      ~from="/fixture/workspaces",
-      ~registry,
-      ~baseRevision="base-1",
-    );
+  let navigation = navigateFrom("/fixture/workspaces");
   switch (
     runEngine(~pathname="/fixture/workspaces/7/notes/nope", ~navigation, ())
   ) {
@@ -906,14 +1119,7 @@ let testMissingNavigationFactsDegradeToFull = () => {
 };
 
 let testOversizedNavigationFromDegradesToFull = () => {
-  let registry =
-    "1." ++ RouterServer.EndpointRegistry.fingerprint(RouterRegistry.registry);
-  let navigation =
-    navigationFacts(
-      ~from=String.make(2049, 'x'),
-      ~registry,
-      ~baseRevision="base-1",
-    );
+  let navigation = navigateFrom(String.make(2049, 'x'));
   switch (
     runEngine(
       ~pathname="/fixture/workspaces/7/notes/42/edit",
@@ -1022,6 +1228,61 @@ let () =
             testApplicationErrorPolicy,
           ),
           Alcotest.test_case("patch response", `Quick, testPatchResponse),
+          Alcotest.test_case(
+            "loader group patch",
+            `Quick,
+            testPatchLoaderGroupRegularNavigation,
+          ),
+          Alcotest.test_case(
+            "loader group revalidate",
+            `Quick,
+            testPatchLoaderGroupRevalidate,
+          ),
+          Alcotest.test_case(
+            "loader group cross instance",
+            `Quick,
+            testPatchLoaderGroupCrossInstance,
+          ),
+          Alcotest.test_case(
+            "plain group patch",
+            `Quick,
+            testPatchPlainGroupRegularNavigation,
+          ),
+          Alcotest.test_case(
+            "plain group revalidate",
+            `Quick,
+            testPatchPlainGroupRevalidate,
+          ),
+          Alcotest.test_case(
+            "plain group cross instance",
+            `Quick,
+            testPatchPlainGroupCrossInstance,
+          ),
+          Alcotest.test_case(
+            "group loader failure clamps graft",
+            `Quick,
+            testPatchGroupLoaderFailureClampsGraft,
+          ),
+          Alcotest.test_case(
+            "group loader not-found clamps graft",
+            `Quick,
+            testPatchGroupLoaderNotFoundClampsGraft,
+          ),
+          Alcotest.test_case(
+            "route loader failure keeps group graft",
+            `Quick,
+            testPatchRouteLoaderFailureKeepsGroupGraft,
+          ),
+          Alcotest.test_case(
+            "plain group route loader failure keeps graft",
+            `Quick,
+            testPatchPlainGroupRouteLoaderFailureKeepsGraft,
+          ),
+          Alcotest.test_case(
+            "group loader redirect escapes patch",
+            `Quick,
+            testPatchGroupLoaderRedirectEscapes,
+          ),
           Alcotest.test_case(
             "decode-error patch response",
             `Quick,

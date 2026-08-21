@@ -1,6 +1,11 @@
 let shouldFail = ref(false);
+let shouldNotFound = ref(false);
 let fail = () => shouldFail := true;
-let reset = () => shouldFail := false;
+let notFound = () => shouldNotFound := true;
+let reset = () => {
+  shouldFail := false;
+  shouldNotFound := false;
+};
 
 let load =
     (
@@ -17,5 +22,9 @@ let load =
     raise(Failure("private loader failure"));
   };
   WorkspaceLoader.record("note:" ++ workspace);
-  Lwt.return(RouterRuntime.Loader.Data(id));
+  if (shouldNotFound^) {
+    Lwt.return(RouterRuntime.Loader.NotFound);
+  } else {
+    Lwt.return(RouterRuntime.Loader.Data(id));
+  };
 };
