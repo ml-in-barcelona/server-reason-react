@@ -2,7 +2,7 @@
 
     {!Path} and {!Search} first validate the untrusted URL. {!Registry} and
     {!Match} select a route, then {!Decode} gives the generated endpoint typed
-    inputs. The endpoint describes both its reusable layout {!Branch} and its
+    inputs. The endpoint describes both its graftable layout {!Branch} and its
     deferred loader {!Execution}. Finally, {!Plan} assembles the view, metadata,
     and headers while {!ServerEngine} decides whether the client needs a full
     response, a branch patch, a redirect, or a reload. *)
@@ -147,20 +147,20 @@ module Branch : sig
   module Scope : sig
     type t
 
-    val make : id:string -> parameters:(string * string) list -> reusable:bool -> t
+    val make : id:string -> parameters:(string * string) list -> graftable:bool -> t
     (** [parameters] are framed into [instanceKey], avoiding ambiguous keys when names or values have shared prefixes.
     *)
 
     val id : t -> string
     val instanceKey : t -> string
-    val reusable : t -> bool
+    val graftable : t -> bool
   end
 
   type t = Scope.t list
 
-  val sharedPrefix : t -> t -> int
-  (** Returns the number of leading layout instances that can survive a navigation. Comparison stops as soon as either
-      scope is not reusable. *)
+  val insertionPoint : from:t -> target:t -> (int * Scope.t) option
+  (** The deepest graftable scope shared by both branches, with its index. Returns [None] when there is no shared outlet
+      or the target has no suffix to insert. *)
 
   val layouts : t -> RouterRuntime.Navigation.layout list
 end

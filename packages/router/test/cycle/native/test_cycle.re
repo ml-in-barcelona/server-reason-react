@@ -811,7 +811,12 @@ let testPatchResponse = () => {
       "base-1",
       response.base_revision,
     );
-    Alcotest.check(Alcotest.string, "graft", "4:root", response.replace_from);
+    Alcotest.check(
+      Alcotest.string,
+      "graft",
+      "7:group:111:workspaceId1:7",
+      response.replace_from,
+    );
     Alcotest.check(
       Alcotest.string,
       "cache",

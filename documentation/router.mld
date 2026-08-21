@@ -249,7 +249,7 @@ rendering begin. The scope's components receive [Data] ([~note] in the
 manifest above). [NotFound] and [Error] render the nearest boundary, and
 [Redirect(destination)] escapes the whole branch.
 
-A loader marks its scope and all descendants as non-reusable for navigation
+A loader marks its scope and all descendants as non-graftable for navigation
 patches. Keep loaders for fast validation, redirects, and route-level
 not-found decisions; stream slow data from async server components inside the
 route elements instead.

@@ -237,8 +237,8 @@ let registry_mismatch_returns_reload_required () =
   Alcotest.(check (option string)) "endpoint skipped" None !seen
 
 let patch_registry () : ((React.element, string) RouterServer.Plan.t, string) RouterServer.EndpointRegistry.t =
-  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~reusable:true in
-  let route_branch id = RouterServer.Branch.Scope.make ~id ~parameters:[] ~reusable:true in
+  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~graftable:true in
+  let route_branch id = RouterServer.Branch.Scope.make ~id ~parameters:[] ~graftable:true in
   let root_scope =
     RouterServer.Plan.Scope.make ~layout:(fun child -> React.array [| React.string (String.make 2000 'x'); child |]) ()
   in

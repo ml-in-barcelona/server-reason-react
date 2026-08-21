@@ -505,27 +505,31 @@ let status_of_error ~application = function
 
 module Branch = struct
   module Scope = struct
-    type t = { id : string; instance_key : string; reusable : bool }
+    type t = { id : string; instance_key : string; graftable : bool }
 
     let frame value = string_of_int (String.length value) ^ ":" ^ value
 
-    let make ~id ~parameters ~reusable =
+    let make ~id ~parameters ~graftable =
       let identity = parameters |> List.map (fun (name, value) -> frame name ^ frame value) |> String.concat "" in
-      { id; instance_key = frame id ^ identity; reusable }
+      { id; instance_key = frame id ^ identity; graftable }
 
     let id scope = scope.id
     let instanceKey scope = scope.instance_key
-    let reusable scope = scope.reusable
+    let graftable scope = scope.graftable
   end
 
   type t = Scope.t list
 
-  let rec sharedPrefix from target =
-    match (from, target) with
-    | left :: from, right :: target
-      when left.Scope.reusable && right.Scope.reusable && String.equal left.instance_key right.instance_key ->
-        1 + sharedPrefix from target
-    | _ -> 0
+  let insertionPoint ~from ~target =
+    let rec aux index bestInsertionPoint from target =
+      match (from, target) with
+      | left :: from, right :: target when String.equal left.Scope.instance_key right.Scope.instance_key ->
+          let insertionPoint = if Scope.graftable right then Some (index, right) else bestInsertionPoint in
+          aux (index + 1) insertionPoint from target
+      | _, [] -> None
+      | _ -> bestInsertionPoint
+    in
+    aux 0 None from target
 
   let layouts branch =
     List.map
@@ -824,12 +828,9 @@ module ServerEngine = struct
                     | Error _ -> None
                     | Ok prepared ->
                         let from_branch = Endpoint.branch prepared in
-                        let shared = Branch.sharedPrefix from_branch target_branch in
-                        if shared <= 0 || shared >= List.length target_branch then None
-                        else
-                          Option.map
-                            (fun scope -> (base_revision, shared, Branch.Scope.instanceKey scope))
-                            (List.nth_opt target_branch (shared - 1)))
+                        Option.map
+                          (fun (index, scope) -> (base_revision, index + 1, Branch.Scope.instanceKey scope))
+                          (Branch.insertionPoint ~from:from_branch ~target:target_branch))
                 | _ -> None))
       | _ -> None
     in
