@@ -206,6 +206,14 @@ Flight model and the server answers with a full model, or with a partial patch
 that reuses unchanged layouts. [~revalidate=true] forces a full response.
 [~history] selects [Push], [Replace], or [Pop].
 
+A patch grafts into the outlet of the deepest scope both locations share. A
+scope is shared when it declares [~layout], its path parameters are unchanged,
+and the search string is unchanged. Navigating between two routes of the same
+group therefore replaces only that group's outlet and leaves every enclosing
+layout mounted. When a loader fails, its scope and everything below it leave
+the response, and the graft moves up to the deepest scope the response still
+renders.
+
 {2 Search updates}
 
 [Router.useSearch] returns the decoded search record and its typed update
@@ -249,10 +257,14 @@ rendering begin. The scope's components receive [Data] ([~note] in the
 manifest above). [NotFound] and [Error] render the nearest boundary, and
 [Redirect(destination)] escapes the whole branch.
 
-A loader marks its scope and all descendants as non-reusable for navigation
-patches. Keep loaders for fast validation, redirects, and route-level
-not-found decisions; stream slow data from async server components inside the
-route elements instead.
+A loader runs again on every request, including patches, so a patch that
+reuses the loader's scope keeps the layout rendered from the {e previous}
+result. Use [~revalidate=true] when a navigation must show a layout rebuilt
+from fresh loader data.
+
+Keep loaders for fast validation, redirects, and route-level not-found
+decisions; stream slow data from async server components inside the route
+elements instead.
 
 {1 Error handling}
 

@@ -4,6 +4,7 @@
   AssetPage
   Attachments
   Filter
+  MemberLoader
   NoteId
   NoteLoader
   NotePage
@@ -12,6 +13,8 @@
   ScalarId
   ScalarPage
   SearchPage
+  TeamMemberPage
+  TeamPage
   WorkspaceId
   WorkspaceLoader
   WorkspacesPage)
@@ -29,6 +32,8 @@
     NotePage
     ScalarPage
     SearchPage
+    TeamMemberPage
+    TeamPage
     WorkspacesPage))))
 
 (test

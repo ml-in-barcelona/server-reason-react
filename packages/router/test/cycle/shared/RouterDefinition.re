@@ -50,6 +50,22 @@ Router.make(
         ),
       ],
     ),
+    Router.group(
+      ~path="/teams/:teamId<WorkspaceId.t>",
+      ~layout=Attachments.TeamLayout,
+      ~error=Attachments.TeamBoundary,
+      ~notFound=Attachments.TeamNotFound,
+      [
+        Router.route(Team, ~page=TeamPage, ~path="/"),
+        Router.route(
+          TeamMember,
+          ~page=TeamMemberPage,
+          ~path="/members",
+          ~loader=MemberLoader,
+          ~loaderAs_=member,
+        ),
+      ],
+    ),
     Router.route(Asset, ~page=AssetPage, ~path="/assets/:parts<string...>"),
     Router.route(
       Scalar,

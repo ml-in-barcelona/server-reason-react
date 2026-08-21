@@ -777,14 +777,15 @@ let loader_execution (route : Router_declaration.route) =
         in
         match scope.attachments.loader with
         | None ->
-            let reusable = (not loader_seen) && Option.is_some scope.attachments.layout in
+            let reusable = Option.is_some scope.attachments.layout in
             let current = scope_plan scope parameters search loader_values ~reusable in
             build rest parameters search loader_values (completed @ [ current ]) not_found error_boundary loader_seen
         | Some loader ->
             let run_call = apply_native_inputs ~loc:loader.loc loader.run parameters search loader_values in
             let run = B.pexp_fun ~loc:loader.loc Nolabel None (B.punit ~loc:loader.loc) run_call in
             let next_loaders = loader_values @ [ loader.result_label ] in
-            let current = scope_plan scope parameters search next_loaders ~reusable:false in
+            let reusable = Option.is_some scope.attachments.layout in
+            let current = scope_plan scope parameters search next_loaders ~reusable in
             let next_body =
               build rest parameters search next_loaders (completed @ [ current ]) not_found error_boundary true
             in
@@ -824,7 +825,7 @@ let projected_branch (route : Router_declaration.route) =
     | (scope : Router_declaration.scope) :: scopes ->
         let parameters = parameters @ scope.parameters in
         let has_loader = Option.is_some scope.attachments.loader in
-        let reusable = (not loader_seen) && (not has_loader) && Option.is_some scope.attachments.layout in
+        let reusable = Option.is_some scope.attachments.layout in
         let projected = projected @ [ branch_scope ~loc:scope.loc scope parameters ~reusable ] in
         build scopes parameters (loader_seen || has_loader) projected
   in
@@ -857,7 +858,7 @@ let decode_endpoint ~routes (route : Router_declaration.route) prepared =
         let next_search = search @ scope.search in
         let next_pattern = RouterPattern.append pattern (parsed_path scope.path) in
         let has_loader = Option.is_some scope.attachments.loader in
-        let reusable = (not loader_seen) && (not has_loader) && Option.is_some scope.attachments.layout in
+        let reusable = Option.is_some scope.attachments.layout in
         let next_branch = branch @ [ branch_scope ~loc scope next_parameters ~reusable ] in
         let next_error_boundary =
           if loader_seen then error_boundary
