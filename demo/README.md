@@ -14,6 +14,11 @@ make demo-build-watch
 make demo-serve-watch
 ```
 
+The Hacker News router demo is available at `/demo/router/hacker-news`. It
+uses the Hacker News Algolia API for feeds, search, stories, and comments.
+Successful API responses are cached in memory for one minute for feeds and
+five minutes for story pages. Stale cached data is used if a refresh fails.
+
 # fs explanation
 
 The app consist of 3 folders: `universal`, `server` and `client`, which contains each compilation target defined by dune.

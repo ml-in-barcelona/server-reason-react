@@ -6,13 +6,21 @@
  (flags :standard -w -26-27)
  (libraries
   belt
+  cohttp
+  cohttp-lwt
+  cohttp-lwt-unix
   demo_shared_native
   js
+  lambdasoup
   lwt
+  lwt.unix
   react
   reactDOM
   server-reason-react.router-native
-  server-reason-react.rsc-native)
+  server-reason-react.rsc-native
+  uri
+  unix
+  yojson)
  (preprocess
   (pps
    lwt_ppx
