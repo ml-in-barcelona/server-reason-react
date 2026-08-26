@@ -1,16 +1,7 @@
-type destination = RouterTypes.destination;
-type pattern = RouterPattern.t;
+include RouterTypes;
 
-module Status = RouterTypes.Status;
-module Loader = RouterTypes.Loader;
-module Error = RouterTypes.Error;
-module Metadata = RouterTypes.Metadata;
-module Headers = RouterTypes.Headers;
-module Navigation = RouterTypes.Navigation;
-module Search = RouterTypes.Search;
-module CatchAll = RouterTypes.CatchAll;
-module NavigationResponse = RouterTypes.NavigationResponse;
-module Link = RouterTypes.Link;
+type pattern =
+  | Pattern(RouterPattern.t);
 
 let encode = Js.Global.encodeURIComponent;
 let encodeSegment = value => {
@@ -32,16 +23,16 @@ let encodeSegment = value => {
   | _ => invalid_arg("route parameters must be valid non-empty path segments")
   };
 };
-let destination: (~path: string) => destination = (~path) =>
-  RouterTypes.makeDestination(path);
+let destination = (~path) => makeDestination(path);
 
 let pattern = path =>
   switch (RouterPattern.parse(path)) {
-  | Ok(pattern) => pattern
+  | Ok(pattern) => Pattern(pattern)
   | Error(_) => invalid_arg("invalid generated route pattern " ++ path)
   };
 
 let destinationFromPattern = (~pattern, ~parameters, ~search) => {
+  let Pattern(pattern) = pattern;
   let parameter = name => List.assoc_opt(name, parameters);
   let path =
     switch (
@@ -66,4 +57,4 @@ let destinationFromPattern = (~pattern, ~parameters, ~search) => {
   destination(~path=finalPath);
 };
 
-let href = RouterTypes.destinationHref;
+let href = destinationHref;
