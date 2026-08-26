@@ -44,6 +44,25 @@ let server =
       getAndPost(Routes.renderToStream, Examples.Comments.handler),
       getAndPost(Routes.singlePageRSC, Examples.SinglePageRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Examples.ServerOnlyRSC.handler),
+      Dream.get(Routes.hackerNews, Examples.HackerNews.topHandler),
+      Dream.get(Routes.hackerNews ++ "/new", Examples.HackerNews.newHandler),
+      Dream.get(
+        Routes.hackerNews ++ "/best",
+        Examples.HackerNews.bestHandler,
+      ),
+      Dream.get(Routes.hackerNews ++ "/ask", Examples.HackerNews.askHandler),
+      Dream.get(
+        Routes.hackerNews ++ "/show",
+        Examples.HackerNews.showHandler,
+      ),
+      Dream.get(
+        Routes.hackerNews ++ "/jobs",
+        Examples.HackerNews.jobsHandler,
+      ),
+      Dream.get(
+        Routes.hackerNews ++ "/item/:id",
+        Examples.HackerNews.storyHandler,
+      ),
       ...DreamRouter.routes(
            ~router=RouterRegistry.server,
            ~actionHandler=serverFunctionHandler,

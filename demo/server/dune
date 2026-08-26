@@ -5,6 +5,9 @@
   (= %{profile} "dev"))
  (name server)
  (libraries
+  cohttp
+  cohttp-lwt
+  cohttp-lwt-unix
   dream
   dream_router
   demo_shared_native
@@ -16,8 +19,10 @@
   reactDOM
   html
   js
+  lambdasoup
   lwt.unix
   str
+  uri
   unix
   belt
   yojson)

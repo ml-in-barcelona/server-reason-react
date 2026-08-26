@@ -33,60 +33,75 @@ let domain = url =>
          ? String.sub(host, 4, String.length(host) - 4) : host
      );
 
+let basePath = Routes.hackerNews;
+
+let feedPath = feed =>
+  switch (feed) {
+  | HackerNewsApi.Top => basePath
+  | New => basePath ++ "/new"
+  | Best => basePath ++ "/best"
+  | Ask => basePath ++ "/ask"
+  | Show => basePath ++ "/show"
+  | Jobs => basePath ++ "/jobs"
+  };
+
+let storyPath = id => basePath ++ "/item/" ++ Int.to_string(id);
+
 module Header = {
   [@react.component]
   let make = (~active: option(HackerNewsApi.feed), ~text) => {
     let searchAction =
       switch (active) {
-      | Some(HackerNewsApi.New) => Router.HackerNewsNew.href()
-      | Some(Best) => Router.HackerNewsBest.href()
-      | Some(Ask) => Router.HackerNewsAsk.href()
-      | Some(Show) => Router.HackerNewsShow.href()
-      | Some(Jobs) => Router.HackerNewsJobs.href()
-      | Some(Top)
-      | None => Router.HackerNewsTop.href()
+      | Some(feed) => feedPath(feed)
+      | None => basePath
       };
     <header className="hn-header">
       <div className="hn-header-inner">
-        <Router.HackerNewsTop className="hn-brand">
+        <a className="hn-brand" href=basePath>
           <span className="hn-brand-mark" ariaHidden=true>
             {React.string("Y")}
           </span>
           <span className="hn-brand-label">
             {React.string("Hacker News")}
           </span>
-        </Router.HackerNewsTop>
+        </a>
         <nav className="hn-nav" ariaLabel="Hacker News feeds">
-          <Router.HackerNewsTop
+          <a
+            href={feedPath(Top)}
             className="hn-nav-link"
             ariaCurrent={active == Some(Top) ? "page" : "false"}>
             {React.string("Top")}
-          </Router.HackerNewsTop>
-          <Router.HackerNewsNew
+          </a>
+          <a
+            href={feedPath(New)}
             className="hn-nav-link"
             ariaCurrent={active == Some(New) ? "page" : "false"}>
             {React.string("New")}
-          </Router.HackerNewsNew>
-          <Router.HackerNewsBest
+          </a>
+          <a
+            href={feedPath(Best)}
             className="hn-nav-link"
             ariaCurrent={active == Some(Best) ? "page" : "false"}>
             {React.string("Best")}
-          </Router.HackerNewsBest>
-          <Router.HackerNewsAsk
+          </a>
+          <a
+            href={feedPath(Ask)}
             className="hn-nav-link"
             ariaCurrent={active == Some(Ask) ? "page" : "false"}>
             {React.string("Ask")}
-          </Router.HackerNewsAsk>
-          <Router.HackerNewsShow
+          </a>
+          <a
+            href={feedPath(Show)}
             className="hn-nav-link"
             ariaCurrent={active == Some(Show) ? "page" : "false"}>
             {React.string("Show")}
-          </Router.HackerNewsShow>
-          <Router.HackerNewsJobs
+          </a>
+          <a
+            href={feedPath(Jobs)}
             className="hn-nav-link"
             ariaCurrent={active == Some(Jobs) ? "page" : "false"}>
             {React.string("Jobs")}
-          </Router.HackerNewsJobs>
+          </a>
         </nav>
         <div className="hn-tools">
           <form
@@ -155,9 +170,9 @@ module StoryRow = {
            }}
         </a>
       | None =>
-        <Router.HackerNewsStory id={story.id} className="hn-story-title">
+        <a href={storyPath(story.id)} className="hn-story-title">
           {React.string(story.title)}
-        </Router.HackerNewsStory>
+        </a>
       };
 
     <li className="hn-story-row">
@@ -173,12 +188,12 @@ module StoryRow = {
                "by " ++ story.author ++ " " ++ timeAgo(story.createdAt),
              )}
           </span>
-          <Router.HackerNewsStory id={story.id} className="hn-meta-link">
+          <a href={storyPath(story.id)} className="hn-meta-link">
             {React.string(
                Int.to_string(story.comments)
                ++ (story.comments == 1 ? " comment" : " comments"),
              )}
-          </Router.HackerNewsStory>
+          </a>
         </div>
       </div>
     </li>;
@@ -224,70 +239,6 @@ module Feed = {
        }}
     </Shell>;
   };
-};
-
-module Top = {
-  [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Top text stories />;
-};
-
-module New = {
-  [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.New text stories />;
-};
-
-module Best = {
-  [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Best text stories />;
-};
-
-module Ask = {
-  [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Ask text stories />;
-};
-
-module Show = {
-  [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Show text stories />;
-};
-
-module Jobs = {
-  [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Jobs text stories />;
-};
-
-let loadFeed = (feed, ~text, ()) =>
-  HackerNewsApi.fetchFeed(~feed, ~query=text)
-  |> Lwt.map(result => Router.Loader.Data(result));
-
-module TopLoader = {
-  let load = loadFeed(HackerNewsApi.Top);
-};
-
-module NewLoader = {
-  let load = loadFeed(HackerNewsApi.New);
-};
-
-module BestLoader = {
-  let load = loadFeed(HackerNewsApi.Best);
-};
-
-module AskLoader = {
-  let load = loadFeed(HackerNewsApi.Ask);
-};
-
-module ShowLoader = {
-  let load = loadFeed(HackerNewsApi.Show);
-};
-
-module JobsLoader = {
-  let load = loadFeed(HackerNewsApi.Jobs);
 };
 
 let rec renderComment = (comment: HackerNewsApi.comment) =>
@@ -341,9 +292,9 @@ module Story = {
          </div>
        | Ok({ story, comments }) =>
          <article className="hn-story-page">
-           <Router.HackerNewsTop className="hn-back-link">
+           <a href=basePath className="hn-back-link">
              {React.string("← Back to stories")}
-           </Router.HackerNewsTop>
+           </a>
            <header className="hn-story-summary">
              <h1>
                {switch (story.url) {
@@ -404,35 +355,63 @@ module Story = {
   };
 };
 
-module StoryLoader = {
-  let load = (~id, ~text as _, ()) =>
-    HackerNewsApi.fetchStory(id)
-    |> Lwt.map(result => Router.Loader.Data(result));
+module Document = {
+  [@react.component]
+  let make = (~children) =>
+    <html lang="en" className="h-full">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="description"
+          content="A server-rendered Hacker News reader built with server-reason-react."
+        />
+        <title> {React.string("Hacker News · server-reason-react")} </title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        />
+        <link rel="stylesheet" href="/output.css" />
+        <script
+          dangerouslySetInnerHTML={
+            "__html": "try{var t=localStorage.getItem('hn-theme');document.documentElement.dataset.hnTheme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#hn-theme-toggle');if(!b)return;var r=document.documentElement,n=r.dataset.hnTheme==='dark'?'light':'dark';r.dataset.hnTheme=n;try{localStorage.setItem('hn-theme',n)}catch(e){}})",
+          }
+        />
+      </head>
+      <body> children </body>
+    </html>;
 };
 
-module Skeleton = {
-  [@react.component]
-  let make = () =>
-    <div className="hn-app">
-      <Header active=None text=None />
-      <main className="hn-main">
-        <div
-          className="hn-story-list hn-state" ariaLabel="Loading Hacker News">
-          {Array.init(8, index =>
-             <div key={Int.to_string(index)} className="hn-skeleton-line" />
-           )
-           |> React.array}
-        </div>
-      </main>
-    </div>;
+let render = page =>
+  Dream.html(ReactDOM.renderToString(<Document> page </Document>));
+
+let feedHandler = (feed, request) => {
+  let text = Dream.query(request, "text");
+  let%lwt stories = HackerNewsApi.fetchFeed(~feed, ~query=text);
+  render(<Feed feed text stories />);
 };
 
-module FeedLoading = {
-  [@react.component]
-  let make = (~text as _, ~stories as _) => <Skeleton />;
-};
+let topHandler = feedHandler(HackerNewsApi.Top);
+let newHandler = feedHandler(HackerNewsApi.New);
+let bestHandler = feedHandler(HackerNewsApi.Best);
+let askHandler = feedHandler(HackerNewsApi.Ask);
+let showHandler = feedHandler(HackerNewsApi.Show);
+let jobsHandler = feedHandler(HackerNewsApi.Jobs);
 
-module StoryLoading = {
-  [@react.component]
-  let make = (~id as _, ~text as _, ~storyResult as _) => <Skeleton />;
+let storyHandler = request => {
+  let id = Dream.param(request, "id") |> int_of_string_opt;
+  let%lwt storyResult =
+    switch (id) {
+    | Some(id) => HackerNewsApi.fetchStory(id)
+    | None => Lwt_result.fail("Hacker News story id must be a number")
+    };
+  render(
+    <Story id={id |> Option.value(~default=0)} text=None storyResult />,
+  );
 };

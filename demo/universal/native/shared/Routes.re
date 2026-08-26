@@ -5,7 +5,7 @@ let renderToStream = "/demo/renderToStream";
 let serverOnlyRSC = "/demo/serverOnlyRSC";
 let singlePageRSC = "/demo/singlePageRSC";
 let router = "/demo/router";
-let hackerNews = "/demo/router/hacker-news";
+let hackerNews = "/demo/hacker-news";
 
 let links = [|
   (
