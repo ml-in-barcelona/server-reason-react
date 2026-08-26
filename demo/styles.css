@@ -480,6 +480,13 @@
   text-align: center;
 }
 
+.hn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
 .hn-skeleton-line {
   height: 13px;
   margin-bottom: 12px;

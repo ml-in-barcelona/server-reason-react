@@ -33,75 +33,87 @@ let domain = url =>
          ? String.sub(host, 4, String.length(host) - 4) : host
      );
 
-let basePath = Routes.hackerNews;
+let cacheFeed = feed =>
+  React.cache(text =>
+    HackerNewsApi.fetchFeed(~feed, ~query=text == "" ? None : Some(text))
+  );
 
-let feedPath = feed =>
-  switch (feed) {
-  | HackerNewsApi.Top => basePath
-  | New => basePath ++ "/new"
-  | Best => basePath ++ "/best"
-  | Ask => basePath ++ "/ask"
-  | Show => basePath ++ "/show"
-  | Jobs => basePath ++ "/jobs"
-  };
+let topFeed = cacheFeed(HackerNewsApi.Top);
+let newFeed = cacheFeed(HackerNewsApi.New);
+let bestFeed = cacheFeed(HackerNewsApi.Best);
+let askFeed = cacheFeed(HackerNewsApi.Ask);
+let showFeed = cacheFeed(HackerNewsApi.Show);
+let jobsFeed = cacheFeed(HackerNewsApi.Jobs);
 
-let storyPath = id => basePath ++ "/item/" ++ Int.to_string(id);
+let fetchFeed = (feed, text) => {
+  let fetch =
+    switch (feed) {
+    | HackerNewsApi.Top => topFeed
+    | New => newFeed
+    | Best => bestFeed
+    | Ask => askFeed
+    | Show => showFeed
+    | Jobs => jobsFeed
+    };
+  fetch(text |> Option.value(~default=""));
+};
+
+let fetchStory = React.cache(HackerNewsApi.fetchStory);
 
 module Header = {
   [@react.component]
   let make = (~active: option(HackerNewsApi.feed), ~text) => {
     let searchAction =
       switch (active) {
-      | Some(feed) => feedPath(feed)
-      | None => basePath
+      | Some(HackerNewsApi.New) => Router.New.href()
+      | Some(Best) => Router.Best.href()
+      | Some(Ask) => Router.Ask.href()
+      | Some(Show) => Router.Show.href()
+      | Some(Jobs) => Router.Jobs.href()
+      | Some(Top)
+      | None => Router.Top.href()
       };
     <header className="hn-header">
       <div className="hn-header-inner">
-        <a className="hn-brand" href=basePath>
+        <Router.Top className="hn-brand">
           <span className="hn-brand-mark" ariaHidden=true>
             {React.string("Y")}
           </span>
           <span className="hn-brand-label">
             {React.string("Hacker News")}
           </span>
-        </a>
+        </Router.Top>
         <nav className="hn-nav" ariaLabel="Hacker News feeds">
-          <a
-            href={feedPath(Top)}
+          <Router.Top
             className="hn-nav-link"
             ariaCurrent={active == Some(Top) ? "page" : "false"}>
             {React.string("Top")}
-          </a>
-          <a
-            href={feedPath(New)}
+          </Router.Top>
+          <Router.New
             className="hn-nav-link"
             ariaCurrent={active == Some(New) ? "page" : "false"}>
             {React.string("New")}
-          </a>
-          <a
-            href={feedPath(Best)}
+          </Router.New>
+          <Router.Best
             className="hn-nav-link"
             ariaCurrent={active == Some(Best) ? "page" : "false"}>
             {React.string("Best")}
-          </a>
-          <a
-            href={feedPath(Ask)}
+          </Router.Best>
+          <Router.Ask
             className="hn-nav-link"
             ariaCurrent={active == Some(Ask) ? "page" : "false"}>
             {React.string("Ask")}
-          </a>
-          <a
-            href={feedPath(Show)}
+          </Router.Ask>
+          <Router.Show
             className="hn-nav-link"
             ariaCurrent={active == Some(Show) ? "page" : "false"}>
             {React.string("Show")}
-          </a>
-          <a
-            href={feedPath(Jobs)}
+          </Router.Show>
+          <Router.Jobs
             className="hn-nav-link"
             ariaCurrent={active == Some(Jobs) ? "page" : "false"}>
             {React.string("Jobs")}
-          </a>
+          </Router.Jobs>
         </nav>
         <div className="hn-tools">
           <form
@@ -170,9 +182,9 @@ module StoryRow = {
            }}
         </a>
       | None =>
-        <a href={storyPath(story.id)} className="hn-story-title">
+        <Router.Story id={story.id} className="hn-story-title">
           {React.string(story.title)}
-        </a>
+        </Router.Story>
       };
 
     <li className="hn-story-row">
@@ -188,22 +200,58 @@ module StoryRow = {
                "by " ++ story.author ++ " " ++ timeAgo(story.createdAt),
              )}
           </span>
-          <a href={storyPath(story.id)} className="hn-meta-link">
+          <Router.Story id={story.id} className="hn-meta-link">
             {React.string(
                Int.to_string(story.comments)
                ++ (story.comments == 1 ? " comment" : " comments"),
              )}
-          </a>
+          </Router.Story>
         </div>
       </div>
     </li>;
   };
 };
 
+module Loading = {
+  [@react.component]
+  let make = (~label) =>
+    <div className="hn-state hn-loading">
+      <Spinner active=true label />
+      <span> {React.string(label)} </span>
+    </div>;
+};
+
+module FeedData = {
+  [@react.component]
+  let make = (~feed, ~text) => {
+    let stories = React.Experimental.usePromise(fetchFeed(feed, text));
+    switch (stories) {
+    | Error(error) =>
+      <div className="hn-state" role="alert">
+        {React.string("Could not load Hacker News: " ++ error)}
+      </div>
+    | Ok([]) =>
+      <div className="hn-state"> {React.string("No stories found.")} </div>
+    | Ok(stories) =>
+      <ol className="hn-story-list">
+        {stories
+         |> List.mapi((index, story: HackerNewsApi.story) =>
+              <StoryRow
+                key={Int.to_string(story.id)}
+                rank={index + 1}
+                story
+              />
+            )
+         |> Array.of_list
+         |> React.array}
+      </ol>
+    };
+  };
+};
+
 module Feed = {
   [@react.component]
-  let make =
-      (~feed, ~text, ~stories: result(list(HackerNewsApi.story), string)) => {
+  let make = (~feed, ~text) =>
     <Shell active={Some(feed)} text>
       <div className="hn-feed-heading">
         <h1>
@@ -216,29 +264,40 @@ module Feed = {
         </h1>
         <p> {React.string("Live data from the Hacker News Algolia API")} </p>
       </div>
-      {switch (stories) {
-       | Error(error) =>
-         <div className="hn-state" role="alert">
-           {React.string("Could not load Hacker News: " ++ error)}
-         </div>
-       | Ok([]) =>
-         <div className="hn-state"> {React.string("No stories found.")} </div>
-       | Ok(stories) =>
-         <ol className="hn-story-list">
-           {stories
-            |> List.mapi((index, story: HackerNewsApi.story) =>
-                 <StoryRow
-                   key={Int.to_string(story.id)}
-                   rank={index + 1}
-                   story
-                 />
-               )
-            |> Array.of_list
-            |> React.array}
-         </ol>
-       }}
+      <React.Suspense fallback={<Loading label="Loading stories" />}>
+        <FeedData feed text />
+      </React.Suspense>
     </Shell>;
-  };
+};
+
+module Top = {
+  [@react.component]
+  let make = (~text) => <Feed feed=HackerNewsApi.Top text />;
+};
+
+module New = {
+  [@react.component]
+  let make = (~text) => <Feed feed=HackerNewsApi.New text />;
+};
+
+module Best = {
+  [@react.component]
+  let make = (~text) => <Feed feed=HackerNewsApi.Best text />;
+};
+
+module Ask = {
+  [@react.component]
+  let make = (~text) => <Feed feed=HackerNewsApi.Ask text />;
+};
+
+module Show = {
+  [@react.component]
+  let make = (~text) => <Feed feed=HackerNewsApi.Show text />;
+};
+
+module Jobs = {
+  [@react.component]
+  let make = (~text) => <Feed feed=HackerNewsApi.Jobs text />;
 };
 
 let rec renderComment = (comment: HackerNewsApi.comment) =>
@@ -276,89 +335,120 @@ module Comment = {
   let make = (~comment: HackerNewsApi.comment) => renderComment(comment);
 };
 
+module StoryData = {
+  [@react.component]
+  let make = (~id) => {
+    let storyResult = React.Experimental.usePromise(fetchStory(id));
+    switch (storyResult) {
+    | Error(error) =>
+      <div className="hn-state" role="alert">
+        {React.string("Could not load this story: " ++ error)}
+      </div>
+    | Ok({ story, comments }) =>
+      <article className="hn-story-page">
+        <Router.Top className="hn-back-link">
+          {React.string("← Back to stories")}
+        </Router.Top>
+        <header className="hn-story-summary">
+          <h1>
+            {switch (story.url) {
+             | Some(url) =>
+               <a
+                 className="hn-story-title"
+                 href=url
+                 target="_blank"
+                 rel="noreferrer">
+                 {React.string(story.title)}
+               </a>
+             | None => React.string(story.title)
+             }}
+          </h1>
+          <div className="hn-story-meta">
+            <span>
+              {React.string(Int.to_string(story.points) ++ " points")}
+            </span>
+            <span>
+              {React.string(
+                 "by " ++ story.author ++ " " ++ timeAgo(story.createdAt),
+               )}
+            </span>
+            <span>
+              {React.string(
+                 Int.to_string(countComments(comments)) ++ " loaded comments",
+               )}
+            </span>
+          </div>
+          {switch (story.text) {
+           | Some(text) when text != "" =>
+             <p className="hn-story-text"> {React.string(text)} </p>
+           | _ => React.null
+           }}
+        </header>
+        <h2 className="hn-comments-heading">
+          {React.string("Discussion")}
+        </h2>
+        {switch (comments) {
+         | [] =>
+           <div className="hn-state">
+             {React.string("No comments yet.")}
+           </div>
+         | comments =>
+           <ul className="hn-comments">
+             {comments
+              |> List.map((comment: HackerNewsApi.comment) =>
+                   <Comment key={Int.to_string(comment.id)} comment />
+                 )
+              |> Array.of_list
+              |> React.array}
+           </ul>
+         }}
+      </article>
+    };
+  };
+};
+
 module Story = {
   [@react.component]
-  let make =
-      (
-        ~id as _,
-        ~text,
-        ~storyResult: result(HackerNewsApi.storyPage, string),
-      ) => {
+  let make = (~id, ~text) =>
     <Shell active=None text>
-      {switch (storyResult) {
-       | Error(error) =>
-         <div className="hn-state" role="alert">
-           {React.string("Could not load this story: " ++ error)}
-         </div>
-       | Ok({ story, comments }) =>
-         <article className="hn-story-page">
-           <a href=basePath className="hn-back-link">
-             {React.string("← Back to stories")}
-           </a>
-           <header className="hn-story-summary">
-             <h1>
-               {switch (story.url) {
-                | Some(url) =>
-                  <a
-                    className="hn-story-title"
-                    href=url
-                    target="_blank"
-                    rel="noreferrer">
-                    {React.string(story.title)}
-                  </a>
-                | None => React.string(story.title)
-                }}
-             </h1>
-             <div className="hn-story-meta">
-               <span>
-                 {React.string(Int.to_string(story.points) ++ " points")}
-               </span>
-               <span>
-                 {React.string(
-                    "by " ++ story.author ++ " " ++ timeAgo(story.createdAt),
-                  )}
-               </span>
-               <span>
-                 {React.string(
-                    Int.to_string(countComments(comments))
-                    ++ " loaded comments",
-                  )}
-               </span>
-             </div>
-             {switch (story.text) {
-              | Some(text) when text != "" =>
-                <p className="hn-story-text"> {React.string(text)} </p>
-              | _ => React.null
-              }}
-           </header>
-           <h2 className="hn-comments-heading">
-             {React.string("Discussion")}
-           </h2>
-           {switch (comments) {
-            | [] =>
-              <div className="hn-state">
-                {React.string("No comments yet.")}
-              </div>
-            | comments =>
-              <ul className="hn-comments">
-                {comments
-                 |> List.map((comment: HackerNewsApi.comment) =>
-                      <Comment key={Int.to_string(comment.id)} comment />
-                    )
-                 |> Array.of_list
-                 |> React.array}
-              </ul>
-            }}
-         </article>
-       }}
+      <React.Suspense fallback={<Loading label="Loading discussion" />}>
+        <StoryData id />
+      </React.Suspense>
     </Shell>;
-  };
+};
+
+module GlobalLoading = {
+  [@react.component]
+  let make = (~text) =>
+    <Shell active=None text> <Loading label="Loading Hacker News" /> </Shell>;
+};
+
+module AppError = {
+  let status = (_error: string) => Router.Status.InternalServerError;
+
+  [@react.component]
+  let make = (~text, ~error: Router.Error.t(string)) =>
+    <Shell active=None text>
+      <div className="hn-state" role="alert">
+        {React.string("Hacker News could not be loaded.")}
+      </div>
+    </Shell>;
+};
+
+module NotFound = {
+  [@react.component]
+  let make = (~text, ~error as _) =>
+    <Shell active=None text>
+      <div className="hn-state">
+        {React.string("This page does not exist.")}
+      </div>
+    </Shell>;
 };
 
 module Document = {
   [@react.component]
   let make = (~children) =>
-    <html lang="en" className="h-full">
+    <html suppressHydrationWarning=true lang="en" className="h-full">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -384,34 +474,6 @@ module Document = {
           }
         />
       </head>
-      <body> children </body>
+      <body suppressHydrationWarning=true> children </body>
     </html>;
-};
-
-let render = page =>
-  Dream.html(ReactDOM.renderToString(<Document> page </Document>));
-
-let feedHandler = (feed, request) => {
-  let text = Dream.query(request, "text");
-  let%lwt stories = HackerNewsApi.fetchFeed(~feed, ~query=text);
-  render(<Feed feed text stories />);
-};
-
-let topHandler = feedHandler(HackerNewsApi.Top);
-let newHandler = feedHandler(HackerNewsApi.New);
-let bestHandler = feedHandler(HackerNewsApi.Best);
-let askHandler = feedHandler(HackerNewsApi.Ask);
-let showHandler = feedHandler(HackerNewsApi.Show);
-let jobsHandler = feedHandler(HackerNewsApi.Jobs);
-
-let storyHandler = request => {
-  let id = Dream.param(request, "id") |> int_of_string_opt;
-  let%lwt storyResult =
-    switch (id) {
-    | Some(id) => HackerNewsApi.fetchStory(id)
-    | None => Lwt_result.fail("Hacker News story id must be a number")
-    };
-  render(
-    <Story id={id |> Option.value(~default=0)} text=None storyResult />,
-  );
 };

@@ -30,30 +30,59 @@ type storyPage = {
   comments: list(comment),
 };
 
+open Melange_json.Primitives;
+
+[@deriving of_json]
+[@json.allow_extra_fields]
+type feedStoryDto = {
+  [@json.key "objectID"]
+  objectId: string,
+  [@json.option]
+  title: option(string),
+  [@json.option]
+  url: option(string),
+  [@json.option]
+  author: option(string),
+  [@json.option]
+  points: option(int),
+  [@json.key "created_at_i"] [@json.option]
+  createdAt: option(int),
+  [@json.key "num_comments"] [@json.option]
+  comments: option(int),
+  [@json.key "story_text"] [@json.option]
+  text: option(string),
+};
+
+[@deriving of_json]
+[@json.allow_extra_fields]
+type feedDto = {hits: list(feedStoryDto)};
+
+[@deriving of_json]
+[@json.allow_extra_fields]
+type itemDto = {
+  id: int,
+  [@json.option]
+  title: option(string),
+  [@json.option]
+  url: option(string),
+  [@json.option]
+  author: option(string),
+  [@json.option]
+  points: option(int),
+  [@json.key "created_at_i"] [@json.option]
+  createdAt: option(int),
+  [@json.option]
+  text: option(string),
+  [@json.default []]
+  children: list(itemDto),
+};
+
 type cacheEntry = {
   body: string,
   expiresAt: float,
 };
 
 let cache: Hashtbl.t(string, cacheEntry) = Hashtbl.create(64);
-
-let member = (name, json) => Yojson.Safe.Util.member(name, json);
-
-let stringMember = (name, json) =>
-  switch (member(name, json)) {
-  | `String(value) => Some(value)
-  | _ => None
-  };
-
-let intMember = (name, json) =>
-  switch (member(name, json)) {
-  | `Int(value) => Some(value)
-  | `Intlit(value) => int_of_string_opt(value)
-  | _ => None
-  };
-
-let floatMember = (name, json) =>
-  intMember(name, json) |> Option.map(float_of_int);
 
 let plainText = html =>
   html |> Soup.parse |> Soup.texts |> String.concat(" ") |> String.trim;
@@ -101,23 +130,23 @@ let fetchText = (~ttl, uri) => {
   };
 };
 
-let parseStory = json =>
+let parseStory = (dto: feedStoryDto) =>
   switch (
-    Option.bind(stringMember("objectID", json), int_of_string_opt),
-    stringMember("title", json),
-    stringMember("author", json),
-    floatMember("created_at_i", json),
+    int_of_string_opt(dto.objectId),
+    dto.title,
+    dto.author,
+    dto.createdAt,
   ) {
   | (Some(id), Some(title), Some(author), Some(createdAt)) =>
     Some({
       id,
       title,
-      url: stringMember("url", json),
+      url: dto.url,
       author,
-      points: intMember("points", json) |> Option.value(~default=0),
-      createdAt,
-      comments: intMember("num_comments", json) |> Option.value(~default=0),
-      text: stringMember("story_text", json) |> Option.map(plainText),
+      points: dto.points |> Option.value(~default=0),
+      createdAt: float_of_int(createdAt),
+      comments: dto.comments |> Option.value(~default=0),
+      text: dto.text |> Option.map(plainText),
     })
   | _ => None
   };
@@ -154,69 +183,50 @@ let fetchFeed = (~feed, ~query) => {
   switch%lwt (fetchText(~ttl=60., uri)) {
   | Error(error) => Lwt_result.fail(error)
   | Ok(body) =>
-    switch (Yojson.Safe.from_string(body)) {
-    | json =>
-      switch (member("hits", json)) {
-      | `List(hits) => Lwt_result.return(List.filter_map(parseStory, hits))
-      | _ => Lwt_result.fail("Hacker News API returned an invalid feed")
-      }
-    | exception _ => Lwt_result.fail("Hacker News API returned invalid JSON")
+    switch (body |> Melange_json.of_string |> feedDto_of_json) {
+    | { hits } => Lwt_result.return(List.filter_map(parseStory, hits))
+    | exception error =>
+      Lwt_result.fail(
+        "Hacker News API returned invalid JSON: " ++ Printexc.to_string(error),
+      )
     }
   };
 };
 
-let parseStoryPage = json => {
+let parseStoryPage = (dto: itemDto) => {
   let remaining = ref(200);
-  let rec parseComment = json =>
+  let rec parseComment = (dto: itemDto) =>
     if (remaining^ <= 0) {
       None;
     } else {
       remaining := remaining^ - 1;
-      switch (
-        intMember("id", json),
-        stringMember("author", json),
-        stringMember("text", json),
-        floatMember("created_at_i", json),
-      ) {
-      | (Some(id), Some(author), Some(text), Some(createdAt)) =>
-        let children =
-          switch (member("children", json)) {
-          | `List(children) => List.filter_map(parseComment, children)
-          | _ => []
-          };
+      switch (dto.author, dto.text, dto.createdAt) {
+      | (Some(author), Some(text), Some(createdAt)) =>
+        let children = List.filter_map(parseComment, dto.children);
         Some({
-          id,
+          id: dto.id,
           author,
           text: plainText(text),
-          createdAt,
+          createdAt: float_of_int(createdAt),
           children,
         });
       | _ => None
       };
     };
 
-  switch (
-    intMember("id", json),
-    stringMember("title", json),
-    stringMember("author", json),
-    floatMember("created_at_i", json),
-  ) {
-  | (Some(id), Some(title), Some(author), Some(createdAt)) =>
-    let comments =
-      switch (member("children", json)) {
-      | `List(children) => List.filter_map(parseComment, children)
-      | _ => []
-      };
+  switch (dto.title, dto.author, dto.createdAt) {
+  | (Some(title), Some(author), Some(createdAt)) =>
+    let comments = List.filter_map(parseComment, dto.children);
     Some({
       story: {
-        id,
+        id: dto.id,
         title,
-        url: stringMember("url", json),
+        url: dto.url,
         author,
-        points: intMember("points", json) |> Option.value(~default=0),
-        createdAt,
+        points: dto.points |> Option.value(~default=0),
+        createdAt: float_of_int(createdAt),
         comments: List.length(comments),
-        text: stringMember("text", json) |> Option.map(plainText),
+        text: dto.text |> Option.map(plainText),
       },
       comments,
     });
@@ -229,10 +239,15 @@ let fetchStory = id => {
   switch%lwt (fetchText(~ttl=300., uri)) {
   | Error(error) => Lwt_result.fail(error)
   | Ok(body) =>
-    switch (Yojson.Safe.from_string(body) |> parseStoryPage) {
+    switch (
+      body |> Melange_json.of_string |> itemDto_of_json |> parseStoryPage
+    ) {
     | Some(story) => Lwt_result.return(story)
     | None => Lwt_result.fail("Hacker News story was not found")
-    | exception _ => Lwt_result.fail("Hacker News API returned invalid JSON")
+    | exception error =>
+      Lwt_result.fail(
+        "Hacker News API returned invalid JSON: " ++ Printexc.to_string(error),
+      )
     }
   };
 };

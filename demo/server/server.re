@@ -10,6 +10,14 @@ let getAndPost = (path, handler) =>
     [Dream.get(path, handler), Dream.post(path, serverFunctionHandler)],
   );
 
+let shouldSSR = request =>
+  switch (Dream.query(request, "ssr")) {
+  | Some("false") => false
+  | Some("true")
+  | Some(_)
+  | None => true
+  };
+
 let server =
   Dream.logger(
     Dream.router([
@@ -44,40 +52,28 @@ let server =
       getAndPost(Routes.renderToStream, Examples.Comments.handler),
       getAndPost(Routes.singlePageRSC, Examples.SinglePageRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Examples.ServerOnlyRSC.handler),
-      Dream.get(Routes.hackerNews, Examples.HackerNews.topHandler),
-      Dream.get(Routes.hackerNews ++ "/new", Examples.HackerNews.newHandler),
-      Dream.get(
-        Routes.hackerNews ++ "/best",
-        Examples.HackerNews.bestHandler,
-      ),
-      Dream.get(Routes.hackerNews ++ "/ask", Examples.HackerNews.askHandler),
-      Dream.get(
-        Routes.hackerNews ++ "/show",
-        Examples.HackerNews.showHandler,
-      ),
-      Dream.get(
-        Routes.hackerNews ++ "/jobs",
-        Examples.HackerNews.jobsHandler,
-      ),
-      Dream.get(
-        Routes.hackerNews ++ "/item/:id",
-        Examples.HackerNews.storyHandler,
-      ),
-      ...DreamRouter.routes(
-           ~router=RouterRegistry.server,
-           ~actionHandler=serverFunctionHandler,
-           ~ssr=
-             request =>
-               switch (Dream.query(request, "ssr")) {
-               | Some("false") => false
-               | Some("true")
-               | Some(_)
-               | None => true
-               },
-           ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
-           ~document=children => <Pages.Document> children </Pages.Document>,
-           (),
-         ),
+      ...List.concat([
+           DreamRouter.routes(
+             ~router=RouterRegistry.server,
+             ~actionHandler=serverFunctionHandler,
+             ~ssr=shouldSSR,
+             ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
+             ~document=children => <Pages.Document> children </Pages.Document>,
+             (),
+           ),
+           DreamRouter.routes(
+             ~router=Demo_hacker_news_router_native.RouterRegistry.server,
+             ~actionHandler=serverFunctionHandler,
+             ~ssr=_ => true,
+             ~bootstrapModules=[],
+             ~document=
+               children =>
+                 <Demo_hacker_news_router_native.Pages.Document>
+                   children
+                 </Demo_hacker_news_router_native.Pages.Document>,
+             (),
+           ),
+         ]),
     ]),
   );
 
