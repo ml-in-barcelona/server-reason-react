@@ -365,6 +365,14 @@ module Server : sig
     children:React.element ->
     React.element
 
+  val clientRootWithCache :
+    (React.element, 'error) t ->
+    pageCacheCapacity:int ->
+    initial:RouterRuntime.Navigation.committed ->
+    metadata:React.element ->
+    children:React.element ->
+    React.element
+
   val clientRootWith :
     (React.element, 'error) t ->
     make:

@@ -61,6 +61,9 @@ let currentUrl = () => {
   ++ Location.hash(location);
 };
 
+let pageCacheKey = (location: Navigation.location) =>
+  location.pathname ++ location.search;
+
 let locationFromUrl = (~key, url) => {
   let browserLocation = DOM.window->DOM.Window.location;
   let parsed =
@@ -136,6 +139,7 @@ module Provider = {
         ~protocolVersion=1,
         ~registryFingerprint,
         ~basePath,
+        ~pageCacheCapacity=0,
         ~metadata,
         ~children,
       ) => {
@@ -146,6 +150,24 @@ module Provider = {
       patchOperation: RouterOutlet.NoPatch,
       restore: None,
     };
+    let (pageCache, _) =
+      React.useState(() => {
+        let cache = RouterPageCache.make(~capacity=pageCacheCapacity, ());
+        RouterPageCache.set(
+          cache,
+          pageCacheKey(initial.location),
+          {
+            RouterPageCache.canonicalUrl:
+              initial.location.pathname ++ initial.location.search,
+            revision: initial.revision,
+            matches: initial.matches,
+            layouts: initial.layouts,
+            metadata,
+            element: children,
+          },
+        );
+        cache;
+      });
     let (model, setModel) = React.useState(() => initialModel);
     let modelRef = React.useRef(initialModel);
     let activeRequest = React.useRef(None);
@@ -385,182 +407,214 @@ module Provider = {
         | Navigation.Push
         | Navigation.Replace => finishFailure(~requestId, ~message)
         };
-      let pending =
-        RouterClient.fetch(
-          ~protocolVersion,
-          ~registryFingerprint,
-          ~requestId,
-          ~baseRevision=committed.revision,
-          ~from=revalidate ? None : Some(from),
-          ~target,
-        );
-      activeRequest.current =
-        Some({
-          requestId,
-          abort: pending.abort,
-        });
-      pending.response
-      |> Js.Promise.then_(decoded => {
-           clearActiveRequest(requestId);
-           switch (decoded) {
-           | Error(error) =>
-             failNavigation(clientErrorMessage(error)) |> Js.Promise.resolve
-           | Ok(decoded: RouterClient.decoded) =>
-             let current = modelRef.current;
-             let currentCommitted =
-               Navigation.committed(current.navigationState);
-             let activeRequestId =
-               switch (Navigation.status(current.navigationState)) {
-               | Navigation.Loading(active) => active.requestId
-               | Navigation.Idle
-               | Navigation.Failed(_) => (-1)
-               };
-             switch (
-               Response.validate(
-                 ~expectedProtocolVersion=protocolVersion,
-                 ~expectedRegistryFingerprint=registryFingerprint,
-                 ~activeRequestId,
-                 ~committedRevision=currentCommitted.revision,
-                 ~canonicalUrlAllowed=canonicalUrlAllowed(~basePath),
-                 decoded.facts,
-                 decoded.response,
-               )
-             ) {
-             | Error(Response.SupersededResponse) =>
-               Js.Promise.resolve(Navigation.Result.Canceled)
-             | Error(Response.StaleResponse)
-             | Error(Response.ProtocolVersionMismatch)
-             | Error(Response.RegistryFingerprintMismatch) =>
-               hardNavigate(~replace=action != Navigation.Push, target)
-               |> Js.Promise.resolve
+      let commitResponse = (~metadata, ~validatedRequestId, response) => {
+        let current = modelRef.current;
+        let currentCommitted = Navigation.committed(current.navigationState);
+        let currentHistoryState = RouterHistory.state();
+        let historyKey =
+          switch (currentHistoryState) {
+          | Some(state) => Some(state.key)
+          | None => None
+          };
+        let nextContentIdentity =
+          switch (action, currentHistoryState) {
+          | (Navigation.Pop, Some(state)) => state.revision
+          | (Navigation.Pop, None)
+          | (Navigation.Push, _)
+          | (Navigation.Replace, _) =>
+            contentIdentityPrefix ++ "-" ++ string_of_int(requestId)
+          };
+        switch (
+          RouterTransaction.prepare(
+            ~action,
+            ~requestId,
+            ~validatedRequestId,
+            ~currentState=current.navigationState,
+            ~currentCommitted,
+            ~targetHash=targetLocation.hash,
+            ~historyKey,
+            ~locationFromUrl,
+            response,
+          )
+        ) {
+        | Error(RouterTransaction.InvalidGraft) =>
+          hardNavigate(~replace=action != Navigation.Push, target)
+          |> Js.Promise.resolve
+        | Error(RouterTransaction.Canceled) =>
+          Js.Promise.resolve(Navigation.Result.Canceled)
+        | Ok(prepared) =>
+          let historyState: RouterHistory.state = {
+            key: prepared.key,
+            revision: nextContentIdentity,
+          };
+          mutateHistory(~action, ~state=historyState, ~url=prepared.url);
+          contentIdentity.current = nextContentIdentity;
+          let (element, patchOperation) =
+            switch (prepared.render) {
+            | RouterTransaction.ReplacePayload(element) =>
+              RouterPageCache.set(
+                pageCache,
+                pageCacheKey(prepared.committed.location),
+                {
+                  RouterPageCache.canonicalUrl: prepared.url,
+                  revision: prepared.committed.revision,
+                  matches: prepared.committed.matches,
+                  layouts: prepared.committed.layouts,
+                  metadata,
+                  element,
+                },
+              );
+              (element, RouterOutlet.RefreshFull({ serial: requestId }));
+            | RouterTransaction.GraftPayload({
+                serial,
+                graftAt,
+                targetLayouts,
+                payload,
+              }) => (
+                current.element,
+                RouterOutlet.ApplyPatch({
+                  serial,
+                  graftAt,
+                  targetLayouts,
+                  payload,
+                }),
+              )
+            };
+          updateModel({
+            navigationState: prepared.navigationState,
+            metadata,
+            element,
+            patchOperation,
+            restore: Some(prepared.restore),
+          });
+          Js.Promise.resolve(
+            Navigation.Result.Committed(prepared.committed),
+          );
+        };
+      };
+      let cached =
+        revalidate
+          ? None
+          : RouterPageCache.find(pageCache, pageCacheKey(targetLocation));
+      switch (cached) {
+      | Some(page) =>
+        commitResponse(
+          ~metadata=page.metadata,
+          ~validatedRequestId=requestId,
+          RouterTransaction.{
+            baseRevision: committed.revision,
+            canonicalUrl: page.canonicalUrl,
+            targetRevision: page.revision,
+            matches: page.matches,
+            layouts: page.layouts,
+            content: Replace(page.element),
+          },
+        )
+      | None =>
+        let pending =
+          RouterClient.fetch(
+            ~protocolVersion,
+            ~registryFingerprint,
+            ~requestId,
+            ~baseRevision=committed.revision,
+            ~from=revalidate || pageCacheCapacity > 0 ? None : Some(from),
+            ~target,
+          );
+        activeRequest.current =
+          Some({
+            requestId,
+            abort: pending.abort,
+          });
+        pending.response
+        |> Js.Promise.then_(decoded => {
+             clearActiveRequest(requestId);
+             switch (decoded) {
              | Error(error) =>
-               failNavigation(validationMessage(error)) |> Js.Promise.resolve
-             | Ok(validated) =>
-               let commitResponse = (~metadata, response) => {
-                 let currentHistoryState = RouterHistory.state();
-                 let historyKey =
-                   switch (currentHistoryState) {
-                   | Some(state) => Some(state.key)
-                   | None => None
-                   };
-                 let nextContentIdentity =
-                   switch (action, currentHistoryState) {
-                   | (Navigation.Pop, Some(state)) => state.revision
-                   | (Navigation.Pop, None)
-                   | (Navigation.Push, _)
-                   | (Navigation.Replace, _) =>
-                     contentIdentityPrefix ++ "-" ++ string_of_int(requestId)
-                   };
-                 switch (
-                   RouterTransaction.prepare(
-                     ~action,
-                     ~requestId,
-                     ~validatedRequestId=validated.requestId,
-                     ~currentState=current.navigationState,
-                     ~currentCommitted,
-                     ~targetHash=targetLocation.hash,
-                     ~historyKey,
-                     ~locationFromUrl,
-                     response,
-                   )
-                 ) {
-                 | Error(RouterTransaction.InvalidGraft) =>
-                   hardNavigate(~replace=action != Navigation.Push, target)
-                   |> Js.Promise.resolve
-                 | Error(RouterTransaction.Canceled) =>
-                   Js.Promise.resolve(Navigation.Result.Canceled)
-                 | Ok(prepared) =>
-                   let historyState: RouterHistory.state = {
-                     key: prepared.key,
-                     revision: nextContentIdentity,
-                   };
-                   mutateHistory(
-                     ~action,
-                     ~state=historyState,
-                     ~url=prepared.url,
-                   );
-                   contentIdentity.current = nextContentIdentity;
-                   let (element, patchOperation) =
-                     switch (prepared.render) {
-                     | RouterTransaction.ReplacePayload(element) => (
-                         element,
-                         RouterOutlet.RefreshFull({ serial: requestId }),
-                       )
-                     | RouterTransaction.GraftPayload({
-                         serial,
-                         graftAt,
-                         targetLayouts,
-                         payload,
-                       }) => (
-                         current.element,
-                         RouterOutlet.ApplyPatch({
-                           serial,
-                           graftAt,
-                           targetLayouts,
-                           payload,
-                         }),
-                       )
-                     };
-                   updateModel({
-                     navigationState: prepared.navigationState,
-                     metadata,
-                     element,
-                     patchOperation,
-                     restore: Some(prepared.restore),
-                   });
-                   Js.Promise.resolve(
-                     Navigation.Result.Committed(prepared.committed),
-                   );
+               failNavigation(clientErrorMessage(error))
+               |> Js.Promise.resolve
+             | Ok(decoded: RouterClient.decoded) =>
+               let current = modelRef.current;
+               let currentCommitted =
+                 Navigation.committed(current.navigationState);
+               let activeRequestId =
+                 switch (Navigation.status(current.navigationState)) {
+                 | Navigation.Loading(active) => active.requestId
+                 | Navigation.Idle
+                 | Navigation.Failed(_) => (-1)
                  };
-               };
-               switch (validated.response) {
-               | Response.ReloadRequired =>
+               switch (
+                 Response.validate(
+                   ~expectedProtocolVersion=protocolVersion,
+                   ~expectedRegistryFingerprint=registryFingerprint,
+                   ~activeRequestId,
+                   ~committedRevision=currentCommitted.revision,
+                   ~canonicalUrlAllowed=canonicalUrlAllowed(~basePath),
+                   decoded.facts,
+                   decoded.response,
+                 )
+               ) {
+               | Error(Response.SupersededResponse) =>
+                 Js.Promise.resolve(Navigation.Result.Canceled)
+               | Error(Response.StaleResponse)
+               | Error(Response.ProtocolVersionMismatch)
+               | Error(Response.RegistryFingerprintMismatch) =>
                  hardNavigate(~replace=action != Navigation.Push, target)
                  |> Js.Promise.resolve
-               | Response.Redirect(redirect) =>
-                 hardNavigate(
-                   ~replace=action != Navigation.Push,
-                   redirect.location,
-                 )
+               | Error(error) =>
+                 failNavigation(validationMessage(error))
                  |> Js.Promise.resolve
-               | Response.Failed(failure) =>
-                 failNavigation(failure.message) |> Js.Promise.resolve
-               | Response.Patch(response) =>
-                 commitResponse(
-                   ~metadata=response.metadata,
-                   RouterTransaction.{
-                     baseRevision: response.baseRevision,
-                     canonicalUrl: response.canonicalUrl,
-                     targetRevision: response.targetRevision,
-                     matches: response.matches,
-                     layouts: response.layouts,
-                     content:
-                       Graft({
-                         graftAt: response.replaceFrom,
-                         payload: response.payload,
-                       }),
-                   },
-                 )
-               | Response.Full(response) =>
-                 commitResponse(
-                   ~metadata=response.metadata,
-                   RouterTransaction.{
-                     baseRevision: validated.baseRevision,
-                     canonicalUrl: response.canonicalUrl,
-                     targetRevision: response.targetRevision,
-                     matches: response.matches,
-                     layouts: response.layouts,
-                     content: Replace(response.payload),
-                   },
-                 )
+               | Ok(validated) =>
+                 switch (validated.response) {
+                 | Response.ReloadRequired =>
+                   hardNavigate(~replace=action != Navigation.Push, target)
+                   |> Js.Promise.resolve
+                 | Response.Redirect(redirect) =>
+                   hardNavigate(
+                     ~replace=action != Navigation.Push,
+                     redirect.location,
+                   )
+                   |> Js.Promise.resolve
+                 | Response.Failed(failure) =>
+                   failNavigation(failure.message) |> Js.Promise.resolve
+                 | Response.Patch(response) =>
+                   commitResponse(
+                     ~metadata=response.metadata,
+                     ~validatedRequestId=validated.requestId,
+                     RouterTransaction.{
+                       baseRevision: response.baseRevision,
+                       canonicalUrl: response.canonicalUrl,
+                       targetRevision: response.targetRevision,
+                       matches: response.matches,
+                       layouts: response.layouts,
+                       content:
+                         Graft({
+                           graftAt: response.replaceFrom,
+                           payload: response.payload,
+                         }),
+                     },
+                   )
+                 | Response.Full(response) =>
+                   commitResponse(
+                     ~metadata=response.metadata,
+                     ~validatedRequestId=validated.requestId,
+                     RouterTransaction.{
+                       baseRevision: validated.baseRevision,
+                       canonicalUrl: response.canonicalUrl,
+                       targetRevision: response.targetRevision,
+                       matches: response.matches,
+                       layouts: response.layouts,
+                       content: Replace(response.payload),
+                     },
+                   )
+                 }
                };
              };
-           };
-         })
-      |> Js.Promise.catch(_error => {
-           clearActiveRequest(requestId);
-           failNavigation("navigation request failed") |> Js.Promise.resolve;
-         });
+           })
+        |> Js.Promise.catch(_error => {
+             clearActiveRequest(requestId);
+             failNavigation("navigation request failed") |> Js.Promise.resolve;
+           });
+      };
     };
     let navigate = (~history=Navigation.Push, ~revalidate=false, destination) =>
       navigateTarget(

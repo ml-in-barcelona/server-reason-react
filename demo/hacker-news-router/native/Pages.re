@@ -226,35 +226,46 @@ let rec renderComment = (comment: HackerNewsApi.comment) =>
      }}
   </li>;
 
-let rec countComment = (comment: HackerNewsApi.comment) =>
-  1
-  + List.fold_left(
-      (total, child) => total + countComment(child),
-      0,
-      comment.children,
-    );
-
-let countComments = comments =>
-  List.fold_left(
-    (total, comment) => total + countComment(comment),
-    0,
-    comments,
-  );
-
 module Comment = {
   [@react.component]
   let make = (~comment: HackerNewsApi.comment) => renderComment(comment);
 };
 
+module CommentsData = {
+  [@react.component]
+  let make = (~commentsResult: result(list(HackerNewsApi.comment), string)) =>
+    switch (commentsResult) {
+    | Error(error) =>
+      <div className="hn-state" role="alert">
+        {React.string("Could not load comments: " ++ error)}
+      </div>
+    | Ok([]) =>
+      <div className="hn-state"> {React.string("No comments yet.")} </div>
+    | Ok(comments) =>
+      <ul className="hn-comments">
+        {comments
+         |> List.map((comment: HackerNewsApi.comment) =>
+              <Comment key={Int.to_string(comment.id)} comment />
+            )
+         |> Array.of_list
+         |> React.array}
+      </ul>
+    };
+};
+
 module StoryData = {
   [@react.component]
-  let make = (~storyResult: result(HackerNewsApi.storyPage, string)) => {
+  let make =
+      (
+        ~storyResult: result(HackerNewsApi.story, string),
+        ~comments: Js.Promise.t(React.element),
+      ) => {
     switch (storyResult) {
     | Error(error) =>
       <div className="hn-state" role="alert">
         {React.string("Could not load this story: " ++ error)}
       </div>
-    | Ok({ story, comments }) =>
+    | Ok(story) =>
       <article className="hn-story-page">
         <Router.Top className="hn-back-link">
           {React.string("← Back to stories")}
@@ -284,7 +295,8 @@ module StoryData = {
             </span>
             <span>
               {React.string(
-                 Int.to_string(countComments(comments)) ++ " loaded comments",
+                 Int.to_string(story.comments)
+                 ++ (story.comments == 1 ? " comment" : " comments"),
                )}
             </span>
           </div>
@@ -294,24 +306,7 @@ module StoryData = {
            | _ => React.null
            }}
         </header>
-        <h2 className="hn-comments-heading">
-          {React.string("Discussion")}
-        </h2>
-        {switch (comments) {
-         | [] =>
-           <div className="hn-state">
-             {React.string("No comments yet.")}
-           </div>
-         | comments =>
-           <ul className="hn-comments">
-             {comments
-              |> List.map((comment: HackerNewsApi.comment) =>
-                   <Comment key={Int.to_string(comment.id)} comment />
-                 )
-              |> Array.of_list
-              |> React.array}
-           </ul>
-         }}
+        <HackerNewsComments content=comments />
       </article>
     };
   };
@@ -319,7 +314,12 @@ module StoryData = {
 
 module Story = {
   [@react.component]
-  let make = (~id as _, ~text, ~storyResult) => <StoryData storyResult />;
+  let make = (~id, ~text as _, ~storyResult) => {
+    let comments =
+      HackerNewsApi.fetchComments(id)
+      |> Lwt.map(commentsResult => <CommentsData commentsResult />);
+    <StoryData storyResult comments />;
+  };
 };
 
 module StoryLoader = {
@@ -337,7 +337,7 @@ module FeedLoading = {
 module StoryLoading = {
   [@react.component]
   let make = (~id as _, ~text as _, ~storyResult as _) =>
-    <Loading label="Loading discussion" />;
+    <Loading label="Loading story" />;
 };
 
 module GlobalLoading = {

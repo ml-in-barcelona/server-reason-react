@@ -234,7 +234,7 @@ let parseStoryPage = (dto: itemDto) => {
   };
 };
 
-let fetchStory = id => {
+let fetchStoryPage = id => {
   let uri = apiUri("items/" ++ Int.to_string(id), []);
   switch%lwt (fetchText(~ttl=300., uri)) {
   | Error(error) => Lwt_result.fail(error)
@@ -251,3 +251,31 @@ let fetchStory = id => {
     }
   };
 };
+
+let fetchStory = id => {
+  let uri =
+    apiUri(
+      "search",
+      [("tags", "story_" ++ Int.to_string(id)), ("hitsPerPage", "1")],
+    );
+  switch%lwt (fetchText(~ttl=300., uri)) {
+  | Error(error) => Lwt_result.fail(error)
+  | Ok(body) =>
+    switch (body |> Melange_json.of_string |> feedDto_of_json) {
+    | { hits: [dto, ..._] } =>
+      switch (parseStory(dto)) {
+      | Some(story) => Lwt_result.return(story)
+      | None => Lwt_result.fail("Hacker News story was not found")
+      }
+    | { hits: [] } => Lwt_result.fail("Hacker News story was not found")
+    | exception error =>
+      Lwt_result.fail(
+        "Hacker News API returned invalid JSON: " ++ Printexc.to_string(error),
+      )
+    }
+  };
+};
+
+let fetchComments = id =>
+  fetchStoryPage(id)
+  |> Lwt.map(Result.map((page: storyPage) => page.comments));

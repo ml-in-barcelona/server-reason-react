@@ -3,6 +3,7 @@
  (modules
   RouterHistory
   RouterOutlet
+  RouterPageCache
   RouterPattern
   RouterRuntime
   RouterTypes
@@ -26,6 +27,9 @@
 
 (copy_files
  (files ../../react/shared/RouterOutlet.re))
+
+(copy_files
+ (files ../../react/shared/RouterPageCache.re))
 
 (copy_files
  (files ../../react/js/RouterHistory.re))

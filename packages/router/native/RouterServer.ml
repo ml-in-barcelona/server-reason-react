@@ -978,10 +978,13 @@ module Server = struct
     make ~initial ~protocolVersion:server.protocol_version ~registryFingerprint:(fingerprint server)
       ~basePath:server.base_path ~metadata ~children
 
-  let clientRoot server =
+  let clientRootWithCache server ~pageCacheCapacity =
     clientRootWith server ~make:(fun ~initial ~protocolVersion ~registryFingerprint ~basePath ~metadata ~children ->
         RouterClientRoot.make
-          (RouterClientRoot.makeProps ~initial ~protocolVersion ~registryFingerprint ~basePath ~metadata ~children ()))
+          (RouterClientRoot.makeProps ~initial ~protocolVersion ~registryFingerprint ~basePath ~pageCacheCapacity
+             ~metadata ~children ()))
+
+  let clientRoot server = clientRootWithCache server ~pageCacheCapacity:0
 
   let run server ~diagnosticId ~revision request =
     ServerEngine.run ~registry:server.registry ~basePath:server.base_path ~trailingSlash:server.trailing_slash

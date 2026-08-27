@@ -66,6 +66,7 @@ let server =
              ~actionHandler=serverFunctionHandler,
              ~ssr=shouldSSR,
              ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
+             ~pageCacheCapacity=32,
              ~document=
                children =>
                  <Demo_hacker_news_router_native.Pages.Document>
