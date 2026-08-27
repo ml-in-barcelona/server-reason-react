@@ -23,7 +23,7 @@ COPY dune ./
 COPY dune-project ./
 
 RUN make pin
-RUN opam update -y && opam install . --deps-only -y && opam install dream -y
+RUN opam update -y && opam install . --deps-only -y && opam install dream cohttp-lwt-unix lambdasoup -y
 
 WORKDIR /app/demo
 COPY demo/package.json ./package.json
