@@ -1,5 +1,5 @@
 (rule
- (targets Router.re Router.rei RouterRegistry.re)
+ (targets Router.re RouterRegistry.re)
  (deps RouterDefinition.re)
  (action
   (progn
@@ -14,17 +14,6 @@
       --source
       %{dep:RouterDefinition.re})
      (run %{bin:refmt} --parse ml --print re)))
-   (with-stdout-to
-    Router.rei
-    (pipe-outputs
-     (run %{bin:refmt} --parse re --print ml %{dep:RouterDefinition.re})
-     (run
-      %{bin:server-reason-react.router-gen}
-      --mode
-      interface
-      --source
-      %{dep:RouterDefinition.re})
-     (run %{bin:refmt} --parse ml --print re --interface true)))
    (with-stdout-to
     RouterRegistry.re
     (pipe-outputs

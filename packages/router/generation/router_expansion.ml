@@ -248,16 +248,20 @@ let use_route_expression ~loc routes =
   in
   B.pexp_fun ~loc Nolabel None (B.punit ~loc) body
 
+let typed_function ~loc label name typ body =
+  let typ = match label with Optional _ -> option_type ~loc typ | Labelled _ | Nolabel -> typ in
+  B.pexp_fun ~loc label None (B.ppat_constraint ~loc (B.pvar ~loc name) typ) body
+
 let route_input_expression ~loc parameters search body =
   let body =
     List.fold_right
       (fun (search : Router_declaration.search) body ->
-        B.pexp_fun ~loc (search_argument_label search) None (B.pvar ~loc search.name) body)
+        typed_function ~loc (search_argument_label search) search.name (search_destination_type ~loc search) body)
       search body
   in
   List.fold_right
     (fun (parameter : Router_declaration.parameter) body ->
-      B.pexp_fun ~loc (Labelled parameter.name) None (B.pvar ~loc parameter.name) body)
+      typed_function ~loc (Labelled parameter.name) parameter.name parameter.typ body)
     parameters body
 
 let route_function_expression ~loc parameters search body =
@@ -428,10 +432,16 @@ let route_module ~base_path (route : Router_declaration.route) =
         (Labelled "search", search_values);
       ]
   in
-  let destination_expression = route_function_expression ~loc route.parameters route.search destination_body in
+  let destination_expression =
+    route_function_expression ~loc route.parameters route.search
+      (B.pexp_constraint ~loc destination_body (result_type ~loc "destination"))
+  in
   let destination_call = apply_route_inputs ~loc (B.evar ~loc "destination") route.parameters route.search in
   let href_body = B.pexp_apply ~loc (B.evar ~loc "RouterRuntime.href") [ (Nolabel, destination_call) ] in
-  let href_expression = route_function_expression ~loc route.parameters route.search href_body in
+  let href_expression =
+    route_function_expression ~loc route.parameters route.search
+      (B.pexp_constraint ~loc href_body (result_type ~loc "string"))
+  in
   let link_body =
     B.pexp_apply ~loc (B.evar ~loc "RouterReact.link")
       [
@@ -446,25 +456,50 @@ let route_module ~base_path (route : Router_declaration.route) =
         (Nolabel, unit_expression ~loc);
       ]
   in
-  let link_with_unit = B.pexp_fun ~loc Nolabel None (B.punit ~loc) link_body in
-  let link_with_children = B.pexp_fun ~loc (Labelled "children") None (B.pvar ~loc "children") link_with_unit in
+  let link_with_unit =
+    B.pexp_fun ~loc Nolabel None (B.punit ~loc) (B.pexp_constraint ~loc link_body (result_type ~loc "React.element"))
+  in
+  let link_with_children =
+    typed_function ~loc (Labelled "children") "children" (result_type ~loc "React.element") link_with_unit
+  in
   let link_with_revalidate =
-    B.pexp_fun ~loc (Optional "revalidate") None (B.pvar ~loc "revalidate") link_with_children
+    typed_function ~loc (Optional "revalidate") "revalidate" (bool_type ~loc) link_with_children
   in
-  let link_with_history = B.pexp_fun ~loc (Optional "history") None (B.pvar ~loc "history") link_with_revalidate in
+  let link_with_history =
+    typed_function ~loc (Optional "history") "history"
+      (result_type ~loc "Navigation.historyAction")
+      link_with_revalidate
+  in
   let link_with_aria_current =
-    B.pexp_fun ~loc (Optional "ariaCurrent") None (B.pvar ~loc "ariaCurrent") link_with_history
+    typed_function ~loc (Optional "ariaCurrent") "ariaCurrent" (result_type ~loc "string") link_with_history
   in
-  let link_with_download = B.pexp_fun ~loc (Optional "download") None (B.pvar ~loc "download") link_with_aria_current in
-  let link_with_target = B.pexp_fun ~loc (Optional "target") None (B.pvar ~loc "target") link_with_download in
-  let link_with_class_name = B.pexp_fun ~loc (Optional "className") None (B.pvar ~loc "className") link_with_target in
+  let link_with_download =
+    typed_function ~loc (Optional "download") "download" (result_type ~loc "string") link_with_aria_current
+  in
+  let link_with_target =
+    typed_function ~loc (Optional "target") "target" (result_type ~loc "string") link_with_download
+  in
+  let link_with_class_name =
+    typed_function ~loc (Optional "className") "className" (result_type ~loc "string") link_with_target
+  in
   let link_expression = route_input_expression ~loc route.parameters route.search link_with_class_name in
   let link_binding = B.value_binding ~loc ~pat:(B.pvar ~loc "make") ~expr:link_expression in
   let link_binding = { link_binding with pvb_attributes = [ react_component_attribute ~loc ] } in
+  let private_items =
+    B.pstr_open ~loc
+      {
+        popen_expr =
+          B.pmod_structure ~loc
+            [ B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "pattern") ~expr:pattern ] ];
+        popen_override = Fresh;
+        popen_loc = loc;
+        popen_attributes = [];
+      }
+  in
   let module_expression =
     B.pmod_structure ~loc
       [
-        B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "pattern") ~expr:pattern ];
+        private_items;
         B.pstr_value ~loc Nonrecursive
           [ B.value_binding ~loc ~pat:(B.pvar ~loc "destination") ~expr:destination_expression ];
         B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "href") ~expr:href_expression ];
@@ -571,7 +606,10 @@ let search_contract_structure ~loc search =
           ]
           (B.pexp_tuple ~loc [ record; update_search ])
       in
-      B.pexp_fun ~loc Nolabel None (B.punit ~loc) body
+      B.pexp_constraint ~loc
+        (B.pexp_fun ~loc Nolabel None (B.punit ~loc) body)
+        (B.ptyp_arrow ~loc Nolabel (unit_type ~loc)
+           (B.ptyp_tuple ~loc [ result_type ~loc "search"; update_search_function_type ~loc search ]))
     in
     [
       B.pstr_type ~loc Recursive [ search_type_declaration ~loc search ];
@@ -586,14 +624,30 @@ let handles (declaration : Router_declaration.t) =
   B.pstr_type ~loc Recursive
     [ destination_declaration ~loc ~private_:Public ~manifest:(Some (result_type ~loc "RouterRuntime.destination")) ]
   :: B.pstr_value ~loc Nonrecursive
-       [ B.value_binding ~loc ~pat:(B.pvar ~loc "unsafeDestination") ~expr:(unsafe_destination_expression ~loc) ]
+       [
+         B.value_binding ~loc ~pat:(B.pvar ~loc "unsafeDestination")
+           ~expr:(B.pexp_constraint ~loc (unsafe_destination_expression ~loc) (unsafe_destination_type ~loc));
+       ]
   :: List.map (structure_alias ~loc) public_modules
   @ [ B.pstr_type ~loc Recursive [ route_type_declaration ~loc routes ] ]
   @ [
       B.pstr_value ~loc Nonrecursive
-        [ B.value_binding ~loc ~pat:(B.pvar ~loc "useNavigation") ~expr:(B.evar ~loc "RouterReact.useNavigation") ];
+        [
+          B.value_binding ~loc ~pat:(B.pvar ~loc "useNavigation")
+            ~expr:
+              (B.pexp_constraint ~loc
+                 (B.evar ~loc "RouterReact.useNavigation")
+                 (B.ptyp_arrow ~loc Nolabel (unit_type ~loc)
+                    (B.ptyp_tuple ~loc [ navigate_type ~loc; result_type ~loc "Navigation.status" ])));
+        ];
       B.pstr_value ~loc Nonrecursive
-        [ B.value_binding ~loc ~pat:(B.pvar ~loc "useUpdateHash") ~expr:(B.evar ~loc "RouterReact.useUpdateHash") ];
+        [
+          B.value_binding ~loc ~pat:(B.pvar ~loc "useUpdateHash")
+            ~expr:
+              (B.pexp_constraint ~loc
+                 (B.evar ~loc "RouterReact.useUpdateHash")
+                 (B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (update_hash_type ~loc)));
+        ];
       B.pstr_value ~loc Nonrecursive
         [ B.value_binding ~loc ~pat:(B.pvar ~loc "useRoute") ~expr:(use_route_expression ~loc routes) ];
     ]
