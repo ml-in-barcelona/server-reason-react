@@ -245,6 +245,10 @@
   pointer-events: none;
 }
 
+.hn-search-icon::before {
+  content: "\2315";
+}
+
 .hn-theme-toggle {
   width: 38px;
   height: 38px;
@@ -273,6 +277,14 @@
 
 .hn-theme-dark {
   display: none;
+}
+
+.hn-theme-light::before {
+  content: "\263e";
+}
+
+.hn-theme-dark::before {
+  content: "\2600";
 }
 
 :root[data-hn-theme="dark"] .hn-theme-light {

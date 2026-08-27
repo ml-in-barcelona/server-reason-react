@@ -64,8 +64,8 @@ let server =
            DreamRouter.routes(
              ~router=Demo_hacker_news_router_native.RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
-             ~ssr=_ => true,
-             ~bootstrapModules=[],
+             ~ssr=shouldSSR,
+             ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
              ~document=
                children =>
                  <Demo_hacker_news_router_native.Pages.Document>

@@ -18,10 +18,10 @@ The Hacker News demo is available at `/demo/hacker-news`. It
 uses the Hacker News Algolia API for feeds, search, stories, and comments.
 Successful API responses are cached in memory for one minute for feeds and
 five minutes for story pages. Stale cached data is used if a refresh fails.
-It has a separate generated router with typed destinations. Server components
-decode API data with `melange-json` and read cached promises with `React.use`
-inside Suspense boundaries. The demo is server-only, so standard links, a GET
-search form, and the theme script provide its browser interactions.
+It has a separate generated router with typed destinations. Async server
+components decode API data with `melange-json` inside Suspense boundaries.
+Generated links use RSC navigations, while a GET search form and the theme
+script provide the remaining browser interactions.
 
 # fs explanation
 

@@ -33,131 +33,11 @@ let domain = url =>
          ? String.sub(host, 4, String.length(host) - 4) : host
      );
 
-let cacheFeed = feed =>
-  React.cache(text =>
-    HackerNewsApi.fetchFeed(~feed, ~query=text == "" ? None : Some(text))
-  );
-
-let topFeed = cacheFeed(HackerNewsApi.Top);
-let newFeed = cacheFeed(HackerNewsApi.New);
-let bestFeed = cacheFeed(HackerNewsApi.Best);
-let askFeed = cacheFeed(HackerNewsApi.Ask);
-let showFeed = cacheFeed(HackerNewsApi.Show);
-let jobsFeed = cacheFeed(HackerNewsApi.Jobs);
-
-let fetchFeed = (feed, text) => {
-  let fetch =
-    switch (feed) {
-    | HackerNewsApi.Top => topFeed
-    | New => newFeed
-    | Best => bestFeed
-    | Ask => askFeed
-    | Show => showFeed
-    | Jobs => jobsFeed
-    };
-  fetch(text |> Option.value(~default=""));
-};
-
-let fetchStory = React.cache(HackerNewsApi.fetchStory);
-
-module Header = {
+module Layout = {
   [@react.component]
-  let make = (~active: option(HackerNewsApi.feed), ~text) => {
-    let searchAction =
-      switch (active) {
-      | Some(HackerNewsApi.New) => Router.New.href()
-      | Some(Best) => Router.Best.href()
-      | Some(Ask) => Router.Ask.href()
-      | Some(Show) => Router.Show.href()
-      | Some(Jobs) => Router.Jobs.href()
-      | Some(Top)
-      | None => Router.Top.href()
-      };
-    <header className="hn-header">
-      <div className="hn-header-inner">
-        <Router.Top className="hn-brand">
-          <span className="hn-brand-mark" ariaHidden=true>
-            {React.string("Y")}
-          </span>
-          <span className="hn-brand-label">
-            {React.string("Hacker News")}
-          </span>
-        </Router.Top>
-        <nav className="hn-nav" ariaLabel="Hacker News feeds">
-          <Router.Top
-            className="hn-nav-link"
-            ariaCurrent={active == Some(Top) ? "page" : "false"}>
-            {React.string("Top")}
-          </Router.Top>
-          <Router.New
-            className="hn-nav-link"
-            ariaCurrent={active == Some(New) ? "page" : "false"}>
-            {React.string("New")}
-          </Router.New>
-          <Router.Best
-            className="hn-nav-link"
-            ariaCurrent={active == Some(Best) ? "page" : "false"}>
-            {React.string("Best")}
-          </Router.Best>
-          <Router.Ask
-            className="hn-nav-link"
-            ariaCurrent={active == Some(Ask) ? "page" : "false"}>
-            {React.string("Ask")}
-          </Router.Ask>
-          <Router.Show
-            className="hn-nav-link"
-            ariaCurrent={active == Some(Show) ? "page" : "false"}>
-            {React.string("Show")}
-          </Router.Show>
-          <Router.Jobs
-            className="hn-nav-link"
-            ariaCurrent={active == Some(Jobs) ? "page" : "false"}>
-            {React.string("Jobs")}
-          </Router.Jobs>
-        </nav>
-        <div className="hn-tools">
-          <form
-            className="hn-search"
-            role="search"
-            method_="get"
-            action={`String(searchAction)}>
-            <label className="sr-only" htmlFor="hn-search-input">
-              {React.string("Search Hacker News")}
-            </label>
-            <span className="hn-search-icon" ariaHidden=true>
-              {React.string("⌕")}
-            </span>
-            <input
-              id="hn-search-input"
-              name="text"
-              type_="search"
-              placeholder="Search stories"
-              defaultValue={text |> Option.value(~default="")}
-            />
-          </form>
-          <button
-            id="hn-theme-toggle"
-            type_="button"
-            className="hn-theme-toggle"
-            ariaLabel="Toggle color theme">
-            <span className="hn-theme-light" ariaHidden=true>
-              {React.string("☾")}
-            </span>
-            <span className="hn-theme-dark" ariaHidden=true>
-              {React.string("☀")}
-            </span>
-          </button>
-        </div>
-      </div>
-    </header>;
-  };
-};
-
-module Shell = {
-  [@react.component]
-  let make = (~active, ~text, ~children) =>
+  let make = (~text as _, ~children) =>
     <div className="hn-app">
-      <Header active text />
+      <HackerNewsHeader />
       <main id="router-focus-root" tabIndex=(-1) className="hn-main">
         children
       </main>
@@ -223,8 +103,7 @@ module Loading = {
 
 module FeedData = {
   [@react.component]
-  let make = (~feed, ~text) => {
-    let stories = React.Experimental.usePromise(fetchFeed(feed, text));
+  let make = (~stories: result(list(HackerNewsApi.story), string)) => {
     switch (stories) {
     | Error(error) =>
       <div className="hn-state" role="alert">
@@ -251,8 +130,8 @@ module FeedData = {
 
 module Feed = {
   [@react.component]
-  let make = (~feed, ~text) =>
-    <Shell active={Some(feed)} text>
+  let make = (~feed, ~text, ~stories) =>
+    <>
       <div className="hn-feed-heading">
         <h1>
           {React.string(
@@ -264,40 +143,72 @@ module Feed = {
         </h1>
         <p> {React.string("Live data from the Hacker News Algolia API")} </p>
       </div>
-      <React.Suspense fallback={<Loading label="Loading stories" />}>
-        <FeedData feed text />
-      </React.Suspense>
-    </Shell>;
+      <FeedData stories />
+    </>;
 };
 
 module Top = {
   [@react.component]
-  let make = (~text) => <Feed feed=HackerNewsApi.Top text />;
+  let make = (~text, ~stories) =>
+    <Feed feed=HackerNewsApi.Top text stories />;
 };
 
 module New = {
   [@react.component]
-  let make = (~text) => <Feed feed=HackerNewsApi.New text />;
+  let make = (~text, ~stories) =>
+    <Feed feed=HackerNewsApi.New text stories />;
 };
 
 module Best = {
   [@react.component]
-  let make = (~text) => <Feed feed=HackerNewsApi.Best text />;
+  let make = (~text, ~stories) =>
+    <Feed feed=HackerNewsApi.Best text stories />;
 };
 
 module Ask = {
   [@react.component]
-  let make = (~text) => <Feed feed=HackerNewsApi.Ask text />;
+  let make = (~text, ~stories) =>
+    <Feed feed=HackerNewsApi.Ask text stories />;
 };
 
 module Show = {
   [@react.component]
-  let make = (~text) => <Feed feed=HackerNewsApi.Show text />;
+  let make = (~text, ~stories) =>
+    <Feed feed=HackerNewsApi.Show text stories />;
 };
 
 module Jobs = {
   [@react.component]
-  let make = (~text) => <Feed feed=HackerNewsApi.Jobs text />;
+  let make = (~text, ~stories) =>
+    <Feed feed=HackerNewsApi.Jobs text stories />;
+};
+
+let loadFeed = (feed, ~text, ()) =>
+  HackerNewsApi.fetchFeed(~feed, ~query=text)
+  |> Lwt.map(stories => Router.Loader.Data(stories));
+
+module TopLoader = {
+  let load = loadFeed(HackerNewsApi.Top);
+};
+
+module NewLoader = {
+  let load = loadFeed(HackerNewsApi.New);
+};
+
+module BestLoader = {
+  let load = loadFeed(HackerNewsApi.Best);
+};
+
+module AskLoader = {
+  let load = loadFeed(HackerNewsApi.Ask);
+};
+
+module ShowLoader = {
+  let load = loadFeed(HackerNewsApi.Show);
+};
+
+module JobsLoader = {
+  let load = loadFeed(HackerNewsApi.Jobs);
 };
 
 let rec renderComment = (comment: HackerNewsApi.comment) =>
@@ -337,8 +248,7 @@ module Comment = {
 
 module StoryData = {
   [@react.component]
-  let make = (~id) => {
-    let storyResult = React.Experimental.usePromise(fetchStory(id));
+  let make = (~storyResult: result(HackerNewsApi.storyPage, string)) => {
     switch (storyResult) {
     | Error(error) =>
       <div className="hn-state" role="alert">
@@ -409,40 +319,48 @@ module StoryData = {
 
 module Story = {
   [@react.component]
-  let make = (~id, ~text) =>
-    <Shell active=None text>
-      <React.Suspense fallback={<Loading label="Loading discussion" />}>
-        <StoryData id />
-      </React.Suspense>
-    </Shell>;
+  let make = (~id as _, ~text, ~storyResult) => <StoryData storyResult />;
+};
+
+module StoryLoader = {
+  let load = (~id, ~text as _, ()) =>
+    HackerNewsApi.fetchStory(id)
+    |> Lwt.map(storyResult => Router.Loader.Data(storyResult));
+};
+
+module FeedLoading = {
+  [@react.component]
+  let make = (~text as _, ~stories as _) =>
+    <Loading label="Loading stories" />;
+};
+
+module StoryLoading = {
+  [@react.component]
+  let make = (~id as _, ~text as _, ~storyResult as _) =>
+    <Loading label="Loading discussion" />;
 };
 
 module GlobalLoading = {
   [@react.component]
-  let make = (~text) =>
-    <Shell active=None text> <Loading label="Loading Hacker News" /> </Shell>;
+  let make = (~text as _) => <Loading label="Loading Hacker News" />;
 };
 
 module AppError = {
   let status = (_error: string) => Router.Status.InternalServerError;
 
   [@react.component]
-  let make = (~text, ~error: Router.Error.t(string)) =>
-    <Shell active=None text>
-      <div className="hn-state" role="alert">
-        {React.string("Hacker News could not be loaded.")}
-      </div>
-    </Shell>;
+  let make = (~text as _, ~error: Router.Error.t(string)) =>
+    <div className="hn-state" role="alert">
+      {React.string("Hacker News could not be loaded.")}
+    </div>;
 };
 
 module NotFound = {
   [@react.component]
-  let make = (~text, ~error as _) =>
-    <Shell active=None text>
-      <div className="hn-state">
-        {React.string("This page does not exist.")}
-      </div>
-    </Shell>;
+  let make = (~text as _, ~error as _) =>
+    <div className="hn-state">
+      {React.string("This page does not exist.")}
+    </div>;
 };
 
 module Document = {
@@ -470,7 +388,7 @@ module Document = {
         <link rel="stylesheet" href="/output.css" />
         <script
           dangerouslySetInnerHTML={
-            "__html": "try{var t=localStorage.getItem('hn-theme');document.documentElement.dataset.hnTheme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#hn-theme-toggle');if(!b)return;var r=document.documentElement,n=r.dataset.hnTheme==='dark'?'light':'dark';r.dataset.hnTheme=n;try{localStorage.setItem('hn-theme',n)}catch(e){}})",
+            "__html": "try{var t=localStorage.getItem('hn-theme');document.documentElement.dataset.hnTheme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}",
           }
         />
       </head>
