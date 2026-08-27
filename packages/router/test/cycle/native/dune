@@ -54,9 +54,6 @@
  (files ../shared/Router.re))
 
 (copy_files
- (files ../shared/Router.rei))
-
-(copy_files
  (files ../shared/RouterRegistry.re))
 
 (copy_files

@@ -1,15 +1,6 @@
   $ export OCAMLRUNPARAM=
   $ server-reason-react.router-gen --mode handles --source input.ml < input.ml > Router.ml
-  $ server-reason-react.router-gen --mode interface --source input.ml < input.ml > Router.mli
-  $ grep -E '^type route|^val useRoute|useIsActive' Router.mli
-  type route =
-  val useRoute : unit -> route option
-  $ grep -E 'RouterRuntime\.(Navigation\.|Search\.)|RouterReact' Router.mli
-  [1]
-  $ grep -o 'enabled:bool' Router.mli | sort -u
-  enabled:bool
-  $ grep -o 'parts:string list' Router.mli | sort -u
-  parts:string list
+  $ server-reason-react.router-gen --mode interface --source input.ml < input.ml > Router_compat.mli
 
   $ server-reason-react.router-gen --mode handles --source catch-all-group.ml < catch-all-group.ml
   Fatal error: exception router: group path /assets/:parts<string...> cannot contain a catch-all segment
@@ -26,7 +17,7 @@
   $ server-reason-react.router-gen --mode registry --source catch-all-crossing.ml < catch-all-crossing.ml
   Fatal error: exception router: ambiguous route patterns /foo/:left<string...> and /:scope<string>/bar/:right<string...>
   [2]
-  $ grep -E 'old-notes|redirect:2' Router.mli
+  $ grep -E 'old-notes|redirect:2' Router_compat.mli
   [1]
   $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -Eo 'activeRoutes:\[\]|RouterServer.Execution.redirect|Router.Note.destination' | sort -u
   Router.Note.destination
@@ -37,7 +28,25 @@
   $ ocamlc -c React.ml
   $ ocamlc -c RouterReact.ml
   $ ocamlc -c NoteId.ml
-  $ ocamlc -c Router.mli
+  $ ocamlc -c Router_compat.mli
+  $ ocamlc -i Router.ml > Router.interface
+  $ grep -E '^type route|^val useRoute|useIsActive' Router.interface
+  type route =
+  val useRoute : unit -> route option
+  $ grep -E 'RouterRuntime\.(Navigation\.|Search\.)|RouterReact' Router.interface
+  [1]
+  $ grep -o 'enabled:bool' Router.interface | sort -u
+  enabled:bool
+  $ grep -o 'parts:string list' Router.interface | sort -u
+  parts:string list
+  $ grep -o '?className:string' Router.interface | sort -u
+  ?className:string
+  $ grep -o 'children:React.element' Router.interface | sort -u
+  children:React.element
+  $ grep -E 'old-notes|redirect:2' Router.interface
+  [1]
+  $ grep 'val pattern' Router.interface
+  [1]
   $ ocamlc -c Router.ml
   $ ocamlc -c unsafe_destination.ml
   $ ocamlc -c loader_redirect.ml
