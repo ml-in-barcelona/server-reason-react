@@ -1,5 +1,5 @@
 (rule
- (targets Router.ml Router.mli RouterRegistry.ml)
+ (targets Router.ml RouterRegistry.ml)
  (deps Routes.ml)
  (action
   (progn
@@ -11,16 +11,6 @@
       %{bin:server-reason-react.router-gen}
       --mode
       handles
-      --source
-      %{dep:Routes.ml})))
-   (with-stdout-to
-    Router.mli
-    (with-stdin-from
-     %{dep:Routes.ml}
-     (run
-      %{bin:server-reason-react.router-gen}
-      --mode
-      interface
       --source
       %{dep:Routes.ml})))
    (with-stdout-to
