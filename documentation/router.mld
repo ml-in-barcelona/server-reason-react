@@ -1,0 +1,325 @@
+{0 Type-safe router}
+
+{1 Declaring routes}
+
+Routes live in one manifest file compiled by [server-reason-react.router-gen].
+The manifest is a single [Router.make] expression:
+
+{[
+Router.make(
+  ~basePath="/demo/router",
+  ~search={ text: Router.Search.optional(string) },
+  ~layout=Pages.AppLayout,
+  ~loading=Pages.GlobalLoading,
+  ~error=Pages.AppError,
+  ~notFound=Pages.NotFound,
+  [
+    Router.route(Home, ~page=Pages.App, ~path="/"),
+    Router.route(NewNote, ~page=Pages.NewNote, ~path="/new", ~loading=Pages.NewNoteLoading),
+    Router.group(
+      ~path="/:id<NoteId.t>",
+      ~layout=Pages.NoteLayout,
+      ~loader=Pages.NoteLoader,
+      ~loaderAs_=note,
+      [
+        Router.route(Note, ~page=Pages.Note, ~path="/", ~loading=Pages.NoteLoading),
+        Router.route(EditNote, ~page=Pages.EditNote, ~path="/edit", ~loading=Pages.EditNoteLoading),
+      ],
+    ),
+  ],
+);
+]}
+
+[Router.route] declares a leaf page with a variant name. [Router.group] nests
+routes under a shared path prefix and layout. Both accept attachments, as does
+the root.
+
+[Router.redirect] declares an inbound temporary redirect without adding a
+route constructor or link helper to the generated application API:
+
+{[
+Router.redirect(
+  ~path="/old-notes/:id<NoteId.t>",
+  ~to_=(~id, ()) => Router.Note.destination(~id, ()),
+)
+]}
+
+The destination callback receives the redirect's decoded path and search
+values, including values inherited from parent groups and the root. Redirects
+inside groups inherit their path and search schemas, but do not run group
+loaders or attachments.
+
+Use [Router.unsafeDestination] when the target is outside the generated route
+manifest or must preserve a legacy URL exactly:
+
+{[
+Router.redirect(
+  ~path="/docs",
+  ~to_=() => Router.unsafeDestination("https://docs.example.com"),
+)
+]}
+
+[unsafeDestination] does not validate or encode its argument. Prefer a
+generated route destination when the router owns the target URL.
+
+Attachments take modules, and the generator resolves the convention inside
+each module:
+
+- [~page], [~layout], [~loading], [~notFound], [~invalidSearch] resolve
+  [Module.make], a component.
+- [~loader] resolves [Module.load]. The scope's components receive the loader
+  result under the module name ([Pages.NoteLoader] becomes [~noteLoader]), or
+  under the [~loaderAs_] name when given.
+- [~error] at the root resolves an error policy: a module with a [status]
+  function and a [make] component. On groups and routes, [~error] is a boundary
+  component.
+- [~metadata] and [~headers] are plain functions, not modules.
+
+{2 Path syntax}
+
+[~path] is an absolute path made of slash-separated segments. Use ["/"] for an
+empty path. A group path is a prefix for its child group and route paths, so
+["/notes"] and ["/:id<int>"] compose to ["/notes/:id<int>"]. Each path must
+start with [/]. Empty segments, trailing slashes, [.] segments, and [..]
+segments are invalid.
+
+A segment is one of:
+
+- A static value such as [notes], [new], or [café]. Write decoded text in the
+  manifest. The router percent-encodes it when it builds an href. A static
+  segment can contain letters, digits, valid UTF-8, and URI path punctuation,
+  but it cannot contain [/], [%], [?], or [#].
+- A typed parameter in the form [:name<type>]. The parameter must occupy the
+  complete segment. The name follows Reason labelled-argument syntax. [bool],
+  [int], and [string] are built in. A custom type must have the form
+  [Module.t].
+- A final catch-all in the form [:name<string...>]. It matches one or more
+  remaining segments and the page receives them as [list(string)]. It must be
+  the last segment of the route path, it cannot appear in a group path, and it
+  never matches zero segments: [/assets/:parts<string...>] does not match
+  [/assets]. Declare a separate [/assets] route when both forms exist.
+
+Optional parameters and mixed segments such as [file-:id<int>] are not
+supported. Put search values after [?] in a destination through [~search],
+rather than in [~path].
+
+[~basePath] uses the static path syntax and cannot contain parameters. The
+registry rejects duplicate paths and patterns that can match the same pathname
+with equal specificity. This includes crossing catch-all patterns such as
+[/foo/:left<string...>] and [/:scope<string>/bar/:right<string...>]. When an
+overlap has a unique winner, the pattern with more static segments takes
+precedence, and a route without a catch-all takes precedence over a catch-all
+route with the same static count. When one route path is a prefix of another,
+parameters at the same position must use the same name and type.
+
+{3 Trailing slashes}
+
+Generated hrefs never end with a slash, so the canonical form of every route
+is slash-free. [~trailingSlash] on [Router.make] sets the policy for request
+pathnames that end with one or more slashes:
+
+- [Redirect], the default, answers with a permanent redirect to the canonical
+  pathname. Document requests receive status 308, so the request method
+  survives the redirect. The query string is preserved.
+- [Reject] treats the request as not found.
+
+{3 Path parameter codecs}
+
+The router decodes a segment written [:name<Module.t>] with [Module.parse]
+and prints it with [Module.to_string]:
+
+{[
+/* NoteId.re */
+type t = int;
+let parse = value =>
+  switch (int_of_string_opt(value)) {
+  | Some(id) when id >= 0 => Ok(id)
+  | _ => Error("expected a note id")
+  };
+let to_string = string_of_int;
+]}
+
+Codecs receive percent-decoded segments. The router owns URL encoding. [bool],
+[int], and [string] are built in. [bool] accepts exactly [true] and [false].
+[to_string] must return one non-empty, valid UTF-8 path segment. Destination
+construction raises [Invalid_argument] for an empty value, [/], [.], [..],
+control characters, or invalid UTF-8. Valid output is percent-encoded. A failed
+parse produces [InvalidPathParameter].
+
+{2 Search parameters}
+
+Any scope declares search parameters as a typed record:
+
+{[
+~search={
+  page: Router.Search.default(int, 1),
+  filter: Router.Search.optional(Filter.t),
+  tags: Router.Search.many(string),
+  token: Router.Search.required(string),
+}
+]}
+
+Child scopes see their ancestors' parameters as well as their own. Canonical
+URLs omit values that equal their declared default. A required root search
+parameter together with a root [~error] policy also requires [~invalidSearch].
+
+{1 Generated application API}
+
+Each route is a component and owns its typed helpers:
+
+{[
+<Router.Note id> children </Router.Note>
+
+let destination = Router.Note.destination(~id, ())
+let href = Router.Note.href(~id, ())
+
+switch Router.useRoute() {
+| Some(Router.Note({id})) => React.string(NoteId.to_string(id))
+| _ => React.null
+}
+]}
+
+[Router.useRoute] returns the active route as a generated variant with decoded
+path parameters. It returns [None] when no route matched.
+
+{2 Navigation}
+
+[Router.useNavigation] returns the imperative navigate function and the
+current navigation status:
+
+{[
+let (navigate, status) = Router.useNavigation();
+
+let onSelect = id =>
+  navigate(Router.Note.destination(~id, ())) |> ignore;
+
+let isPending =
+  switch (status) {
+  | Router.Navigation.Loading(_) => true
+  | Idle
+  | Failed(_) => false
+  };
+]}
+
+Navigating to a destination is a {e content} navigation. The client requests a
+Flight model and the server answers with a full model, or with a partial patch
+that reuses unchanged layouts. [~revalidate=true] forces a full response.
+[~history] selects [Push], [Replace], or [Pop].
+
+A patch grafts into the outlet of the deepest scope both locations share. A
+scope is shared when it declares [~layout], its path parameters are unchanged,
+and the search string is unchanged. Navigating between two routes of the same
+group therefore replaces only that group's outlet and leaves every enclosing
+layout mounted. When a loader fails, its scope and everything below it leave
+the response, and the graft moves up to the deepest scope the response still
+renders.
+
+{2 Search updates}
+
+[Router.useSearch] returns the decoded search record and its typed update
+function:
+
+{[
+let ({Router.text: text}, updateSearch) = Router.useSearch();
+
+let onChange = value => updateSearch(~text=Some(value), ()) |> ignore;
+]}
+
+Search updates are {e shallow}. They update the URL and client state
+synchronously and never contact the server. When server-rendered content
+depends on a search value, navigate to a destination carrying the new value
+instead of calling [updateSearch].
+
+[Router.useUpdateHash] commits hash-only changes without a request.
+
+{1 Loaders}
+
+A loader runs on the server before streaming. It receives the decoded path
+parameters, the scope's search values, and ancestor loader results as labelled
+arguments, and returns a [Router.Loader.result]:
+
+{[
+module NoteLoader = {
+  let load = (~id, ~text as _, ()) =>
+    DB.fetchNoteOption(id)
+    |> Lwt.map(result =>
+         switch (result) {
+         | Ok(Some(note)) => Router.Loader.Data(note)
+         | Ok(None) => Router.Loader.NotFound
+         | Error(error) => Router.Loader.Error(error)
+         }
+       );
+};
+]}
+
+Loaders execute parent-first and complete before response headers or RSC
+rendering begin. The scope's components receive [Data] ([~note] in the
+manifest above). [NotFound] and [Error] render the nearest boundary, and
+[Redirect(destination)] escapes the whole branch.
+
+A loader runs again on every request, including patches, so a patch that
+reuses the loader's scope keeps the layout rendered from the {e previous}
+result. Use [~revalidate=true] when a navigation must show a layout rebuilt
+from fresh loader data.
+
+Keep loaders for fast validation, redirects, and route-level not-found
+decisions; stream slow data from async server components inside the route
+elements instead.
+
+{1 Error handling}
+
+The root [~error] policy maps application errors to statuses and renders them:
+
+{[
+module AppError = {
+  let status = _ => Router.Status.InternalServerError;
+
+  [@react.component]
+  let make = (~text as _, ~error as _) =>
+    <p> "The requested note could not be loaded." </p>;
+};
+]}
+
+[Router.Error.t] distinguishes [NotFound], [Application], invalid path or
+search parameters, and [Internal] failures carrying only a diagnostic id.
+Boundary components receive the scope inputs plus [~error]. The nearest
+[~notFound] handles missing routes and loader [NotFound] results. Without one,
+the nearest [~error] renders instead. A path or search decode failure in a
+nested scope renders the nearest ancestor [~error] boundary before any loader
+at or below the failing scope runs. Root search failures use [~invalidSearch]
+when declared.
+
+{1 Metadata and headers}
+
+[~metadata] and [~headers] resolve per scope on every response, including
+patches, and merge from the root down. Like loaders, they receive the decoded
+path parameters, search values, and ancestor loader results, and return
+[Lwt] promises:
+
+{[
+module NoteMetadata = {
+  let make = (~id as _, ~text as _, ~note, ()) =>
+    Lwt.return(Router.Metadata.make(~title=Note.title(note), ()));
+};
+]}
+
+{1 Server integration}
+
+The native generator emits [RouterRegistry.server], a configured
+[RouterServer.Server.t]. A native HTTP adapter builds a
+[RouterServer.ServerEngine.request] from the request location and router
+navigation headers, then calls [RouterServer.Server.run]. The adapter maps the
+resulting full, patch, redirect, permanent-redirect, or reload-required outcome
+to its HTTP server and streams render data through [ReactServerDOM].
+
+The repository's [demo/dream-router/DreamRouter.ml] implements this boundary
+for Dream and can be used as an adapter reference. [DreamRouter] is demo-only:
+it is not installed by any published package.
+
+{1 Libraries}
+
+Melange applications depend on [server-reason-react.router]. Native
+applications depend on [server-reason-react.router-native]. Route generation
+uses [server-reason-react.router-gen]. A native adapter that calls
+[ReactServerDOM] also depends on [server-reason-react.reactDom]. There is no
+installed Dream router package.

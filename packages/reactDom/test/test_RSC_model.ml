@@ -17,11 +17,11 @@ let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
   Lwt.return ()
 
-let test title fn =
+let test ?(watchdog_ms = 20) title fn =
   let test_case _switch () =
     let start = Unix.gettimeofday () in
     let timeout =
-      let%lwt () = sleep ~ms:20 in
+      let%lwt () = sleep ~ms:watchdog_ms in
       Alcotest.failf "Test '%s' timed out" title
     in
     let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -301,6 +301,92 @@ let suspense_with_promise () =
       "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
       "2:\"lol\"\n";
     ];
+  Lwt.return ()
+
+let suspense_with_use_promise () =
+  let promise =
+    let%lwt () = Lwt.pause () in
+    Lwt.return "DONE :)"
+  in
+  let renders = ref 0 in
+  let suspended_component =
+    React.Upper_case_component
+      ( __FUNCTION__,
+        fun () ->
+          renders := !renders + 1;
+          React.string (React.Experimental.usePromise promise) )
+  in
+  let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:suspended_component () in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"DONE :)\"\n";
+    ];
+  Alcotest.(check int) "component renders again" 2 !renders;
+  Lwt.return ()
+
+let root_use_promise_retries_in_root_row () =
+  let promise =
+    let%lwt () = Lwt.pause () in
+    Lwt.return "DONE :)"
+  in
+  let renders = ref 0 in
+  let app =
+    React.Upper_case_component
+      ( __FUNCTION__,
+        fun () ->
+          incr renders;
+          React.string (React.Experimental.usePromise promise) )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  assert_list_of_strings !output [ "0:\"DONE :)\"\n" ];
+  Alcotest.(check int) "component renders again" 2 !renders;
+  Lwt.return ()
+
+let root_use_promise_retry_restores_use_id_state () =
+  let promise =
+    let%lwt () = Lwt.pause () in
+    Lwt.return "DONE :)"
+  in
+  let child =
+    React.Upper_case_component
+      ( "Child",
+        fun () ->
+          let id = React.useId () in
+          React.createElement "span" [ React.JSX.String ("id", "id", id) ] [ React.string "child" ] )
+  in
+  let app =
+    React.Upper_case_component
+      ( __FUNCTION__,
+        fun () ->
+          let id = React.useId () in
+          let value = React.Experimental.usePromise promise in
+          React.createElement "div" [ React.JSX.String ("id", "id", id) ] [ React.string value; child ] )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"div\",null,{\"children\":[\"DONE \
+       :)\",[\"$\",\"span\",null,{\"children\":\"child\",\"id\":\"\xc2\xabR5\xc2\xbb\"},null,null,1]],\"id\":\"\xc2\xabR0\xc2\xbb\"},null,null,1]\n";
+    ];
+  Lwt.return ()
+
+let root_use_promise_rejection_errors_root_row () =
+  let promise =
+    let%lwt () = Lwt.pause () in
+    Lwt.fail (Failure "root promise failed")
+  in
+  let app = React.Upper_case_component (__FUNCTION__, fun () -> React.string (React.Experimental.usePromise promise)) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  assert_list_of_strings !output
+    [ "0:E{\"message\":\"Failure(\\\"root promise failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let suspense_with_error () =
@@ -1533,6 +1619,343 @@ let flight_hints_emit_h_rows () =
     [ ":HL[\"/style.css\",\"style\"]\n"; "0:[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]\n" ];
   Lwt.return ()
 
+(* ***************** *)
+(* Abort and timeout *)
+(* ***************** *)
+
+let never_resolving_component name =
+  React.Async_component
+    ( name,
+      fun () ->
+        let promise, _resolver = Lwt.wait () in
+        let%lwt () = promise in
+        Lwt.return (React.string "Should never appear") )
+
+let dev_error_row ~message id =
+  Printf.sprintf "%x:E{\"message\":\"%s\",\"stack\":null,\"env\":\"Server\",\"digest\":\"\"}\n" id message
+
+let dev_aborted_row = dev_error_row ~message:"The render was aborted."
+let dev_timed_out_row = dev_error_row ~message:"The render timed out."
+
+(* A cancelable promise plus a flag observing that the render's abort path reached it through Lwt.cancel. *)
+let cancel_probe () =
+  let promise, _resolver = Lwt.task () in
+  let canceled = ref false in
+  Lwt.on_cancel promise (fun () -> canceled := true);
+  (promise, canceled)
+
+let cancelable_component promise =
+  React.Async_component
+    ( "Cancelable",
+      fun () ->
+        let%lwt () = promise in
+        Lwt.return (React.string "Should never appear") )
+
+let capture_async_exceptions fn =
+  let exceptions = ref [] in
+  let previous_hook = !Lwt.async_exception_hook in
+  (Lwt.async_exception_hook := fun exn -> exceptions := Printexc.to_string exn :: !exceptions);
+  let%lwt () =
+    Lwt.finalize fn (fun () ->
+        Lwt.async_exception_hook := previous_hook;
+        Lwt.return ())
+  in
+  Lwt.return !exceptions
+
+let abort_settles_pending_root () =
+  let app = never_resolving_component "NeverResolves" in
+  let abort, resolve_abort = Lwt.wait () in
+  let output, subscribe = capture_stream () in
+  let render = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort app in
+  Lwt.wakeup_later resolve_abort ();
+  let%lwt () = render in
+  assert_list_of_strings !output [ dev_aborted_row 0 ];
+  Lwt.return ()
+
+let abort_already_resolved_settles_root () =
+  let app = never_resolving_component "NeverResolves" in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort:Lwt.return_unit app in
+  assert_list_of_strings !output [ dev_aborted_row 0 ];
+  Lwt.return ()
+
+let abort_in_prod_emits_only_digest () =
+  let app = never_resolving_component "NeverResolves" in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe ~abort:Lwt.return_unit app in
+  assert_list_of_strings !output [ "0:E{\"digest\":\"\"}\n" ];
+  Lwt.return ()
+
+let abort_settles_pending_promise_prop () =
+  let never_resolves, _resolver = Lwt.wait () in
+  let app =
+    React.Client_component
+      {
+        key = None;
+        props = [ ("promise", React.Model.Promise (never_resolves, fun res -> React.Model.Json (`String res))) ];
+        client = React.string "Client with Props";
+        import_module = "./client-with-props.js";
+        import_name = "ClientWithProps";
+      }
+  in
+  let abort, resolve_abort = Lwt.wait () in
+  let output, subscribe = capture_stream () in
+  let render = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort app in
+  Lwt.wakeup_later resolve_abort ();
+  let%lwt () = render in
+  assert_list_of_strings !output
+    [
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "0:[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]\n";
+      dev_aborted_row 2;
+    ];
+  Lwt.return ()
+
+let abort_settles_multiple_rows_in_ascending_order () =
+  let app =
+    React.createElement "div" []
+      [
+        mk_suspense ~fallback:(React.string "Loading A") ~children:(never_resolving_component "NeverResolvesA") ();
+        mk_suspense ~fallback:(React.string "Loading B") ~children:(never_resolving_component "NeverResolvesB") ();
+      ]
+  in
+  let abort, resolve_abort = Lwt.wait () in
+  let output, subscribe = capture_stream () in
+  let render = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort app in
+  Lwt.wakeup_later resolve_abort ();
+  let%lwt () = render in
+  assert_list_of_strings !output
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading \
+       A\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading \
+       B\"},null,null,1]]},null,null,1]\n";
+      dev_aborted_row 2;
+      dev_aborted_row 3;
+    ];
+  Lwt.return ()
+
+let model_timeout_settles_pending_rows () =
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...") ~children:(never_resolving_component "NeverResolves") ()
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~timeout:0.02 app in
+  assert_list_of_strings !output
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      dev_timed_out_row 2;
+    ];
+  Lwt.return ()
+
+let model_timeout_does_not_affect_fast_renders () =
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "FastComponent",
+             fun () ->
+               let%lwt () = Lwt.pause () in
+               Lwt.return (React.string "Fast content") ))
+      ()
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~timeout:1.0 app in
+  assert_list_of_strings !output
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"Fast content\"\n";
+    ];
+  Lwt.return ()
+
+let completion_does_not_cancel_abort_signal () =
+  (* Lwt.task is cancelable: if the render canceled the caller-owned signal instead of its protected wrapper, the
+     state would be Fail Canceled. *)
+  let abort, _resolver = Lwt.task () in
+  let app = React.createElement "div" [] [ React.string "Fast" ] in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort app in
+  assert_list_of_strings !output [ "0:[\"$\",\"div\",null,{\"children\":\"Fast\"},null,null,1]\n" ];
+  (match Lwt.state abort with
+  | Sleep -> ()
+  | Return () -> Alcotest.fail "the abort signal should stay pending"
+  | Fail _ -> Alcotest.fail "the abort signal must not be canceled");
+  Lwt.return ()
+
+let abort_after_completion_changes_nothing () =
+  let abort, resolve_abort = Lwt.wait () in
+  let app = React.createElement "div" [] [ React.string "Fast" ] in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort app in
+  let before = !output in
+  Lwt.wakeup_later resolve_abort ();
+  let%lwt () = Lwt.pause () in
+  assert_list_of_strings !output before;
+  Lwt.return ()
+
+let abort_cancels_pending_task () =
+  let task_promise, canceled = cancel_probe () in
+  let app = cancelable_component task_promise in
+  let abort, resolve_abort = Lwt.wait () in
+  let output, subscribe = capture_stream () in
+  let%lwt exceptions =
+    capture_async_exceptions (fun () ->
+        let render = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort app in
+        Lwt.wakeup_later resolve_abort ();
+        render)
+  in
+  assert_list_of_strings exceptions [];
+  Alcotest.(check bool) "the pending task promise is canceled" true !canceled;
+  (match Lwt.state task_promise with
+  | Fail Lwt.Canceled -> ()
+  | Sleep | Return _ | Fail _ -> Alcotest.fail "expected the task promise to end in Lwt.Canceled");
+  assert_list_of_strings !output [ dev_aborted_row 0 ];
+  Lwt.return ()
+
+let late_completion_after_abort_writes_nothing () =
+  (* The gate is non-cancelable (Lwt.wait): the abort cannot stop it. Its late completion serializes a nested client
+     reference and an already-resolved promise; nothing may reach the closed stream and nothing may raise through
+     Lwt.async_exception_hook. *)
+  let gate, resolve_gate = Lwt.wait () in
+  let app =
+    React.Async_component
+      ( "LateNested",
+        fun () ->
+          let%lwt () = gate in
+          Lwt.return
+            (React.Client_component
+               {
+                 key = None;
+                 props =
+                   [ ("promise", React.Model.Promise (Lwt.return "late", fun res -> React.Model.Json (`String res))) ];
+                 client = React.string "Late client";
+                 import_module = "./late-client.js";
+                 import_name = "LateClient";
+               }) )
+  in
+  let abort, resolve_abort = Lwt.wait () in
+  let output, subscribe = capture_stream () in
+  let%lwt exceptions =
+    capture_async_exceptions (fun () ->
+        let render = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort app in
+        Lwt.wakeup_later resolve_abort ();
+        let%lwt () = render in
+        let before = !output in
+        Lwt.wakeup_later resolve_gate ();
+        let%lwt () = Lwt.pause () in
+        let%lwt () = Lwt.pause () in
+        assert_list_of_strings !output before;
+        Lwt.return ())
+  in
+  assert_list_of_strings exceptions [];
+  assert_list_of_strings !output [ dev_aborted_row 0 ];
+  Lwt.return ()
+
+let subscriber_failure_cancels_pending_work () =
+  let task_promise, canceled = cancel_probe () in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:(cancelable_component task_promise) () in
+  let subscribe _chunk = Lwt.fail End_of_file in
+  let%lwt () =
+    try%lwt
+      let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+      Alcotest.fail "the render promise should report the subscriber failure"
+    with End_of_file -> Lwt.return ()
+  in
+  Alcotest.(check bool) "pending work is canceled" true !canceled;
+  Lwt.return ()
+
+let canceling_render_promise_cancels_pending_work () =
+  let task_promise, canceled = cancel_probe () in
+  let app = cancelable_component task_promise in
+  let _output, subscribe = capture_stream () in
+  let render = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  Lwt.cancel render;
+  let%lwt () = try%lwt render with Lwt.Canceled -> Lwt.return () in
+  Alcotest.(check bool) "pending work is canceled" true !canceled;
+  Lwt.return ()
+
+let externally_canceled_resource_settles_row () =
+  (* Cancellation that does not come from the renderer's own abort (the caller canceling their own resource promise)
+     settles the row as an error like any other rejection instead of leaving the stream open forever. *)
+  let task_promise, _resolver = Lwt.task () in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:(cancelable_component task_promise) () in
+  let output, subscribe = capture_stream () in
+  let render = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  Lwt.cancel task_promise;
+  let%lwt () = render in
+  assert_list_of_strings !output
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:E{\"message\":\"Lwt.Resolution_loop.Canceled\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+    ];
+  Lwt.return ()
+
+let pending_model_without_controls_returns_immediately () =
+  let gate, resolve_gate = Lwt.wait () in
+  let app =
+    React.Async_component
+      ( "Pending",
+        fun () ->
+          let%lwt () = gate in
+          Lwt.return (React.string "Done") )
+  in
+  let completion = ReactServerDOM.render_model app in
+  let returned_immediately = match Lwt.state completion with Return () -> true | Sleep | Fail _ -> false in
+  Lwt.wakeup_later resolve_gate ();
+  let%lwt () = Lwt.pause () in
+  Alcotest.(check bool) "render returns immediately" true returned_immediately;
+  Lwt.return ()
+
+let timeout_without_subscriber_bounds_render () =
+  (* Without a subscriber the stream drains internally: the returned promise still represents the bounded render. *)
+  let app = never_resolving_component "NeverResolves" in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~timeout:0.02 app in
+  Lwt.return ()
+
+let act_with_pending_action_resolves () =
+  let response =
+    let%lwt () = Lwt.pause () in
+    Lwt.return (React.Model.Json (`String "Late result"))
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
+  assert_list_of_strings !output [ "0:\"Late result\"\n" ];
+  Lwt.return ()
+
+let act_without_subscriber_waits_for_pending_action () =
+  let response, resolve_response = Lwt.wait () in
+  let completion = ReactServerDOM.create_action_response response in
+  (match Lwt.state completion with
+  | Sleep -> ()
+  | Return () | Fail _ -> Alcotest.fail "the response completed before the action settled");
+  Lwt.wakeup_later resolve_response (React.Model.Json (`String "Late result"));
+  completion
+
+let act_with_pending_action_times_out () =
+  let response, _resolver = Lwt.wait () in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.create_action_response ~env:`Dev ~subscribe ~timeout:0.02 response in
+  assert_list_of_strings !output [ dev_timed_out_row 0 ];
+  Lwt.return ()
+
+let act_abort_cancels_pending_action () =
+  let response, canceled = cancel_probe () in
+  let abort, resolve_abort = Lwt.wait () in
+  let output, subscribe = capture_stream () in
+  let%lwt exceptions =
+    capture_async_exceptions (fun () ->
+        let render = ReactServerDOM.create_action_response ~env:`Dev ~subscribe ~abort response in
+        Lwt.wakeup_later resolve_abort ();
+        render)
+  in
+  assert_list_of_strings exceptions [];
+  Alcotest.(check bool) "the action promise is canceled" true !canceled;
+  assert_list_of_strings !output [ dev_aborted_row 0 ];
+  Lwt.return ()
+
 let tests =
   [
     test "null_element" null_element;
@@ -1554,6 +1977,10 @@ let tests =
     test "upper_case_with_children" upper_case_with_children;
     test "suspense_without_promise" suspense_without_promise;
     test "suspense_with_promise" suspense_with_promise;
+    test "suspense_with_use_promise" suspense_with_use_promise;
+    test "root_use_promise_retries_in_root_row" root_use_promise_retries_in_root_row;
+    test "root_use_promise_retry_restores_use_id_state" root_use_promise_retry_restores_use_id_state;
+    test "root_use_promise_rejection_errors_root_row" root_use_promise_rejection_errors_root_row;
     test "suspense_with_error" suspense_with_error;
     test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_immediate_promise" suspense_with_immediate_promise;
@@ -1605,4 +2032,24 @@ let tests =
     test "error_in_prod_hides_message" error_in_prod_hides_message;
     test "duplicate_client_component_deduplicates_ref" duplicate_client_component_deduplicates_ref;
     test "flight_hints_emit_h_rows" flight_hints_emit_h_rows;
+    test "abort_settles_pending_root" abort_settles_pending_root;
+    test "abort_already_resolved_settles_root" abort_already_resolved_settles_root;
+    test "abort_in_prod_emits_only_digest" abort_in_prod_emits_only_digest;
+    test "abort_settles_pending_promise_prop" abort_settles_pending_promise_prop;
+    test "abort_settles_multiple_rows_in_ascending_order" abort_settles_multiple_rows_in_ascending_order;
+    test ~watchdog_ms:500 "model_timeout_settles_pending_rows" model_timeout_settles_pending_rows;
+    test "model_timeout_does_not_affect_fast_renders" model_timeout_does_not_affect_fast_renders;
+    test "completion_does_not_cancel_abort_signal" completion_does_not_cancel_abort_signal;
+    test "abort_after_completion_changes_nothing" abort_after_completion_changes_nothing;
+    test "abort_cancels_pending_task" abort_cancels_pending_task;
+    test "late_completion_after_abort_writes_nothing" late_completion_after_abort_writes_nothing;
+    test "subscriber_failure_cancels_pending_work" subscriber_failure_cancels_pending_work;
+    test "canceling_render_promise_cancels_pending_work" canceling_render_promise_cancels_pending_work;
+    test "externally_canceled_resource_settles_row" externally_canceled_resource_settles_row;
+    test "pending_model_without_controls_returns_immediately" pending_model_without_controls_returns_immediately;
+    test ~watchdog_ms:500 "timeout_without_subscriber_bounds_render" timeout_without_subscriber_bounds_render;
+    test "act_with_pending_action_resolves" act_with_pending_action_resolves;
+    test "act_without_subscriber_waits_for_pending_action" act_without_subscriber_waits_for_pending_action;
+    test ~watchdog_ms:500 "act_with_pending_action_times_out" act_with_pending_action_times_out;
+    test "act_abort_cancels_pending_action" act_abort_cancels_pending_action;
   ]

@@ -69,6 +69,7 @@
    (and
     (= 1.0.0~alpha8)
     :with-dev-setup)) ; We use dream on the demo
+  (mtime :with-dev-setup)
 
   (reason-react-ppx :with-dev-setup)
 

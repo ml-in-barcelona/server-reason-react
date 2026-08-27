@@ -6,10 +6,12 @@
  (name server)
  (libraries
   dream
-  dream_rsc
+  dream_router
   demo_shared_native
-  nested_router_native
+  demo_router_native
   server-reason-react.url_native
+  server-reason-react.router-native
+  server-reason-react.rsc-native
   react
   reactDOM
   html

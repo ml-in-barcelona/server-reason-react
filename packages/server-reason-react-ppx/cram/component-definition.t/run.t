@@ -68,7 +68,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     (fun __buf ~separators:__separators ->
                       Buffer.add_string __buf "<div>";
                       (let (_ : bool) =
-                         ReactDOM.write_element_to_buffer __buf
+                         ReactDOM.write_element_to_buffer_internal __buf
                            ~separators:__separators ~prev_text:false
                            (Printf.sprintf "`a` is %s" a |> React.string)
                        in
@@ -112,7 +112,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     (fun __buf ~separators:__separators ->
                       Buffer.add_string __buf "<div>";
                       (let (_ : bool) =
-                         ReactDOM.write_element_to_buffer __buf
+                         ReactDOM.write_element_to_buffer_internal __buf
                            ~separators:__separators ~prev_text:false
                            (Printf.sprintf "`a` is %d" a |> React.string)
                        in
@@ -161,7 +161,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     (fun __buf ~separators:__separators ->
                       Buffer.add_string __buf "<button class=\"FancyButton\">";
                       (let (_ : bool) =
-                         ReactDOM.write_element_to_buffer __buf
+                         ReactDOM.write_element_to_buffer_internal __buf
                            ~separators:__separators ~prev_text:false children
                        in
                        ());
@@ -286,7 +286,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     (fun __buf ~separators:__separators ->
                       Buffer.add_string __buf "<div>";
                       (let (_ : bool) =
-                         ReactDOM.write_element_to_buffer __buf
+                         ReactDOM.write_element_to_buffer_internal __buf
                            ~separators:__separators ~prev_text:false
                            (Printf.sprintf "`name` is %s" name |> React.string)
                        in
@@ -340,7 +340,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                       Buffer.add_string __buf "<!DOCTYPE html>";
                       Buffer.add_string __buf "<html>";
                       __prev_text :=
-                        ReactDOM.write_element_to_buffer __buf
+                        ReactDOM.write_element_to_buffer_internal __buf
                           ~separators:__separators ~prev_text:false
                           (React.Writer
                              {
@@ -348,8 +348,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                  (fun __buf ~separators:__separators ->
                                    Buffer.add_string __buf "<head>";
                                    (let (_ : bool) =
-                                      ReactDOM.write_element_to_buffer __buf
-                                        ~separators:__separators ~prev_text:false
+                                      ReactDOM.write_element_to_buffer_internal
+                                        __buf ~separators:__separators
+                                        ~prev_text:false
                                         (React.Writer
                                            {
                                              emit =
@@ -396,7 +397,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                      ]);
                              });
                       __prev_text :=
-                        ReactDOM.write_element_to_buffer __buf
+                        ReactDOM.write_element_to_buffer_internal __buf
                           ~separators:__separators ~prev_text:!__prev_text
                           (React.Writer
                              {
@@ -405,8 +406,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                    let __prev_text = ref false in
                                    Buffer.add_string __buf "<body>";
                                    __prev_text :=
-                                     ReactDOM.write_element_to_buffer __buf
-                                       ~separators:__separators ~prev_text:false
+                                     ReactDOM.write_element_to_buffer_internal
+                                       __buf ~separators:__separators
+                                       ~prev_text:false
                                        (React.Writer
                                           {
                                             emit =
@@ -417,7 +419,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                                   "<div id=\"root\">";
                                                 (let (_ : bool) =
                                                    ReactDOM
-                                                   .write_element_to_buffer __buf
+                                                   .write_element_to_buffer_internal
+                                                     __buf
                                                      ~separators:__separators
                                                      ~prev_text:false children
                                                  in
@@ -439,8 +442,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                                   [ children ]);
                                           });
                                    __prev_text :=
-                                     ReactDOM.write_element_to_buffer __buf
-                                       ~separators:__separators
+                                     ReactDOM.write_element_to_buffer_internal
+                                       __buf ~separators:__separators
                                        ~prev_text:!__prev_text
                                        (React.Static
                                           {
@@ -476,7 +479,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                                Buffer.add_string __buf
                                                  "<div id=\"root\">";
                                                (let (_ : bool) =
-                                                  ReactDOM.write_element_to_buffer
+                                                  ReactDOM
+                                                  .write_element_to_buffer_internal
                                                     __buf ~separators:__separators
                                                     ~prev_text:false children
                                                 in
@@ -530,8 +534,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                 (fun __buf ~separators:__separators ->
                                   Buffer.add_string __buf "<head>";
                                   (let (_ : bool) =
-                                     ReactDOM.write_element_to_buffer __buf
-                                       ~separators:__separators ~prev_text:false
+                                     ReactDOM.write_element_to_buffer_internal
+                                       __buf ~separators:__separators
+                                       ~prev_text:false
                                        (React.Writer
                                           {
                                             emit =
@@ -583,8 +588,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                   let __prev_text = ref false in
                                   Buffer.add_string __buf "<body>";
                                   __prev_text :=
-                                    ReactDOM.write_element_to_buffer __buf
-                                      ~separators:__separators ~prev_text:false
+                                    ReactDOM.write_element_to_buffer_internal
+                                      __buf ~separators:__separators
+                                      ~prev_text:false
                                       (React.Writer
                                          {
                                            emit =
@@ -594,7 +600,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                                Buffer.add_string __buf
                                                  "<div id=\"root\">";
                                                (let (_ : bool) =
-                                                  ReactDOM.write_element_to_buffer
+                                                  ReactDOM
+                                                  .write_element_to_buffer_internal
                                                     __buf ~separators:__separators
                                                     ~prev_text:false children
                                                 in
@@ -616,8 +623,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                                  [ children ]);
                                          });
                                   __prev_text :=
-                                    ReactDOM.write_element_to_buffer __buf
-                                      ~separators:__separators
+                                    ReactDOM.write_element_to_buffer_internal
+                                      __buf ~separators:__separators
                                       ~prev_text:!__prev_text
                                       (React.Static
                                          {
@@ -651,7 +658,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                               Buffer.add_string __buf
                                                 "<div id=\"root\">";
                                               (let (_ : bool) =
-                                                 ReactDOM.write_element_to_buffer
+                                                 ReactDOM
+                                                 .write_element_to_buffer_internal
                                                    __buf ~separators:__separators
                                                    ~prev_text:false children
                                                in
@@ -729,7 +737,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     (fun __buf ~separators:__separators ->
                       Buffer.add_string __buf "<div aria-hidden=\"true\">";
                       (let (_ : bool) =
-                         ReactDOM.write_element_to_buffer __buf
+                         ReactDOM.write_element_to_buffer_internal __buf
                            ~separators:__separators ~prev_text:false children
                        in
                        ());
@@ -778,7 +786,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     (fun __buf ~separators:__separators ->
                       Buffer.add_string __buf "<form method=\"GET\">";
                       (let (_ : bool) =
-                         ReactDOM.write_element_to_buffer __buf
+                         ReactDOM.write_element_to_buffer_internal __buf
                            ~separators:__separators ~prev_text:false children
                        in
                        ());
@@ -1073,7 +1081,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     (fun __buf ~separators:__separators ->
                       Buffer.add_string __buf "<div class=\"async-component\">";
                       (let (_ : bool) =
-                         ReactDOM.write_element_to_buffer __buf
+                         ReactDOM.write_element_to_buffer_internal __buf
                            ~separators:__separators ~prev_text:false children
                        in
                        ());

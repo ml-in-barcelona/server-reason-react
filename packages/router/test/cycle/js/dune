@@ -1,0 +1,75 @@
+(library
+ (name router_cycle_js)
+ (modules
+  Client
+  Filter
+  NoteId
+  Router
+  RouterPattern
+  RouterRuntime
+  RouterTransaction
+  RouterTypes
+  RouterReact
+  ScalarId
+  WorkspaceId)
+ (modes melange)
+ (wrapped false)
+ (libraries melange.js reason-react server-reason-react.rsc)
+ (preprocess
+  (pps server-reason-react.rsc.ppx melange.ppx)))
+
+(melange.emit
+ (target test_cycle_js)
+ (modules TestCycleJs)
+ (module_systems commonjs)
+ (libraries reason-react router_cycle_js))
+
+(rule
+ (alias runtest)
+ (deps
+  (alias melange)
+  (:test test_cycle_js/packages/router/test/cycle/js/TestCycleJs.js))
+ (action
+  (setenv
+   NODE_PATH
+   %{workspace_root}/demo/client/node_modules
+   (run node %{test}))))
+
+(copy_files
+ (files ../shared/NoteId.re))
+
+(copy_files
+ (files ../shared/Router.re))
+
+(copy_files
+ (files ../shared/Router.rei))
+
+(copy_files
+ (files ../shared/WorkspaceId.re))
+
+(copy_files
+ (files ../shared/Filter.re))
+
+(copy_files
+ (files ../shared/ScalarId.re))
+
+(copy_files
+ (files ../../../react/js/RouterRuntime.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterRuntime.rei))
+
+(copy_files
+ (files ../../../runtime/shared/RouterTypes.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterPattern.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterPattern.rei))
+
+(copy_files
+ (files ../../../runtime/shared/RouterTransaction.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterTransaction.rei))

@@ -1,0 +1,69 @@
+(library
+ (name router_cycle_native)
+ (modules
+  AssetPage
+  Attachments
+  Filter
+  MemberLoader
+  NoteId
+  NoteLoader
+  NotePage
+  Router
+  RouterRegistry
+  ScalarId
+  ScalarPage
+  SearchPage
+  TeamMemberPage
+  TeamPage
+  WorkspaceId
+  WorkspaceLoader
+  WorkspacesPage)
+ (wrapped false)
+ (libraries
+  js
+  server-reason-react.react
+  lwt
+  server-reason-react.router-native)
+ (preprocess
+  (per_module
+   ((pps server-reason-react.ppx)
+    AssetPage
+    Attachments
+    NotePage
+    ScalarPage
+    SearchPage
+    TeamMemberPage
+    TeamPage
+    WorkspacesPage))))
+
+(test
+ (name test_cycle)
+ (modules Test_cycle)
+ (libraries
+  alcotest
+  lwt.unix
+  router_cycle_native
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.router-native))
+
+(copy_files
+ (files ../shared/NoteId.re))
+
+(copy_files
+ (files ../shared/Router.re))
+
+(copy_files
+ (files ../shared/Router.rei))
+
+(copy_files
+ (files ../shared/RouterRegistry.re))
+
+(copy_files
+ (files ../shared/WorkspaceId.re))
+
+(copy_files
+ (files ../shared/Filter.re))
+
+(copy_files
+ (files ../shared/ScalarId.re))

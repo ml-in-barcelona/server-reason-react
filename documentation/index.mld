@@ -1,4 +1,4 @@
-@children_order get-started universal-code how-to-organise-universal-code browser_ppx externals-melange-attributes
+@children_order get-started router universal-code how-to-organise-universal-code browser_ppx externals-melange-attributes
 
 {0 server-reason-react}
 
@@ -14,7 +14,7 @@ server-reason-react is designed to be used with {{:https://reasonml.github.io/re
   {- Includes {b [React.Suspense]} and {b [React.use()]} implementations}
   {- {b server-reason-react-ppx} - A ppx transformation to support JSX on native}
   {- All reason-react interface is either implemented or stubbed (some of the methods, like React.useState need to be stubbed because they aren't used on the server!)}
-  {- {b React Server Components} - A ReactServerDOM module for streaming RSC payload, an esbuild plugin to enhance the bundle with client-components mappings, a Dream middleware to serve the RSC endpoint and a dummy implementation of a router (still {{:https://github.com/ml-in-barcelona/server-reason-react/issues/204}work in progress})}
+  {- {b React Server Components} - A ReactServerDOM module for streaming RSC payloads, an esbuild plugin for client-component mappings, Dream integration, and a generated type-safe router}
  }
 
  {b Warning:} This repo contains a few parts that are considered experimental and there's no guarantee of stability. Most of the stable parts are used in production at ahrefs.com, app.ahrefs.com and wordcount.com. Check each module's documentation for more details.

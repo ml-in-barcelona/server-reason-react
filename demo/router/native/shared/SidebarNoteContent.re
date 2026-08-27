@@ -1,0 +1,64 @@
+module Square = {
+  [@react.component]
+  let make = (~isExpanded) => {
+    <div
+      ariaHidden=true
+      className={Cx.make([
+        isExpanded ? "" : "rotate-180",
+        "w-full rounded-md flex items-center justify-center pt-1 text-sm select-none",
+        "transition-[background-color] duration-250 ease-out",
+        Theme.text(Theme.Color.Gray11),
+        Theme.background(Theme.Color.Gray5),
+        Theme.hover([Theme.background(Theme.Color.Gray7)]),
+      ])}>
+      {React.string("^")}
+    </div>;
+  };
+};
+
+[@react.client.component]
+let make =
+    (
+      ~id: NoteId.t,
+      ~children: React.element,
+      ~expandedChildren: React.element,
+    ) => {
+  let ({ Router.text }, _) = Router.useSearch();
+  let (isExpanded, setIsExpanded) = RR.useStateValue(false);
+  let isActive =
+    switch (Router.useRoute()) {
+    | Some(Router.Note({ id: activeId }))
+    | Some(Router.EditNote({ id: activeId })) => activeId == id
+    | _ => false
+    };
+  let ariaCurrent = isActive ? Some("page") : None;
+  let detailsId = "sidebar-note-details-" ++ NoteId.to_string(id);
+
+  <div
+    className={Cx.make([
+      "mb-3 flex flex-col rounded-md border-2",
+      Theme.background(Theme.Color.Gray4),
+      isActive
+        ? Theme.border(Theme.Color.Gray14) : Theme.border(Theme.Color.Gray4),
+    ])}>
+    <Router.Note
+      id
+      ?text
+      className="relative p-4 w-full justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 flex flex-col gap-1 cursor-pointer"
+      ?ariaCurrent>
+      children
+    </Router.Note>
+    <div id=detailsId className="px-4" hidden={!isExpanded}>
+      expandedChildren
+    </div>
+    <button
+      type_="button"
+      ariaExpanded=isExpanded
+      ariaControls=detailsId
+      ariaLabel={isExpanded ? "Collapse note preview" : "Expand note preview"}
+      className="px-4 mt-1 mb-4 cursor-pointer self-center w-full"
+      onClick={_ => setIsExpanded(!isExpanded)}>
+      <Square isExpanded />
+    </button>
+  </div>;
+};

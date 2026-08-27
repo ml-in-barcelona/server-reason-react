@@ -1,28 +1,19 @@
 let debug = Sys.getenv_opt("DEMO_ENV") == Some("development");
 
-// Allow GET and POST from the same handler enables progressive enhancement.
-// When JS is disabled, the browser will make a POST request into the same page (instead of a GET). The server should handle the form action and return the page.
-// When JS is enabled, the page will make a POST request to the server with the action ID and the server will return the action response.
+let serverFunctionHandler =
+  DreamRouter.streamFunctionResponse(~debug, ~lookup=FunctionReferences.get);
+
 let getAndPost = (path, handler) =>
   Dream.scope(
     "/",
     [],
-    [
-      Dream.get(path, handler),
-      Dream.post(
-        path,
-        DreamRSC.streamFunctionResponse(
-          ~debug,
-          ~lookup=FunctionReferences.get,
-        ),
-      ),
-    ],
+    [Dream.get(path, handler), Dream.post(path, serverFunctionHandler)],
   );
 
 let server =
   Dream.logger(
     Dream.router([
-      getAndPost("/", Pages.Home.handler),
+      getAndPost("/", Examples.Home.handler),
       Dream.get("/demo", req => Dream.redirect(req, "/")),
       Dream.get(
         "/output.css",
@@ -30,7 +21,7 @@ let server =
       ),
       Dream.get(
         "/static/**",
-        Dream.static("./_build/default/demo/client/app"),
+        Dream.static("./_build/default/demo/client/dist"),
       ),
       getAndPost(Routes.renderToString, _request =>
         Dream.html(
@@ -50,21 +41,24 @@ let server =
           ),
         )
       ),
-      getAndPost(Routes.renderToStream, Pages.Comments.handler),
-      getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
-      getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
-      getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
-      ...getAndPost
-         |> RouterRSC.routeDefinitionsHandlers(
-              "/demo/router",
-              ~bootstrapModules=["/static/demo/NestedRouterRSC.re.js"],
-              ~document=
-                (~children) =>
-                  Pages.NestedRouter.Document.make(
-                    Pages.NestedRouter.Document.makeProps(~children, ()),
-                  ),
-              ~routeDefinitions=Pages.NestedRouter.routeDefinitions,
-            ),
+      getAndPost(Routes.renderToStream, Examples.Comments.handler),
+      getAndPost(Routes.singlePageRSC, Examples.SinglePageRSC.handler),
+      getAndPost(Routes.serverOnlyRSC, Examples.ServerOnlyRSC.handler),
+      ...DreamRouter.routes(
+           ~router=RouterRegistry.server,
+           ~actionHandler=serverFunctionHandler,
+           ~ssr=
+             request =>
+               switch (Dream.query(request, "ssr")) {
+               | Some("false") => false
+               | Some("true")
+               | Some(_)
+               | None => true
+               },
+           ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
+           ~document=children => <Pages.Document> children </Pages.Document>,
+           (),
+         ),
     ]),
   );
 

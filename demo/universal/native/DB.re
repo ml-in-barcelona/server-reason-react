@@ -1,5 +1,3 @@
-open Lwt.Syntax;
-
 let repoRoot = () => {
   let exeDir = Filename.dirname(Sys.executable_name);
   let rec findRoot = dir =>
@@ -177,17 +175,14 @@ let readNotesCached =
 
 let readNotes = (~sleep=None, ()) => readNotesCached(sleep);
 
-let findOne =
-  React.cache(((notes, id)) => {
-    switch (notes |> List.find_opt((note: Note.t) => note.id == id)) {
-    | Some(note) => Lwt_result.return(note)
-    | None =>
-      Lwt_result.fail("Note with id " ++ Int.to_string(id) ++ " not found")
-    }
-  });
-
 let insertNote = (~title, ~content, notes) => {
-  let id = List.length(notes);
+  let id =
+    notes
+    |> List.fold_left(
+         (highest, note: Note.t) => Int.max(highest, note.id),
+         -1,
+       )
+    |> (highest => highest + 1);
   let note: Note.t = {
     id,
     title,
@@ -253,28 +248,27 @@ let editNote = (~id, ~title, ~content) => {
 
 let deleteNote = id => {
   let%lwt notes = readNotes();
-  let notes =
-    Result.map(
-      notes => notes |> List.filter((note: Note.t) => note.id != id),
-      notes,
-    );
-  Lwt_result.lift(notes);
+  switch (notes) {
+  | Error(error) => Lwt_result.fail(error)
+  | Ok(notes) =>
+    let notes = notes |> List.filter((note: Note.t) => note.id != id);
+    switch%lwt (writeFile("./notes.json", serializeNotes(notes))) {
+    | Ok () => Lwt_result.return(notes)
+    | Error(error) => Lwt_result.fail(error)
+    };
+  };
 };
 
-let fetchNoteCached =
-  React.cache(((sleep, id)) => {
-    Dream.log("[DB.fetchNote] Fetching note id=%d from disk", id);
-    let%lwt () =
-      switch (sleep) {
-      | Some(delay) => Lwt_unix.sleep(delay)
-      | None => Lwt.return()
-      };
-
-    let* notes = readNotes(~sleep, ());
-    switch (notes) {
-    | Ok(notes) => findOne((notes, id))
-    | Error(e) => Lwt_result.fail(e)
-    };
+let fetchNoteOptionCached =
+  React.cache(id => {
+    Dream.log("[DB.fetchNoteOption] Fetching note id=%d from disk", id);
+    let%lwt notes = readNotes();
+    Lwt.return(
+      Result.map(
+        notes => List.find_opt((note: Note.t) => note.id == id, notes),
+        notes,
+      ),
+    );
   });
 
-let fetchNote = (~sleep=None, id) => fetchNoteCached((sleep, id));
+let fetchNoteOption = id => fetchNoteOptionCached(id);

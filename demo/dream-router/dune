@@ -1,0 +1,30 @@
+(library
+ (name dream_router)
+ (modules DreamRouter)
+ (wrapped false)
+ (libraries
+  dream
+  js
+  lwt
+  lwt.unix
+  mtime
+  mtime.clock.os
+  react
+  reactDOM
+  server-reason-react.router-native
+  server-reason-react.rsc-native)
+ (preprocess
+  (pps lwt_ppx)))
+
+(test
+ (name test_dream_router)
+ (modules Test_dream_router)
+ (libraries
+  alcotest
+  dream
+  dream_router
+  lwt
+  lwt.unix
+  react
+  reactDOM
+  server-reason-react.router-native))

@@ -89,7 +89,7 @@
                         Buffer.add_char __buf '"';
                         Buffer.add_string __buf ">";
                         (let (_ : bool) =
-                           ReactDOM.write_element_to_buffer __buf
+                           ReactDOM.write_element_to_buffer_internal __buf
                              ~separators:__separators ~prev_text:false
                              (match children with
                              | None -> React.null

@@ -14,7 +14,7 @@
             Buffer.add_string(__buf, "<div>");
             {
               let (_: bool) =
-                ReactDOM.write_element_to_buffer(
+                ReactDOM.write_element_to_buffer_internal(
                   __buf,
                   ~separators=__separators,
                   ~prev_text=false,
