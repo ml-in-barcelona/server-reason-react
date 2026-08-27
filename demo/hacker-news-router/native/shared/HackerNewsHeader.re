@@ -86,32 +86,32 @@ let make = () => {
         <Router.Top
           className="hn-nav-link"
           ariaCurrent={route == Some(Router.Top) ? "page" : "false"}>
-          {React.string("Top")}
+          {React.string("top.md")}
         </Router.Top>
         <Router.New
           className="hn-nav-link"
           ariaCurrent={route == Some(Router.New) ? "page" : "false"}>
-          {React.string("New")}
+          {React.string("new.md")}
         </Router.New>
         <Router.Best
           className="hn-nav-link"
           ariaCurrent={route == Some(Router.Best) ? "page" : "false"}>
-          {React.string("Best")}
+          {React.string("best.md")}
         </Router.Best>
         <Router.Ask
           className="hn-nav-link"
           ariaCurrent={route == Some(Router.Ask) ? "page" : "false"}>
-          {React.string("Ask")}
+          {React.string("ask.md")}
         </Router.Ask>
         <Router.Show
           className="hn-nav-link"
           ariaCurrent={route == Some(Router.Show) ? "page" : "false"}>
-          {React.string("Show")}
+          {React.string("show.md")}
         </Router.Show>
         <Router.Jobs
           className="hn-nav-link"
           ariaCurrent={route == Some(Router.Jobs) ? "page" : "false"}>
-          {React.string("Jobs")}
+          {React.string("jobs.md")}
         </Router.Jobs>
       </nav>
       <div className="hn-tools">
@@ -123,7 +123,7 @@ let make = () => {
           <input
             id="hn-search-input"
             type_="search"
-            placeholder="Search stories"
+            placeholder="search stories..."
             value=text
             onChange
           />
