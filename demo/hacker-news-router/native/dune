@@ -34,7 +34,4 @@
  (files ../generated/Router.ml))
 
 (copy_files
- (files ../generated/Router.mli))
-
-(copy_files
  (files ../generated/RouterRegistry.ml))
