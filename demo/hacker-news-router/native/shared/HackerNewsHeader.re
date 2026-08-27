@@ -4,9 +4,16 @@ let make = () => {
   let ({ Router.text }, _) = Router.useSearch();
   let (navigate, _) = Router.useNavigation();
   let routerText = text |> Option.value(~default="");
-  let (text, setText) =
-    React.Experimental.useOptimistic(routerText, (_current, next) => next);
+  let (text, setText) = RR.useStateValue(routerText);
   let (_, startSearching) = React.useTransition();
+
+  React.useEffect1(
+    () => {
+      setText(routerText);
+      None;
+    },
+    [|routerText|],
+  );
 
   let%browser_only installNavigation = onNavigate => {
     let install: (string => unit, unit) => unit = [%mel.raw
