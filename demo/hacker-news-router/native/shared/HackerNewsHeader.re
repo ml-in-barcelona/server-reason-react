@@ -75,11 +75,9 @@ let make = () => {
   <header className="hn-header">
     <div className="hn-header-inner">
       <Router.Top className="hn-brand">
-        <span className="hn-brand-mark" ariaHidden=true>
-          {React.string("Y")}
-        </span>
-        <span className="hn-brand-label">
-          {React.string("Hacker News")}
+        <span className="hn-brand-label"> {React.string("HN in RSC")} </span>
+        <span className="hn-brand-subtitle">
+          {React.string("server-reason-react")}
         </span>
       </Router.Top>
       <nav className="hn-nav" ariaLabel="Hacker News feeds">
