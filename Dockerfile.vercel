@@ -42,7 +42,7 @@ RUN sudo chown -R opam:opam /app && opam exec -- dune build @demo --profile=dev
 # Slim runtime: the demo server is a native binary, no opam switch needed
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends libev4 libssl3 libgmp10 ca-certificates && \
+RUN apt-get update && apt-get install -y --no-install-recommends libev4 libssl3 libgmp10 ca-certificates netbase && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
