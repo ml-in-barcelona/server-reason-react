@@ -5,6 +5,7 @@ let renderToStream = "/demo/renderToStream";
 let serverOnlyRSC = "/demo/serverOnlyRSC";
 let singlePageRSC = "/demo/singlePageRSC";
 let router = "/demo/router";
+let hackerNews = "/demo/hacker-news";
 
 let links = [|
   (
@@ -36,6 +37,11 @@ let links = [|
     "router",
     "A router demo with server components, SSR, client components, Suspense, nested routes, and dynamic segments.",
     router,
+  ),
+  (
+    "hacker news",
+    "A Hacker News reader with cached external data, server-rendered feeds and comments, URL search state, and light and dark themes.",
+    hackerNews,
   ),
 |];
 

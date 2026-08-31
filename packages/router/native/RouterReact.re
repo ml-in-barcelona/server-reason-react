@@ -32,6 +32,7 @@ module Provider = {
         ~protocolVersion as _=1,
         ~registryFingerprint as _,
         ~basePath as _,
+        ~pageCacheCapacity as _=0,
         ~metadata,
         ~children,
       ) =>

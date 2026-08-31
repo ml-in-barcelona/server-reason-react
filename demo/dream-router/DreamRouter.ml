@@ -265,7 +265,8 @@ let ssr_marker =
     [ React.JSX.String ("id", "id", "ssr-query-param"); React.JSX.Style [ ("display", "display", "none") ] ]
     []
 
-let document_element ~router ~document (response : (React.element, 'error) RouterServer.ServerEngine.full) =
+let document_element ~router ~pageCacheCapacity ~document
+    (response : (React.element, 'error) RouterServer.ServerEngine.full) =
   let pathname, query = Dream.split_target response.canonical_url in
   let search = if String.equal query "" then "" else "?" ^ query in
   let initial : RouterRuntime.Navigation.committed =
@@ -277,7 +278,7 @@ let document_element ~router ~document (response : (React.element, 'error) Route
     }
   in
   let children =
-    RouterServer.Server.clientRoot router ~initial
+    RouterServer.Server.clientRootWithCache router ~pageCacheCapacity ~initial
       ~metadata:(metadata_element response.resolved.metadata)
       ~children:(resolved_element response.resolved)
   in
@@ -323,7 +324,8 @@ let redirect_model ~protocolVersion ~registryFingerprint destination =
   in
   RouterRuntime.NavigationResponse.redirect_to_rsc redirect |> RSC.to_model
 
-let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = []) ~document =
+let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = [])
+    ?(pageCacheCapacity = 0) ~document =
   let protocolVersion = RouterServer.Server.protocolVersion router in
   let registryFingerprint = RouterServer.Server.fingerprint router in
   fun request ->
@@ -385,15 +387,15 @@ let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(boot
                   stream_html ~code ~headers
                     ~skipRoot:(not (ssr request))
                     ~bootstrapModules
-                    (document_element ~router ~document response)
+                    (document_element ~router ~pageCacheCapacity ~document response)
               | RouterServer.ServerEngine.Rsc ->
                   stream_model_value ~code ~headers ~location:response.canonical_url (full_model response))))
 
 let routes ~router ~actionHandler ?(diagnosticId = fun _ -> string_of_int (Random.bits ()))
     ?(revision = fun () -> string_of_int (Random.bits ())) ?(ssr = fun _request -> true) ?(bootstrapModules = [])
-    ~document () =
+    ?(pageCacheCapacity = 0) ~document () =
   let basePath = RouterServer.Server.basePath router |> Dream.from_percent_encoded in
-  let handler = handler ~router ~diagnosticId ~revision ~ssr ~bootstrapModules ~document in
+  let handler = handler ~router ~diagnosticId ~revision ~ssr ~bootstrapModules ~pageCacheCapacity ~document in
   [
     Dream.get basePath handler;
     Dream.get (basePath ^ "/**") handler;

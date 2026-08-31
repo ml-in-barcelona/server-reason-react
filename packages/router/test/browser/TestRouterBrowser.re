@@ -12,6 +12,46 @@ expect(
     ),
 );
 
+let pageCache = RouterPageCache.make(~capacity=2, ());
+let cachedPage = {
+  RouterPageCache.canonicalUrl: "/one",
+  revision: "one",
+  matches: [],
+  layouts: [],
+  metadata: React.null,
+  element: React.string("one"),
+};
+RouterPageCache.set(pageCache, "/one", cachedPage);
+RouterPageCache.set(
+  pageCache,
+  "/two",
+  {
+    ...cachedPage,
+    canonicalUrl: "/two",
+  },
+);
+let _ = RouterPageCache.find(pageCache, "/one");
+RouterPageCache.set(
+  pageCache,
+  "/three",
+  {
+    ...cachedPage,
+    canonicalUrl: "/three",
+  },
+);
+expect(
+  "page cache exceeded capacity",
+  RouterPageCache.length(pageCache) == 2,
+);
+expect(
+  "least recently used page was not evicted",
+  Option.is_none(RouterPageCache.find(pageCache, "/two")),
+);
+expect(
+  "recent page was evicted",
+  Option.is_some(RouterPageCache.find(pageCache, "/one")),
+);
+
 let original = React.string("original");
 let firstPayload = React.string("first patch");
 let initial: RouterOutlet.saved = {

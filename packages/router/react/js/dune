@@ -8,6 +8,7 @@
   RouterClientRoot
   RouterHistory
   RouterOutlet
+  RouterPageCache
   RouterPattern
   RouterTransaction
   RouterTypes)
@@ -36,6 +37,9 @@
 
 (copy_files
  (files ../shared/RouterClientRoot.re))
+
+(copy_files
+ (files ../shared/RouterPageCache.re))
 
 (copy_files
  (files ../../runtime/shared/RouterTypes.re))

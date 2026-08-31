@@ -10,6 +10,14 @@ let getAndPost = (path, handler) =>
     [Dream.get(path, handler), Dream.post(path, serverFunctionHandler)],
   );
 
+let shouldSSR = request =>
+  switch (Dream.query(request, "ssr")) {
+  | Some("false") => false
+  | Some("true")
+  | Some(_)
+  | None => true
+  };
+
 let server =
   Dream.logger(
     Dream.router([
@@ -44,21 +52,29 @@ let server =
       getAndPost(Routes.renderToStream, Examples.Comments.handler),
       getAndPost(Routes.singlePageRSC, Examples.SinglePageRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Examples.ServerOnlyRSC.handler),
-      ...DreamRouter.routes(
-           ~router=RouterRegistry.server,
-           ~actionHandler=serverFunctionHandler,
-           ~ssr=
-             request =>
-               switch (Dream.query(request, "ssr")) {
-               | Some("false") => false
-               | Some("true")
-               | Some(_)
-               | None => true
-               },
-           ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
-           ~document=children => <Pages.Document> children </Pages.Document>,
-           (),
-         ),
+      ...List.concat([
+           DreamRouter.routes(
+             ~router=RouterRegistry.server,
+             ~actionHandler=serverFunctionHandler,
+             ~ssr=shouldSSR,
+             ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
+             ~document=children => <Pages.Document> children </Pages.Document>,
+             (),
+           ),
+           DreamRouter.routes(
+             ~router=Demo_hacker_news_router_native.RouterRegistry.server,
+             ~actionHandler=serverFunctionHandler,
+             ~ssr=shouldSSR,
+             ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
+             ~pageCacheCapacity=32,
+             ~document=
+               children =>
+                 <Demo_hacker_news_router_native.Pages.Document>
+                   children
+                 </Demo_hacker_news_router_native.Pages.Document>,
+             (),
+           ),
+         ]),
     ]),
   );
 

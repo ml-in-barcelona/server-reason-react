@@ -26,6 +26,7 @@ module Provider: {
       ~protocolVersion: int=?,
       ~registryFingerprint: string,
       ~basePath: string,
+      ~pageCacheCapacity: int=?,
       ~metadata: React.element,
       ~children: React.element,
       unit

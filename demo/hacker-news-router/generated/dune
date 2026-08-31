@@ -1,0 +1,25 @@
+(rule
+ (targets Router.ml RouterRegistry.ml)
+ (deps Routes.ml)
+ (action
+  (progn
+   (with-stdout-to
+    Router.ml
+    (with-stdin-from
+     %{dep:Routes.ml}
+     (run
+      %{bin:server-reason-react.router-gen}
+      --mode
+      handles
+      --source
+      %{dep:Routes.ml})))
+   (with-stdout-to
+    RouterRegistry.ml
+    (with-stdin-from
+     %{dep:Routes.ml}
+     (run
+      %{bin:server-reason-react.router-gen}
+      --mode
+      registry
+      --source
+      %{dep:Routes.ml}))))))

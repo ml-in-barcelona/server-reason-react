@@ -94,6 +94,7 @@ val routes :
   ?revision:(unit -> string) ->
   ?ssr:(Dream.request -> bool) ->
   ?bootstrapModules:string list ->
+  ?pageCacheCapacity:int ->
   document:(React.element -> React.element) ->
   unit ->
   Dream.route list
@@ -108,4 +109,5 @@ val routes :
       is wrapped in a [div#ssr-query-param] marker, so the bootstrap module can check the DOM for it: present means
       mount with [ReactDOM.Client.hydrateRoot], absent means [ReactDOM.Client.createRoot]
     @param bootstrapModules JavaScript modules loaded by document responses
+    @param pageCacheCapacity maximum visited pages cached by the client router (default: disabled)
     @param document wrap the routed client root in the HTML document tree *)

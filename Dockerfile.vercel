@@ -23,7 +23,7 @@ COPY dune ./
 COPY dune-project ./
 
 RUN make pin
-RUN opam update -y && opam install . --deps-only -y && opam install dream -y
+RUN opam update -y && opam install . --deps-only -y && opam install dream cohttp-lwt-unix lambdasoup -y
 
 WORKDIR /app/demo
 COPY demo/package.json ./package.json
@@ -42,7 +42,7 @@ RUN sudo chown -R opam:opam /app && opam exec -- dune build @demo --profile=dev
 # Slim runtime: the demo server is a native binary, no opam switch needed
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends libev4 libssl3 libgmp10 ca-certificates && \
+RUN apt-get update && apt-get install -y --no-install-recommends libev4 libssl3 libgmp10 ca-certificates netbase && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -52,7 +52,9 @@ COPY --from=builder /app/_build/default/demo/server/server.exe _build/default/de
 COPY --from=builder /app/_build/default/demo/output.css _build/default/demo/output.css
 COPY --from=builder /app/_build/default/demo/client/app _build/default/demo/client/app
 COPY --from=builder /app/_build/default/demo/client/dist _build/default/demo/client/dist
-RUN test -s _build/default/demo/client/dist/demo/RouterDemo.re.js && \
+COPY --from=builder /app/demo/server/db demo/server/db
+RUN test -s demo/server/db/notes.json && \
+    test -s _build/default/demo/client/dist/demo/RouterDemo.re.js && \
     test -n "$(find _build/default/demo/client/dist/demo -type f -name 'chunk-*.js' -print -quit)"
 
 ENV SERVER_INTERFACE=0.0.0.0
