@@ -806,30 +806,73 @@ let failure_plan_selects_not_found_boundary () =
   Alcotest.(check (option string)) "boundary" (Some "not-found") resolved.element;
   Alcotest.(check int) "status" 404 (Status.toInt resolved.status)
 
-let shared_layout_prefix_uses_canonical_identity () =
-  let scope = RouterServer.Branch.Scope.make in
-  let root = scope ~id:"root" ~parameters:[] ~reusable:true in
-  let note = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:true in
-  let same = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:true in
-  let other = scope ~id:"group:note" ~parameters:[ ("id", "2") ] ~reusable:true in
-  let outletless = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:false in
-  Alcotest.(check int) "same" 2 (RouterServer.Branch.sharedPrefix [ root; note ] [ root; same ]);
-  Alcotest.(check int) "different params" 1 (RouterServer.Branch.sharedPrefix [ root; note ] [ root; other ]);
-  Alcotest.(check int)
-    "scope without an outlet" 1
-    (RouterServer.Branch.sharedPrefix [ root; note ] [ root; outletless ])
+let instance_key_of_matches_scope_identity () =
+  let key = RouterServer.Branch.Scope.instanceKey in
+  let cases = [ ("root", []); ("group:note", [ ("id", "1") ]); ("group:note", [ ("id", "12"); ("i", "d1") ]) ] in
+  List.iter
+    (fun (id, parameters) ->
+      List.iter
+        (fun graftable ->
+          Alcotest.(check string)
+            (id ^ " graftable=" ^ string_of_bool graftable)
+            (key (RouterServer.Branch.Scope.make ~id ~parameters ~graftable))
+            (RouterServer.Branch.Scope.instanceKeyOf ~id ~parameters))
+        [ true; false ])
+    cases;
+  Alcotest.(check bool)
+    "framing keeps shared prefixes apart" false
+    (String.equal
+       (RouterServer.Branch.Scope.instanceKeyOf ~id:"note" ~parameters:[ ("id", "12") ])
+       (RouterServer.Branch.Scope.instanceKeyOf ~id:"note" ~parameters:[ ("i", "d12") ]))
 
-let plan_scope_count_bounds_the_graft () =
-  let scope = RouterServer.Plan.Scope.make ~layout:(fun child -> child) () in
-  Alcotest.(check int)
-    "success" 2
-    (RouterServer.Plan.scopeCount (RouterServer.Plan.success ~scopes:[ scope; scope ] ~page:"page"));
-  Alcotest.(check int)
-    "failure drops the failing scope" 1
-    (RouterServer.Plan.scopeCount
-       (RouterServer.Plan.failure ~scopes:[ scope ]
-          ~error:(RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })
-          ()))
+let insertion_point_uses_canonical_identity () =
+  let scope = RouterServer.Branch.Scope.make in
+  let root = scope ~id:"root" ~parameters:[] ~graftable:true in
+  let note = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~graftable:true in
+  let same = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~graftable:true in
+  let other = scope ~id:"group:note" ~parameters:[ ("id", "2") ] ~graftable:true in
+  let layoutless = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~graftable:false in
+  let leaf = scope ~id:"route:leaf" ~parameters:[] ~graftable:false in
+  let index from target =
+    Option.map fst (RouterServer.Branch.insertionPoint ~from ~target ~maxDepth:(List.length target))
+  in
+  Alcotest.(check (option int)) "same" (Some 1) (index [ root; note ] [ root; same; leaf ]);
+  Alcotest.(check (option int)) "different params" (Some 0) (index [ root; note ] [ root; other; leaf ]);
+  Alcotest.(check (option int))
+    "layout-less scope is still shared" (Some 0)
+    (index [ root; note ] [ root; layoutless; leaf ]);
+  Alcotest.(check (option int)) "no target suffix" None (index [ root; note ] [ root; same ])
+
+let insertion_point_skips_layoutless_scopes () =
+  let scope = RouterServer.Branch.Scope.make in
+  let key = RouterServer.Branch.Scope.instanceKey in
+  let root = scope ~id:"root" ~parameters:[] ~graftable:true in
+  let workspace = scope ~id:"group:0" ~parameters:[ ("id", "1") ] ~graftable:false in
+  let shell = scope ~id:"group:0.0" ~parameters:[ ("id", "1") ] ~graftable:true in
+  let leaf = scope ~id:"route:Edit" ~parameters:[ ("id", "1") ] ~graftable:false in
+  let old_leaf = scope ~id:"route:View" ~parameters:[ ("id", "1") ] ~graftable:false in
+  let target = [ root; workspace; shell; leaf ] in
+  let point =
+    RouterServer.Branch.insertionPoint ~from:[ root; workspace; shell; old_leaf ] ~target ~maxDepth:(List.length target)
+  in
+  Alcotest.(check (option (pair int string)))
+    "deepest outlet"
+    (Some (2, key shell))
+    (Option.map (fun (index, scope) -> (index, key scope)) point);
+  Alcotest.(check (option (pair int string)))
+    "falls back to the root outlet"
+    (Some (0, key root))
+    (Option.map
+       (fun (index, scope) -> (index, key scope))
+       (RouterServer.Branch.insertionPoint
+          ~from:[ root; scope ~id:"other" ~parameters:[] ~graftable:true ]
+          ~target ~maxDepth:(List.length target)));
+  Alcotest.(check bool)
+    "nothing shared" true
+    (Option.is_none
+       (RouterServer.Branch.insertionPoint
+          ~from:[ scope ~id:"other-root" ~parameters:[] ~graftable:true ]
+          ~target ~maxDepth:(List.length target)))
 
 let suffix_plan_omits_shared_layouts () =
   let open RouterRuntime in
@@ -909,8 +952,9 @@ let () =
           test "server base path validation" server_base_path_validation;
           test "full plan composition" full_plan_composition;
           test "failure plan selects not-found boundary" failure_plan_selects_not_found_boundary;
-          test "shared layout prefix uses canonical identity" shared_layout_prefix_uses_canonical_identity;
-          test "plan scope count bounds the graft" plan_scope_count_bounds_the_graft;
+          test "instance key of matches scope identity" instance_key_of_matches_scope_identity;
+          test "insertion point uses canonical identity" insertion_point_uses_canonical_identity;
+          test "insertion point skips layout-less scopes" insertion_point_skips_layoutless_scopes;
           test "suffix plan omits shared layouts" suffix_plan_omits_shared_layouts;
         ] );
     ]
