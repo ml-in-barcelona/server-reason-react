@@ -140,6 +140,11 @@ let duplicate_paths () =
   | Error (DuplicatePath "/notes") -> ()
   | _ -> Alcotest.fail "expected duplicate path"
 
+let duplicate_ids () =
+  match RouterServer.Registry.make [ route ~id:"note" ~path:"/notes"; route ~id:"note" ~path:"/archive" ] with
+  | Error (DuplicateId "note") -> ()
+  | _ -> Alcotest.fail "expected duplicate id"
+
 let ambiguous_patterns () =
   match
     RouterServer.Registry.make [ route ~id:"note" ~path:"/:id<NoteId.t>"; route ~id:"slug" ~path:"/:slug<Slug.t>" ]
@@ -861,6 +866,7 @@ let () =
           test "catch-all toString validation" catch_all_to_string_validation;
           test "destination catch-all encoding" destination_catch_all_encoding;
           test "duplicate paths" duplicate_paths;
+          test "duplicate ids" duplicate_ids;
           test "ambiguous patterns" ambiguous_patterns;
           test "overlapping patterns" overlapping_patterns;
           test "malformed escape" malformed_escape;

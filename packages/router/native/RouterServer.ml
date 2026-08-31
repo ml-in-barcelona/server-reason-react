@@ -196,11 +196,11 @@ module Registry = struct
     | AmbiguousPattern of string * string
     | InvalidPattern of string
 
-  let rec duplicate key = function
+  let rec find_duplicate_id = function
     | [] -> None
     | item :: rest ->
-        if List.exists (fun other -> String.equal (key item) (key other)) rest then Some (key item)
-        else duplicate key rest
+        let id = item.Route.id in
+        if List.exists (fun other -> String.equal id other.Route.id) rest then Some id else find_duplicate_id rest
 
   let conflict routes =
     let rec loop = function
@@ -257,7 +257,7 @@ module Registry = struct
     loop root route.Route.segments
 
   let make routes =
-    match duplicate (fun route -> route.Route.id) routes with
+    match find_duplicate_id routes with
     | Some id -> Error (DuplicateId id)
     | None -> (
         match conflict routes with
@@ -272,13 +272,13 @@ module Registry = struct
               routes;
             Ok { routes; exact; root })
 
-  let invalid = function
+  let raise_invalid = function
     | DuplicateId id -> invalid_arg ("duplicate route id " ^ id)
     | DuplicatePath path -> invalid_arg ("duplicate route path " ^ path)
     | AmbiguousPattern (left, right) -> invalid_arg ("ambiguous route patterns " ^ left ^ " and " ^ right)
     | InvalidPattern path -> invalid_arg ("invalid route pattern " ^ path)
 
-  let makeExn routes = match make routes with Ok registry -> registry | Error error -> invalid error
+  let makeExn routes = match make routes with Ok registry -> registry | Error error -> raise_invalid error
   let routes registry = registry.routes
 end
 
@@ -681,7 +681,8 @@ module EndpointRegistry = struct
         Ok { raw; endpoints_by_id; fingerprint }
     | Error error -> Error error
 
-  let makeExn endpoints = match make endpoints with Ok registry -> registry | Error error -> Registry.invalid error
+  let makeExn endpoints =
+    match make endpoints with Ok registry -> registry | Error error -> Registry.raise_invalid error
 
   let find registry ~pathname =
     match Match.find registry.raw ~pathname with
