@@ -2,7 +2,7 @@
 
     {!Path} and {!Search} first validate the untrusted URL. {!Registry} and
     {!Match} select a route, then {!Decode} gives the generated endpoint typed
-    inputs. The endpoint describes both its reusable layout {!Branch} and its
+    inputs. The endpoint describes both its graftable layout {!Branch} and its
     deferred loader {!Execution}. Finally, {!Plan} assembles the view, metadata,
     and headers while {!ServerEngine} decides whether the client needs a full
     response, a branch patch, a redirect, or a reload. *)
@@ -147,21 +147,24 @@ module Branch : sig
   module Scope : sig
     type t
 
-    val make : id:string -> parameters:(string * string) list -> reusable:bool -> t
+    val instanceKeyOf : id:string -> parameters:(string * string) list -> string
+    (** The instance key of a scope identity, without building the scope. [make] derives [instanceKey] from this, so a
+        key built here always matches the corresponding scope. *)
+
+    val make : id:string -> parameters:(string * string) list -> graftable:bool -> t
     (** [parameters] are framed into [instanceKey], avoiding ambiguous keys when names or values have shared prefixes.
-        [reusable] marks a scope that owns an outlet and can therefore receive a navigation patch. *)
+    *)
 
     val id : t -> string
     val instanceKey : t -> string
-    val reusable : t -> bool
+    val graftable : t -> bool
   end
 
   type t = Scope.t list
 
-  val sharedPrefix : t -> t -> int
-  (** Returns the number of leading layout instances that can survive a navigation. Comparison stops as soon as either
-      scope is not reusable. The result is an upper bound: {!Plan.scopeCount} bounds it further once loaders have run.
-  *)
+  val insertionPoint : from:t -> target:t -> maxDepth:int -> (int * Scope.t) option
+  (** The deepest graftable scope shared by both branches below [maxDepth], with its index. Returns [None] when there is
+      no shared outlet or the target has no suffix to insert. *)
 
   val layouts : t -> RouterRuntime.Navigation.layout list
 end
@@ -201,10 +204,6 @@ module Plan : sig
     ?errorBoundary:('error RouterRuntime.Error.t -> 'view) ->
     unit ->
     ('view, 'error) t
-
-  val scopeCount : ('view, 'error) t -> int
-  (** The number of layout scopes the plan renders. A loader failure drops the failing scope and everything below it, so
-      this can be shorter than the matched {!Branch.t} and bounds how deep a patch may graft. *)
 
   type render = Full | Suffix of { omitted_scopes : int }
 
