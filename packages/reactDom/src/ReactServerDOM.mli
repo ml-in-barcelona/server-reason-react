@@ -3,7 +3,11 @@
     instruction in [render_html], the stream closes, and the pending Lwt work is canceled (best-effort: promises without
     cancellation support keep running, but their late output is dropped). [abort] is a host-supplied promise, typically
     resolved on client disconnect; a rejected or canceled signal also aborts. [render_html]'s deadline starts when the
-    returned subscribe function is called, not during shell rendering. *)
+    returned subscribe function is called, not during shell rendering.
+
+    All render functions emit element key-validation metadata in both environments. Static child positions have state
+    [1], unkeyed dynamic members have state [2], and other unvalidated elements have state [0]. The default [env]
+    remains [`Prod]: error messages and stacks remain redacted, and element owner/stack slots are null. *)
 
 val render_html :
   ?skipRoot:bool ->

@@ -5,15 +5,23 @@
   let upper_children_single = foo =>
     Upper.make(Upper.makeProps(~children=foo, ()));
   let upper_children_multiple = (foo, bar) =>
-    Upper.make(Upper.makeProps(~children=React.list([foo, bar]), ()));
+    Upper.make(
+      Upper.makeProps(
+        ~children=
+          React.list([React.Static_child(foo), React.Static_child(bar)]),
+        (),
+      ),
+    );
   let upper_children =
     Page.make(
       Page.makeProps(
         ~children=
-          React.Static({
-            prerendered: "<h1>Yep</h1>",
-            original: React.createElement("h1", [], [React.string("Yep")]),
-          }),
+          React.Static_child(
+            React.Static({
+              prerendered: "<h1>Yep</h1>",
+              original: React.createElement("h1", [], [React.string("Yep")]),
+            }),
+          ),
         ~moreProps="hgalo",
         (),
       ),
@@ -25,10 +33,12 @@
     MyComponent.make(
       MyComponent.makeProps(
         ~children=
-          React.Static({
-            prerendered: "<div>hello</div>",
-            original: React.createElement("div", [], ["hello"]),
-          }),
+          React.Static_child(
+            React.Static({
+              prerendered: "<div>hello</div>",
+              original: React.createElement("div", [], ["hello"]),
+            }),
+          ),
         ~booleanAttribute=true,
         ~stringAttribute="string",
         ~intAttribute=1,
@@ -41,10 +51,12 @@
     FancyButton.make(
       FancyButton.makeProps(
         ~children=
-          React.Static({
-            prerendered: "<div></div>",
-            original: React.createElement("div", [], []),
-          }),
+          React.Static_child(
+            React.Static({
+              prerendered: "<div></div>",
+              original: React.createElement("div", [], []),
+            }),
+          ),
         ~ref=buttonRef,
         (),
       ),

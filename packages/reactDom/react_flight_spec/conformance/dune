@@ -3,6 +3,16 @@
  (modules spec_fixture)
  (libraries alcotest))
 
+(library
+ (name flight_projection)
+ (modules flight_projection)
+ (libraries yojson str))
+
+(test
+ (name test_flight_projection)
+ (modules test_flight_projection)
+ (libraries flight_projection alcotest))
+
 (test
  (name flight_spec_conformance)
  (modules flight_spec_conformance)
@@ -10,6 +20,7 @@
  (libraries
   flight_spec_cases_native
   spec_fixture
+  flight_projection
   reactDOM
   react
   alcotest

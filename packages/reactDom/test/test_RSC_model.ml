@@ -90,7 +90,7 @@ let dollar_prefixed_strings_are_escaped () =
   assert_list_of_strings !output
     [
       "0:[\"$\",\"div\",null,{\"children\":[\"$$dollar\",\"$$$double\",\"safe $ \
-       inside\"],\"title\":\"$$title\"},null,null,1]\n";
+       inside\"],\"title\":\"$$title\"},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -110,7 +110,7 @@ let dollar_prefixed_json_props_are_escaped () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Component\"]\n";
-      "0:[\"$\",\"$L1\",null,{\"data\":{\"label\":\"$$ref-like\"}},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"data\":{\"label\":\"$$ref-like\"}},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -129,7 +129,7 @@ let numeric_props_serialize_as_json_numbers () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
   assert_list_of_strings !output
-    [ "0:[\"$\",\"div\",null,{\"tabIndex\":42,\"aria-valuemin\":0.5,\"aria-valuemax\":100},null,null,1]\n" ];
+    [ "0:[\"$\",\"div\",null,{\"tabIndex\":42,\"aria-valuemin\":0.5,\"aria-valuemax\":100},null,null,0]\n" ];
   Lwt.return ()
 
 let numeric_children_serialize_as_json_numbers () =
@@ -138,14 +138,14 @@ let numeric_children_serialize_as_json_numbers () =
   let app = React.createElement "span" [] [ React.int 42; React.float 3.14; React.int 0; React.float 100.0 ] in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
-  assert_list_of_strings !output [ "0:[\"$\",\"span\",null,{\"children\":[42,3.14,0,100]},null,null,1]\n" ];
+  assert_list_of_strings !output [ "0:[\"$\",\"span\",null,{\"children\":[42,3.14,0,100]},null,null,0]\n" ];
   Lwt.return ()
 
 let lower_case_component () =
   let app = React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) [] in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
-  assert_list_of_strings !output [ "0:[\"$\",\"div\",null,{\"className\":\"foo\"},null,null,1]\n" ];
+  assert_list_of_strings !output [ "0:[\"$\",\"div\",null,{\"className\":\"foo\"},null,null,0]\n" ];
   Lwt.return ()
 
 let lower_case_with_children () =
@@ -157,7 +157,7 @@ let lower_case_with_children () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"Home\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"Nohome\"},null,null,1]]},null,null,1]\n";
+      "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"Home\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"Nohome\"},null,null,1]]},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -193,7 +193,7 @@ let dangerouslySetInnerHtml () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"script\",null,{\"type\":\"application/javascript\",\"dangerouslySetInnerHTML\":{\"__html\":\"console.log('Hi!')\"}},null,null,1]\n";
+      "0:[\"$\",\"script\",null,{\"type\":\"application/javascript\",\"dangerouslySetInnerHTML\":{\"__html\":\"console.log('Hi!')\"}},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -499,7 +499,7 @@ let suspense_in_a_list () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L5\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L6\",\"fallback\":\"Loading...\"},null,null,1]]\n";
+      "0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L5\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L6\",\"fallback\":\"Loading...\"},null,null,2]]\n";
       "2:\"A\"\n";
       "3:\"B\"\n";
       "4:\"C\"\n";
@@ -527,7 +527,7 @@ let suspense_in_a_list_with_error () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L5\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L6\",\"fallback\":\"Loading...\"},null,null,1]]\n";
+      "0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L5\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L6\",\"fallback\":\"Loading...\"},null,null,2]]\n";
       "2:\"A\"\n";
       "3:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "4:\"C\"\n";
@@ -651,7 +651,7 @@ let client_without_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-without-props.js\",[],\"ClientWithoutProps\"]\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,null,1],[\"$\",\"$L1\",null,{},null,null,1]]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,null,2],[\"$\",\"$L1\",null,{},null,null,2]]\n";
     ];
   Lwt.return ()
 
@@ -689,9 +689,9 @@ let client_with_json_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"null\":null,\"string\":\"Title\",\"int\":1,\"float\":1.1,\"bool \
+       Content\"},null,null,2],[\"$\",\"$L1\",null,{\"null\":null,\"string\":\"Title\",\"int\":1,\"float\":1.1,\"bool \
        true\":true,\"bool false\":false,\"string list\":[\"Item 1\",\"Item \
-       2\"],\"object\":{\"name\":\"John\",\"age\":30}},null,null,1]]\n";
+       2\"],\"object\":{\"name\":\"John\",\"age\":30}},null,null,2]]\n";
     ];
   Lwt.return ()
 
@@ -719,7 +719,7 @@ let client_with_element_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"children\":\"Client Content\"},null,null,1]]\n";
+       Content\"},null,null,2],[\"$\",\"$L1\",null,{\"children\":\"Client Content\"},null,null,2]]\n";
     ];
   Lwt.return ()
 
@@ -752,7 +752,7 @@ let client_with_promise_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+       Content\"},null,null,2],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,2]]\n";
       "2:\"||| Resolved |||\"\n";
     ];
   Lwt.return ()
@@ -787,7 +787,7 @@ let client_with_promise_failed_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+       Content\"},null,null,2],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,2]]\n";
       "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
@@ -819,7 +819,7 @@ let client_with_promise_already_failed_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+       Content\"},null,null,2],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,2]]\n";
       "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
@@ -858,8 +858,8 @@ let mixed_server_and_client () =
       "1:I[\"./client-1.js\",[],\"Client1\"]\n";
       "2:I[\"./client-2.js\",[],\"Client2\"]\n";
       "0:[[\"$\",\"header\",null,{\"children\":\"Server \
-       Header\"},null,null,1],[\"$\",\"$L1\",null,{},null,null,1],[\"$\",\"footer\",null,{\"children\":\"Server \
-       Footer\"},null,null,1],[\"$\",\"$L2\",null,{},null,null,1]]\n";
+       Header\"},null,null,2],[\"$\",\"$L1\",null,{},null,null,2],[\"$\",\"footer\",null,{\"children\":\"Server \
+       Footer\"},null,null,2],[\"$\",\"$L2\",null,{},null,null,2]]\n";
     ];
   Lwt.return ()
 
@@ -888,8 +888,8 @@ let client_with_server_children () =
     [
       "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
-       Inside Client\"},null,null,1]},null,null,1]]\n";
+       Content\"},null,null,2],[\"$\",\"$L1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
+       Inside Client\"},null,null,1]},null,null,2]]\n";
     ];
   Lwt.return ()
 
@@ -904,7 +904,7 @@ let key_renders_outside_of_props () =
   assert_list_of_strings !output
     [
       "0:[\"$\",\"section\",\"important key\",{\"children\":[\"$\",\"strong\",null,{\"children\":\"React \
-       Notes\"},null,null,1],\"className\":\"sidebar-header\"},null,null,1]\n";
+       Notes\"},null,null,1],\"className\":\"sidebar-header\"},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -917,7 +917,7 @@ let style_as_json () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
   assert_list_of_strings !output
-    [ "0:[\"$\",\"div\",null,{\"style\":{\"background\":\"blue\",\"color\":\"red\",\"zIndex\":\"34\"}},null,null,1]\n" ];
+    [ "0:[\"$\",\"div\",null,{\"style\":{\"background\":\"blue\",\"color\":\"red\",\"zIndex\":\"34\"}},null,null,0]\n" ];
   Lwt.return ()
 
 let act_with_simple_response () =
@@ -1220,7 +1220,7 @@ let nested_context () =
       "1:I[\"./provider.js\",[],\"Provider\"]\n";
       "2:I[\"./consumer.js\",[],\"Consumer\"]\n";
       "0:[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":null,\"children\":\"Hey \
-       you\"},null,null,1],\"children\":[\"/me\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/about\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1]\n";
+       you\"},null,null,1],\"children\":[\"/me\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1],\"children\":[\"/about\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -1244,7 +1244,7 @@ let async_component_under_provider_reads_provider_value () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n";
       "2:\"provided\"\n";
     ];
   Lwt.return ()
@@ -1294,7 +1294,7 @@ let suspense_at_root () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[\"$\",\"$1\",null,{\"children\":\"Resolved content\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"Resolved content\",\"fallback\":\"Loading...\"},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -1312,7 +1312,7 @@ let suspense_at_root_with_upper_case_children () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1],\"fallback\":\"Loading...\"},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -1331,7 +1331,7 @@ let suspense_at_root_with_nested_components () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1]},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1]},null,null,1],\"fallback\":\"Loading...\"},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -1353,7 +1353,7 @@ let suspense_at_root_with_async () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n";
       "2:[\"$\",\"span\",null,{\"children\":\"Async resolved\"},null,null,1]\n";
     ];
   Lwt.return ()
@@ -1430,7 +1430,7 @@ let special_characters_not_html_encoded () =
   assert_list_of_strings !output
     [
       "0:[\"$\",\"div\",null,{\"children\":[\"Tom & Jerry\",\"<script>alert('xss')</script>\",\"it's a \
-       \\\"test\\\"\",\"&amp; &lt; &gt;\"]},null,null,1]\n";
+       \\\"test\\\"\",\"&amp; &lt; &gt;\"]},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -1578,7 +1578,7 @@ let duplicate_client_component_deduplicates_ref () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
-      "0:[[\"$\",\"$L1\",null,{},null,null,1],[\"$\",\"$L1\",null,{},null,null,1]]\n";
+      "0:[[\"$\",\"$L1\",null,{},null,null,2],[\"$\",\"$L1\",null,{},null,null,2]]\n";
     ];
   Lwt.return ()
 
@@ -1599,7 +1599,7 @@ let keyed_duplicate_client_component_preserves_keys () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
-      "0:[[\"$\",\"$L1\",\"first\",{},null,null,1],[\"$\",\"$L1\",\"second\",{},null,null,1]]\n";
+      "0:[[\"$\",\"$L1\",\"first\",{},null,null,0],[\"$\",\"$L1\",\"second\",{},null,null,0]]\n";
     ];
   Lwt.return ()
 
@@ -1706,7 +1706,7 @@ let abort_settles_pending_promise_prop () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "0:[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,0]\n";
       dev_aborted_row 2;
     ];
   Lwt.return ()
@@ -1729,7 +1729,7 @@ let abort_settles_multiple_rows_in_ascending_order () =
       "1:\"$Sreact.suspense\"\n";
       "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading \
        A\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading \
-       B\"},null,null,1]]},null,null,1]\n";
+       B\"},null,null,1]]},null,null,0]\n";
       dev_aborted_row 2;
       dev_aborted_row 3;
     ];
@@ -1744,7 +1744,7 @@ let model_timeout_settles_pending_rows () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n";
       dev_timed_out_row 2;
     ];
   Lwt.return ()
@@ -1765,7 +1765,7 @@ let model_timeout_does_not_affect_fast_renders () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n";
       "2:\"Fast content\"\n";
     ];
   Lwt.return ()
@@ -1777,7 +1777,7 @@ let completion_does_not_cancel_abort_signal () =
   let app = React.createElement "div" [] [ React.string "Fast" ] in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort app in
-  assert_list_of_strings !output [ "0:[\"$\",\"div\",null,{\"children\":\"Fast\"},null,null,1]\n" ];
+  assert_list_of_strings !output [ "0:[\"$\",\"div\",null,{\"children\":\"Fast\"},null,null,0]\n" ];
   (match Lwt.state abort with
   | Sleep -> ()
   | Return () -> Alcotest.fail "the abort signal should stay pending"
@@ -1888,7 +1888,7 @@ let externally_canceled_resource_settles_row () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n";
       "2:E{\"message\":\"Lwt.Resolution_loop.Canceled\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()

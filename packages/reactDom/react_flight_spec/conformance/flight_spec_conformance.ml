@@ -1,6 +1,7 @@
 (* Conformance runner: renders every case from the shared registry with
    ReactServerDOM.render_model ~env:`Prod and byte-compares the normalized
-   rows against the committed fixtures produced by the real
+   rows, after checking and removing the production validation extension,
+   against the committed fixtures produced by the real
    react-server-dom-webpack (see ../generate.mjs).
 
 
@@ -15,6 +16,10 @@ let normalize_row row =
   Str.global_replace (Str.regexp "\"digest\":\"[^\"]*\"") "\"digest\":\"<digest>\"" row
 
 let to_rows payload = List.map normalize_row (Spec_fixture.split_rows payload)
+
+let native_rows payload =
+  List.map (fun row -> normalize_row (Flight_projection.project_row row)) (Spec_fixture.split_rows payload)
+
 let read_fixture = Spec_fixture.read ~dir:fixtures_dir ~suffix:".flight" ~regen_command:"make spec-generate"
 
 let render_case (case : Cases.case) =
@@ -24,7 +29,7 @@ let render_case (case : Cases.case) =
     Lwt.return ()
   in
   let%lwt () = ReactServerDOM.render_model ~env:`Prod ~subscribe (case.render ()) in
-  Lwt.return (to_rows (Buffer.contents buffer))
+  Lwt.return (native_rows (Buffer.contents buffer))
 
 let print_diff ~fixture ~rendered =
   let max_len = max (List.length fixture) (List.length rendered) in

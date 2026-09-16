@@ -609,6 +609,9 @@ and element =
     }
   | List of element list
   | Array of element array
+  | Static_child of element
+      (** An explicit child position. The marker preserves static key-validation evidence through forwarding and
+          cloning. It is transparent for rendering and does not validate members of a wrapped list or array. *)
   | Text of string
   | Int of int
   | Float of float
@@ -647,6 +650,9 @@ end
 module StrictMode : module type of Fragment
 
 val createElement : string -> JSX.prop list -> element list -> element
+(** The child list contains explicit sibling positions. Wrap a runtime collection with [list] or [array] so its members
+    remain eligible for missing-key warnings. *)
+
 val createElementWithKey : ?key:string -> string -> JSX.prop list -> element list -> element
 val component : 'props component -> 'props component
 val isValidElement : element -> bool

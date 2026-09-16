@@ -1,0 +1,7 @@
+(executable
+ (name export_fixtures)
+ (modules export_fixtures jsx_cases)
+ (modes native)
+ (libraries react reactDOM js lwt.unix yojson)
+ (preprocess
+  (pps server-reason-react.ppx lwt_ppx)))

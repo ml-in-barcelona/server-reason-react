@@ -1,0 +1,12 @@
+(tests
+ (names
+  generic_string_children
+  generic_record_children
+  generic_array_children
+  static_element_children)
+ (libraries
+  server-reason-react.js
+  server-reason-react.react
+  server-reason-react.reactDom)
+ (preprocess
+  (pps server-reason-react.ppx)))

@@ -10,6 +10,7 @@ let equal_attrs (a1 : React.JSX.prop) (a2 : React.JSX.prop) =
 let equal_elements (c1 : React.element) (c2 : React.element) =
   let rec equal_rec (c1 : React.element) (c2 : React.element) =
     match (c1, c2) with
+    | Static_child child1, Static_child child2 -> equal_rec child1 child2
     | Lower_case_element lc1, Lower_case_element lc2 ->
         lc1.tag == lc2.tag
         && List.for_all2 equal_rec lc1.children lc2.children

@@ -255,3 +255,38 @@ Use [<ClientOnly/>] when the server JSX can be empty ([RR.null]) and only want t
 ]}
 
 Again, we should use [%browser_only] even when using [ClientOnly] since the content {b MUST} compile on [native].
+
+{1 Flight child keys}
+
+[ReactServerDOM] sends key-validation metadata in both [`Prod] and [`Dev].
+Explicit sibling positions do not require list keys. Runtime collections created
+with [React.list] or [React.array] require keys on their element members.
+
+{[
+let static = React.createElement "div" [] [first; second]
+let dynamic = React.createElement "div" [] [React.list items]
+]}
+
+The native PPX retains explicit sibling positions with [React.Static_child].
+The marker is shallow: wrapping a collection does not validate its members.
+Forwarding and cloning a marked child preserve its static position information.
+Code that inspects [React.element] directly must handle this constructor.
+
+Component child props can also contain strings, records, or other custom types.
+For a single child expression, the PPX marks direct JSX and explicit
+[React.element] annotations. Generated prop constructors also mark [children]
+declared as [React.element]. The PPX cannot resolve inferred types or type aliases.
+An arbitrary single-child value remains unchanged until it reaches a known element
+slot. Annotate a forwarding component's element child when it needs to retain that
+information before placing the child in another collection:
+
+{@reasonml[
+[@react.component]
+let make = (~children: React.element) => {
+  <div> {React.list([children])} </div>;
+};
+]}
+
+The default environment remains [`Prod]. Error details remain redacted. The
+validation fields add 12 uncompressed bytes per production element tuple and let
+a development client report missing keys without warning about static siblings.
