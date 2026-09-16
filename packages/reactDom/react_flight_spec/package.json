@@ -7,5 +7,10 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-server-dom-webpack": "19.1.0"
+  },
+  "devDependencies": {
+    "@pedrobslisboa/react-client": "19.1.0",
+    "esbuild": "0.25.12",
+    "playwright": "1.56.1"
   }
 }

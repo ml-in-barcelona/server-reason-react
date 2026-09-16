@@ -83,6 +83,14 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
         run: make spec-check
 
+      - name: Install Flight browser test Chromium
+        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
+        run: cd packages/reactDom/react_flight_spec && npx --no-install playwright install --with-deps chromium
+
+      - name: Check native Flight key validation in the browser
+        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
+        run: make test-flight-key-validation
+
       - name: Generate docs
         if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
         run: |

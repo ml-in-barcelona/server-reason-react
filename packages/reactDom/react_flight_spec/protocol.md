@@ -1,9 +1,9 @@
 # React Flight wire protocol notes
 
-Observed from `react-server-dom-webpack@19.1.0` with `NODE_ENV=production`
-(the prod wire format is the contract; dev adds debug rows and stacks on top).
-This file is kept honest by the fixtures: if a statement here disagrees with a
-committed `.flight` file, the fixture wins.
+Observed from `react-server-dom-webpack@19.1.0` with `NODE_ENV=production`.
+The fixtures record that production format. server-reason-react extends element
+tuples with key-validation fields, as described below. Conformance checks that
+extension separately and compares all remaining bytes with the fixtures.
 
 ## Stream framing
 
@@ -118,9 +118,36 @@ React prod encodes an element as a 4-tuple:
   as the special strings `"$NaN"`, `"$Infinity"`, `"$-Infinity"` and
   `"$-0"` (`props_float_extremes`, `children_float_large`).
 
-Prod emits the 4-tuple form. Dev appends the debug fields
-`[debugOwner, debugStack, validated]`, producing 7-tuples. server-reason-react
-follows the same gate on `~env`.
+React's development server appends `[debugOwner, debugStack, validated]`.
+server-reason-react sends these three fields in **both** environments so a
+development client can distinguish static positions from runtime collections:
+
+```json
+["$", "span", null, {"children":"a"}, null, null, 1]
+```
+
+| `validated` | Meaning |
+| --- | --- |
+| `0` | Unvalidated element, including bare roots and keyed runtime items |
+| `1` | Static child position or a single server-component result |
+| `2` | Unvalidated, unkeyed member of a runtime collection |
+
+React 19.1.0's development Flight server changes unkeyed array members from
+`0` to `2` during serialization. The development client preserves these states.
+The production client ignores the extra fields. Production owner and stack
+slots stay `null`; error redaction and the `debug` option remain independent.
+The extension adds 12 uncompressed bytes per production element tuple.
+
+The native `React.Static_child` marker preserves static evidence without mutating
+shared elements. A marker around a collection does not mark its members.
+`React.list`, `React.array`, and `React.Model.List` classify unmarked element
+members as dynamic. Model promise resolutions use their own marks and structure,
+independent of the first reference's position.
+
+Native server-component invocation keys and fragment keys are currently discarded.
+This validation support covers represented host, client, and Suspense elements.
+It does not restore diagnostics for those discarded identities or compose server
+key paths.
 
 A prop whose value is absent (e.g. a `<Suspense>` without `fallback`) is
 omitted from the props object entirely, not serialized as `null`

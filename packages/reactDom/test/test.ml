@@ -12,6 +12,7 @@ let () =
             Test_write_to_buffer.tests;
             Test_reactDOMStyle.tests;
             Test_RSC_model.tests;
+            Test_key_validation.tests;
             Test_RSC_decoders.tests;
             Test_useId.tests;
           ]))

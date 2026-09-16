@@ -1,32 +1,44 @@
   $ ../ppx.sh --output re input.re
-  let fragment = foo => [@bla] React.fragment(React.list([foo]));
+  let fragment = foo =>
+    [@bla] React.fragment(React.list([React.Static_child(foo)]));
   let poly_children_fragment = (foo, bar) =>
-    React.fragment(React.list([foo, bar]));
+    React.fragment(
+      React.list([React.Static_child(foo), React.Static_child(bar)]),
+    );
   let nested_fragment = (foo, bar, baz) =>
     React.fragment(
-      React.list([foo, React.fragment(React.list([bar, baz]))]),
+      React.list([
+        React.Static_child(foo),
+        React.Static_child(
+          React.fragment(
+            React.list([React.Static_child(bar), React.Static_child(baz)]),
+          ),
+        ),
+      ]),
     );
   let nested_fragment_with_lower = foo =>
     React.fragment(
       React.list([
-        React.Writer({
-          emit: (__buf, ~separators as __separators) => {
-            Buffer.add_string(__buf, "<div>");
-            {
-              let (_: bool) =
-                ReactDOM.write_element_to_buffer_internal(
-                  __buf,
-                  ~separators=__separators,
-                  ~prev_text=false,
-                  foo,
-                );
+        React.Static_child(
+          React.Writer({
+            emit: (__buf, ~separators as __separators) => {
+              Buffer.add_string(__buf, "<div>");
+              {
+                let (_: bool) =
+                  ReactDOM.write_element_to_buffer_internal(
+                    __buf,
+                    ~separators=__separators,
+                    ~prev_text=false,
+                    foo,
+                  );
+                ();
+              };
+              Buffer.add_string(__buf, "</div>");
               ();
-            };
-            Buffer.add_string(__buf, "</div>");
-            ();
-          },
-          original: () => React.createElement("div", [], [foo]),
-        }),
+            },
+            original: () => React.createElement("div", [], [foo]),
+          }),
+        ),
       ]),
     );
   module Fragment = {
@@ -62,25 +74,32 @@
                   () =>
                     React.fragment(
                       React.list([
-                        React.Writer({
-                          emit: (__buf, ~separators as _) => {
-                            Buffer.add_string(__buf, "<div>");
-                            ReactDOM.escape_to_buffer(__buf, "First " ++ name);
-                            Buffer.add_string(__buf, "</div>");
-                            ();
-                          },
-                          original: () =>
-                            React.createElement(
-                              "div",
-                              [],
-                              [React.string("First " ++ name)],
+                        React.Static_child(
+                          React.Writer({
+                            emit: (__buf, ~separators as _) => {
+                              Buffer.add_string(__buf, "<div>");
+                              ReactDOM.escape_to_buffer(
+                                __buf,
+                                "First " ++ name,
+                              );
+                              Buffer.add_string(__buf, "</div>");
+                              ();
+                            },
+                            original: () =>
+                              React.createElement(
+                                "div",
+                                [],
+                                [React.string("First " ++ name)],
+                              ),
+                          }),
+                        ),
+                        React.Static_child(
+                          Hello.make(
+                            Hello.makeProps(
+                              ~children=React.string("2nd " ++ name),
+                              ~one="1",
+                              (),
                             ),
-                        }),
-                        Hello.make(
-                          Hello.makeProps(
-                            ~children=React.string("2nd " ++ name),
-                            ~one="1",
-                            (),
                           ),
                         ),
                       ]),

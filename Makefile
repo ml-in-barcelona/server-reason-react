@@ -170,6 +170,11 @@ bench-allocation: ## Run allocation analysis
 
 flight_spec_dir = packages/reactDom/react_flight_spec
 
+.PHONY: test-flight-key-validation
+test-flight-key-validation: ## Test native Flight output in development and production Chromium (requires flight spec npm deps and Chromium)
+	$(DUNE) build $(flight_spec_dir)/key_validation/export_fixtures.exe
+	node $(flight_spec_dir)/key_validation/run.mjs
+
 .PHONY: spec-generate
 spec-generate: ## Regenerate React Flight fixtures from react-server-dom-webpack (requires `npm ci` in $(flight_spec_dir))
 	$(DUNE) build --profile=dev @$(flight_spec_dir)/melange

@@ -364,6 +364,97 @@ module Component = {
   };
 };
 
+module ForwardChildren = {
+  let makeProps = (~children, ()) => children;
+  let make = children => children;
+};
+
+let static_child_slots = () => {
+  let calls = Stdlib.ref(0);
+  let child = () => {
+    Stdlib.incr(calls);
+    React.createElement("span", [], []);
+  };
+  let single = <ForwardChildren> {(child(): React.element)} </ForwardChildren>;
+  Alcotest.check(Alcotest.int, "scalar evaluated once", 1, calls^);
+  switch (single) {
+  | React.Static_child(React.Lower_case_element(_)) => ()
+  | _ => Alcotest.fail("expected marked scalar component child")
+  };
+  let siblings = <ForwardChildren> {child()} {child()} </ForwardChildren>;
+  Alcotest.check(Alcotest.int, "siblings evaluated once", 3, calls^);
+  switch (siblings) {
+  | React.List([React.Static_child(_), React.Static_child(_)]) => ()
+  | _ => Alcotest.fail("expected individually marked siblings")
+  };
+  let bare = React.createElement("span", [], []);
+  let dynamic = React.list([bare]);
+  let forwarded = <ForwardChildren> dynamic </ForwardChildren>;
+  Alcotest.check(
+    Alcotest.bool,
+    "runtime collection members remain bare",
+    true,
+    Stdlib.(React.Children.only(forwarded) == bare),
+  );
+  let fragment = <> {child()} dynamic </>;
+  Alcotest.check(Alcotest.int, "fragment child evaluated once", 4, calls^);
+  switch (fragment) {
+  | React.Fragment(
+      React.List([
+        React.Static_child(_),
+        React.Static_child(React.List([member])),
+      ]),
+    ) =>
+    Alcotest.check(
+      Alcotest.bool,
+      "fragment keeps dynamic member",
+      true,
+      Stdlib.(member == bare),
+    )
+  | _ => Alcotest.fail("expected marked fragment positions")
+  };
+};
+
+let static_child_optimized_equivalence = () => {
+  let dynamic =
+    React.list([React.createElement("b", [], [React.string("dynamic")])]);
+  let optimized =
+    <ForwardChildren> <section> <span /> dynamic </section> </ForwardChildren>;
+  let plain =
+    React.Static_child(
+      React.createElement(
+        "section",
+        [],
+        [React.createElement("span", [], []), dynamic],
+      ),
+    );
+  switch (optimized) {
+  | React.Static_child(React.Writer({ original, _ })) =>
+    switch (original()) {
+    | React.Lower_case_element({
+        children: [React.Static_child(_), collection],
+        _,
+      }) =>
+      Alcotest.check(
+        Alcotest.bool,
+        "writer original retains runtime collection",
+        true,
+        Stdlib.(collection == dynamic),
+      )
+    | _ => Alcotest.fail("expected static host child and runtime collection")
+    }
+  | _ => Alcotest.fail("expected marked optimized writer")
+  };
+  assert_string(
+    ReactDOM.renderToString(optimized),
+    ReactDOM.renderToString(plain),
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(optimized),
+    ReactDOM.renderToStaticMarkup(plain),
+  );
+};
+
 let children_one_element = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(
@@ -1084,6 +1175,11 @@ Alcotest_lwt.run(
     test("fragment", fragment),
     test("fragment_with_key", fragment_with_key),
     test("children_uppercase", children_uppercase),
+    test("static_child_slots", static_child_slots),
+    test(
+      "static_child_optimized_equivalence",
+      static_child_optimized_equivalence,
+    ),
     test("children_lowercase", children_lowercase),
     test("event_onClick", onClick_empty),
     test("children_one_element", children_one_element),

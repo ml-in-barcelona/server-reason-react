@@ -193,6 +193,7 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
   let rec render buf prev_text (element : React.element) : bool =
     match element with
     | Empty -> prev_text
+    | Static_child child -> render buf prev_text child
     | Static { prerendered; _ } ->
         doctype_pending := false;
         (* Prerendered chunks are complete elements: they end the current text run *)
@@ -461,6 +462,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Lwt.return ()
+    | Static_child child -> render_element child
     | Static { prerendered; _ } ->
         should_add_doctype := false;
         previous_node_was_text := false;
