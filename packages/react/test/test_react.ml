@@ -107,6 +107,37 @@ let children_map_list_element () =
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div class=\"divider\">foo</div><div class=\"divider\">lola</div>"
 
+let children_map_keys () =
+  let span ?key () = React.createElementWithKey ?key "span" [] [] in
+  let key_of = function
+    | React.Lower_case_element { key; _ } | React.Client_component { key; _ } | React.Suspense { key; _ } -> key
+    | _ -> None
+  in
+  let keys = function
+    | React.List members -> List.map key_of members
+    | React.Array members -> Array.to_list (Array.map key_of members)
+    | _ -> Alcotest.fail "expected a collection"
+  in
+  let check label expected mapped = Alcotest.(check (list (option string))) label expected (keys mapped) in
+  check "unkeyed members get index keys" [ Some ".0"; Some ".1" ]
+    (React.Children.map (React.list [ span (); span () ]) Fun.id);
+  check "array keeps its shape" [ Some ".0" ] (React.Children.map (React.array [| span () |]) Fun.id);
+  check "keyed member" [ Some ".$a" ] (React.Children.map (React.list [ span ~key:"a" () ]) Fun.id);
+  check "escaped key" [ Some ".$a=0b=2c" ] (React.Children.map (React.list [ span ~key:"a=b:c" () ]) Fun.id);
+  let eleven = React.Children.map (React.list (List.init 11 (fun _ -> span ()))) Fun.id in
+  Alcotest.(check (option string)) "index in base 36" (Some ".a") (List.nth (keys eleven) 10);
+  check "callback key is prefixed" [ Some "x/.0" ]
+    (React.Children.map (React.list [ span () ]) (fun _ -> span ~key:"x" ()));
+  check "slashes in a callback key are doubled" [ Some "x//y/.0" ]
+    (React.Children.map (React.list [ span () ]) (fun _ -> span ~key:"x/y" ()));
+  check "same key is not prefixed" [ Some ".$k" ]
+    (React.Children.map (React.list [ span ~key:"k" () ]) (fun child -> child));
+  check "text results are untouched" [ None ] (React.Children.map (React.list [ span () ]) (fun _ -> React.string "t"));
+  check "mapWithIndex keys too" [ Some ".0"; Some ".1" ]
+    (React.Children.mapWithIndex (React.list [ span (); span () ]) (fun child _ -> child));
+  let single = span () in
+  Alcotest.(check bool) "single element maps without a key" true (React.Children.map single Fun.id == single)
+
 let use_ref_works () =
   let app =
     React.Upper_case_component
@@ -443,6 +474,7 @@ let tests =
       test "experimental hooks" experimental_hooks;
       test "Children.map" children_map_one_element;
       test "Children.map" children_map_list_element;
+      test "Children.map keys" children_map_keys;
       test "useRef" use_ref_works;
       test "invalid_children" invalid_children;
       test "invalid_dangerouslySetInnerHtml" invalid_dangerouslySetInnerHtml;

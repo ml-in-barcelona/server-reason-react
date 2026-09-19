@@ -909,6 +909,10 @@ val setDisplayName : 'component -> string -> unit
 
 module Children : sig
   val map : element -> (element -> element) -> element
+  (** Maps the members of a [List] or [Array] and keys every mapped element like React: [.<index in base 36>] for an
+      unkeyed member, [.$<key>] for a keyed member, prefixed with [<mapped key>/] when the callback returns an element
+      with a different key. A single element is mapped directly, without a key. *)
+
   val mapWithIndex : element -> (element -> int -> element) -> element
   val forEach : element -> (element -> unit) -> unit
   val forEachWithIndex : element -> (element -> int -> unit) -> unit
