@@ -1,9 +1,14 @@
 module Forward = {
   [@react.component]
+  let make = (~children) => <div> children </div>;
+};
+
+module ForwardList = {
+  [@react.component]
   let make = (~children) => <div> {React.list([children])} </div>;
 };
 
-module TypedForward = {
+module TypedForwardList = {
   [@react.component]
   let make = (~children: React.element) =>
     <div> {React.list([children])} </div>;
@@ -17,17 +22,19 @@ module Text = {
 let child = <span> {React.string("Hello")} </span>;
 
 let cases = [
-  ("unannotated variable", <Forward> child </Forward>),
-  ("typed variable", <TypedForward> child </TypedForward>),
+  ("host slot", <Forward> child </Forward>),
   (
-    "direct JSX",
-    <Forward> <span> {React.string("Hello")} </span> </Forward>,
+    "two literal children",
+    <Forward> child <span> {React.string("World")} </span> </Forward>,
+  ),
+  ("unannotated variable in a list", <ForwardList> child </ForwardList>),
+  ("typed variable in a list", <TypedForwardList> child </TypedForwardList>),
+  (
+    "direct JSX in a list",
+    <ForwardList> <span> {React.string("Hello")} </span> </ForwardList>,
   ),
   ("string prop", <Text> "Hello" </Text>),
-  (
-    "typed dynamic list",
-    <TypedForward> {React.list([child])} </TypedForward>,
-  ),
+  ("dynamic list", <Forward> {React.list([child])} </Forward>),
 ];
 
 let () = {

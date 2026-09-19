@@ -4,7 +4,7 @@ let json = Alcotest.testable Yojson.Basic.pretty_print ( = )
 let check_json = Alcotest.check json
 let node ?key ?(attributes = []) tag children = React.createElementWithKey ?key tag attributes children
 let leaf tag = node tag []
-let marked child = React.Static_child child
+let group children = React.Static_children children
 let no_frames _ _ = false
 
 let parse_rows chunks =
@@ -129,21 +129,19 @@ let static_and_dynamic () =
       | _ -> Alcotest.fail "Nested child collections changed shape");
       Lwt.return_unit)
 
-let nested_markers () =
+let nested_groups () =
   matrix (fun env debug renderer ->
       let tree =
-        marked
-          (marked
-             (React.list
-                [
-                  leaf "span";
-                  marked (leaf "b");
-                  marked (React.array [| leaf "i"; marked (leaf "em") |]);
-                  React.list [ leaf "strong" ];
-                ]))
+        group
+          [
+            leaf "span";
+            React.list [ leaf "b"; group [ leaf "i" ] ];
+            group [ React.array [| leaf "em" |] ];
+            React.list [ leaf "strong" ];
+          ]
       in
       let%lwt rows = render ?env ~debug renderer tree in
-      check_states ?env [ state "span" 2; state "b" 1; state "i" 2; state "em" 1; state "strong" 2 ] rows;
+      check_states ?env [ state "span" 1; state "b" 2; state "i" 1; state "em" 2; state "strong" 2 ] rows;
       Lwt.return_unit)
 
 let reuse_and_extraction () =
@@ -163,12 +161,12 @@ let reuse_and_extraction () =
         Lwt.return_unit
       in
       let%lwt () = check static [ state "div" 0; state "span" 1 ] in
-      let%lwt () = check dynamic [ state "span" 2; state "span" 1; state "span" 1 ] in
-      let%lwt () = check dynamic [ state "span" 2; state "span" 1; state "span" 1 ] in
+      let%lwt () = check dynamic [ state "span" 2; state "span" 2; state "span" 2 ] in
+      let%lwt () = check dynamic [ state "span" 2; state "span" 2; state "span" 2 ] in
       let%lwt () = check static [ state "div" 0; state "span" 1 ] in
       let%lwt left, right = Lwt.both (render ?env ~debug renderer static) (render ?env ~debug renderer dynamic) in
       check_states ?env [ state "div" 0; state "span" 1 ] left;
-      check_states ?env [ state "span" 2; state "span" 1; state "span" 1 ] right;
+      check_states ?env [ state "span" 2; state "span" 2; state "span" 2 ] right;
       Lwt.return_unit)
 
 let raw_and_optimized () =
@@ -189,25 +187,27 @@ let raw_and_optimized () =
           { key = None; tag = "div"; attributes = []; children = [ leaf "span"; React.list [ leaf "b" ] ] }
       in
       let tree =
-        React.list
+        node "section"
           [
-            marked (React.Static { prerendered = "<i></i>"; original = leaf "i" });
-            marked (writer (leaf "em"));
-            marked (writer (React.list [ leaf "strong" ]));
+            React.Static { prerendered = "<i></i>"; original = leaf "i" };
+            writer (leaf "em");
+            writer (React.list [ leaf "strong" ]);
             raw;
           ]
       in
       let%lwt rows = render ?env ~debug renderer tree in
-      check_states ?env [ state "i" 1; state "em" 1; state "strong" 2; state "div" 2; state "span" 1; state "b" 2 ] rows;
+      check_states ?env
+        [ state "section" 0; state "i" 1; state "em" 1; state "strong" 2; state "div" 1; state "span" 1; state "b" 2 ]
+        rows;
       Alcotest.(check int) "writer original calls" 2 !calls;
       Lwt.return_unit)
 
 let transparent_collections () =
   matrix (fun env debug renderer ->
       let context = React.createContext 0 in
-      let children = React.list [ leaf "span"; marked (leaf "b") ] in
+      let children = React.list [ leaf "span"; group [ leaf "b" ] ] in
       let provider = React.Context.provider context (React.Context.makeProps ~value:1 ~children ()) in
-      let tree = React.fragment (marked (React.Consumer (marked provider))) in
+      let tree = React.fragment (React.Consumer provider) in
       let%lwt rows = render ?env ~debug renderer tree in
       check_states ?env [ state "span" 2; state "b" 1 ] rows;
       Lwt.return_unit)
@@ -220,15 +220,14 @@ let client_models () =
       let tree =
         React.list
           [
-            client
-              ~client:(marked (leaf "div"))
+            client ~client:(leaf "div")
               [
                 ("direct", React.Model.Element (leaf "span"));
                 ( "items",
                   React.Model.List
                     [
                       React.Model.Element (leaf "b");
-                      React.Model.Element (marked (leaf "i"));
+                      React.Model.Element (group [ leaf "i" ]);
                       React.Model.Assoc [ ("value", React.Model.Element (leaf "em")) ];
                     ] );
               ];
@@ -250,7 +249,7 @@ let generic_models () =
             React.Model.Assoc
               [
                 ("direct", React.Model.Element (leaf "b"));
-                ("list", React.Model.List [ React.Model.Element (marked (leaf "i")) ]);
+                ("list", React.Model.List [ React.Model.Element (group [ leaf "i" ]) ]);
               ];
           ]
       in
@@ -294,7 +293,7 @@ let shared_promises () =
                     (List.length (List.filter (fun (row, _) -> row = id) rows));
                   let expected =
                     match resolved with
-                    | React.Model.Element (React.Static_child _) -> [ state "span" 1 ]
+                    | React.Model.Element (React.Static_children _) -> [ state "span" 1 ]
                     | React.Model.Element _ -> [ state "span" 0 ]
                     | _ -> [ state "span" 2; state "b" 1 ]
                   in
@@ -302,8 +301,8 @@ let shared_promises () =
                   Lwt.return_unit)
                 [
                   React.Model.Element (leaf "span");
-                  React.Model.Element (marked (leaf "span"));
-                  React.Model.List [ React.Model.Element (leaf "span"); React.Model.Element (marked (leaf "b")) ];
+                  React.Model.Element (group [ leaf "span" ]);
+                  React.Model.List [ React.Model.Element (leaf "span"); React.Model.Element (group [ leaf "b" ]) ];
                 ])
             [ false; true ])
         [ false; true ])
@@ -316,7 +315,7 @@ let server_returns () =
             (fun kind ->
               let calls = ref 0 in
               let returned =
-                if collection then React.list [ leaf "span"; marked (leaf "b"); node ~key:"k" "i" [] ] else leaf "span"
+                if collection then React.list [ leaf "span"; group [ leaf "b" ]; node ~key:"k" "i" [] ] else leaf "span"
               in
               let promise, wake = Lwt.wait () in
               let component =
@@ -363,7 +362,7 @@ let server_task_roots () =
               let%lwt () = Lwt.pause () in
               Lwt.return inner )
       in
-      let%lwt rows = render ?env ~debug renderer (marked outer) in
+      let%lwt rows = render ?env ~debug renderer outer in
       check_states ?env [ state "span" 1 ] rows;
       let%lwt rows = render ?env ~debug renderer (React.list [ inner ]) in
       check_states ?env [ state "span" 1 ] rows;
@@ -379,7 +378,7 @@ let suspended_retry () =
             fun () ->
               incr calls;
               let () = React.Experimental.usePromise promise in
-              React.list [ leaf "span"; marked (leaf "b") ] )
+              React.list [ leaf "span"; group [ leaf "b" ] ] )
       in
       let tree = React.Suspense { key = Some "boundary"; children = component; fallback = Some (leaf "small") } in
       let task = render ?env ~debug renderer (React.list [ tree ]) in
@@ -442,15 +441,15 @@ let use_id_and_evaluation () =
               node ~attributes:[ React.JSX.String ("id", "id", React.useId ()) ] "span" [] )
       in
       let tree mark = node "div" [ mark (component ()); mark (component ()) ] in
-      let%lwt bare = render ?env ~debug renderer (tree Fun.id) in
-      let%lwt marked = render ?env ~debug renderer (tree (fun child -> marked (marked child))) in
+      let%lwt listed = render ?env ~debug renderer (tree (fun child -> React.list [ child ])) in
+      let%lwt grouped = render ?env ~debug renderer (tree (fun child -> group [ child ])) in
       let rec ids = function
         | `Assoc fields -> List.concat_map (fun (key, value) -> if key = "id" then [ value ] else ids value) fields
         | `List values -> List.concat_map ids values
         | _ -> []
       in
       let ids rows = List.concat_map (fun (_, value) -> ids value) rows in
-      check_json "useId traversal" (`List (ids bare)) (`List (ids marked));
+      check_json "useId traversal" (`List (ids listed)) (`List (ids grouped));
       Alcotest.(check int) "component evaluation" 4 !calls;
       Lwt.return_unit)
 
@@ -520,7 +519,7 @@ let errors_and_boundary_state () =
           in
           let boundary = React.Suspense { key = None; children = bad; fallback = Some (leaf "small") } in
           let tree =
-            React.list [ boundary; marked (React.Suspense { key = None; children = leaf "span"; fallback = None }) ]
+            React.list [ boundary; group [ React.Suspense { key = None; children = leaf "span"; fallback = None } ] ]
           in
           let task = render_chunks ?env ~debug renderer tree in
           if pending then Lwt.wakeup_exn wake (Failure "private-message");
@@ -626,7 +625,7 @@ let tests =
     ( "Flight key validation",
       [
         test "static slots and dynamic collections" static_and_dynamic;
-        test "nested shallow markers" nested_markers;
+        test "nested groups" nested_groups;
         test "reuse, extraction, and cloning" reuse_and_extraction;
         test "raw records and optimized originals" raw_and_optimized;
         test "transparent collections" transparent_collections;

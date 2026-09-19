@@ -1,6 +1,7 @@
-Single children keep their prop types. In these cases, the unannotated element
-variable and the dynamic-list member have missing-key state 2. An explicit
-React.element annotation or direct JSX preserves static state 1.
+A forwarded single child takes the validation state of the slot it lands in. A
+host child list gives state 1, a runtime list gives state 2, whatever the type
+annotation on the component. Literal siblings under a component form a
+React.Static_children group and keep state 1. Custom child types still compile.
 
   $ cat > dune-project << EOF
   > (lang dune 3.10)
@@ -14,52 +15,70 @@ React.element annotation or direct JSX preserves static state 1.
   > EOF
 
   $ dune exec ./input.exe -- default
-  unannotated variable:
+  host slot:
+  0:["$","div",null,{"children":["$","span",null,{"children":"Hello"},null,null,1]},null,null,1]
+  HTML: <div><span>Hello</span></div>
+  two literal children:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,1],["$","span",null,{"children":"World"},null,null,1]]},null,null,1]
+  HTML: <div><span>Hello</span><span>World</span></div>
+  unannotated variable in a list:
   0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
-  typed variable:
-  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,1]]},null,null,1]
+  typed variable in a list:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
-  direct JSX:
-  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,1]]},null,null,1]
+  direct JSX in a list:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
   string prop:
   0:["$","span",null,{"children":"Hello"},null,null,1]
   HTML: <span>Hello</span>
-  typed dynamic list:
-  0:["$","div",null,{"children":[[["$","span",null,{"children":"Hello"},null,null,2]]]},null,null,1]
+  dynamic list:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
 
   $ dune exec ./input.exe -- Prod
-  unannotated variable:
+  host slot:
+  0:["$","div",null,{"children":["$","span",null,{"children":"Hello"},null,null,1]},null,null,1]
+  HTML: <div><span>Hello</span></div>
+  two literal children:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,1],["$","span",null,{"children":"World"},null,null,1]]},null,null,1]
+  HTML: <div><span>Hello</span><span>World</span></div>
+  unannotated variable in a list:
   0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
-  typed variable:
-  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,1]]},null,null,1]
+  typed variable in a list:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
-  direct JSX:
-  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,1]]},null,null,1]
+  direct JSX in a list:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
   string prop:
   0:["$","span",null,{"children":"Hello"},null,null,1]
   HTML: <span>Hello</span>
-  typed dynamic list:
-  0:["$","div",null,{"children":[[["$","span",null,{"children":"Hello"},null,null,2]]]},null,null,1]
+  dynamic list:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
 
   $ dune exec ./input.exe -- Dev
-  unannotated variable:
+  host slot:
+  0:["$","div",null,{"children":["$","span",null,{"children":"Hello"},null,null,1]},null,null,1]
+  HTML: <div><span>Hello</span></div>
+  two literal children:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,1],["$","span",null,{"children":"World"},null,null,1]]},null,null,1]
+  HTML: <div><span>Hello</span><span>World</span></div>
+  unannotated variable in a list:
   0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
-  typed variable:
-  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,1]]},null,null,1]
+  typed variable in a list:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
-  direct JSX:
-  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,1]]},null,null,1]
+  direct JSX in a list:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>
   string prop:
   0:["$","span",null,{"children":"Hello"},null,null,1]
   HTML: <span>Hello</span>
-  typed dynamic list:
-  0:["$","div",null,{"children":[[["$","span",null,{"children":"Hello"},null,null,2]]]},null,null,1]
+  dynamic list:
+  0:["$","div",null,{"children":[["$","span",null,{"children":"Hello"},null,null,2]]},null,null,1]
   HTML: <div><span>Hello</span></div>

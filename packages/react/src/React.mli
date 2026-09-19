@@ -609,9 +609,10 @@ and element =
     }
   | List of element list
   | Array of element array
-  | Static_child of element
-      (** An explicit child position. The marker preserves static key-validation evidence through forwarding and
-          cloning. It is transparent for rendering and does not validate members of a wrapped list or array. *)
+  | Static_children of element list
+      (** A literal sibling group written in JSX under a component or a fragment. Only the PPX builds it. Its members
+          are static child positions for key validation, while a [List] or [Array] member is still a runtime collection.
+          Transparent for rendering. *)
   | Text of string
   | Int of int
   | Float of float
@@ -915,6 +916,10 @@ val setDisplayName : 'component -> string -> unit
 
 module Children : sig
   val map : element -> (element -> element) -> element
+  (** Maps the members of a [List], [Array], or [Static_children] and keys every mapped element like React:
+      [.<index in base 36>] for an unkeyed member, [.$<key>] for a keyed member, prefixed with [<mapped key>/] when the
+      callback returns an element with a different key. A single element is mapped directly, without a key. *)
+
   val mapWithIndex : element -> (element -> int -> element) -> element
   val forEach : element -> (element -> unit) -> unit
   val forEachWithIndex : element -> (element -> int -> unit) -> unit

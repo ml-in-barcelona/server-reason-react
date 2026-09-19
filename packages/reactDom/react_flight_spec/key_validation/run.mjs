@@ -53,8 +53,10 @@ for (const fixture of native.filter((fixture) => !fixture.hydration)) {
       "singleton-array": [2],
       "keyed-list": [0, 0],
       "keyed-array": [0, 0],
-      "extracted-static": [1],
-      "cloned-static": [1],
+      "extracted-static": [2],
+      "cloned-static": [2],
+      "forwarded-host-slot": [1],
+      "forwarded-list": [2],
     }[fixture.name];
     if (expectedSpanStates) {
       assert.deepEqual(tuples.filter((tuple) => tuple[1] === "span").map((tuple) => tuple[6]), expectedSpanStates);

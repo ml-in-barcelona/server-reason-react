@@ -90,24 +90,14 @@ let component_make_props_ident tag =
   | { txt = Lapply _; loc } -> raise_errorf ~loc "jsx: component props can't be created from functor applications"
 
 let is_key_arg (label, _) = match label with Optional "key" | Labelled "key" -> true | _ -> false
-let static_child ~loc child = [%expr React.Static_child [%e child]]
 
-let is_element_type core_type =
-  match core_type.ptyp_desc with Ptyp_constr ({ txt = Ldot (Lident "React", "element"); _ }, []) -> true | _ -> false
-
-let has_element_evidence child =
-  has_jsx_attr child.pexp_attributes
-  || match child.pexp_desc with Pexp_constraint (_, core_type) -> is_element_type core_type | _ -> false
-
-let rewrite_component ~loc ~static_single_child tag args children =
+let rewrite_component ~loc tag args children =
   let component = pexp_ident ~loc tag in
   let props_args =
     match children with
     | None -> args
-    | Some [ child ] -> (Labelled "children", if static_single_child then static_child ~loc child else child) :: args
-    | Some children ->
-        let children = List.map ~f:(static_child ~loc) children in
-        (Labelled "children", [%expr React.list [%e pexp_list ~loc children]]) :: args
+    | Some [ children ] -> (Labelled "children", children) :: args
+    | Some children -> (Labelled "children", [%expr React.Static_children [%e pexp_list ~loc children]]) :: args
   in
   let key_args, non_key_args = List.partition ~f:is_key_arg props_args in
   let make_props = pexp_ident ~loc (component_make_props_ident tag) in
@@ -1074,14 +1064,6 @@ let extract_component_args expr =
              name.")
   |> List.filter_map ~f:Fun.id
 
-let shallow_static_child ~loc child =
-  [%expr
-    match [%e child] with
-    | (React.Static_child _ | React.List _ | React.Array _ | React.Text _ | React.Int _ | React.Float _ | React.Empty)
-      as child ->
-        child
-    | child -> React.Static_child child]
-
 let build_make_props_binding ~loc ~fn_name args =
   let props_type = make_props_type ~loc args in
   let object_fields =
@@ -1092,20 +1074,6 @@ let build_make_props_binding ~loc ~fn_name args =
           match arg.public_label with
           | Optional _ -> option_is_some_expr ~loc:arg.loc value_expr
           | _ -> ebool ~loc:arg.loc true
-        in
-        let value_expr =
-          if field_name <> "children" then value_expr
-          else
-            let field_type = component_arg_field_type arg in
-            if is_element_type field_type then shallow_static_child ~loc:arg.loc value_expr
-            else
-              match strip_option_type field_type with
-              | Some inner when is_element_type inner ->
-                  [%expr
-                    Stdlib.Option.map
-                      (fun child -> [%e shallow_static_child ~loc:arg.loc [%expr child]])
-                      [%e value_expr]]
-              | _ -> value_expr
         in
         { method_name = field_name; js_name = translate_mel_obj_label field_name; present_expr; value_expr })
   in
@@ -1894,7 +1862,6 @@ let traverse =
       | Js -> super#signature_item ctx signature_item
 
     method! expression ctx expr =
-      let original_expr = expr in
       let expr = super#expression ctx expr in
       (* Rewrite ReactDOM.Style.make(~k:v, ..., ()) to a direct list literal at
          compile time. On stock OCaml the 347-optional-arg signature forces
@@ -1914,12 +1881,6 @@ let traverse =
             | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
               when has_jsx_attr expr.pexp_attributes -> (
                 let children, rest_of_args = split_args args in
-                let static_single_child =
-                  match original_expr.pexp_desc with
-                  | Pexp_apply (_, args) -> (
-                      match fst (split_args args) with Some [ child ] -> has_element_evidence child | _ -> false)
-                  | _ -> false
-                in
                 match validate_tag_children (Pprintast.string_of_expression tag) children rest_of_args with
                 | Error err -> [%expr [%ocaml.error [%e estring ~loc:expr.pexp_loc err]]]
                 | Ok () -> (
@@ -1934,10 +1895,9 @@ let traverse =
                     (* Foo.createElement() [@JSX] *)
                     | Pexp_ident { txt = Ldot (modulePath, ("createElement" | "make")); loc } ->
                         let id = { loc; txt = Ldot (modulePath, "make") } in
-                        rewrite_component ~loc:expr.pexp_loc ~static_single_child id rest_of_args children
+                        rewrite_component ~loc:expr.pexp_loc id rest_of_args children
                     (* local_function() [@JSX] *)
-                    | Pexp_ident id ->
-                        rewrite_component ~loc:expr.pexp_loc ~static_single_child id rest_of_args children
+                    | Pexp_ident id -> rewrite_component ~loc:expr.pexp_loc id rest_of_args children
                     | _ -> assert false))
             (* div() [@JSX] *)
             | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
@@ -1950,12 +1910,8 @@ let traverse =
                 match (jsx_attr, rest_attributes) with
                 | [], _ -> expr
                 | _, rest_attributes ->
-                    let children =
-                      transform_items_of_list ~loc expr |> unwrap_children []
-                      |> List.map ~f:(static_child ~loc)
-                      |> pexp_list ~loc
-                    in
-                    let new_expr = [%expr React.fragment (React.list [%e children])] in
+                    let children = transform_items_of_list ~loc expr in
+                    let new_expr = [%expr React.fragment (React.Static_children [%e children])] in
                     { new_expr with pexp_attributes = rest_attributes })
             | _ -> expr
           with Error err -> [%expr [%e err]])

@@ -267,25 +267,21 @@ let static = React.createElement "div" [] [first; second]
 let dynamic = React.createElement "div" [] [React.list items]
 ]}
 
-The native PPX retains explicit sibling positions with [React.Static_child].
-The marker is shallow: wrapping a collection does not validate its members.
-Forwarding and cloning a marked child preserve its static position information.
-Code that inspects [React.element] directly must handle this constructor.
+Static-ness is a property of the container, not of the element. The native PPX
+builds [React.Static_children] for the literal children of a component or a
+fragment, [<Component> a b </Component>], in place of [React.list]. Its members are
+static; a [React.list] or [React.array] member inside it is still a runtime
+collection. Code that inspects [React.element] directly must handle this
+constructor.
 
-Component child props can also contain strings, records, or other custom types.
-For a single child expression, the PPX marks direct JSX and explicit
-[React.element] annotations. Generated prop constructors also mark [children]
-declared as [React.element]. The PPX cannot resolve inferred types or type aliases.
-An arbitrary single-child value remains unchanged until it reaches a known element
-slot. Annotate a forwarding component's element child when it needs to retain that
-information before placing the child in another collection:
+A single forwarded child carries no information of its own and takes the state of
+the slot it lands in: a host child list, the single child of a fragment, provider,
+consumer, or Suspense boundary, and the result of a server component give a static
+position; a runtime collection gives a missing-key state. A literal child extracted from a host and
+re-inserted into a runtime collection reports a missing key, where React does not.
 
-{@reasonml[
-[@react.component]
-let make = (~children: React.element) => {
-  <div> {React.list([children])} </div>;
-};
-]}
+[React.Children.map] and [mapWithIndex] key their results like React ([.0], [.1],
+[.$key]), so mapped children never report missing keys.
 
 The default environment remains [`Prod]. Error details remain redacted. The
 validation fields add 12 uncompressed bytes per production element tuple and let

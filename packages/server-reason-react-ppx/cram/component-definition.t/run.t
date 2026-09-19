@@ -1048,12 +1048,11 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     Uppercase.make
       (Uppercase.makeProps
          ~children:
-           (React.Static_child
-              (React.Static
-                 {
-                   prerendered = "<div></div>";
-                   original = React.createElement "div" [] [];
-                 }))
+           (React.Static
+              {
+                prerendered = "<div></div>";
+                original = React.createElement "div" [] [];
+              })
          ())
   
   module Async_component = struct
@@ -1111,12 +1110,11 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     Async_component.make
       (Async_component.makeProps
          ~children:
-           (React.Static_child
-              (React.Static
-                 {
-                   prerendered = "<div></div>";
-                   original = React.createElement "div" [] [];
-                 }))
+           (React.Static
+              {
+                prerendered = "<div></div>";
+                original = React.createElement "div" [] [];
+              })
          ())
   
   module Sequence = struct

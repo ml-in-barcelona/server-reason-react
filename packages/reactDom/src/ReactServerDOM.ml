@@ -722,7 +722,9 @@ module Model = struct
     let rec turn_element_into_payload ~context ~debug_info ~(site : Key_validation.site) element =
       match (element : React.element) with
       | Empty -> `Null
-      | Static_child child -> turn_element_into_payload ~context ~debug_info ~site:Static_slot child
+      | Static_children children ->
+          `List
+            (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info ~site:Static_slot) children)
       | Static { original; _ } -> turn_element_into_payload ~context ~debug_info ~site original
       | Writer { original; _ } -> turn_element_into_payload ~context ~debug_info ~site (original ())
       | Text t -> `String (escape_string_value t)
@@ -743,7 +745,8 @@ module Model = struct
           let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
           node ~env ~validation:(Key_validation.at_element ~site ~key) ~key ~tag ~props ~owner
             (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info ~site:Static_slot) children)
-      | Fragment children -> turn_element_into_payload ~context ~debug_info ~site children
+      (* A single element passed as a wrapper's children prop is a static position in React (jsx marks it validated). *)
+      | Fragment children -> turn_element_into_payload ~context ~debug_info ~site:Static_slot children
       | List children ->
           `List
             (map_children_with_tree_context
@@ -869,8 +872,8 @@ module Model = struct
              their promises are created inside it — after this frame's pop. *)
           Fun.protect ~finally:pop (fun () ->
               Lwt.with_value async_key (Some async_value) (fun () ->
-                  turn_element_into_payload ~context ~debug_info ~site children))
-      | Consumer children -> turn_element_into_payload ~context ~debug_info ~site children
+                  turn_element_into_payload ~context ~debug_info ~site:Static_slot children))
+      | Consumer children -> turn_element_into_payload ~context ~debug_info ~site:Static_slot children
     in
     turn_element_into_payload ~context ~debug_info ~site element
 
@@ -955,13 +958,12 @@ module Model = struct
       ~env element =
     let rec go ~debug_info ~(site : Key_validation.site) (element : React.element) =
       match element with
-      | Static_child child -> go ~debug_info ~site:Static_slot child
       | React.Static { original; _ } -> go ~debug_info ~site original
       | Writer { original; _ } -> go ~debug_info ~site (original ())
-      | Fragment children -> go ~debug_info ~site children
-      | Consumer children -> go ~debug_info ~site children
+      | Fragment children -> go ~debug_info ~site:Static_slot children
+      | Consumer children -> go ~debug_info ~site:Static_slot children
       | Provider { children; push; async_key; async_value } ->
-          with_provider_value ~push ~async_key ~async_value (fun () -> go ~debug_info ~site children)
+          with_provider_value ~push ~async_key ~async_value (fun () -> go ~debug_info ~site:Static_slot children)
       | (Upper_case_component _ | Async_component _) when debug && Option.is_some debug_info ->
           (* In debug mode only the FIRST component attaches its debug rows to
              the root row; components further down are outlined with their own
@@ -1292,7 +1294,6 @@ let rewrite_action_props ~context ~nonce attributes =
 
 let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
-  | Static_child child -> client_to_html ~fiber child
   | Empty -> Lwt.return Html.null
   | Static { prerendered; _ } -> Lwt.return (Html.raw prerendered)
   (* Writer subtrees can contain client components/Suspense below the prerendered markup, which the emit closure (ReactDOM.write_to_buffer) cannot serialize — walk the original tree instead. *)
@@ -1301,7 +1302,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Int i -> Lwt.return (Html.string (Int.to_string i))
   | Float f -> Lwt.return (Html.string (Js.Float.toString f))
   | Fragment children -> client_to_html ~fiber children
-  | List childrens ->
+  | List childrens | Static_children childrens ->
       let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) childrens in
       Lwt.return (Html.list html)
   | Array childrens ->
@@ -1438,7 +1439,7 @@ let classify_element ~(fiber : Fiber.t) ~tag ~attributes =
 let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_validation.site) (element : React.element) :
     (Html.element * json) Lwt.t =
   match element with
-  | Static_child child -> render_element_to_html ~fiber ~debug_info ~site:Static_slot child
+  | Static_children list -> elements_to_html ~fiber ~debug_info ~site:Static_slot list
   | Empty -> Lwt.return (Html.null, `Null)
   | Static { prerendered; original } ->
       (* Static carries HTML prerendered at compile time (ppx optimization). The model walk below hoists any <title>/<meta>/<link>/async <script> in the subtree into the fiber — but the prerendered bytes still contain them at their original position. When that happens, use the walked HTML to avoid emitting them twice. *)
@@ -1453,7 +1454,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
   | Float f ->
       (* HTML stringifies numbers the way JavaScript does while the model keeps the raw JSON number. *)
       Lwt.return (Html.string (Js.Float.toString f), Model.float_to_json f)
-  | Fragment children -> render_element_to_html ~fiber ~debug_info ~site children
+  | Fragment children -> render_element_to_html ~fiber ~debug_info ~site:Static_slot children
   | List list -> elements_to_html ~fiber ~debug_info ~site:Dynamic_item list
   | Array arr -> elements_to_html ~fiber ~debug_info ~site:Dynamic_item (Array.to_list arr)
   | Upper_case_component (name, component) ->
@@ -1561,8 +1562,8 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
       )
   | Provider { children; push; async_key; async_value } ->
       with_provider_value ~push ~async_key ~async_value (fun () ->
-          render_element_to_html ~fiber ~debug_info ~site children)
-  | Consumer children -> render_element_to_html ~fiber ~debug_info ~site children
+          render_element_to_html ~fiber ~debug_info ~site:Static_slot children)
+  | Consumer children -> render_element_to_html ~fiber ~debug_info ~site:Static_slot children
   | Lower_case_element { key; tag; attributes; children } ->
       render_lower_case_element ~fiber ~debug_info ~validation:(Key_validation.at_element ~site ~key) ~key ~tag
         ~attributes ~children ()

@@ -421,7 +421,7 @@ and element =
     }
   | List of element list
   | Array of element array
-  | Static_child of element
+  | Static_children of element list
   | Text of string
   | Int of int
   | Float of float
@@ -490,10 +490,6 @@ let clone_attributes (attributes : JSX.prop list) (new_attributes : JSX.prop lis
   in
   base @ append_new [] new_attributes
 
-let mark_static_child = function
-  | (Static_child _ | List _ | Array _ | Text _ | Int _ | Float _ | Empty) as child -> child
-  | child -> Static_child child
-
 let create_element_with_key ?key tag attributes children =
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
@@ -503,15 +499,14 @@ let create_element_with_key ?key tag attributes children =
         (Invalid_children
            (Printf.sprintf {|"%s" is a self-closing tag and must not have "dangerouslySetInnerHTML".\n|} tag))
   | true -> Lower_case_element { key; tag; attributes; children = [] }
-  | false -> Lower_case_element { key; tag; attributes; children = List.map mark_static_child children }
+  | false -> Lower_case_element { key; tag; attributes; children }
 
 let createElement = create_element_with_key ?key:None
 let createElementWithKey = create_element_with_key
 let component component = component
 
-let rec isValidElement = function
-  | Static_child child -> isValidElement child
-  | Text _ | Int _ | Float _ | List _ | Array _ | Empty -> false
+let isValidElement = function
+  | Text _ | Int _ | Float _ | List _ | Array _ | Static_children _ | Empty -> false
   | Lower_case_element _ | Upper_case_component _ | Async_component _ | Client_component _ | Static _ | Writer _
   | Fragment _ | Provider _ | Consumer _ | Suspense _ ->
       true
@@ -530,7 +525,6 @@ let clone_component_error name =
 
 let rec cloneElement element new_attributes =
   match element with
-  | Static_child child -> mark_static_child (cloneElement child new_attributes)
   | Lower_case_element { key; tag; attributes; children } ->
       Lower_case_element { key; tag; attributes = clone_attributes attributes new_attributes; children }
   | Upper_case_component (name, _) -> raise (Invalid_argument (clone_component_error name))
@@ -543,6 +537,7 @@ let rec cloneElement element new_attributes =
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
   | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
   | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
+  | Static_children _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Static_children group")
   | Provider _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Provider")
   | Consumer _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Consumer")
   | Suspense _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Suspense")
@@ -553,7 +548,7 @@ module Fragment = struct
       method children = children
     end
 
-  let make ?key:_ props = Fragment (mark_static_child props#children)
+  let make ?key:_ props = Fragment props#children
 end
 
 module StrictMode = Fragment
@@ -593,7 +588,7 @@ let createContext (initial_value : 'a) : 'a Context.t =
   let provider ~value ~children () =
     Provider
       {
-        children = mark_static_child children;
+        children;
         push =
           (fun () ->
             let prev = ref_value.current in
@@ -603,7 +598,7 @@ let createContext (initial_value : 'a) : 'a Context.t =
         async_value = Obj.repr value;
       }
   in
-  let consumer ~children = Consumer (mark_static_child children) in
+  let consumer ~children = Consumer children in
   { current_value = ref_value; async_key; provider; consumer }
 
 module Suspense = struct
@@ -615,13 +610,7 @@ module Suspense = struct
       method children = children
     end
 
-  let make ?key props =
-    Suspense
-      {
-        key;
-        fallback = Option.map mark_static_child props#fallback;
-        children = mark_static_child (or_react_null props#children);
-      }
+  let make ?key props = Suspense { key; fallback = props#fallback; children = or_react_null props#children }
 end
 
 module Cache = struct
@@ -918,54 +907,89 @@ module Uncurried = struct
 end
 
 module Children = struct
-  let rec unmark = function Static_child child -> unmark child | child -> child
+  (* Mapped children get the keys React's mapChildren assigns, so a runtime client never reports them as missing keys:
+     ".<index in base 36>" for unkeyed input, ".$<key>" for keyed input, prefixed with "<mapped key>/" when the callback
+     returns an element with a different key. *)
+  let escape_key key =
+    let buf = Buffer.create (String.length key + 4) in
+    String.iter
+      (function '=' -> Buffer.add_string buf "=0" | ':' -> Buffer.add_string buf "=2" | c -> Buffer.add_char buf c)
+      key;
+    Buffer.contents buf
 
-  let inspect element =
-    match unmark element with (List _ | Array _ | Text _ | Int _ | Float _ | Empty) as child -> child | _ -> element
+  (* React replaces every run of slashes with itself plus one slash. *)
+  let escape_user_key key =
+    let buf = Buffer.create (String.length key + 2) in
+    let last = String.length key - 1 in
+    String.iteri
+      (fun i c ->
+        Buffer.add_char buf c;
+        if c = '/' && (i = last || key.[i + 1] <> '/') then Buffer.add_char buf '/')
+      key;
+    Buffer.contents buf
+
+  let rec base36 n =
+    let digit d = String.make 1 (Char.chr (if d < 10 then 48 + d else 87 + d)) in
+    if n < 36 then digit n else base36 (n / 36) ^ digit (n mod 36)
+
+  let key_of = function
+    | Lower_case_element { key; _ } | Client_component { key; _ } | Suspense { key; _ } -> key
+    | _ -> None
+
+  let with_key key = function
+    | Lower_case_element element -> Lower_case_element { element with key = Some key }
+    | Client_component component -> Client_component { component with key = Some key }
+    | Suspense suspense -> Suspense { suspense with key = Some key }
+    | element -> element
+
+  let keyed index child mapped =
+    let child_key = "." ^ match key_of child with Some key -> "$" ^ escape_key key | None -> base36 index in
+    match key_of mapped with
+    | Some key when key_of child <> Some key -> with_key (escape_user_key key ^ "/" ^ child_key) mapped
+    | Some _ | None -> with_key child_key mapped
+
+  let map_collection fn = function
+    | List children | Static_children children ->
+        Some (list (List.mapi (fun index child -> keyed index child (fn child index)) children))
+    | Array children -> Some (array (Array.mapi (fun index child -> keyed index child (fn child index)) children))
+    | _ -> None
 
   let map element fn =
-    match inspect element with
-    | List children -> List.map fn children |> list
-    | Array children -> Array.map fn children |> array
-    | child -> fn child
+    match map_collection (fun child _ -> fn child) element with Some mapped -> mapped | None -> fn element
 
-  let mapWithIndex element fn =
-    match inspect element with
-    | List children -> List.mapi (fun index element -> fn element index) children |> list
-    | Array children -> Array.mapi (fun index element -> fn element index) children |> array
-    | child -> fn child 0
+  let mapWithIndex element fn = match map_collection fn element with Some mapped -> mapped | None -> fn element 0
 
   let forEach element fn =
-    match inspect element with
-    | List children -> List.iter fn children
+    match element with
+    | List children | Static_children children -> List.iter fn children
     | Array children -> Array.iter fn children
-    | child ->
-        let _ = fn child in
+    | _ ->
+        let _ = fn element in
         ()
 
   let forEachWithIndex element fn =
-    match inspect element with
-    | List children -> List.iteri (fun index element -> fn element index) children
+    match element with
+    | List children | Static_children children -> List.iteri (fun index element -> fn element index) children
     | Array children -> Array.iteri (fun index element -> fn element index) children
-    | child ->
-        let _ = fn child 0 in
+    | _ ->
+        let _ = fn element 0 in
         ()
 
   let count element =
-    match inspect element with
-    | List children -> List.length children
+    match element with
+    | List children | Static_children children -> List.length children
     | Array children -> Array.length children
     | Empty -> 0
     | _ -> 1
 
   let only element =
-    match inspect element with
-    | List (child :: _) -> child
-    | List [] -> raise (Invalid_argument "Expected at least one child")
+    match element with
+    | List (child :: _) | Static_children (child :: _) -> child
+    | List [] | Static_children [] -> raise (Invalid_argument "Expected at least one child")
     | Array children ->
         if Array.length children >= 1 then Array.get children 0
         else raise (Invalid_argument "Expected at least one child")
-    | child -> child
+    | _ -> element
 
   (* TODO: silly way to convert children to array, but isn't necessary in most cases *)
   let toArray element = [| element |]

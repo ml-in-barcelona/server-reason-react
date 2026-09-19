@@ -55,6 +55,8 @@ let extracted () =
   | React.Lower_case_element { children; _ } -> React.Children.only (React.list children)
   | _ -> failwith "host constructor must retain its children"
 
+let forward render children = React.Upper_case_component ("Forward", fun () -> render children)
+
 let async_collection ~ready ~keyed () =
   let value = React.list (if keyed then keyed_pair () else pair ()) in
   let promise, release =
@@ -111,8 +113,12 @@ let fixtures =
     case "keyed-array" (sync (fun () -> host [ React.array (Array.of_list (keyed_pair ())) ]));
     case ~duplicate:true "duplicate-keys"
       (sync (fun () -> host [ React.list [ span ~key:"same" "a"; span ~key:"same" "b" ] ]));
-    case ~text:"a" "extracted-static" (sync (fun () -> host [ React.list [ extracted () ] ]));
-    case ~text:"a" "cloned-static" (sync (fun () -> host [ React.array [| React.cloneElement (extracted ()) [] |] ]));
+    case ~missing:true ~text:"a" "extracted-static" (sync (fun () -> host [ React.list [ extracted () ] ]));
+    case ~missing:true ~text:"a" "cloned-static"
+      (sync (fun () -> host [ React.array [| React.cloneElement (extracted ()) [] |] ]));
+    case ~text:"a" "forwarded-host-slot" (sync (fun () -> forward (fun children -> host [ children ]) (span "a")));
+    case ~missing:true ~text:"a" "forwarded-list"
+      (sync (fun () -> forward (fun children -> host [ React.list [ children ] ]) (span "a")));
     case ~missing:true ~text:"aa" "shared-static-first"
       (sync (fun () ->
            let shared = span "a" in
@@ -123,7 +129,7 @@ let fixtures =
            host [ host [ React.list [ shared ] ]; host [ shared ] ]));
     case ~text:"abcount:0" "client-static" (sync (fun () -> client (Jsx_cases.fragment ())));
     case ~missing:true ~text:"abcount:0" "client-list" (sync (fun () -> client (React.list (pair ()))));
-    case ~text:"acount:0" "client-extracted" (sync (fun () -> client (React.list [ extracted () ])));
+    case ~missing:true ~text:"acount:0" "client-extracted" (sync (fun () -> client (React.list [ extracted () ])));
     case ~missing:true ~text:"abcount:0" "client-model-list"
       (sync (fun () ->
            client
