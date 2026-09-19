@@ -905,17 +905,56 @@ module Uncurried = struct
 end
 
 module Children = struct
-  let map element fn =
-    match element with
-    | List children -> List.map fn children |> list
-    | Array children -> Array.map fn children |> array
-    | _ -> fn element
+  (* Mapped children get the keys React's mapChildren assigns, so a client never reports them as missing keys:
+     ".<index in base 36>" for unkeyed input, ".$<key>" for keyed input, prefixed with "<mapped key>/" when the callback
+     returns an element with a different key. *)
+  let escape_key key =
+    let buf = Buffer.create (String.length key + 4) in
+    String.iter
+      (function '=' -> Buffer.add_string buf "=0" | ':' -> Buffer.add_string buf "=2" | c -> Buffer.add_char buf c)
+      key;
+    Buffer.contents buf
 
-  let mapWithIndex element fn =
-    match element with
-    | List children -> List.mapi (fun index element -> fn element index) children |> list
-    | Array children -> Array.mapi (fun index element -> fn element index) children |> array
-    | _ -> fn element 0
+  (* React replaces every run of slashes with itself plus one slash. *)
+  let escape_user_key key =
+    let buf = Buffer.create (String.length key + 2) in
+    let last = String.length key - 1 in
+    String.iteri
+      (fun i c ->
+        Buffer.add_char buf c;
+        if c = '/' && (i = last || key.[i + 1] <> '/') then Buffer.add_char buf '/')
+      key;
+    Buffer.contents buf
+
+  let rec base36 n =
+    let digit d = String.make 1 (Char.chr (if d < 10 then 48 + d else 87 + d)) in
+    if n < 36 then digit n else base36 (n / 36) ^ digit (n mod 36)
+
+  let key_of = function
+    | Lower_case_element { key; _ } | Client_component { key; _ } | Suspense { key; _ } -> key
+    | _ -> None
+
+  let with_key key = function
+    | Lower_case_element element -> Lower_case_element { element with key = Some key }
+    | Client_component component -> Client_component { component with key = Some key }
+    | Suspense suspense -> Suspense { suspense with key = Some key }
+    | element -> element
+
+  let keyed index child mapped =
+    let child_key = "." ^ match key_of child with Some key -> "$" ^ escape_key key | None -> base36 index in
+    match key_of mapped with
+    | Some key when key_of child <> Some key -> with_key (escape_user_key key ^ "/" ^ child_key) mapped
+    | Some _ | None -> with_key child_key mapped
+
+  let map_collection fn = function
+    | List children -> Some (list (List.mapi (fun index child -> keyed index child (fn child index)) children))
+    | Array children -> Some (array (Array.mapi (fun index child -> keyed index child (fn child index)) children))
+    | _ -> None
+
+  let map element fn =
+    match map_collection (fun child _ -> fn child) element with Some mapped -> mapped | None -> fn element
+
+  let mapWithIndex element fn = match map_collection fn element with Some mapped -> mapped | None -> fn element 0
 
   let forEach element fn =
     match element with
