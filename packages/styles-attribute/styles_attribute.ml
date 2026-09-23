@@ -11,32 +11,45 @@ let should_expand_apply (apply_expr : Ppxlib.expression) =
   | _ -> false
 
 let expand_attributes ~loc attributes =
-  let merge_className current_className (label, expr) =
-    match current_className with
-    | Some (existing_label, existing_expr) ->
-        let merged =
-          match label with
-          | Ppxlib.Optional "className" ->
-              [%expr match [%e expr] with None -> [%e existing_expr] | Some x -> x ^ " " ^ [%e existing_expr]]
-          | _ -> [%expr [%e expr] ^ " " ^ [%e existing_expr]]
-        in
-        Some (existing_label, merged)
+  let is_optional = function Ppxlib.Optional _ -> true | Ppxlib.Labelled _ | Ppxlib.Nolabel -> false in
+  (* The generated binders are reserved names, so user expressions in either side cannot be captured. *)
+  let merge ~name ~combine current (label, expr) =
+    match current with
     | None -> Some (label, expr)
+    | Some (existing_label, existing_expr) -> (
+        match (is_optional existing_label, is_optional label) with
+        | false, false -> Some (existing_label, combine expr existing_expr)
+        | false, true ->
+            Some
+              ( existing_label,
+                [%expr
+                  let __existing = [%e existing_expr] in
+                  match [%e expr] with
+                  | None -> __existing
+                  | Some __incoming -> [%e combine [%expr __incoming] [%expr __existing]]] )
+        | true, false ->
+            Some
+              ( Ppxlib.Labelled name,
+                [%expr
+                  let __incoming = [%e expr] in
+                  match [%e existing_expr] with
+                  | None -> __incoming
+                  | Some __existing -> [%e combine [%expr __incoming] [%expr __existing]]] )
+        | true, true ->
+            Some
+              ( existing_label,
+                [%expr
+                  match ([%e expr], [%e existing_expr]) with
+                  | None, None -> None
+                  | Some __incoming, None -> Some __incoming
+                  | None, Some __existing -> Some __existing
+                  | Some __incoming, Some __existing -> Some [%e combine [%expr __incoming] [%expr __existing]]] ))
   in
-  let merge_style current_style (label, expr) =
-    match current_style with
-    | Some (existing_label, existing_expr) ->
-        let merged =
-          match label with
-          | Ppxlib.Optional "style" ->
-              [%expr
-                match [%e expr] with
-                | None -> [%e existing_expr]
-                | Some x -> ReactDOM.Style.combine [%e existing_expr] x]
-          | _ -> [%expr ReactDOM.Style.combine [%e existing_expr] [%e expr]]
-        in
-        Some (existing_label, merged)
-    | None -> Some (label, expr)
+  let merge_className =
+    merge ~name:"className" ~combine:(fun incoming existing -> [%expr [%e incoming] ^ " " ^ [%e existing]])
+  in
+  let merge_style =
+    merge ~name:"style" ~combine:(fun incoming existing -> [%expr ReactDOM.Style.combine [%e existing] [%e incoming]])
   in
   let handle_styles className style label arg =
     let className_label, className_expr, style_label, style_expr =
