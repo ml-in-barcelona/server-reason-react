@@ -849,14 +849,16 @@ let text_separator_matches_unoptimized_tree = () => {
 };
 
 module CSS = {
-  let className = ((className, _)) => className;
-  let styles = ((_, styles)) => styles;
+  let className = ((className, _, _)) => className;
+  let styles = ((_, styles, _)) => styles;
+  let label = ((_, _, label)) => label;
 };
 
 let styles_attribute = () => {
   let styles = (
     "some-class-name",
     ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+    "",
   );
   let div = <div styles />;
   assert_string(
@@ -876,6 +878,7 @@ let styles_attribute_optional_some = () => {
     Some((
       "some-class-name",
       ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+      "",
     ));
   let div = <div ?styles />;
   assert_string(
@@ -889,6 +892,7 @@ let styles_attribute_optional_some_with_class = () => {
     Some((
       "some-class-name",
       ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+      "",
     ));
   let div = <div className="lola" ?styles />;
   assert_string(
@@ -902,6 +906,7 @@ let styles_attribute_optional_some_with_style = () => {
     Some((
       "some-class-name",
       ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+      "",
     ));
   let div = <div style={ReactDOM.Style.make(~color="white", ())} ?styles />;
   assert_string(
@@ -915,6 +920,7 @@ let styles_attribute_optional_some_with_class_and_style = () => {
     Some((
       "some-class-name",
       ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+      "",
     ));
   let div =
     <div
@@ -925,6 +931,46 @@ let styles_attribute_optional_some_with_class_and_style = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
     {|<div class="some-class-name lola" style="color:white;background-color:gainsboro"></div>|},
+  );
+};
+
+let styles_attribute_with_label = () => {
+  let styles = (
+    "some-class-name",
+    ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+    "Button",
+  );
+  let div = <div styles />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div class="some-class-name" style="background-color:gainsboro" part="Button"></div>|},
+  );
+};
+
+let styles_attribute_with_label_and_part = () => {
+  let styles = (
+    "some-class-name",
+    ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+    "Button",
+  );
+  let div = <div part="host" styles />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div class="some-class-name" style="background-color:gainsboro" part="Button host"></div>|},
+  );
+};
+
+let styles_attribute_optional_some_with_label = () => {
+  let styles =
+    Some((
+      "some-class-name",
+      ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+      "Card",
+    ));
+  let div = <div ?styles />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div class="some-class-name" style="background-color:gainsboro" part="Card"></div>|},
   );
 };
 
@@ -967,7 +1013,7 @@ let optional_prop_with_shadowed_none = () => {
 };
 
 let optional_prop_with_shadowed_none_and_styles = () => {
-  let styles = ("klass", ReactDOM.Style.make(~color="red", ()));
+  let styles = ("klass", ReactDOM.Style.make(~color="red", ()), "");
   assert_string(
     ReactDOM.renderToStaticMarkup(
       Shadowed_none.link_with_styles(~href="/blog", ~disabled=false, ~styles),
@@ -1143,6 +1189,15 @@ Alcotest_lwt.run(
     test(
       "styles_attribute_optional_some_with_class_and_style",
       styles_attribute_optional_some_with_class_and_style,
+    ),
+    test("styles_attribute_with_label", styles_attribute_with_label),
+    test(
+      "styles_attribute_with_label_and_part",
+      styles_attribute_with_label_and_part,
+    ),
+    test(
+      "styles_attribute_optional_some_with_label",
+      styles_attribute_optional_some_with_label,
     ),
     test(
       "optional_prop_with_shadowed_none",

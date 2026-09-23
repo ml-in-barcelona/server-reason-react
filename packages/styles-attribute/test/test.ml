@@ -36,8 +36,14 @@ let test_expand_styles () =
   let expanded_attributes = expand_attributes lowercase_jsx_apply attributes in
 
   assert_list
-    [ (Labelled "className", [%expr CSS.className lola]); (Labelled "style", [%expr CSS.styles lola]) ]
+    [
+      (Labelled "className", [%expr CSS.className lola]);
+      (Labelled "style", [%expr CSS.styles lola]);
+      (Optional "part", [%expr match CSS.label lola with "" -> None | part -> Some part]);
+    ]
     expanded_attributes
+
+let generated_part = [%expr match CSS.label generated_styles with "" -> None | part -> Some part]
 
 let test_expand_styles_with_previous_className () =
   let expr = [%expr generated_styles] in
@@ -47,6 +53,7 @@ let test_expand_styles_with_previous_className () =
     [
       (Labelled "className", [%expr CSS.className generated_styles ^ " " ^ "previous-class-name"]);
       (Labelled "style", [%expr CSS.styles generated_styles]);
+      (Optional "part", generated_part);
     ]
     expanded_attributes
 
@@ -58,6 +65,23 @@ let test_expand_styles_with_previous_style () =
     [
       (Labelled "className", [%expr CSS.className generated_styles]);
       (Labelled "style", [%expr ReactDOM.Style.combine "previous-style" (CSS.styles generated_styles)]);
+      (Optional "part", generated_part);
+    ]
+    expanded_attributes
+
+let test_expand_styles_with_previous_part () =
+  let expr = [%expr generated_styles] in
+  let attributes = [ (Labelled "part", [%expr "host-part"]); (Labelled "styles", expr) ] in
+  let expanded_attributes = expand_attributes lowercase_jsx_apply attributes in
+  assert_list
+    [
+      (Labelled "className", [%expr CSS.className generated_styles]);
+      (Labelled "style", [%expr CSS.styles generated_styles]);
+      ( Labelled "part",
+        [%expr
+          match match CSS.label generated_styles with "" -> None | part -> Some part with
+          | None -> "host-part"
+          | Some x -> x ^ " " ^ "host-part"] );
     ]
     expanded_attributes
 
@@ -69,6 +93,11 @@ let test_expand_styles_optional () =
     [
       (Optional "className", [%expr match Some generated_styles with None -> None | Some x -> Some (CSS.className x)]);
       (Optional "style", [%expr match Some generated_styles with None -> None | Some x -> Some (CSS.styles x)]);
+      ( Optional "part",
+        [%expr
+          match Some generated_styles with
+          | None -> None
+          | Some x -> ( match CSS.label x with "" -> None | part -> Some part)] );
     ]
     expanded_attributes
 
@@ -92,6 +121,7 @@ let () =
       test "expand_styles_prop_on_attributes" test_expand_styles;
       test "expand_styles_with_previous_className" test_expand_styles_with_previous_className;
       test "expand_styles_with_previous_style" test_expand_styles_with_previous_style;
+      test "expand_styles_with_previous_part" test_expand_styles_with_previous_part;
       test "expand_styles_optional" test_expand_styles_optional;
       test "does_not_expand_without_jsx" test_does_not_expand_without_jsx;
       test "does_not_expand_uppercase_jsx" test_does_not_expand_uppercase_jsx;

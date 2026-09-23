@@ -15,6 +15,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string (CSS.styles x : ReactDOM.Style.t));
           Buffer.add_char __buf '"';
+          (match
+             (match CSS.label x with "" -> None | part -> Some part
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "part";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           Buffer.add_string __buf "></div>";
           ());
       original =
@@ -26,6 +37,12 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                    (React.JSX.String
                       ("class", "className", (CSS.className x : string)));
                  Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
+                 (match
+                    (match CSS.label x with "" -> None | part -> Some part
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("part", "part", v)));
                ])
             []);
     }
@@ -57,6 +74,20 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               ReactDOM.escape_to_buffer __buf
                 (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
               Buffer.add_char __buf '"');
+          (match
+             (match x with
+              | None -> None
+              | Some x -> (
+                  match CSS.label x with "" -> None | part -> Some part)
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "part";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           Buffer.add_string __buf "></div>";
           ());
       original =
@@ -78,6 +109,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                   with
                  | None -> None
                  | Some v -> Some (React.JSX.Style v));
+                 (match
+                    (match x with
+                     | None -> None
+                     | Some x -> (
+                         match CSS.label x with "" -> None | part -> Some part)
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("part", "part", v)));
                ])
             []);
     }
@@ -98,6 +138,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string (CSS.styles x : ReactDOM.Style.t));
           Buffer.add_char __buf '"';
+          (match
+             (match CSS.label x with "" -> None | part -> Some part
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "part";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           Buffer.add_string __buf "></div>";
           ());
       original =
@@ -111,6 +162,12 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                         "className",
                         (CSS.className x ^ " " ^ "lola" : string) ));
                  Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
+                 (match
+                    (match CSS.label x with "" -> None | part -> Some part
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("part", "part", v)));
                ])
             []);
     }
@@ -136,6 +193,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                   (CSS.styles x)
                  : ReactDOM.Style.t));
           Buffer.add_char __buf '"';
+          (match
+             (match CSS.label x with "" -> None | part -> Some part
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "part";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           Buffer.add_string __buf "></div>";
           ());
       original =
@@ -154,6 +222,12 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                            : ReactDOM.Style.t)
                          (CSS.styles x)
                         : ReactDOM.Style.t));
+                 (match
+                    (match CSS.label x with "" -> None | part -> Some part
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("part", "part", v)));
                ])
             []);
     }
@@ -180,6 +254,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                   (CSS.styles x)
                  : ReactDOM.Style.t));
           Buffer.add_char __buf '"';
+          (match
+             (match CSS.label x with "" -> None | part -> Some part
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "part";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           Buffer.add_string __buf "></div>";
           ());
       original =
@@ -200,6 +285,12 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                            : ReactDOM.Style.t)
                          (CSS.styles x)
                         : ReactDOM.Style.t));
+                 (match
+                    (match CSS.label x with "" -> None | part -> Some part
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("part", "part", v)));
                ])
             []);
     }
@@ -231,6 +322,20 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               ReactDOM.escape_to_buffer __buf
                 (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
               Buffer.add_char __buf '"');
+          (match
+             (match x with
+              | None -> None
+              | Some x -> (
+                  match CSS.label x with "" -> None | part -> Some part)
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "part";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           Buffer.add_string __buf "></div>";
           ());
       original =
@@ -256,6 +361,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                   with
                  | None -> None
                  | Some v -> Some (React.JSX.Style v));
+                 (match
+                    (match x with
+                     | None -> None
+                     | Some x -> (
+                         match CSS.label x with "" -> None | part -> Some part)
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("part", "part", v)));
                ])
             []);
     }
@@ -295,6 +409,20 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                       x
                  : ReactDOM.Style.t));
           Buffer.add_char __buf '"';
+          (match
+             (match x with
+              | None -> None
+              | Some x -> (
+                  match CSS.label x with "" -> None | part -> Some part)
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "part";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           Buffer.add_string __buf "></div>";
           ());
       original =
@@ -328,6 +456,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                : ReactDOM.Style.t)
                              x
                         : ReactDOM.Style.t));
+                 (match
+                    (match x with
+                     | None -> None
+                     | Some x -> (
+                         match CSS.label x with "" -> None | part -> Some part)
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("part", "part", v)));
                ])
             []);
     }
@@ -367,6 +504,20 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                       x
                  : ReactDOM.Style.t));
           Buffer.add_char __buf '"';
+          (match
+             (match x with
+              | None -> None
+              | Some x -> (
+                  match CSS.label x with "" -> None | part -> Some part)
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "part";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           Buffer.add_string __buf "></div>";
           ());
       original =
@@ -404,6 +555,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                : ReactDOM.Style.t)
                              x
                         : ReactDOM.Style.t));
+                 (match
+                    (match x with
+                     | None -> None
+                     | Some x -> (
+                         match CSS.label x with "" -> None | part -> Some part)
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("part", "part", v)));
                ])
             []);
     }
@@ -416,17 +576,26 @@ In Melange mode (-js), ~styles is only expanded on lowercase (DOM) tags.
 Module-qualified components like Foo.Bar keep ~styles as a regular prop (not expanded).
   $ rm -f output.ml temp.ml
   $ ../ppx.sh --output ml -js input.re
-  div ~className:(CSS.className x) ~style:(CSS.styles x) ~children:[] () [@JSX];;
+  div ~className:(CSS.className x) ~style:(CSS.styles x)
+    ?part:(match CSS.label x with "" -> None | part -> Some part)
+    ~children:[] () [@JSX]
+  ;;
   
   div
     ?className:(match x with None -> None | Some x -> Some (CSS.className x))
     ?style:(match x with None -> None | Some x -> Some (CSS.styles x))
+    ?part:
+      (match x with
+      | None -> None
+      | Some x -> ( match CSS.label x with "" -> None | part -> Some part))
     ~children:[] () [@JSX]
   ;;
   
   div
     ~className:(CSS.className x ^ " " ^ "lola")
-    ~style:(CSS.styles x) ~children:[] () [@JSX]
+    ~style:(CSS.styles x)
+    ?part:(match CSS.label x with "" -> None | part -> Some part)
+    ~children:[] () [@JSX]
   ;;
   
   div ~className:(CSS.className x)
@@ -434,6 +603,7 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
       (ReactDOM.Style.combine
          (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
          (CSS.styles x))
+    ?part:(match CSS.label x with "" -> None | part -> Some part)
     ~children:[] () [@JSX]
   ;;
   
@@ -443,6 +613,7 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
       (ReactDOM.Style.combine
          (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
          (CSS.styles x))
+    ?part:(match CSS.label x with "" -> None | part -> Some part)
     ~children:[] () [@JSX]
   ;;
   
@@ -452,6 +623,10 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
       | None -> "lola"
       | Some x -> x ^ " " ^ "lola")
     ?style:(match x with None -> None | Some x -> Some (CSS.styles x))
+    ?part:
+      (match x with
+      | None -> None
+      | Some x -> ( match CSS.label x with "" -> None | part -> Some part))
     ~children:[] () [@JSX]
   ;;
   
@@ -464,6 +639,10 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
           ReactDOM.Style.combine
             (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
             x)
+    ?part:
+      (match x with
+      | None -> None
+      | Some x -> ( match CSS.label x with "" -> None | part -> Some part))
     ~children:[] () [@JSX]
   ;;
   
@@ -479,6 +658,10 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
           ReactDOM.Style.combine
             (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
             x)
+    ?part:
+      (match x with
+      | None -> None
+      | Some x -> ( match CSS.label x with "" -> None | part -> Some part))
     ~children:[] () [@JSX]
   ;;
   

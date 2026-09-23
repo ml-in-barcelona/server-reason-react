@@ -14,6 +14,17 @@ Styles expansion should run in native mode before DOM JSX is rewritten.
           ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string (CSS.styles x : ReactDOM.Style.t));
           Buffer.add_char __buf '"';
+          (match
+             (match CSS.label x with "" -> None | part -> Some part
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "part";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
           Buffer.add_string __buf "></div>";
           ());
       original =
@@ -25,6 +36,12 @@ Styles expansion should run in native mode before DOM JSX is rewritten.
                    (React.JSX.String
                       ("class", "className", (CSS.className x : string)));
                  Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
+                 (match
+                    (match CSS.label x with "" -> None | part -> Some part
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("part", "part", v)));
                ])
             []);
     }
