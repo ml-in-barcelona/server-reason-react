@@ -12,11 +12,7 @@ let should_expand_apply (apply_expr : Ppxlib.expression) =
 
 let expand_attributes ~loc attributes =
   let is_optional = function Ppxlib.Optional _ -> true | Ppxlib.Labelled _ | Ppxlib.Nolabel -> false in
-  (* [combine incoming existing] merges two present values. An optional side is an
-     [option] at runtime, so it is matched before combining; when either side is
-     always present the merged attribute is too, and it drops the [?] label. The
-     generated binders are reserved names, so user expressions in either side
-     cannot be captured. *)
+  (* The generated binders are reserved names, so user expressions in either side cannot be captured. *)
   let merge ~name ~combine current (label, expr) =
     match current with
     | None -> Some (label, expr)
