@@ -61,6 +61,73 @@ let test_expand_styles_with_previous_style () =
     ]
     expanded_attributes
 
+let test_expand_styles_with_previous_optional_className () =
+  let attributes =
+    [ (Optional "className", [%expr previous_class_name]); (Labelled "styles", [%expr generated_styles]) ]
+  in
+  let expanded_attributes = expand_attributes lowercase_jsx_apply attributes in
+  assert_list
+    [
+      ( Labelled "className",
+        [%expr
+          let __incoming = CSS.className generated_styles in
+          match previous_class_name with None -> __incoming | Some __existing -> __incoming ^ " " ^ __existing] );
+      (Labelled "style", [%expr CSS.styles generated_styles]);
+    ]
+    expanded_attributes
+
+let test_expand_styles_with_previous_optional_style () =
+  let attributes = [ (Optional "style", [%expr previous_style]); (Labelled "styles", [%expr generated_styles]) ] in
+  let expanded_attributes = expand_attributes lowercase_jsx_apply attributes in
+  assert_list
+    [
+      (Labelled "className", [%expr CSS.className generated_styles]);
+      ( Labelled "style",
+        [%expr
+          let __incoming = CSS.styles generated_styles in
+          match previous_style with
+          | None -> __incoming
+          | Some __existing -> ReactDOM.Style.combine __existing __incoming] );
+    ]
+    expanded_attributes
+
+let test_expand_optional_styles_with_previous_className () =
+  let attributes =
+    [ (Labelled "className", [%expr "previous-class-name"]); (Optional "styles", [%expr Some generated_styles]) ]
+  in
+  let expanded_attributes = expand_attributes lowercase_jsx_apply attributes in
+  assert_list
+    [
+      ( Labelled "className",
+        [%expr
+          let __existing = "previous-class-name" in
+          match match Some generated_styles with None -> None | Some x -> Some (CSS.className x) with
+          | None -> __existing
+          | Some __incoming -> __incoming ^ " " ^ __existing] );
+      (Optional "style", [%expr match Some generated_styles with None -> None | Some x -> Some (CSS.styles x)]);
+    ]
+    expanded_attributes
+
+let test_expand_optional_styles_with_previous_optional_className () =
+  let attributes =
+    [ (Optional "className", [%expr previous_class_name]); (Optional "styles", [%expr Some generated_styles]) ]
+  in
+  let expanded_attributes = expand_attributes lowercase_jsx_apply attributes in
+  assert_list
+    [
+      ( Optional "className",
+        [%expr
+          match
+            ((match Some generated_styles with None -> None | Some x -> Some (CSS.className x)), previous_class_name)
+          with
+          | None, None -> None
+          | Some __incoming, None -> Some __incoming
+          | None, Some __existing -> Some __existing
+          | Some __incoming, Some __existing -> Some (__incoming ^ " " ^ __existing)] );
+      (Optional "style", [%expr match Some generated_styles with None -> None | Some x -> Some (CSS.styles x)]);
+    ]
+    expanded_attributes
+
 let test_expand_styles_optional () =
   let expr = [%expr Some generated_styles] in
   let attributes = [ (Optional "styles", expr) ] in
@@ -92,6 +159,11 @@ let () =
       test "expand_styles_prop_on_attributes" test_expand_styles;
       test "expand_styles_with_previous_className" test_expand_styles_with_previous_className;
       test "expand_styles_with_previous_style" test_expand_styles_with_previous_style;
+      test "expand_styles_with_previous_optional_className" test_expand_styles_with_previous_optional_className;
+      test "expand_styles_with_previous_optional_style" test_expand_styles_with_previous_optional_style;
+      test "expand_optional_styles_with_previous_className" test_expand_optional_styles_with_previous_className;
+      test "expand_optional_styles_with_previous_optional_className"
+        test_expand_optional_styles_with_previous_optional_className;
       test "expand_styles_optional" test_expand_styles_optional;
       test "does_not_expand_without_jsx" test_does_not_expand_without_jsx;
       test "does_not_expand_uppercase_jsx" test_does_not_expand_uppercase_jsx;
