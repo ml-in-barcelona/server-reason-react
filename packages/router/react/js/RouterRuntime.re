@@ -31,6 +31,14 @@ let pattern = path =>
   | Error(_) => invalid_arg("invalid generated route pattern " ++ path)
   };
 
+let encodeSearch = search =>
+  search
+  |> List.sort(((left, _), (right, _)) => String.compare(left, right))
+  |> List.concat_map(((name, values)) =>
+       List.map(value => encode(name) ++ "=" ++ encode(value), values)
+     )
+  |> String.concat("&");
+
 let destinationFromPattern = (~pattern, ~parameters, ~search) => {
   let Pattern(pattern) = pattern;
   let parameter = name => List.assoc_opt(name, parameters);
@@ -46,13 +54,7 @@ let destinationFromPattern = (~pattern, ~parameters, ~search) => {
     | Ok(path) => path
     | Error(InvalidPattern(message)) => invalid_arg(message)
     };
-  let search =
-    search
-    |> List.sort(((left, _), (right, _)) => String.compare(left, right))
-    |> List.concat_map(((name, values)) =>
-         List.map(value => encode(name) ++ "=" ++ encode(value), values)
-       )
-    |> String.concat("&");
+  let search = encodeSearch(search);
   let finalPath: string = search == "" ? path : path ++ "?" ++ search;
   destination(~path=finalPath);
 };

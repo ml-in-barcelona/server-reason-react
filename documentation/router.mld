@@ -34,7 +34,7 @@ Router.make(
 routes under a shared path prefix and layout. Both accept attachments, as does
 the root.
 
-[Router.redirect] declares an inbound temporary redirect without adding a
+[Router.redirect] declares an inbound redirect, temporary by default, without adding a
 route constructor or link helper to the generated application API:
 
 {[
@@ -43,6 +43,11 @@ Router.redirect(
   ~to_=(~id, ()) => Router.Note.destination(~id, ()),
 )
 ]}
+
+Add [~permanent=true] for a permanent redirect. Document requests then
+receive status 308, so the request method survives the redirect. A temporary
+redirect answers documents with a see-other response. A client navigation
+receives the redirect envelope in both cases.
 
 The destination callback receives the redirect's decoded path and search
 values, including values inherited from parent groups and the root. Redirects
@@ -74,6 +79,23 @@ each module:
   function and a [make] component. On groups and routes, [~error] is a boundary
   component.
 - [~metadata] and [~headers] are plain functions, not modules.
+
+{2 Names and labels}
+
+A route name is a bare constructor, such as [Note]. A dotted name is an error.
+Each route name must be unique, and these names are reserved because the
+generated module already uses them: [Status], [Loader], [Error], [Metadata],
+[Headers], [Navigation], [Search], and [Link].
+
+Path parameter names, search parameter names, and loader result labels become
+labelled arguments of the generated helpers. Within one branch they must be
+unique. These labels belong to the generated API and cannot be used:
+[applicationStatus], [ariaCurrent], [basePath], [children], [className],
+[decodeError], [destination], [download], [error], [fallback], [href], [input],
+[item], [make], [options], [pattern], [registry], [search], [target],
+[updateSearch], [unsafeDestination], [useNavigation], [useRoute], [useSearch],
+[useUpdateHash], [value], and [values]. The generator reports a conflict at
+the route that uses the label.
 
 {2 Path syntax}
 
@@ -246,6 +268,32 @@ instead of calling [updateSearch].
 
 [Router.useUpdateHash] commits hash-only changes without a request.
 
+[RouterReact.useLocation] returns the committed location: [pathname], [search]
+(with its leading [?]), [hash] and [key]. On the server it reads the location
+the page renders for. Like the other hooks it needs an ancestor provider.
+
+Search values are percent-encoded the same way in destinations and in
+[updateSearch]: a space is [%20], never [+], and names are sorted. One logical
+query has one spelling.
+
+{2 Links}
+
+[RouterReact.link] renders an [a] element that navigates on the client. Besides
+[~destination], [~className], [~target], [~download] and [~ariaCurrent] it
+accepts [~id], [~title], [~rel], [~ariaLabel], [~onClick] and [~onMouseEnter].
+The [~onClick] handler runs first. When it calls [preventDefault], or the event
+is already prevented, the router does not navigate. On the server the link
+renders the same attributes and ignores both handlers.
+
+{2 Untyped destinations}
+
+Wrapping frameworks and server-function results cannot use generated
+destination functions. [RouterRuntime.destination ~path] builds a destination
+from a path that already includes its encoded search, and [RouterRuntime.href]
+turns a destination back into its string. A server function returns the href
+string. The client rebuilds the destination with [destination ~path] and
+passes it to [navigate].
+
 {1 Loaders}
 
 A loader runs on the server before streaming. It receives the decoded path
@@ -269,12 +317,43 @@ module NoteLoader = {
 Loaders execute parent-first and complete before response headers or RSC
 rendering begin. The scope's components receive [Data] ([~note] in the
 manifest above). [NotFound] and [Error] render the nearest boundary, and
-[Redirect(destination)] escapes the whole branch.
+[Redirect(destination)] escapes the whole branch. [PermanentRedirect(destination)]
+does the same and answers documents with status 308. Use it only for moves
+that never change.
 
 A loader runs again on every request, including patches, so a patch that
 reuses the loader's scope keeps the layout rendered from the {e previous}
 result. Use [~revalidate=true] when a navigation must show a layout rebuilt
 from fresh loader data.
+
+A patch still runs every loader on the matched branch, not only the loaders
+of the scopes it sends. Child loaders receive the results of their ancestors,
+so the server cannot skip an ancestor loader.
+
+Loaders read request-local data, such as a session or a request id, through a
+key that the server adapter owns. The router passes no request context to
+loaders. Create an [Lwt.key], set it with [Lwt.with_value], and read it with
+[Lwt.get] inside the loader. The key must wrap the {e whole} handler, including
+the streaming response, not only [Server.run]. A streaming body, for example
+the callback of [Dream.stream], runs after the handler returns. Lwt copies the
+storage into a callback when the callback is registered, so a key set only
+around [Server.run] is empty there.
+
+{[
+let requestKey : Dream.request Lwt.key = Lwt.new_key ()
+
+let handler request =
+  Lwt.with_value requestKey (Some request) (fun () ->
+      (* Server.run, the outcome match and Dream.stream all run here. *)
+      Lwt.bind (RouterServer.Server.run server ~diagnosticId ~revision engineRequest)
+        (respond request))
+
+(* In a loader: *)
+let load ~id:_ () =
+  match Lwt.get requestKey with
+  | Some request -> findSession request
+  | None -> Lwt.return Router.Loader.NotFound
+]}
 
 Keep loaders for fast validation, redirects, and route-level not-found
 decisions; stream slow data from async server components inside the route

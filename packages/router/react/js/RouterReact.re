@@ -333,18 +333,7 @@ module Provider = {
           ~values,
           searchValuesFromString(current.location.search),
         );
-      let parameters = Webapi.Url.URLSearchParams.make("");
-      List.iter(
-        ((name, values)) =>
-          List.iter(
-            value =>
-              Webapi.Url.URLSearchParams.append(name, value, parameters),
-            values,
-          ),
-        nextValues,
-      );
-      Webapi.Url.URLSearchParams.sort(parameters);
-      let encoded = Webapi.Url.URLSearchParams.toString(parameters);
+      let encoded = RouterRuntime.encodeSearch(nextValues);
       let search = String.equal(encoded, "") ? "" : "?" ++ encoded;
       if (String.equal(search, current.location.search)) {
         Navigation.Result.Committed(current);
@@ -781,6 +770,8 @@ let useSearch = () => {
 
 let useUpdateHash = () => useContextValue().updateHash;
 
+let useLocation = () => useContextValue().committed.location;
+
 module Link = {
   [@react.component]
   let make =
@@ -790,14 +781,22 @@ module Link = {
         ~target=?,
         ~download=?,
         ~ariaCurrent=?,
+        ~id=?,
+        ~title=?,
+        ~rel=?,
+        ~ariaLabel=?,
+        ~onClick as userOnClick=?,
+        ~onMouseEnter=?,
         ~history=Navigation.Push,
         ~revalidate=false,
         ~children,
       ) => {
     let (navigate, _) = useNavigation();
     let onClick = event => {
+      Option.iter(handler => handler(event), userOnClick);
       let plainClick =
-        React.Event.Mouse.button(event) == 0
+        !React.Event.Mouse.defaultPrevented(event)
+        && React.Event.Mouse.button(event) == 0
         && !React.Event.Mouse.altKey(event)
         && !React.Event.Mouse.ctrlKey(event)
         && !React.Event.Mouse.metaKey(event)
@@ -822,6 +821,11 @@ module Link = {
       ?target
       ?download
       ?ariaCurrent
+      ?id
+      ?title
+      ?rel
+      ?ariaLabel
+      ?onMouseEnter
       onClick>
       children
     </a>;
@@ -835,12 +839,30 @@ let link =
       ~target=?,
       ~download=?,
       ~ariaCurrent=?,
+      ~id=?,
+      ~title=?,
+      ~rel=?,
+      ~ariaLabel=?,
+      ~onClick=?,
+      ~onMouseEnter=?,
       ~history=?,
       ~revalidate=?,
       ~children,
       (),
     ) =>
   <Link
-    destination ?className ?target ?download ?ariaCurrent ?history ?revalidate>
+    destination
+    ?className
+    ?target
+    ?download
+    ?ariaCurrent
+    ?id
+    ?title
+    ?rel
+    ?ariaLabel
+    ?onClick
+    ?onMouseEnter
+    ?history
+    ?revalidate>
     children
   </Link>;

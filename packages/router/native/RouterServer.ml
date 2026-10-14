@@ -189,12 +189,7 @@ module Registry = struct
   }
 
   type t = { routes : Route.t list; exact : (string, Route.t) Hashtbl.t; root : node }
-
-  type error =
-    | DuplicateId of string
-    | DuplicatePath of string
-    | AmbiguousPattern of string * string
-    | InvalidPattern of string
+  type error = DuplicateId of string | DuplicatePath of string | AmbiguousPattern of string * string
 
   let rec find_duplicate_id = function
     | [] -> None
@@ -276,7 +271,6 @@ module Registry = struct
     | DuplicateId id -> invalid_arg ("duplicate route id " ^ id)
     | DuplicatePath path -> invalid_arg ("duplicate route path " ^ path)
     | AmbiguousPattern (left, right) -> invalid_arg ("ambiguous route patterns " ^ left ^ " and " ^ right)
-    | InvalidPattern path -> invalid_arg ("invalid route pattern " ^ path)
 
   let makeExn routes = match make routes with Ok registry -> registry | Error error -> raise_invalid error
   let routes registry = registry.routes
@@ -448,6 +442,7 @@ module Execution = struct
   type ('result, 'error) t =
     | Done : 'result -> ('result, 'error) t
     | Redirect : RouterRuntime.destination -> ('result, 'error) t
+    | PermanentRedirect : RouterRuntime.destination -> ('result, 'error) t
     | Load : {
         run : unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t;
         next : 'data -> ('result, 'error) t;
@@ -462,6 +457,7 @@ module Execution = struct
 
   let done_ result = Done result
   let redirect destination = Redirect destination
+  let permanentRedirect destination = PermanentRedirect destination
   let load run next = Load { run; next }
   let loadWithBoundary ~run ~failure ~next = LoadWithBoundary { run; failure; next }
 
@@ -469,12 +465,15 @@ module Execution = struct
     let rec loop : type result error. (result, error) t -> (result, error) RouterRuntime.Loader.result Lwt.t = function
       | Done result -> Lwt.return (RouterRuntime.Loader.Data result)
       | Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination)
+      | PermanentRedirect destination -> Lwt.return (RouterRuntime.Loader.PermanentRedirect destination)
       | Load loader ->
           Lwt.bind (loader.run ()) (function
             | RouterRuntime.Loader.Data data -> loop (loader.next data)
             | RouterRuntime.Loader.Error error -> Lwt.return (RouterRuntime.Loader.Error error)
             | RouterRuntime.Loader.NotFound -> Lwt.return RouterRuntime.Loader.NotFound
-            | RouterRuntime.Loader.Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination))
+            | RouterRuntime.Loader.Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination)
+            | RouterRuntime.Loader.PermanentRedirect destination ->
+                Lwt.return (RouterRuntime.Loader.PermanentRedirect destination))
       | LoadWithBoundary loader ->
           Lwt.catch
             (fun () ->
@@ -486,7 +485,9 @@ module Execution = struct
                     Lwt.return
                       (RouterRuntime.Loader.Data
                          (loader.failure (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })))
-                | RouterRuntime.Loader.Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination)))
+                | RouterRuntime.Loader.Redirect destination -> Lwt.return (RouterRuntime.Loader.Redirect destination)
+                | RouterRuntime.Loader.PermanentRedirect destination ->
+                    Lwt.return (RouterRuntime.Loader.PermanentRedirect destination)))
             (fun exception_ ->
               if fatal_exception exception_ then Lwt.fail exception_
               else
@@ -926,7 +927,9 @@ module ServerEngine = struct
                               | RouterRuntime.Loader.NotFound ->
                                   fail ~search
                                     (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })
-                              | RouterRuntime.Loader.Redirect destination -> Lwt.return (Redirect destination))))))
+                              | RouterRuntime.Loader.Redirect destination -> Lwt.return (Redirect destination)
+                              | RouterRuntime.Loader.PermanentRedirect destination ->
+                                  Lwt.return (PermanentRedirect destination))))))
     in
     let blank_internal error =
       let required =

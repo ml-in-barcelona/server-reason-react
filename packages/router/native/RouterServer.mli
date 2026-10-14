@@ -40,12 +40,7 @@ end
 
 module Registry : sig
   type t
-
-  type error =
-    | DuplicateId of string
-    | DuplicatePath of string
-    | AmbiguousPattern of string * string
-    | InvalidPattern of string
+  type error = DuplicateId of string | DuplicatePath of string | AmbiguousPattern of string * string
 
   val make : Route.t list -> (t, error) result
   (** Builds a registry after rejecting duplicate identities and patterns that could match the same pathname with equal
@@ -125,7 +120,10 @@ module Execution : sig
   val done_ : 'result -> ('result, 'error) t
 
   val redirect : RouterRuntime.destination -> ('result, 'error) t
-  (** Ends execution with a redirect without running a loader. *)
+  (** Ends execution with a temporary redirect without running a loader. *)
+
+  val permanentRedirect : RouterRuntime.destination -> ('result, 'error) t
+  (** Ends execution with a permanent redirect without running a loader. *)
 
   val load :
     (unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t) -> ('data -> ('result, 'error) t) -> ('result, 'error) t
@@ -324,8 +322,9 @@ module ServerEngine : sig
     | Redirect of RouterRuntime.destination
         (** A navigation redirect requested by a route loader. Adapters answer with a see-other response. *)
     | PermanentRedirect of RouterRuntime.destination
-        (** A pathname canonicalization redirect. Adapters answer documents with status 308 so the request method
-            survives the redirect. *)
+        (** A permanent redirect: pathname canonicalization, a loader that returns [Loader.PermanentRedirect], or a
+            [Router.redirect ~permanent:true]. Adapters answer documents with status 308 so the request method survives
+            the redirect. *)
 
   val run :
     registry:(('view, 'error) Plan.t, 'error) EndpointRegistry.t ->

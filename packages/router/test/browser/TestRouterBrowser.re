@@ -200,3 +200,61 @@ expect(
   "the removed failed response kind was still accepted",
   RouterRuntime.NavigationResponse.kindOfString("failed") == None,
 );
+
+/* Plain string literals are UTF-8 bytes in Melange, so non-ASCII text is built from code units. */
+let encodingTable = [
+  ("abc", "abc"),
+  ("a b", "a%20b"),
+  ("/", "%2F"),
+  ("?", "%3F"),
+  ("#", "%23"),
+  ("&", "%26"),
+  ("=", "%3D"),
+  ("+", "%2B"),
+  ("%", "%25"),
+  ("caf" ++ Js.String.fromCharCode(0xe9), "caf%C3%A9"),
+  ("M" ++ Js.String.fromCharCode(0xfc) ++ "nchen", "M%C3%BCnchen"),
+  ({js|😀|js}, "%F0%9F%98%80"),
+  ("a-b_c.d~e!*'()", "a-b_c.d~e!*'()"),
+];
+let encodingPattern = RouterRuntime.pattern("/:v<string>");
+List.iter(
+  ((input, expected)) => {
+    expect(
+      "search encoding differs for " ++ input,
+      RouterRuntime.encodeSearch([("k", [input])]) == "k=" ++ expected,
+    );
+    expect(
+      "destination search encoding differs for " ++ input,
+      RouterRuntime.href(
+        RouterRuntime.destinationFromPattern(
+          ~pattern=encodingPattern,
+          ~parameters=[("v", "x")],
+          ~search=[("k", [input])],
+        ),
+      )
+      == "/x?k="
+      ++ expected,
+    );
+    if (!String.contains(input, '/')) {
+      expect(
+        "path encoding differs for " ++ input,
+        RouterRuntime.href(
+          RouterRuntime.destinationFromPattern(
+            ~pattern=encodingPattern,
+            ~parameters=[("v", input)],
+            ~search=[],
+          ),
+        )
+        == "/"
+        ++ expected,
+      );
+    };
+  },
+  encodingTable,
+);
+expect(
+  "search is not sorted by name",
+  RouterRuntime.encodeSearch([("b", ["1"]), ("a", ["2", "3"])])
+  == "a=2&a=3&b=1",
+);

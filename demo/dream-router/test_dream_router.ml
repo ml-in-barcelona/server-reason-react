@@ -345,6 +345,40 @@ let rsc_redirect_uses_navigation_envelope () =
     "content type" (Some "application/react.component") (Dream.header response "Content-Type");
   Alcotest.(check (option string)) "cache control" (Some "private, no-store") (Dream.header response "Cache-Control")
 
+let loader_permanent_redirect_answers_308_and_rsc_envelope () =
+  let endpoint =
+    RouterServer.Endpoint.make ~id:"redirect" ~path:"/redirect"
+      ~activeRoutes:[ ("redirect", []) ]
+      ~fingerprint:"redirect"
+      ~decode:(fun _ ->
+        Ok
+          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterServer.Execution.load
+                 (fun () ->
+                   Lwt.return (RouterRuntime.Loader.PermanentRedirect (RouterRuntime.destination ~path:"/outside")))
+                 (fun (_ : unit) ->
+                   RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:React.null)))))
+  in
+  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let document = Dream.test (patch_handler registry) (Dream.request ~target:"/app/redirect" "") in
+  Alcotest.(check int) "document status" 308 (Dream.status document |> Dream.status_to_int);
+  Alcotest.(check (option string)) "location" (Some "/outside") (Dream.header document "Location");
+  let fingerprint = RouterServer.EndpointRegistry.fingerprint registry in
+  let rsc =
+    Dream.test (patch_handler registry)
+      (Dream.request ~target:"/app/redirect"
+         ~headers:
+           [
+             ("Accept", "application/react.component");
+             ("Router-Registry", "2." ^ fingerprint);
+             ("Router-Navigation-From", "/app");
+             ("Router-Base-Revision", "base");
+           ]
+         "")
+  in
+  Alcotest.(check int) "rsc status" 200 (Dream.status rsc |> Dream.status_to_int);
+  Alcotest.(check (option string)) "rsc kind" (Some "redirect") (Dream.header rsc "Router-Response")
+
 let trailing_slash_document_redirects_permanently () =
   let seen = ref None in
   let request = Dream.request ~target:"/app/item/?tag=one" "" in
@@ -401,6 +435,8 @@ let () =
           test "registry mismatch returns reload-required" registry_mismatch_returns_reload_required;
           test "patch payload is smaller than full" patch_payload_is_smaller_than_full;
           test "RSC redirect uses navigation envelope" rsc_redirect_uses_navigation_envelope;
+          test "loader permanent redirect answers 308 and rsc envelope"
+            loader_permanent_redirect_answers_308_and_rsc_envelope;
           test "trailing slash document redirects permanently" trailing_slash_document_redirects_permanently;
           test "trailing slash RSC uses navigation envelope" trailing_slash_rsc_uses_navigation_envelope;
           test "trailing slash reject returns not found" trailing_slash_reject_returns_not_found;

@@ -661,9 +661,18 @@ let pop_navigation_kind () =
   let committed = initial_commit "r1" "/notes" in
   let hashTarget = { committed.location with hash = "#details" } in
   let searchTarget = { committed.location with search = "?q=cat" } in
-  Alcotest.(check bool) "hash" true (classifyPop committed ~target:hashTarget ~targetRevision:(Some "r1") = HashOnly);
-  Alcotest.(check bool) "search" true (classifyPop committed ~target:searchTarget ~targetRevision:(Some "r1") = Shallow);
-  Alcotest.(check bool) "stale" true (classifyPop committed ~target:searchTarget ~targetRevision:(Some "old") = Content)
+  Alcotest.(check bool)
+    "hash" true
+    (classifyPopByContentIdentity committed ~target:hashTarget ~currentIdentity:"r1" ~targetIdentity:(Some "r1")
+    = HashOnly);
+  Alcotest.(check bool)
+    "search" true
+    (classifyPopByContentIdentity committed ~target:searchTarget ~currentIdentity:"r1" ~targetIdentity:(Some "r1")
+    = Shallow);
+  Alcotest.(check bool)
+    "stale" true
+    (classifyPopByContentIdentity committed ~target:searchTarget ~currentIdentity:"r1" ~targetIdentity:(Some "old")
+    = Content)
 
 let typed_endpoint_decoding () =
   let endpoint =
@@ -729,6 +738,50 @@ let run_trailing_slash_engine ~trailingSlash ~basePath ~pathname ?(search = "") 
        ~revision:(fun () -> "revision")
        ~protocolVersion:1
        { pathname; search; hash = ""; kind = Document; navigation = None })
+
+let run_redirect_engine ~kind execution =
+  let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+    RouterServer.Endpoint.make ~id:"old" ~path:"/old" ~activeRoutes:[] ~fingerprint:"old" ~decode:(fun _ ->
+        Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution))
+  in
+  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  Lwt_main.run
+    (RouterServer.ServerEngine.run ~registry ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
+       ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+       ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+       ~diagnosticId:(fun _ -> "diagnostic")
+       ~revision:(fun () -> "revision")
+       ~protocolVersion:1
+       { pathname = "/old"; search = ""; hash = ""; kind; navigation = None })
+
+let loader_permanent_redirect_reaches_engine () =
+  let destination = RouterRuntime.destination ~path:"/new" in
+  let execution () =
+    RouterServer.Execution.load
+      (fun () -> Lwt.return (RouterRuntime.Loader.PermanentRedirect destination))
+      (fun (_ : unit) -> RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:"old"))
+  in
+  List.iter
+    (fun kind ->
+      match run_redirect_engine ~kind execution with
+      | RouterServer.ServerEngine.PermanentRedirect found ->
+          Alcotest.(check string) "destination" "/new" (RouterRuntime.href found)
+      | _ -> Alcotest.fail "expected permanent redirect")
+    [ RouterServer.ServerEngine.Document; RouterServer.ServerEngine.Rsc ]
+
+let execution_permanent_redirect_skips_loaders () =
+  let destination = RouterRuntime.destination ~path:"/new" in
+  let execution () = RouterServer.Execution.permanentRedirect destination in
+  match run_redirect_engine ~kind:Document execution with
+  | RouterServer.ServerEngine.PermanentRedirect found ->
+      Alcotest.(check string) "destination" "/new" (RouterRuntime.href found)
+  | _ -> Alcotest.fail "expected permanent redirect"
+
+let loader_redirect_stays_temporary () =
+  let destination = RouterRuntime.destination ~path:"/new" in
+  match run_redirect_engine ~kind:Document (fun () -> RouterServer.Execution.redirect destination) with
+  | RouterServer.ServerEngine.Redirect _ -> ()
+  | _ -> Alcotest.fail "expected temporary redirect"
 
 let trailing_slash_redirects_to_canonical () =
   match
@@ -960,6 +1013,9 @@ let () =
           test "pop navigation kind" pop_navigation_kind;
           test "typed endpoint decoding" typed_endpoint_decoding;
           test "typed endpoint decode error" typed_endpoint_decode_error;
+          test "loader permanent redirect reaches engine" loader_permanent_redirect_reaches_engine;
+          test "execution permanent redirect" execution_permanent_redirect_skips_loaders;
+          test "loader redirect stays temporary" loader_redirect_stays_temporary;
           test "trailing slash redirects to canonical" trailing_slash_redirects_to_canonical;
           test "trailing slash redirect collapses repeated slashes" trailing_slash_redirect_collapses_repeated_slashes;
           test "trailing slash redirects base path root" trailing_slash_redirects_base_path_root;

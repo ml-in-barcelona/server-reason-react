@@ -25,11 +25,16 @@ let () =
   let source = match !source with Some source -> source | None -> invalid_arg "--source is required" in
   let lexbuf = Lexing.from_channel stdin in
   Location.init lexbuf source;
-  let structure = Parse.implementation lexbuf in
-  match Router_declaration.find structure with
-  | None -> Location.raise_errorf "router: no top-level Router.make declaration found"
-  | Some declaration -> (
-      match mode with
-      | Handles -> Router_expansion.handles declaration |> Pprintast.structure Format.std_formatter
-      | Interface -> Router_expansion.signature declaration |> Pprintast.signature Format.std_formatter
-      | Registry -> Router_expansion.registry declaration |> Pprintast.structure Format.std_formatter)
+  try
+    let structure = Parse.implementation lexbuf in
+    match Router_declaration.find structure with
+    | None -> Location.raise_errorf "router: no top-level Router.make declaration found"
+    | Some declaration -> (
+        match mode with
+        | Handles -> Router_expansion.handles declaration |> Pprintast.structure Format.std_formatter
+        | Interface -> Router_expansion.signature declaration |> Pprintast.signature Format.std_formatter
+        | Registry -> Router_expansion.registry declaration |> Pprintast.structure Format.std_formatter)
+  with exn when Option.is_some (Location.Error.of_exn exn) ->
+    Format.pp_print_flush Format.std_formatter ();
+    Location.report_exception Format.err_formatter exn;
+    exit 2

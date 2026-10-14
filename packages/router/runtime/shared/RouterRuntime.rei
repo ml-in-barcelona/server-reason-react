@@ -12,6 +12,11 @@ let destinationFromPattern:
   destination;
 let href: destination => string;
 
+/** Query string without the leading [?]: names sorted, every name and value
+    percent-encoded. Destinations and [updateSearch] both use it so one query
+    has one spelling. */
+let encodeSearch: list((string, list(string))) => string;
+
 module Status: {
   type t =
     | Ok
@@ -30,7 +35,8 @@ module Loader: {
     | Data('data)
     | Error('error)
     | NotFound
-    | Redirect(destination);
+    | Redirect(destination)
+    | PermanentRedirect(destination);
 };
 
 module Error: {
@@ -154,8 +160,6 @@ module Navigation: {
   let fail: (state, ~requestId: int, ~message: string) => state;
   let shallow: (state, ~location: location, ~action: historyAction) => state;
   let hashOnly: (state, ~location: location, ~action: historyAction) => state;
-  let classifyPop:
-    (committed, ~target: location, ~targetRevision: option(string)) => kind;
   let classifyPopByContentIdentity:
     (
       committed,

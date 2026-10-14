@@ -79,6 +79,11 @@ let useSearch = () => {
   (values, updateSearch);
 };
 let useUpdateHash = () => updateHash;
+let useLocation = () =>
+  switch (React.useContext(context)) {
+  | Some(value) => value.committed.location
+  | None => invalid_arg("router hooks require an ancestor Router.Provider")
+  };
 
 let outlet = (~owner, ~children, ()) =>
   RouterOutlet.make(
@@ -96,6 +101,12 @@ let link =
       ~target=?,
       ~download=?,
       ~ariaCurrent=?,
+      ~id=?,
+      ~title=?,
+      ~rel=?,
+      ~ariaLabel=?,
+      ~onClick as _=?,
+      ~onMouseEnter as _=?,
       ~history as _=?,
       ~revalidate as _=?,
       ~children,
@@ -106,6 +117,10 @@ let link =
     ?className
     ?target
     ?download
-    ?ariaCurrent>
+    ?ariaCurrent
+    ?id
+    ?title
+    ?rel
+    ?ariaLabel>
     children
   </a>;

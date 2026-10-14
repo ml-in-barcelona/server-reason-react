@@ -30,7 +30,8 @@ module Loader = {
     | Data('data)
     | Error('error)
     | NotFound
-    | Redirect(destination);
+    | Redirect(destination)
+    | PermanentRedirect(destination);
 };
 
 module Error = {
@@ -343,14 +344,6 @@ module Navigation = {
       Shallow;
     } else {
       Content;
-    };
-
-  let classifyPop = (committed, ~target, ~targetRevision) =>
-    switch (targetRevision) {
-    | Some(revision) when String.equal(revision, committed.revision) =>
-      classifyPopLocation(committed, target)
-    | Some(_)
-    | None => Content
     };
 
   let classifyPopByContentIdentity =
