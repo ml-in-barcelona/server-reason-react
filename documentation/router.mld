@@ -283,7 +283,9 @@ query has one spelling.
 accepts [~id], [~title], [~rel], [~ariaLabel], [~onClick] and [~onMouseEnter].
 The [~onClick] handler runs first. When it calls [preventDefault], or the event
 is already prevented, the router does not navigate. On the server the link
-renders the same attributes and ignores both handlers.
+renders the same attributes and ignores both handlers. These props are on
+[RouterReact.link] and [Link] only: the generated per-route [Link]s do not
+take them, because they would clash with path parameters such as [id].
 
 {2 Untyped destinations}
 
@@ -319,7 +321,8 @@ rendering begin. The scope's components receive [Data] ([~note] in the
 manifest above). [NotFound] and [Error] render the nearest boundary, and
 [Redirect(destination)] escapes the whole branch. [PermanentRedirect(destination)]
 does the same and answers documents with status 308. Use it only for moves
-that never change.
+that never change. Building a destination from user input, such as a [?next=]
+parameter, can create an open redirect, and browsers cache 308 responses.
 
 A loader runs again on every request, including patches, so a patch that
 reuses the loader's scope keeps the layout rendered from the {e previous}
@@ -462,7 +465,11 @@ adapter only parses the request and writes the reply:
   [Adapter.redirect_model] and [Adapter.metadata_element] are the pieces
   [reply] uses. [document] is [~head -> children -> element]: the app builds
   [<html>] itself, puts [head] (the resolved metadata) in [<head>] and
-  [children] in [<body>].
+  [children] in [<body>]. [document] must place [head]: the routed root does
+  not render the metadata again on the server, so a document that drops
+  [head] has no title or meta tags. In the browser the router renders the
+  metadata itself, and React adopts the tags already in [<head>] when it
+  hydrates and updates them on navigation.
 
 Bootstrap modules and the skip-root choice are not part of the reply. The
 adapter picks them for each request when it writes [Html].

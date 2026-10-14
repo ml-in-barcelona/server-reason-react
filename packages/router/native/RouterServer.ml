@@ -862,9 +862,11 @@ module ServerEngine = struct
         match Path.stripTrailingSlashes request.pathname with
         | Some canonical -> (
             match trailingSlash with
-            (* A leading "//" would make the Location a protocol-relative URL to another host. Paths with empty segments
-               are invalid, so such a request is not found instead of being rewritten to a different path. *)
-            | TrailingSlash.Redirect when String.starts_with ~prefix:"//" canonical ->
+            (* A leading "//" would make the Location a protocol-relative URL to another host, and browsers read a slash
+               followed by a backslash the same way. Paths with empty segments are invalid, so such a request is not found instead of being
+               rewritten to a different path. *)
+            | TrailingSlash.Redirect
+              when String.starts_with ~prefix:"//" canonical || String.starts_with ~prefix:"/\\" canonical ->
                 fail (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
             | TrailingSlash.Redirect ->
                 Lwt.return
@@ -1041,8 +1043,6 @@ module Adapter = struct
     in
     React.list (List.filter_map Fun.id [ title; description ] @ List.map entry metadata.entries)
 
-  let resolved_element (resolved : (React.element, 'error) Plan.resolved) = Plan.resolvedElement resolved
-
   (* The marker lets the bootstrap module detect from the DOM whether the server rendered the root markup: it sits next
      to the routed root, so [skipRoot] drops it together with the markup it signals. *)
   let ssr_marker =
@@ -1063,7 +1063,7 @@ module Adapter = struct
     let head = metadata_element response.resolved.metadata in
     let children =
       Server.clientRootWithCache server ~pageCacheCapacity ~initial ~metadata:head
-        ~children:(resolved_element response.resolved)
+        ~children:(Plan.resolvedElement response.resolved)
     in
     document ~head (React.list [ ssr_marker; children ])
 
@@ -1078,7 +1078,7 @@ module Adapter = struct
         layouts = response.layouts;
         targetRevision = response.revision;
         metadata = metadata_element response.resolved.metadata;
-        payload = resolved_element response.resolved;
+        payload = Plan.resolvedElement response.resolved;
       }
     in
     RouterRuntime.NavigationResponse.full_to_rsc RSC.Primitives.react_element_to_rsc full |> RSC.to_model
@@ -1096,7 +1096,7 @@ module Adapter = struct
         matches = response.matches;
         layouts = response.layouts;
         metadata = metadata_element response.resolved.metadata;
-        payload = resolved_element response.resolved;
+        payload = Plan.resolvedElement response.resolved;
       }
     in
     RouterRuntime.NavigationResponse.patch_to_rsc RSC.Primitives.react_element_to_rsc patch |> RSC.to_model

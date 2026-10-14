@@ -32,6 +32,11 @@ let case (input, expected) =
 let sorted () =
   Alcotest.(check string) "sorted" "a=2&a=3&b=1" (RouterRuntime.encodeSearch [ ("b", [ "1" ]); ("a", [ "2"; "3" ]) ])
 
+let sorted_by_code_point () =
+  Alcotest.(check string)
+    "sorted" "%EF%BC%A1=1&%F0%9F%98%80=2"
+    (RouterRuntime.encodeSearch [ ("\u{1F600}", [ "2" ]); ("\u{FF21}", [ "1" ]) ])
+
 let link_attributes () =
   let html =
     ReactDOM.renderToString
@@ -46,6 +51,11 @@ let link_attributes () =
 let () =
   Alcotest.run "router encoding"
     [
-      ("table", List.map case table @ [ Alcotest.test_case "sorted by name" `Quick sorted ]);
+      ( "table",
+        List.map case table
+        @ [
+            Alcotest.test_case "sorted by name" `Quick sorted;
+            Alcotest.test_case "sorted by code point" `Quick sorted_by_code_point;
+          ] );
       ("link", [ Alcotest.test_case "native link attributes" `Quick link_attributes ]);
     ]

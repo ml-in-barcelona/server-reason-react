@@ -258,3 +258,74 @@ expect(
   RouterRuntime.encodeSearch([("b", ["1"]), ("a", ["2", "3"])])
   == "a=2&a=3&b=1",
 );
+
+expect(
+  "search names are not sorted by code point",
+  RouterRuntime.encodeSearch([
+    (Js.String.fromCodePoint(0x1f600), ["2"]),
+    (Js.String.fromCodePoint(0xff21), ["1"]),
+  ])
+  == "%EF%BC%A1=1&%F0%9F%98%80=2",
+);
+
+expect(
+  "a lone surrogate in a search value did not become U+FFFD",
+  RouterRuntime.encodeSearch([("k", [Js.String.fromCharCode(0xd800)])])
+  == "k=%EF%BF%BD",
+);
+expect(
+  "a lone surrogate in a search name did not become U+FFFD",
+  RouterRuntime.encodeSearch([(Js.String.fromCharCode(0xdc00), ["v"])])
+  == "%EF%BF%BD=v",
+);
+expect(
+  "a surrogate pair in a search value was replaced",
+  RouterRuntime.encodeSearch([("k", [{js|😀|js}])]) == "k=%F0%9F%98%80",
+);
+
+List.iter(
+  ((input, expected)) =>
+    expect(
+      "parseInt differs for " ++ input,
+      RouterRuntime.Search.parseInt(input) == expected,
+    ),
+  [
+    ("2147483647", Ok(2147483647)),
+    ("-2147483648", Ok(-2147483648)),
+    ("0", Ok(0)),
+    ("2147483648", Error("expected an integer")),
+    ("-2147483649", Error("expected an integer")),
+    ("99999999999999999999", Error("expected an integer")),
+    ("+5", Error("expected an integer")),
+    ("0x10", Error("expected an integer")),
+    ("1_000", Error("expected an integer")),
+    ("", Error("expected an integer")),
+    ("-", Error("expected an integer")),
+  ],
+);
+
+let sameSearch = (current, next) => RouterSearch.unchanged(~current, ~next);
+expect(
+  "a plus-encoded space counted as a search change",
+  sameSearch("?q=a+b", [("q", ["a b"])]),
+);
+expect(
+  "a percent-encoded space counted as a search change",
+  sameSearch("?q=a%20b", [("q", ["a b"])]),
+);
+expect(
+  "a reordered query counted as a search change",
+  sameSearch("?b=1&a=2", [("a", ["2"]), ("b", ["1"])]),
+);
+expect(
+  "an empty query counted as a search change",
+  sameSearch("", []) && sameSearch("?", []),
+);
+expect(
+  "a different value did not count as a search change",
+  !sameSearch("?q=a+b", [("q", ["a c"])]),
+);
+expect(
+  "a removed value did not count as a search change",
+  !sameSearch("?q=a", []),
+);

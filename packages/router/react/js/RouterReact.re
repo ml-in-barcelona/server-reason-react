@@ -95,23 +95,6 @@ let canonicalUrlAllowed = (~basePath, url) =>
   | _ => false
   };
 
-let searchValuesFromString = search =>
-  Webapi.Url.URLSearchParams.make(search)
-  |> Webapi.Url.URLSearchParams.entries
-  |> Js.Array.from
-  |> Array.fold_left(
-       (values, (name, value)) =>
-         switch (List.assoc_opt(name, values)) {
-         | None => [(name, [value]), ...values]
-         | Some(current) => [
-             (name, current @ [value]),
-             ...List.remove_assoc(name, values),
-           ]
-         },
-       [],
-     )
-  |> List.rev;
-
 let validationMessage = error =>
   switch (error) {
   | Response.SupersededResponse => "navigation was superseded"
@@ -331,11 +314,13 @@ module Provider = {
         RouterRuntime.Search.update(
           ~owned,
           ~values,
-          searchValuesFromString(current.location.search),
+          RouterSearch.valuesFromString(current.location.search),
         );
-      let encoded = RouterRuntime.encodeSearch(nextValues);
-      let search = String.equal(encoded, "") ? "" : "?" ++ encoded;
-      if (String.equal(search, current.location.search)) {
+      let search = RouterSearch.toString(nextValues);
+      if (RouterSearch.unchanged(
+            ~current=current.location.search,
+            ~next=nextValues,
+          )) {
         Navigation.Result.Committed(current);
       } else {
         commitLocation(
@@ -732,7 +717,8 @@ module Provider = {
                   navigate,
                   navigation: Navigation.status(model.navigationState),
                   committed,
-                  search: searchValuesFromString(committed.location.search),
+                  search:
+                    RouterSearch.valuesFromString(committed.location.search),
                   updateSearch,
                   updateHash,
                 }),

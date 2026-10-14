@@ -59,8 +59,8 @@ let server =
              ~ssr=shouldSSR,
              ~bootstrapModules=_request => ["/static/demo/RouterDemo.re.js"],
              ~document=
-               (~head as _, children) =>
-                 <Pages.Document> children </Pages.Document>,
+               (~head, children) =>
+                 <Pages.Document head> children </Pages.Document>,
              (),
            ),
            DreamRouter.routes(
@@ -70,8 +70,8 @@ let server =
              ~bootstrapModules=_request => ["/static/demo/RouterDemo.re.js"],
              ~pageCacheCapacity=32,
              ~document=
-               (~head as _, children) =>
-                 <Demo_hacker_news_router_native.Pages.Document>
+               (~head, children) =>
+                 <Demo_hacker_news_router_native.Pages.Document head>
                    children
                  </Demo_hacker_news_router_native.Pages.Document>,
              (),

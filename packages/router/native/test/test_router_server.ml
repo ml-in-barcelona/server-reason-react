@@ -880,7 +880,7 @@ let trailing_slash_redirect_never_leaves_the_origin () =
       | RouterServer.ServerEngine.Full full ->
           Alcotest.(check int) pathname 404 (RouterRuntime.Status.toInt full.resolved.status)
       | _ -> Alcotest.fail "expected not-found response")
-    [ "//evil.example/"; "///evil.example//"; "//evil.example/notes/" ]
+    [ "//evil.example/"; "///evil.example//"; "//evil.example/notes/"; "/\\evil.example/"; "/\\\\evil.example/" ]
 
 let root_pathname_is_canonical () =
   match run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname:"/" () with
@@ -939,7 +939,7 @@ let adapter_server () =
       ~scopes:
         [
           RouterServer.Plan.Scope.make
-            ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"Item" ()))
+            ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"Item" ~description:"D" ()))
             ();
         ]
       ~page:(React.createElement "main" [] [ React.string "item" ])
@@ -994,6 +994,15 @@ let adapter_reply ?(registry = None) ~kind pathname =
 let header name (reply : RouterServer.Adapter.reply) = List.assoc_opt name reply.headers
 let check_header reply name expected = Alcotest.(check (option string)) name expected (header name reply)
 
+let count_occurrences ~needle haystack =
+  let n = String.length needle in
+  let rec go from acc =
+    if from + n > String.length haystack then acc
+    else if String.sub haystack from n = needle then go (from + n) (acc + 1)
+    else go (from + 1) acc
+  in
+  go 0 0
+
 let adapter_document_reply () =
   let reply = adapter_reply ~kind:Document "/app/item" in
   Alcotest.(check int) "status" 200 reply.status;
@@ -1003,7 +1012,9 @@ let adapter_document_reply () =
   | Html element ->
       let html, _subscribe = Lwt_main.run (ReactServerDOM.render_html ~skipRoot:false element) in
       Alcotest.(check bool) "head before root" true (contains ~needle:"<head><title>Item</title>" html);
-      Alcotest.(check bool) "routed markup" true (contains ~needle:"<main>item</main>" html)
+      Alcotest.(check bool) "routed markup" true (contains ~needle:"<main>item</main>" html);
+      Alcotest.(check int) "one title" 1 (count_occurrences ~needle:"<title>" html);
+      Alcotest.(check int) "one meta" 1 (count_occurrences ~needle:"<meta name=\"description\"" html)
   | Empty | Model _ -> Alcotest.fail "expected html"
 
 let adapter_rsc_reply () =

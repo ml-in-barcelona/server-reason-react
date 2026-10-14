@@ -33,13 +33,17 @@ module Provider = {
         ~registryFingerprint as _,
         ~basePath as _,
         ~pageCacheCapacity as _=0,
-        ~metadata,
+        ~metadata as _,
         ~children,
       ) =>
+    /* The document's [~head] already renders the metadata; rendering it here
+       too would emit every tag twice, because SSR hoists title, meta and link
+       into <head>. The empty slot keeps the child positions (and so useId)
+       equal to the client tree, which renders the metadata first. */
     provider(
       React.Context.makeProps(
         ~value=Some({ committed: initial }),
-        ~children=React.array([|metadata, children|]),
+        ~children=React.array([|React.null, children|]),
         (),
       ),
     );
