@@ -237,7 +237,7 @@ let respond ~skipRoot ~bootstrapModules (reply : RouterServer.Adapter.reply) =
   | Html element -> stream_html ~code ~headers ~skipRoot ~bootstrapModules element
   | Model { location; model } -> stream_model_value ~code ~headers ~location model
 
-let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = fun _request -> [])
+let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = [])
     ?(pageCacheCapacity = 0) ~document =
  fun request ->
   with_render_context request (fun () ->
@@ -265,11 +265,11 @@ let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(boot
           { RouterServer.ServerEngine.pathname; search; hash = ""; kind; navigation }
       in
       RouterServer.Adapter.reply router ~target ~pageCacheCapacity ~document ~kind outcome
-      |> respond ~skipRoot:(not (ssr request)) ~bootstrapModules:(bootstrapModules request))
+      |> respond ~skipRoot:(not (ssr request)) ~bootstrapModules)
 
 let routes ~router ~actionHandler ?(diagnosticId = fun _ -> string_of_int (Random.bits ()))
-    ?(revision = fun () -> string_of_int (Random.bits ())) ?(ssr = fun _request -> true)
-    ?(bootstrapModules = fun _request -> []) ?(pageCacheCapacity = 0) ~document () =
+    ?(revision = fun () -> string_of_int (Random.bits ())) ?(ssr = fun _request -> true) ?(bootstrapModules = [])
+    ?(pageCacheCapacity = 0) ~document () =
   let basePath = RouterServer.Server.basePath router |> Dream.from_percent_encoded in
   let handler = handler ~router ~diagnosticId ~revision ~ssr ~bootstrapModules ~pageCacheCapacity ~document in
   let wildcard = if String.equal basePath "/" then "/**" else basePath ^ "/**" in

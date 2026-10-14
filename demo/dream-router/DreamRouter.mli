@@ -93,7 +93,7 @@ val routes :
   ?diagnosticId:(exn -> string) ->
   ?revision:(unit -> string) ->
   ?ssr:(Dream.request -> bool) ->
-  ?bootstrapModules:(Dream.request -> string list) ->
+  ?bootstrapModules:string list ->
   ?pageCacheCapacity:int ->
   document:(head:React.element -> React.element -> React.element) ->
   unit ->
@@ -108,6 +108,6 @@ val routes :
       decide whether to include the routed root markup in each document response (default: always true). The root markup
       is wrapped in a [div#ssr-query-param] marker, so the bootstrap module can check the DOM for it: present means
       mount with [ReactDOM.Client.hydrateRoot], absent means [ReactDOM.Client.createRoot]
-    @param bootstrapModules JavaScript modules loaded by document responses, chosen per request
+    @param bootstrapModules JavaScript modules loaded by document responses
     @param pageCacheCapacity maximum visited pages cached by the client router (default: disabled)
     @param document build the HTML document. [~head] is the resolved metadata, to place inside [<head>]. *)

@@ -57,7 +57,7 @@ let server =
              ~router=RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
              ~ssr=shouldSSR,
-             ~bootstrapModules=_request => ["/static/demo/RouterDemo.re.js"],
+             ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
              ~document=
                (~head, children) =>
                  <Pages.Document head> children </Pages.Document>,
@@ -67,7 +67,7 @@ let server =
              ~router=Demo_hacker_news_router_native.RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
              ~ssr=shouldSSR,
-             ~bootstrapModules=_request => ["/static/demo/RouterDemo.re.js"],
+             ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
              ~pageCacheCapacity=32,
              ~document=
                (~head, children) =>
