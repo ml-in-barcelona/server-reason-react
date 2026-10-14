@@ -129,6 +129,27 @@ let unicode_base_path_is_routed () =
   let response = Dream.test (Dream.router routes) request in
   Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int)
 
+let root_base_path_handler () =
+  Dream.router
+    (DreamRouter.routes
+       ~router:(server ~basePath:"/" (registry (ref None)))
+       ~actionHandler:(fun _ -> Dream.empty `OK)
+       ~document:Fun.id ())
+
+let root_base_path_is_routed () =
+  let response = Dream.test (root_base_path_handler ()) (Dream.request ~target:"/item" "") in
+  Alcotest.(check int) "status" 200 (Dream.status response |> Dream.status_to_int)
+
+let root_base_path_never_redirects_off_origin () =
+  List.iter
+    (fun target ->
+      let response = Dream.test (root_base_path_handler ()) (Dream.request ~target "") in
+      match Dream.header response "Location" with
+      | Some location when String.starts_with ~prefix:"//" location ->
+          Alcotest.failf "%s redirected to %s" target location
+      | _ -> ())
+    [ "//evil.example/"; "//h//evil.example/"; "/item/" ]
+
 let shared_action_dispatcher_handles_mount () =
   let calls = ref 0 in
   let action _request =
@@ -225,7 +246,7 @@ let registry_mismatch_returns_reload_required () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("Router-Registry", "1.wrong");
+          ("Router-Registry", "2.wrong");
           ("Router-Navigation-From", "/app");
           ("Router-Base-Revision", "base");
         ]
@@ -278,7 +299,7 @@ let patch_payload_is_smaller_than_full () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("Router-Registry", "1." ^ fingerprint);
+          ("Router-Registry", "2." ^ fingerprint);
           ("Router-Navigation-From", "/app");
           ("Router-Base-Revision", "base");
         ]
@@ -311,7 +332,7 @@ let rsc_redirect_uses_navigation_envelope () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("Router-Registry", "1." ^ fingerprint);
+          ("Router-Registry", "2." ^ fingerprint);
           ("Router-Navigation-From", "/app");
           ("Router-Base-Revision", "base");
         ]
@@ -371,6 +392,8 @@ let () =
           test "document request can enable SSR" document_request_can_enable_ssr;
           test "rejects other Accept values" rejects_other_accept_values;
           test "routes Unicode base paths" unicode_base_path_is_routed;
+          test "root base path is routed" root_base_path_is_routed;
+          test "root base path never redirects off origin" root_base_path_never_redirects_off_origin;
           test "shared action dispatcher handles mount" shared_action_dispatcher_handles_mount;
           test "action timeout bounds execution" action_timeout_bounds_execution;
           test "successful action preserves cookie and wire output" successful_action_preserves_cookie_and_wire_output;

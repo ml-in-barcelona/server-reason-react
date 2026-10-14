@@ -150,6 +150,7 @@ module Navigation: {
   let commit:
     (state, ~requestId: int, ~baseRevision: string, ~next: committed) =>
     result(state, commitError);
+  let isActive: (state, ~requestId: int) => bool;
   let fail: (state, ~requestId: int, ~message: string) => state;
   let shallow: (state, ~location: location, ~action: historyAction) => state;
   let hashOnly: (state, ~location: location, ~action: historyAction) => state;
@@ -237,7 +238,6 @@ module NavigationResponse: {
     | FullResponse
     | PatchResponse
     | RedirectResponse
-    | FailedResponse
     | ReloadRequiredResponse;
 
   [@deriving rsc]
@@ -276,19 +276,10 @@ module NavigationResponse: {
     status: int,
   };
 
-  [@deriving rsc]
-  type failure = {
-    protocolVersion: int,
-    registryFingerprint: string,
-    message: string,
-    status: int,
-  };
-
   type t('payload) =
     | Full(full('payload))
     | Patch(patch('payload))
     | Redirect(redirect)
-    | Failed(failure)
     | ReloadRequired;
 
   type facts = {

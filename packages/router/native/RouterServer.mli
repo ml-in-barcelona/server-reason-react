@@ -215,6 +215,10 @@ module Plan : sig
     ('view, 'error) resolved Lwt.t
   (** Resolves metadata and headers from every scope, then renders either the whole layout chain or only its changed
       suffix. Omitting layouts for a patch does not omit their response metadata or headers. *)
+
+  val resolvedElement : (React.element, 'error) resolved -> React.element
+  (** The element to render: [resolved.element], or a built-in plain paragraph when the app declares no boundary for the
+      failure ("Not found", "Bad request" or "Something went wrong"). It never includes error details. *)
 end
 
 (** A generated route endpoint.

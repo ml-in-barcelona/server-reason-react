@@ -4,5 +4,6 @@
   alcotest
   lwt
   lwt.unix
+  server-reason-react.reactDom
   server-reason-react.router-native
   server-reason-react.rsc-native))

@@ -136,7 +136,7 @@ module Provider = {
   let make =
       (
         ~initial: Navigation.committed,
-        ~protocolVersion=1,
+        ~protocolVersion=2,
         ~registryFingerprint,
         ~basePath,
         ~pageCacheCapacity=0,
@@ -403,7 +403,9 @@ module Provider = {
       let from = committed.location.pathname ++ committed.location.search;
       let failNavigation = message =>
         switch (action) {
-        | Navigation.Pop => hardNavigate(~replace=true, target)
+        | Navigation.Pop =>
+          Navigation.isActive(modelRef.current.navigationState, ~requestId)
+            ? hardNavigate(~replace=true, target) : Navigation.Result.Canceled
         | Navigation.Push
         | Navigation.Replace => finishFailure(~requestId, ~message)
         };
@@ -574,8 +576,6 @@ module Provider = {
                      redirect.location,
                    )
                    |> Js.Promise.resolve
-                 | Response.Failed(failure) =>
-                   failNavigation(failure.message) |> Js.Promise.resolve
                  | Response.Patch(response) =>
                    commitResponse(
                      ~metadata=response.metadata,

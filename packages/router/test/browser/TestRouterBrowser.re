@@ -157,3 +157,46 @@ expect(
   )
   == RouterRuntime.Navigation.HashOnly,
 );
+
+let navigationState = RouterRuntime.Navigation.make(committed);
+let (firstState, firstRequest) =
+  RouterRuntime.Navigation.start(
+    navigationState,
+    ~to_=searchTarget,
+    ~action=RouterRuntime.Navigation.Pop,
+  );
+expect(
+  "a loading request was not active",
+  RouterRuntime.Navigation.isActive(firstState, ~requestId=firstRequest),
+);
+let (secondState, secondRequest) =
+  RouterRuntime.Navigation.start(
+    firstState,
+    ~to_=searchTarget,
+    ~action=RouterRuntime.Navigation.Push,
+  );
+expect(
+  "a superseded request was still active",
+  !RouterRuntime.Navigation.isActive(secondState, ~requestId=firstRequest),
+);
+expect(
+  "the newest request was not active",
+  RouterRuntime.Navigation.isActive(secondState, ~requestId=secondRequest),
+);
+expect(
+  "a request was active after the navigation went idle",
+  !
+    RouterRuntime.Navigation.isActive(
+      RouterRuntime.Navigation.shallow(
+        secondState,
+        ~location=searchTarget,
+        ~action=RouterRuntime.Navigation.Push,
+      ),
+      ~requestId=secondRequest,
+    ),
+);
+
+expect(
+  "the removed failed response kind was still accepted",
+  RouterRuntime.NavigationResponse.kindOfString("failed") == None,
+);

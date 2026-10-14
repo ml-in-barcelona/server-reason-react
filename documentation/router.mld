@@ -123,6 +123,10 @@ pathnames that end with one or more slashes:
   survives the redirect. The query string is preserved.
 - [Reject] treats the request as not found.
 
+Under [Redirect], a pathname that still starts with [//] after the trailing
+slashes are removed, such as [//host/], is not found. A redirect to it would
+be a protocol-relative URL that points at another host.
+
 {3 Path parameter codecs}
 
 The router decodes a segment written [:name<Module.t>] with [Module.parse]
@@ -141,6 +145,9 @@ let to_string = string_of_int;
 
 Codecs receive percent-decoded segments. The router owns URL encoding. [bool],
 [int], and [string] are built in. [bool] accepts exactly [true] and [false].
+[int] accepts an optional [-] followed by ASCII digits, within the 32-bit
+signed range. It rejects [+5], [0x10], [1_000], and larger values on native and
+in the browser alike. Search parameters use the same [int] codec.
 [to_string] must return one non-empty, valid UTF-8 path segment. Destination
 construction raises [Invalid_argument] for an empty value, [/], [.], [..],
 control characters, or invalid UTF-8. Valid output is percent-encoded. A failed
@@ -213,6 +220,13 @@ group therefore replaces only that group's outlet and leaves every enclosing
 layout mounted. When a loader fails, its scope and everything below it leave
 the response, and the graft moves up to the deepest scope the response still
 renders.
+
+A response without a valid [Router-Response] header, or with a header value
+other than [full], [patch], [redirect], or [reload-required], fails the
+navigation. A [Push] or [Replace] navigation then keeps the current page and
+sets the status to [Failed]. A [Pop] navigation hard-navigates to the target,
+unless a newer navigation has replaced it, in which case the [Pop] is canceled.
+The protocol has no [failed] response kind. The protocol version is 2.
 
 {2 Search updates}
 
@@ -288,6 +302,11 @@ the nearest [~error] renders instead. A path or search decode failure in a
 nested scope renders the nearest ancestor [~error] boundary before any loader
 at or below the failing scope runs. Root search failures use [~invalidSearch]
 when declared.
+
+When no boundary applies, the response keeps its status and the adapter
+renders a built-in plain paragraph ([Not found], [Bad request], or
+[Something went wrong]) through [RouterServer.Plan.resolvedElement]. It never
+shows error details. [DreamRouter] uses it.
 
 {1 Metadata and headers}
 

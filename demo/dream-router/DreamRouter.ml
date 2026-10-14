@@ -256,7 +256,7 @@ let metadata_element metadata =
   React.list (List.filter_map Fun.id [ title; description ] @ entries)
 
 let resolved_element (resolved : (React.element, 'error) RouterServer.Plan.resolved) =
-  Option.value ~default:React.null resolved.element
+  RouterServer.Plan.resolvedElement resolved
 
 (* The marker lets the bootstrap module detect from the DOM whether the server rendered the root markup: it sits next
    to the routed root, so [skipRoot] drops it together with the markup it signals. *)
@@ -396,9 +396,10 @@ let routes ~router ~actionHandler ?(diagnosticId = fun _ -> string_of_int (Rando
     ?(pageCacheCapacity = 0) ~document () =
   let basePath = RouterServer.Server.basePath router |> Dream.from_percent_encoded in
   let handler = handler ~router ~diagnosticId ~revision ~ssr ~bootstrapModules ~pageCacheCapacity ~document in
+  let wildcard = if String.equal basePath "/" then "/**" else basePath ^ "/**" in
   [
     Dream.get basePath handler;
-    Dream.get (basePath ^ "/**") handler;
+    Dream.get wildcard handler;
     Dream.post basePath actionHandler;
-    Dream.post (basePath ^ "/**") actionHandler;
+    Dream.post wildcard actionHandler;
   ]

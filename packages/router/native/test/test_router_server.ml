@@ -617,6 +617,30 @@ let builtin_bool_codec () =
     (fun value -> match parseBool value with Ok _ -> Alcotest.failf "accepted %s" value | Error _ -> ())
     [ "True"; "FALSE"; "1"; "0"; ""; "yes" ]
 
+let builtin_int_codec () =
+  let open RouterRuntime.Search in
+  List.iter
+    (fun (value, expected) -> Alcotest.(check bool) value true (parseInt value = Ok expected))
+    [ ("0", 0); ("42", 42); ("-5", -5); ("007", 7); ("2147483647", 2147483647); ("-2147483648", -2147483648) ];
+  List.iter
+    (fun value -> match parseInt value with Ok _ -> Alcotest.failf "accepted %S" value | Error _ -> ())
+    [
+      "";
+      "-";
+      "+5";
+      "0x10";
+      "0b11";
+      "0o7";
+      "1_000";
+      " 1";
+      "1 ";
+      "1.5";
+      "--1";
+      "2147483648";
+      "-2147483649";
+      "99999999999999999999";
+    ]
+
 let typed_search_decoding () =
   let open RouterRuntime.Search in
   let values = [ ("page", [ "2" ]); ("tag", [ "one"; "two" ]) ] in
@@ -739,12 +763,40 @@ let trailing_slash_reject_is_not_found () =
       Alcotest.(check int) "status" 404 (RouterRuntime.Status.toInt full.resolved.status)
   | _ -> Alcotest.fail "expected not-found response"
 
+let trailing_slash_redirect_never_leaves_the_origin () =
+  List.iter
+    (fun pathname ->
+      match run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname () with
+      | RouterServer.ServerEngine.PermanentRedirect destination ->
+          Alcotest.failf "%s redirected to %s" pathname (RouterRuntime.href destination)
+      | RouterServer.ServerEngine.Full full ->
+          Alcotest.(check int) pathname 404 (RouterRuntime.Status.toInt full.resolved.status)
+      | _ -> Alcotest.fail "expected not-found response")
+    [ "//evil.example/"; "///evil.example//"; "//evil.example/notes/" ]
+
 let root_pathname_is_canonical () =
   match run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname:"/" () with
   | RouterServer.ServerEngine.PermanentRedirect _ -> Alcotest.fail "expected no redirect for the root pathname"
   | RouterServer.ServerEngine.Full full ->
       Alcotest.(check int) "status" 404 (RouterRuntime.Status.toInt full.resolved.status)
   | _ -> Alcotest.fail "expected full response"
+
+let default_boundary_renders_text () =
+  let render error =
+    let resolved =
+      Lwt_main.run
+        (RouterServer.Plan.resolve (RouterServer.Plan.failure ~scopes:[] ~error ()) ~applicationStatus:(fun _ ->
+             RouterRuntime.Status.InternalServerError))
+    in
+    Alcotest.(check bool) "no app boundary" true (Option.is_none resolved.element);
+    ReactDOM.renderToString (RouterServer.Plan.resolvedElement resolved)
+  in
+  Alcotest.(check string)
+    "not found" "<p>Not found</p>"
+    (render (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute }));
+  Alcotest.(check string)
+    "application error hides details" "<p>Something went wrong</p>"
+    (render (RouterRuntime.Error.Application "secret detail"))
 
 let server_base_path_validation () =
   let endpoint : ((unit, unit) RouterServer.Plan.t, unit) RouterServer.Endpoint.t =
@@ -902,6 +954,7 @@ let () =
           test "history action selects mutation" history_action_selects_mutation;
           test "hash-only location commit" hash_only_location_commit;
           test "builtin bool codec" builtin_bool_codec;
+          test "builtin int codec" builtin_int_codec;
           test "typed search decoding" typed_search_decoding;
           test "shallow search preserves unowned values" shallow_search_preserves_unowned_values;
           test "pop navigation kind" pop_navigation_kind;
@@ -911,7 +964,9 @@ let () =
           test "trailing slash redirect collapses repeated slashes" trailing_slash_redirect_collapses_repeated_slashes;
           test "trailing slash redirects base path root" trailing_slash_redirects_base_path_root;
           test "trailing slash reject is not found" trailing_slash_reject_is_not_found;
+          test "trailing slash redirect never leaves the origin" trailing_slash_redirect_never_leaves_the_origin;
           test "root pathname is canonical" root_pathname_is_canonical;
+          test "default boundary renders text" default_boundary_renders_text;
           test "server base path validation" server_base_path_validation;
           test "full plan composition" full_plan_composition;
           test "failure plan selects not-found boundary" failure_plan_selects_not_found_boundary;

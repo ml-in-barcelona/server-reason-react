@@ -631,6 +631,18 @@ module Plan = struct
               headers;
             })
       (resolve_values scopes)
+
+  let resolvedElement (resolved : (React.element, 'error) resolved) =
+    match resolved.element with
+    | Some element -> element
+    | None ->
+        let text =
+          match resolved.error with
+          | Some (RouterRuntime.Error.NotFound _) -> "Not found"
+          | Some (InvalidPathParameter _ | InvalidSearchParameter _) -> "Bad request"
+          | Some (Application _ | Internal _) | None -> "Something went wrong"
+        in
+        React.createElement "p" [] [ React.string text ]
 end
 
 module Endpoint = struct
@@ -849,6 +861,10 @@ module ServerEngine = struct
         match Path.stripTrailingSlashes request.pathname with
         | Some canonical -> (
             match trailingSlash with
+            (* A leading "//" would make the Location a protocol-relative URL to another host. Paths with empty segments
+               are invalid, so such a request is not found instead of being rewritten to a different path. *)
+            | TrailingSlash.Redirect when String.starts_with ~prefix:"//" canonical ->
+                fail (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
             | TrailingSlash.Redirect ->
                 Lwt.return
                   (PermanentRedirect (RouterRuntime.destination ~path:(canonical ^ request.search ^ request.hash)))
@@ -959,7 +975,7 @@ module Server = struct
   }
 
   let make ~basePath ~registry ?(trailingSlash = TrailingSlash.Redirect) ~fallback ~applicationStatus
-      ?(protocolVersion = 1) () =
+      ?(protocolVersion = 2) () =
     if not (Path.validBasePath basePath) then invalid_arg ("invalid router base path " ^ basePath)
     else
       {
