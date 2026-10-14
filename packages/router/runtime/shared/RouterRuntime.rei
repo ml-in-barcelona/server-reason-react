@@ -53,11 +53,42 @@ module Error: {
 };
 
 module Metadata: {
-  type entry = {
-    key: string,
-    name: string,
-    content: string,
-  };
+  type metaAttribute =
+    | Name
+    | Property;
+
+  type entry =
+    | Meta({
+        key: string,
+        attr: metaAttribute,
+        name: string,
+        content: string,
+      })
+    | Link({
+        key: string,
+        rel: string,
+        href: string,
+        attrs: list((string, string)),
+      });
+
+  let entryKey: entry => string;
+
+  /** `<meta name=... content=...>`. The default key is `"meta:" ++ name`. */
+  let meta: (~key: string=?, ~name: string, string) => entry;
+
+  /** `<meta property=... content=...>`. The default key is `"property:" ++ property`. */
+  let property: (~key: string=?, ~property: string, string) => entry;
+
+  /** `<link rel=... href=... attrs>`. The default key is `"link:" ++ rel`. Pass an explicit key for a repeated rel
+      such as several `alternate` links. `attrs` named `rel` or `href` are ignored when rendering. */
+  let link:
+    (
+      ~key: string=?,
+      ~rel: string,
+      ~attrs: list((string, string))=?,
+      string
+    ) =>
+    entry;
 
   type t = {
     title: option(string),

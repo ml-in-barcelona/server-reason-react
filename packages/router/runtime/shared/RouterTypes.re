@@ -48,11 +48,52 @@ module Error = {
 };
 
 module Metadata = {
-  type entry = {
-    key: string,
-    name: string,
-    content: string,
-  };
+  type metaAttribute =
+    | Name
+    | Property;
+
+  type entry =
+    | Meta({
+        key: string,
+        attr: metaAttribute,
+        name: string,
+        content: string,
+      })
+    | Link({
+        key: string,
+        rel: string,
+        href: string,
+        attrs: list((string, string)),
+      });
+
+  let entryKey =
+    fun
+    | Meta({ key, _ })
+    | Link({ key, _ }) => key;
+
+  let meta = (~key=?, ~name, content) =>
+    Meta({
+      key: Option.value(key, ~default="meta:" ++ name),
+      attr: Name,
+      name,
+      content,
+    });
+
+  let property = (~key=?, ~property, content) =>
+    Meta({
+      key: Option.value(key, ~default="property:" ++ property),
+      attr: Property,
+      name: property,
+      content,
+    });
+
+  let link = (~key=?, ~rel, ~attrs=[], href) =>
+    Link({
+      key: Option.value(key, ~default="link:" ++ rel),
+      rel,
+      href,
+      attrs,
+    });
 
   type t = {
     title: option(string),
@@ -71,7 +112,8 @@ module Metadata = {
       parentEntry =>
         !
           List.exists(
-            childEntry => String.equal(parentEntry.key, childEntry.key),
+            childEntry =>
+              String.equal(entryKey(parentEntry), entryKey(childEntry)),
             child,
           ),
       parent,

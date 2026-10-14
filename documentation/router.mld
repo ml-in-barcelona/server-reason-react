@@ -401,6 +401,42 @@ module NoteMetadata = {
 };
 ]}
 
+Entries add tags to the document head. Build them with helpers:
+
+{[
+Router.Metadata.make(
+  ~title="Note",
+  ~entries=[
+    Router.Metadata.meta(~name="robots", "noindex"),
+    Router.Metadata.property(~property="og:title", "Note"),
+    Router.Metadata.link(~rel="canonical", "https://example.com/note"),
+    Router.Metadata.link(
+      ~key="alternate:es",
+      ~rel="alternate",
+      ~attrs=[("hreflang", "es")],
+      "https://example.com/es/note",
+    ),
+  ],
+  (),
+)
+]}
+
+An entry is [Meta { key; attr; name; content }] ([attr] is [Name] or
+[Property]) or [Link { key; rel; href; attrs }]. There is no free HTML,
+[<script>] or [<style>], and no [lang]: the app sets [lang] in its document
+hook.
+
+Merge works by key. A child entry replaces a parent entry with the same key
+in place. New child entries go after the parent entries. The default keys are
+[meta:<name>], [property:<property>] and [link:<rel>]. The prefix keeps a
+[meta] and a [link] with the same word apart, and [name] apart from
+[property]. A tag that repeats, such as several [alternate] links or
+[og:image], needs an explicit [~key], or the last one replaces the others.
+Rendering adds the React key ["router:" ^ key]. [attrs] named [rel] or [href]
+are ignored: the [rel] and [href] arguments win. A [meta] named
+[description] renders next to the [~description] field and does not replace
+it. Use one of them.
+
 {1 Server integration}
 
 The native generator emits [RouterRegistry.server], a configured
@@ -410,9 +446,31 @@ navigation headers, then calls [RouterServer.Server.run]. The adapter maps the
 resulting full, patch, redirect, permanent-redirect, or reload-required outcome
 to its HTTP server and streams render data through [ReactServerDOM].
 
-The repository's [demo/dream-router/DreamRouter.ml] implements this boundary
-for Dream and can be used as an adapter reference. [DreamRouter] is demo-only:
-it is not installed by any published package.
+[RouterServer.Adapter] holds the parts that do not depend on a server, so an
+adapter only parses the request and writes the reply:
+
+- [Adapter.reply server ~target ~pageCacheCapacity ~document ~kind outcome]
+  returns [{ status; headers; body }]. [body] is [Empty], [Html element] or
+  [Model { location; model }]. [headers] holds all protocol headers: [Vary:
+  Accept] on every reply, [Router-Response], [Router-Registry] and
+  [Cache-Control: private, no-store] for navigation replies, [Location] for
+  document redirects (303, or 308 for a permanent redirect), and 409 with
+  [Router-Response: reload-required] when the registry changed. The adapter
+  writes [Html] with its bootstrap modules, and [Model] as a stream with
+  [X-Location] set to [location] and [X-Content-Type-Options: nosniff].
+- [Adapter.document_element], [Adapter.full_model], [Adapter.patch_model],
+  [Adapter.redirect_model] and [Adapter.metadata_element] are the pieces
+  [reply] uses. [document] is [~head -> children -> element]: the app builds
+  [<html>] itself, puts [head] (the resolved metadata) in [<head>] and
+  [children] in [<body>].
+
+Bootstrap modules and the skip-root choice are not part of the reply. The
+adapter picks them for each request when it writes [Html].
+
+The repository's [demo/dream-router/DreamRouter.ml] is a thin Dream adapter
+over these functions. It also parses the request and sets the request
+context. [DreamRouter] is demo-only: it is not installed by any published
+package.
 
 {1 Libraries}
 

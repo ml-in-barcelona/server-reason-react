@@ -31,11 +31,11 @@ let server ?(basePath = "/app") registry =
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ()
 
-let document children =
+let document ~head children =
   React.createElement "html" []
     [
       React.createElement "head" []
-        [ React.createElement "meta" [ React.JSX.String ("name", "name", "router-shell") ] [] ];
+        [ React.createElement "meta" [ React.JSX.String ("name", "name", "router-shell") ] []; head ];
       React.createElement "body" [] [ children ];
     ]
 
@@ -123,7 +123,8 @@ let unicode_base_path_is_routed () =
     DreamRouter.routes
       ~router:(server ~basePath:"/m%C3%BCnchen" (registry (ref None)))
       ~actionHandler:(fun _ -> Dream.empty `OK)
-      ~document:Fun.id ()
+      ~document:(fun ~head:_ children -> children)
+      ()
   in
   let request = Dream.request ~target:"/m%C3%BCnchen/item" "" in
   let response = Dream.test (Dream.router routes) request in
@@ -134,7 +135,8 @@ let root_base_path_handler () =
     (DreamRouter.routes
        ~router:(server ~basePath:"/" (registry (ref None)))
        ~actionHandler:(fun _ -> Dream.empty `OK)
-       ~document:Fun.id ())
+       ~document:(fun ~head:_ children -> children)
+       ())
 
 let root_base_path_is_routed () =
   let response = Dream.test (root_base_path_handler ()) (Dream.request ~target:"/item" "") in
@@ -157,7 +159,12 @@ let shared_action_dispatcher_handles_mount () =
     Dream.empty `OK
   in
   let router =
-    Dream.router (DreamRouter.routes ~router:(server (registry (ref None))) ~actionHandler:action ~document:Fun.id ())
+    Dream.router
+      (DreamRouter.routes
+         ~router:(server (registry (ref None)))
+         ~actionHandler:action
+         ~document:(fun ~head:_ children -> children)
+         ())
   in
   let nested = Dream.request ~method_:`POST ~target:"/app/nested/route" "" in
   let root = Dream.request ~method_:`POST ~target:"/app" "" in
@@ -286,7 +293,8 @@ let patch_handler registry request =
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~diagnosticId:(fun _ -> "diagnostic")
       ~revision:(fun () -> "revision")
-      ~document:Fun.id ()
+      ~document:(fun ~head:_ children -> children)
+      ()
   in
   Dream.router routes request
 

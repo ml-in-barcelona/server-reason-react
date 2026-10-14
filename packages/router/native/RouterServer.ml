@@ -1012,4 +1012,150 @@ module Server = struct
       ~protocolVersion:server.protocol_version request
 end
 
+module Adapter = struct
+  let metadata_element (metadata : RouterRuntime.Metadata.t) =
+    let attribute name value = React.JSX.String (name, name, value) in
+    let keyed key tag attributes = React.createElementWithKey ~key:("router:" ^ key) tag attributes [] in
+    let title =
+      Option.map
+        (fun title -> React.createElementWithKey ~key:"router:title" "title" [] [ React.string title ])
+        metadata.title
+    in
+    let description =
+      Option.map
+        (fun content -> keyed "description" "meta" [ attribute "name" "description"; attribute "content" content ])
+        metadata.description
+    in
+    let entry = function
+      | RouterRuntime.Metadata.Meta { key; attr; name; content } ->
+          let attr = match attr with Name -> "name" | Property -> "property" in
+          keyed key "meta" [ attribute attr name; attribute "content" content ]
+      | Link { key; rel; href; attrs } ->
+          let extra =
+            List.filter_map
+              (fun (name, value) ->
+                match String.lowercase_ascii name with "rel" | "href" -> None | _ -> Some (attribute name value))
+              attrs
+          in
+          keyed key "link" (attribute "rel" rel :: attribute "href" href :: extra)
+    in
+    React.list (List.filter_map Fun.id [ title; description ] @ List.map entry metadata.entries)
+
+  let resolved_element (resolved : (React.element, 'error) Plan.resolved) = Plan.resolvedElement resolved
+
+  (* The marker lets the bootstrap module detect from the DOM whether the server rendered the root markup: it sits next
+     to the routed root, so [skipRoot] drops it together with the markup it signals. *)
+  let ssr_marker =
+    React.createElementWithKey ~key:"router:ssr" "div"
+      [ React.JSX.String ("id", "id", "ssr-query-param"); React.JSX.Style [ ("display", "display", "none") ] ]
+      []
+
+  let document_element server ~pageCacheCapacity ~document (response : (React.element, 'error) ServerEngine.full) =
+    let pathname, search = Path.splitLocation response.canonical_url in
+    let initial : RouterRuntime.Navigation.committed =
+      {
+        location = { RouterRuntime.Navigation.pathname; search; hash = ""; key = "server" };
+        revision = response.revision;
+        matches = response.matches;
+        layouts = response.layouts;
+      }
+    in
+    let head = metadata_element response.resolved.metadata in
+    let children =
+      Server.clientRootWithCache server ~pageCacheCapacity ~initial ~metadata:head
+        ~children:(resolved_element response.resolved)
+    in
+    document ~head (React.list [ ssr_marker; children ])
+
+  let full_model (response : (React.element, 'error) ServerEngine.full) =
+    let full : React.element RouterRuntime.NavigationResponse.full =
+      {
+        protocolVersion = response.protocol_version;
+        registryFingerprint = response.registry_fingerprint;
+        canonicalUrl = response.canonical_url;
+        status = RouterRuntime.Status.toInt response.resolved.status;
+        matches = response.matches;
+        layouts = response.layouts;
+        targetRevision = response.revision;
+        metadata = metadata_element response.resolved.metadata;
+        payload = resolved_element response.resolved;
+      }
+    in
+    RouterRuntime.NavigationResponse.full_to_rsc RSC.Primitives.react_element_to_rsc full |> RSC.to_model
+
+  let patch_model (response : (React.element, 'error) ServerEngine.patch) =
+    let patch : React.element RouterRuntime.NavigationResponse.patch =
+      {
+        protocolVersion = response.protocol_version;
+        registryFingerprint = response.registry_fingerprint;
+        baseRevision = response.base_revision;
+        targetRevision = response.revision;
+        replaceFrom = response.replace_from;
+        canonicalUrl = response.canonical_url;
+        status = RouterRuntime.Status.toInt response.resolved.status;
+        matches = response.matches;
+        layouts = response.layouts;
+        metadata = metadata_element response.resolved.metadata;
+        payload = resolved_element response.resolved;
+      }
+    in
+    RouterRuntime.NavigationResponse.patch_to_rsc RSC.Primitives.react_element_to_rsc patch |> RSC.to_model
+
+  let redirect_model ~protocolVersion ~registryFingerprint destination =
+    let redirect : RouterRuntime.NavigationResponse.redirect =
+      { protocolVersion; registryFingerprint; location = RouterRuntime.href destination; status = 200 }
+    in
+    RouterRuntime.NavigationResponse.redirect_to_rsc redirect |> RSC.to_model
+
+  type body = Empty | Html of React.element | Model of { location : string; model : React.model_value }
+  type reply = { status : int; headers : (string * string) list; body : body }
+
+  let reply server ~target ~pageCacheCapacity ~document ~kind outcome =
+    let protocolVersion = Server.protocolVersion server in
+    let registryFingerprint = Server.fingerprint server in
+    let redirect ~status destination =
+      match (kind : ServerEngine.requestKind) with
+      | Document ->
+          { status; headers = [ ("Vary", "Accept"); ("Location", RouterRuntime.href destination) ]; body = Empty }
+      | Rsc ->
+          {
+            status = 200;
+            headers =
+              [
+                ("Content-Type", "application/react.component");
+                ("Cache-Control", "private, no-store");
+                ("Vary", "Accept");
+                ("Router-Response", "redirect");
+                ("Router-Registry", string_of_int protocolVersion ^ "." ^ registryFingerprint);
+              ];
+            body = Model { location = target; model = redirect_model ~protocolVersion ~registryFingerprint destination };
+          }
+    in
+    match (outcome : (React.element, 'error) ServerEngine.outcome) with
+    | Redirect destination -> redirect ~status:303 destination
+    | PermanentRedirect destination -> redirect ~status:308 destination
+    | ReloadRequired ->
+        {
+          status = 409;
+          headers =
+            [ ("Vary", "Accept"); ("Router-Response", "reload-required"); ("Cache-Control", "private, no-store") ];
+          body = Empty;
+        }
+    | Patch response ->
+        {
+          status = RouterRuntime.Status.toInt response.resolved.status;
+          headers = RouterRuntime.Headers.toList response.resolved.headers;
+          body = Model { location = response.canonical_url; model = patch_model response };
+        }
+    | Full response ->
+        let status = RouterRuntime.Status.toInt response.resolved.status in
+        let headers = RouterRuntime.Headers.toList response.resolved.headers in
+        let body =
+          match response.kind with
+          | Document -> Html (document_element server ~pageCacheCapacity ~document response)
+          | Rsc -> Model { location = response.canonical_url; model = full_model response }
+        in
+        { status; headers; body }
+end
+
 let statusOfError = status_of_error

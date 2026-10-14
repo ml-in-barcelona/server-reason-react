@@ -1,4 +1,12 @@
 let test title fn = Alcotest.test_case title `Quick fn
+
+let contains ~needle value =
+  let limit = String.length value - String.length needle in
+  let rec loop index =
+    index <= limit && (String.equal (String.sub value index (String.length needle)) needle || loop (index + 1))
+  in
+  loop 0
+
 let route ~id ~path = RouterServer.Route.make ~id ~path
 
 let registry routes =
@@ -392,12 +400,59 @@ let error_status () =
 
 let metadata_composition () =
   let open RouterRuntime.Metadata in
-  let parent = make ~title:"Parent" ~entries:[ { key = "robots"; name = "robots"; content = "index" } ] () in
-  let child = make ~description:"Child" ~entries:[ { key = "robots"; name = "robots"; content = "noindex" } ] () in
+  let parent = make ~title:"Parent" ~entries:[ meta ~name:"robots" "index"; link ~rel:"canonical" "/a" ] () in
+  let child = make ~description:"Child" ~entries:[ meta ~name:"robots" "noindex"; meta ~name:"extra" "x" ] () in
   let merged = merge parent child in
   Alcotest.(check (option string)) "title" (Some "Parent") merged.title;
   Alcotest.(check (option string)) "description" (Some "Child") merged.description;
-  Alcotest.(check int) "deduplicated" 1 (List.length merged.entries)
+  Alcotest.(check (list string))
+    "parent order kept, child replaces and appends"
+    [ "link:canonical"; "meta:robots"; "meta:extra" ]
+    (List.map entryKey merged.entries);
+  match merged.entries with
+  | [ _; Meta { content; _ }; _ ] -> Alcotest.(check string) "child wins" "noindex" content
+  | _ -> Alcotest.fail "unexpected entries"
+
+let metadata_default_keys () =
+  let open RouterRuntime.Metadata in
+  Alcotest.(check string) "meta" "meta:description" (entryKey (meta ~name:"description" "x"));
+  Alcotest.(check string) "property" "property:og:title" (entryKey (property ~property:"og:title" "x"));
+  Alcotest.(check string) "link" "link:canonical" (entryKey (link ~rel:"canonical" "/x"));
+  Alcotest.(check string) "explicit" "k" (entryKey (link ~key:"k" ~rel:"alternate" "/x"));
+  (* A meta and a link whose names coincide must not replace each other. *)
+  let merged = merge (make ~entries:[ meta ~name:"icon" "a" ] ()) (make ~entries:[ link ~rel:"icon" "/i.png" ] ()) in
+  Alcotest.(check int) "no accidental collision" 2 (List.length merged.entries);
+  let merged = merge (make ~entries:[ meta ~name:"x" "a" ] ()) (make ~entries:[ property ~property:"x" "b" ] ()) in
+  Alcotest.(check int) "name and property differ" 2 (List.length merged.entries)
+
+let metadata_repeated_tags_with_explicit_keys () =
+  let open RouterRuntime.Metadata in
+  let alternate lang = link ~key:("alt:" ^ lang) ~rel:"alternate" ~attrs:[ ("hreflang", lang) ] ("/" ^ lang) in
+  let merged = merge (make ~entries:[ alternate "en" ] ()) (make ~entries:[ alternate "es" ] ()) in
+  Alcotest.(check int) "both kept" 2 (List.length merged.entries);
+  let merged = merge merged (make ~entries:[ link ~key:"alt:en" ~rel:"alternate" "/en2" ] ()) in
+  Alcotest.(check int) "same key replaced" 2 (List.length merged.entries)
+
+let metadata_rendering () =
+  let open RouterRuntime.Metadata in
+  let html =
+    make ~title:"T" ~description:"D"
+      ~entries:
+        [
+          meta ~name:"robots" "noindex";
+          property ~property:"og:title" "Og";
+          link ~rel:"canonical" "/c";
+          link ~key:"alt:es" ~rel:"alternate" ~attrs:[ ("hreflang", "es"); ("rel", "evil"); ("HREF", "/evil") ] "/es";
+        ]
+      ()
+    |> RouterServer.Adapter.metadata_element |> ReactDOM.renderToStaticMarkup
+  in
+  Alcotest.(check string)
+    "markup"
+    "<title>T</title><meta name=\"description\" content=\"D\" /><meta name=\"robots\" content=\"noindex\" /><meta \
+     property=\"og:title\" content=\"Og\" /><link rel=\"canonical\" href=\"/c\" /><link rel=\"alternate\" href=\"/es\" \
+     hreflang=\"es\" />"
+    html
 
 let header_composition () =
   let open RouterRuntime.Headers in
@@ -878,6 +933,120 @@ let server_base_path_validation () =
       Alcotest.(check bool) basePath true rejected)
     [ ""; "app"; "/app/"; "/app?preview"; "/münchen"; "/%61pp" ]
 
+let adapter_server () =
+  let page =
+    RouterServer.Plan.success
+      ~scopes:
+        [
+          RouterServer.Plan.Scope.make
+            ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"Item" ()))
+            ();
+        ]
+      ~page:(React.createElement "main" [] [ React.string "item" ])
+  in
+  let endpoint path id decode_result =
+    RouterServer.Endpoint.make ~id ~path
+      ~activeRoutes:[ (id, []) ]
+      ~fingerprint:id
+      ~decode:(fun _ -> Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution:decode_result))
+  in
+  let registry =
+    RouterServer.EndpointRegistry.makeExn
+      [
+        endpoint "/item" "item" (fun () -> RouterServer.Execution.done_ page);
+        endpoint "/go" "go" (fun () ->
+            RouterServer.Execution.load
+              (fun () -> Lwt.return (RouterRuntime.Loader.Redirect (RouterRuntime.destination ~path:"/item")))
+              (fun () -> RouterServer.Execution.done_ page));
+      ]
+  in
+  RouterServer.Server.make ~basePath:"/app" ~registry
+    ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+    ()
+
+let adapter_reply ?(registry = None) ~kind pathname =
+  let server = adapter_server () in
+  let navigation =
+    match kind with
+    | RouterServer.ServerEngine.Document -> None
+    | Rsc ->
+        Some
+          {
+            RouterServer.ServerEngine.from = Some "/app";
+            registry = Some (Option.value registry ~default:("2." ^ RouterServer.Server.fingerprint server));
+            base_revision = Some "base";
+          }
+  in
+  let outcome =
+    Lwt_main.run
+      (RouterServer.Server.run server
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~revision:(fun () -> "revision")
+         { pathname; search = ""; hash = ""; kind; navigation })
+  in
+  RouterServer.Adapter.reply server ~target:pathname ~pageCacheCapacity:0
+    ~document:(fun ~head children ->
+      React.createElement "html" []
+        [ React.createElement "head" [] [ head ]; React.createElement "body" [] [ children ] ])
+    ~kind outcome
+
+let header name (reply : RouterServer.Adapter.reply) = List.assoc_opt name reply.headers
+let check_header reply name expected = Alcotest.(check (option string)) name expected (header name reply)
+
+let adapter_document_reply () =
+  let reply = adapter_reply ~kind:Document "/app/item" in
+  Alcotest.(check int) "status" 200 reply.status;
+  check_header reply "Vary" (Some "Accept");
+  check_header reply "Content-Type" (Some "text/html; charset=utf-8");
+  match reply.body with
+  | Html element ->
+      let html, _subscribe = Lwt_main.run (ReactServerDOM.render_html ~skipRoot:false element) in
+      Alcotest.(check bool) "head before root" true (contains ~needle:"<head><title>Item</title>" html);
+      Alcotest.(check bool) "routed markup" true (contains ~needle:"<main>item</main>" html)
+  | Empty | Model _ -> Alcotest.fail "expected html"
+
+let adapter_rsc_reply () =
+  let reply = adapter_reply ~kind:Rsc "/app/item" in
+  Alcotest.(check int) "status" 200 reply.status;
+  check_header reply "Vary" (Some "Accept");
+  check_header reply "Router-Response" (Some "full");
+  check_header reply "Router-Registry" (Some ("2." ^ RouterServer.Server.fingerprint (adapter_server ())));
+  check_header reply "Cache-Control" (Some "private, no-store");
+  match reply.body with
+  | Model { location; _ } -> Alcotest.(check string) "x-location" "/app/item" location
+  | Empty | Html _ -> Alcotest.fail "expected model"
+
+let adapter_reload_required_reply () =
+  let reply = adapter_reply ~registry:(Some "2.wrong") ~kind:Rsc "/app/item" in
+  Alcotest.(check int) "status" 409 reply.status;
+  check_header reply "Vary" (Some "Accept");
+  check_header reply "Router-Response" (Some "reload-required");
+  check_header reply "Cache-Control" (Some "private, no-store");
+  Alcotest.(check bool) "empty body" true (reply.body = Empty)
+
+let adapter_document_redirect_reply () =
+  let temporary = adapter_reply ~kind:Document "/app/go" in
+  Alcotest.(check int) "temporary status" 303 temporary.status;
+  check_header temporary "Location" (Some "/item");
+  check_header temporary "Vary" (Some "Accept");
+  let permanent = adapter_reply ~kind:Document "/app/item/" in
+  Alcotest.(check int) "permanent status" 308 permanent.status;
+  check_header permanent "Location" (Some "/app/item");
+  check_header permanent "Vary" (Some "Accept")
+
+let adapter_rsc_redirect_reply () =
+  let reply = adapter_reply ~kind:Rsc "/app/go" in
+  Alcotest.(check int) "status" 200 reply.status;
+  check_header reply "Vary" (Some "Accept");
+  check_header reply "Router-Response" (Some "redirect");
+  check_header reply "Router-Registry" (Some ("2." ^ RouterServer.Server.fingerprint (adapter_server ())));
+  check_header reply "Cache-Control" (Some "private, no-store");
+  check_header reply "Content-Type" (Some "application/react.component");
+  match reply.body with
+  | Model { location; _ } -> Alcotest.(check string) "x-location" "/app/go" location
+  | Empty | Html _ -> Alcotest.fail "expected model"
+
 let full_plan_composition () =
   let open RouterRuntime in
   let headers values = match Headers.make values with Ok headers -> headers | Error _ -> Alcotest.fail "headers" in
@@ -993,6 +1162,9 @@ let () =
           test "fatal loader exceptions propagate" fatal_loader_exceptions_propagate;
           test "error status" error_status;
           test "metadata composition" metadata_composition;
+          test "metadata default keys" metadata_default_keys;
+          test "metadata repeated tags with explicit keys" metadata_repeated_tags_with_explicit_keys;
+          test "metadata rendering" metadata_rendering;
           test "header composition" header_composition;
           test "latest navigation wins" latest_navigation_wins;
           test "stale revision rejected" stale_revision_rejected;
@@ -1024,6 +1196,11 @@ let () =
           test "root pathname is canonical" root_pathname_is_canonical;
           test "default boundary renders text" default_boundary_renders_text;
           test "server base path validation" server_base_path_validation;
+          test "adapter document reply" adapter_document_reply;
+          test "adapter rsc reply" adapter_rsc_reply;
+          test "adapter reload required reply" adapter_reload_required_reply;
+          test "adapter document redirect reply" adapter_document_redirect_reply;
+          test "adapter rsc redirect reply" adapter_rsc_redirect_reply;
           test "full plan composition" full_plan_composition;
           test "failure plan selects not-found boundary" failure_plan_selects_not_found_boundary;
           test "shared layout prefix uses canonical identity" shared_layout_prefix_uses_canonical_identity;

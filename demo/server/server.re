@@ -57,18 +57,20 @@ let server =
              ~router=RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
              ~ssr=shouldSSR,
-             ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
-             ~document=children => <Pages.Document> children </Pages.Document>,
+             ~bootstrapModules=_request => ["/static/demo/RouterDemo.re.js"],
+             ~document=
+               (~head as _, children) =>
+                 <Pages.Document> children </Pages.Document>,
              (),
            ),
            DreamRouter.routes(
              ~router=Demo_hacker_news_router_native.RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
              ~ssr=shouldSSR,
-             ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
+             ~bootstrapModules=_request => ["/static/demo/RouterDemo.re.js"],
              ~pageCacheCapacity=32,
              ~document=
-               children =>
+               (~head as _, children) =>
                  <Demo_hacker_news_router_native.Pages.Document>
                    children
                  </Demo_hacker_news_router_native.Pages.Document>,
