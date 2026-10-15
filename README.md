@@ -38,7 +38,7 @@ Aside from the core (`React`, `ReactDOM` and `ReactServerDOM`), server-reason-re
 
 | Name | Description | Melange equivalent library |
 |---------|-------------|---------|
-| [`ppx_platform`](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html) | A ppx to discard code for each platform with different attributes: `let%browser_only`, `switch%platform` and `@platform`. Lives in [ml-in-barcelona/ppx_platform](https://github.com/ml-in-barcelona/ppx_platform) |
+| [`ppx_platform`](https://github.com/ml-in-barcelona/ppx_platform) | A ppx to discard code for each platform with different attributes: `let%browser_only`, `switch%platform` and `@platform`. Lives in [ml-in-barcelona/ppx_platform](https://github.com/ml-in-barcelona/ppx_platform) |
 | [`server-reason-react.url_js` and `server-reason-react.url_native`](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.url_native/URL/index.html) | Universal URL module: binds to `window.URL` in browser, implemented with [`opam-uri`](https://github.com/mirage/ocaml-uri) in native |
 | [`server-reason-react.melange_ppx`](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/externals-melange-attributes.html) | A ppx to add the melange attributes to native code | [melange.ppx](https://melange.re/v4.0.0/) |
 | `server-reason-react.promise` | Vendored version of [aantron/promise](https://github.com/aantron/promise) with melange support [PR#80](https://github.com/aantron/promise/pull/80) | [promise](https://github.com/aantron/promise) |

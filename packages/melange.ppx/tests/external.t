@@ -13,7 +13,7 @@ An external without platform attribute errors
    only happen in JavaScript. You need to conditionally discard it from the \
    native build, either by moving the external in a module only available in \
    native, or annotating it with [@platform js]. More info at \
-   https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
+   https://github.com/ml-in-barcelona/ppx_platform"]
 
   $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
@@ -28,11 +28,10 @@ An external without platform attribute errors
          should only happen in JavaScript. You need to conditionally discard it
          from the native build, either by moving the external in a module only
          available in native, or annotating it with [@platform js]. More info
-         at
-         https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html
+         at https://github.com/ml-in-barcelona/ppx_platform
   [2]
 
-An external with [@platform js] is passed through (browser_ppx will filter it)
+An external with [@platform js] is passed through (ppx_platform will filter it)
 
   $ cat > input.ml << EOF
   > type t
@@ -44,7 +43,7 @@ An external with [@platform js] is passed through (browser_ppx will filter it)
   
   external document : t = "document" [@@platform js]
 
-An external with [@browser_only] is passed through (browser_ppx will filter it)
+An external with [@browser_only] is passed through (ppx_platform will filter it)
 
   $ cat > input.ml << EOF
   > type t

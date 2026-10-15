@@ -1,4 +1,4 @@
-@children_order get-started router universal-code how-to-organise-universal-code browser_ppx externals-melange-attributes
+@children_order get-started router universal-code how-to-organise-universal-code externals-melange-attributes
 
 {0 server-reason-react}
 
@@ -44,7 +44,7 @@ Aside from the core ([React], [ReactDOM] and [ReactServerDOM]), server-reason-re
 
 {table
  {tr {th Name} {th Description} {th Melange equivalent library}}
- {tr {td {{:https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html}[ppx_platform]}}
+ {tr {td {{:https://github.com/ml-in-barcelona/ppx_platform}[ppx_platform]}}
      {td A ppx to discard code for each platform with different attributes: [let%browser_only], [switch%platform] and [@platform]}
      {td }}
  {tr {td {{:https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.url_native/URL/index.html}[server-reason-react.url_js] and [server-reason-react.url_native]}}
@@ -79,7 +79,6 @@ Aside from the core ([React], [ReactDOM] and [ReactServerDOM]), server-reason-re
   {li {{!page-"get-started"}Get started}}
   {li {{!page-"universal-code"}What does universal code mean?}}
   {li {{!page-"how-to-organise-universal-code"}How to organise universal code}}
-  {li {{!page-"browser_ppx"}Exclude client code from the native build}}
   {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
   {li {{!page-"ssr-and-hydration"}SSR and hydration}}
 }

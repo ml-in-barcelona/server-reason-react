@@ -31,6 +31,29 @@ Add to your dune file:
 (preprocess (pps server-reason-react.ppx))
 ]}
 
+{2:ppx-platform Excluding client code}
+
+Code that uses browser APIs, like [Webapi], can't run on the server. {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform} discards it from the native build with [let%browser_only], [switch%platform] and [[@platform]]. Read its {{:https://github.com/ml-in-barcelona/ppx_platform#browser_only}README} for the syntax.
+
+Add [ppx_platform] to the [pps] field of both builds. Pass [-js] on the client. On the client, [-melange] is a separate flag for [server-reason-react.ppx]:
+{[
+; native executable
+(executable
+ (name server)
+ (preprocess
+  (pps server-reason-react.ppx ppx_platform)))
+
+; melange emitting JavaScript
+(melange.emit
+ (target app)
+ (preprocess
+  (pps ppx_platform -js server-reason-react.ppx -melange)))
+]}
+
+Without [ppx_platform], the compiler fails with [Uninterpreted extension 'browser_only'] on any [[%browser_only]].
+
+On native, a [let%browser_only] body raises [Runtime.Impossible_in_ssr]. It is the same exception as [Ppx_platform_runtime.Impossible_in_ssr], so one handler catches both.
+
 {1 Usage}
 
 [server-reason-react] provides {!React} and {!ReactDOM} modules with the same interface as [reason-react], including JSX transformation via [server-reason-react.ppx]. Components follow the standard [reason-react] API as explained in their {{:https://reasonml.github.io/reason-react/docs/en/components}official documentation}.

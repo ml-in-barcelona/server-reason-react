@@ -68,8 +68,7 @@ Single type (invalid OCaml, but valid in Melange)
    \"...\"] in native, which should only happen in JavaScript. You need to \
    conditionally discard it from the native build, either by moving the external \
    in a module only available in native, or annotating it with [@platform js]. \
-   More info at \
-   https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
+   More info at https://github.com/ml-in-barcelona/ppx_platform"]
 
   $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
@@ -85,7 +84,7 @@ Single type (invalid OCaml, but valid in Melange)
          You need to conditionally discard it from the native build, either by
          moving the external in a module only available in native, or
          annotating it with [@platform js]. More info at
-         https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html
+         https://github.com/ml-in-barcelona/ppx_platform
   [2]
 
 Assets with file not found

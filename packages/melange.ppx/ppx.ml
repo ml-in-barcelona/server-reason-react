@@ -804,7 +804,7 @@ let mel_raw_found_in_native_message ~loc payload =
     Printf.sprintf
       "[server-reason-react.melange_ppx] There's a [%%mel.raw \"%s\"] expression in native, which should only happen \
        in JavaScript. You need to conditionally run it via let%%browser_only or switch%%platform. More info at \
-       https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"
+       https://github.com/ml-in-barcelona/ppx_platform"
       payload
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
@@ -815,7 +815,7 @@ let mel_module_found_in_native_message ~loc =
       "[server-reason-react.melange_ppx] There's an external with [%%mel.module \"...\"] in native, which should only \
        happen in JavaScript. You need to conditionally discard it from the native build, either by moving the external \
        in a module only available in native, or annotating it with [@platform js]. More info at \
-       https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"
+       https://github.com/ml-in-barcelona/ppx_platform"
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 
@@ -825,7 +825,7 @@ let external_found_in_native_message ~loc =
       "[server-reason-react.melange_ppx] There's an external in native, which should only happen in JavaScript. You \
        need to conditionally discard it from the native build, either by moving the external in a module only \
        available in native, or annotating it with [@platform js]. More info at \
-       https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"
+       https://github.com/ml-in-barcelona/ppx_platform"
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 

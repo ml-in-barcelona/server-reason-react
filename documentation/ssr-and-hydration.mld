@@ -41,7 +41,7 @@ let make = () => {
 };
 ]}
 
-We use [switch%platform] to provide different values on the server and client. To understand how [switch%platform] works, look at the {{!page-"browser_ppx"} browser_ppx page}.
+We use [switch%platform] to provide different values on the server and client. To understand how [switch%platform] works, look at the {{:https://github.com/ml-in-barcelona/ppx_platform#matchplatform}ppx_platform README}.
 
 And let's see the diagram below, which shows how the code will behave:
 
@@ -148,7 +148,7 @@ let answer = isClientMounted ? [%browser_only () => getAnswer()]() : 0;
 
 {3 Combine [switch%platform] and [%browser_only] with [isClientMounted]}
 
-[switch%platform] and [browser_only] are extensions that help us discarting parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: {{!page-"browser_ppx"} browser_ppx page}).
+[switch%platform] and [browser_only] are extensions that help us discarting parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform README}).
 
 So we should use [switch%platform] when we don't have a single way to provide the same value. If there is a way to provide the same value, but not in a single way, you'll need [switch%platform] like following:
 

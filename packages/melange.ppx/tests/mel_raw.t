@@ -10,7 +10,7 @@ mel.raw as a value
      { return element.ownerDocument; } \"] expression in native, which should \
      only happen in JavaScript. You need to conditionally run it via \
      let%browser_only or switch%platform. More info at \
-     https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
+     https://github.com/ml-in-barcelona/ppx_platform"]
 
 mel.raw as an unary function
 
@@ -24,7 +24,7 @@ mel.raw as an unary function
      { return element.ownerDocument; } \"] expression in native, which should \
      only happen in JavaScript. You need to conditionally run it via \
      let%browser_only or switch%platform. More info at \
-     https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
+     https://github.com/ml-in-barcelona/ppx_platform"]
 
 mel.raw as an binary function
 
@@ -43,8 +43,7 @@ mel.raw as an binary function
     \    return element.ownerDocument;\n\
      } \"] expression in native, which should only happen in JavaScript. You \
      need to conditionally run it via let%browser_only or switch%platform. More \
-     info at \
-     https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
+     info at https://github.com/ml-in-barcelona/ppx_platform"]
 
 mel.raw with type
 
@@ -60,7 +59,7 @@ mel.raw with type
     "[server-reason-react.melange_ppx] There's a [%mel.raw \"window\"] \
      expression in native, which should only happen in JavaScript. You need to \
      conditionally run it via let%browser_only or switch%platform. More info at \
-     https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
+     https://github.com/ml-in-barcelona/ppx_platform"]
 
   $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
@@ -74,8 +73,7 @@ mel.raw with type
   Error: [server-reason-react.melange_ppx] There's a [%mel.raw "window"]
          expression in native, which should only happen in JavaScript. You need
          to conditionally run it via let%browser_only or switch%platform. More
-         info at
-         https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html
+         info at https://github.com/ml-in-barcelona/ppx_platform
   [2]
 
 mel.raw as a value
@@ -90,4 +88,4 @@ mel.raw as a value
    console.log(\"running in JS\"); \"] expression in native, which should only \
    happen in JavaScript. You need to conditionally run it via let%browser_only \
    or switch%platform. More info at \
-   https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
+   https://github.com/ml-in-barcelona/ppx_platform"]
