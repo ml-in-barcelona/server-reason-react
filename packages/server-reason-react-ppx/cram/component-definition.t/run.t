@@ -1138,9 +1138,11 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ( Stdlib.__FUNCTION__,
             fun () ->
               let state, setState = React.useState lola in
-              React.useEffect (fun () ->
-                  setState lola;
-                  None);
+              React.useEffect
+                [%browser_only
+                  fun () ->
+                    setState lola;
+                    None];
               React.Writer
                 {
                   emit =

@@ -73,7 +73,7 @@ Asuming you want to share react.components between the client and the server, yo
  (preprocess
   (pps
     server-reason-react.ppx
-    server-reason-react.browser_ppx
+    ppx_platform
     server-reason-react.melange_ppx)))
 
 (copy_files# "../*.re")

@@ -1015,7 +1015,7 @@ class raise_exception_mapper (module_path : string) =
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type; pval_prim } ->
-          (* Detects [@browser_only] or [@platform js] attributes. When present on an external, we pass it through unchanged so browser_ppx can filter it out in native mode. *)
+          (* Detects [@browser_only] or [@platform js] attributes. When present on an external, we pass it through unchanged so ppx_platform can filter it out in native mode. *)
           if has_browser_ppx_attribute pval_attributes then item
           else transform_external ~module_path pval_name pval_attributes pval_loc pval_type pval_prim
       | _ -> super#structure_item item

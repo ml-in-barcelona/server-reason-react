@@ -28,5 +28,5 @@
    melange_native_ppx
    server-reason-react.ppx
    -shared-folder-prefix=/native/shared/
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.rsc-native.ppx)))

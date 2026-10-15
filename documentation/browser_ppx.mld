@@ -1,12 +1,12 @@
 {0 Exclude client code from the native build}
 
-[browser_only] is the ppx to exclude client code from the server build and conditionally execute code based on each platform.
+[browser_only] comes from {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform}, the ppx to exclude client code from the server build and conditionally execute code based on each platform.
 
 For example, if you're using [Webapi] to query the DOM and extract some data from it. This code should only run on the client, and there's no equivalent or fallback on the server.
 
-The ppx expose the [[%browser_only]] extension and [[@browser_only]] attribute that can be used to discard functions and values, and [[switch%platform]] to conditionally compile and execute code based on the platform.
+The ppx exposes the [[%browser_only]] extension and [[@browser_only]] attribute that can be used to discard functions and values, [[switch%platform]] to conditionally compile and execute code based on the platform, and the [[@platform]] attribute.
 
-[server-reason-react.browser_ppx] is built on {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform}, which provides [[%browser_only]], [[@browser_only]], [[@platform]] and [[switch%platform]]. This package adds the rewrite of [React.useEffect] and [React.useLayoutEffect] (and their numbered variants) into [[%browser_only]] effects on native. Linking [server-reason-react.browser_ppx] registers all of them, so no other ppx is needed.
+[server-reason-react.browser_ppx] doesn't exist anymore, use [ppx_platform] instead. [server-reason-react.ppx] rewrites the body of [React.useEffect], [React.useLayoutEffect] and their numbered variants ([useEffect0] to [useEffect7]) into [[%browser_only]] on native, so effects never run on the server. For that rewrite to expand, [ppx_platform] must be in the same [pps] field. Without it, the compiler fails with [Uninterpreted extension 'browser_only'].
 
 {1 Example}
 
@@ -27,22 +27,26 @@ switch%platform (Runtime.platform) {
 
 {1 Installation}
 
-Add [server-reason-react.browser_ppx] into to your pps field under a dune stanzas (melange.emit, libraries or executable) in your dune files.
+Add [ppx_platform] into your pps field under a dune stanzas (melange.emit, libraries or executable) in your dune files.
 
-You would need to add it on both "server" and "client" dune files. Adding the [-js] flag [server-reason-react.browser_ppx -js] for the client and without the flag for the server:
+You would need to add it on both "server" and "client" dune files. Adding the [-js] flag ([ppx_platform -js]) for the client and without the flag for the server. If you use [server-reason-react.ppx] on native, list [ppx_platform] next to it. On the client, [server-reason-react.ppx] takes [-melange], which is a separate flag:
 {[
 ; server exectuable
 (executable
  (name server)
  (preprocess
-  (pps server-reason-react.browser_ppx)))
+  (pps server-reason-react.ppx ppx_platform)))
 
 ; melange emitting JavaScript
 (melange.emit
  (target app)
  (preprocess
-  (pps server-reason-react.browser_ppx -js)))
+  (pps ppx_platform -js server-reason-react.ppx -melange)))
 ]}
+
+{1 Migrating from [server-reason-react.browser_ppx]}
+
+Replace [server-reason-react.browser_ppx] with [ppx_platform] in your dune files and keep [-js] where you had it. The [React.useEffect*] rewrite now lives in [server-reason-react.ppx].
 
 {1 Usage}
 

@@ -5,6 +5,8 @@
  (deps
   (package server-reason-react)
   standalone.exe
+  standalone_platform.exe
+  impossible_in_ssr.exe
   dune-describe-pp.sh
   %{bin:refmt}
   %{bin:ocamlformat}
@@ -15,3 +17,15 @@
  (name standalone)
  (modules standalone)
  (libraries server-reason-react.ppx server-reason-react.runtime ppxlib))
+
+(executable
+ (name standalone_platform)
+ (modules standalone_platform)
+ (libraries server-reason-react.ppx ppx_platform ppxlib))
+
+(executable
+ (name impossible_in_ssr)
+ (modules impossible_in_ssr)
+ (libraries server-reason-react.runtime)
+ (preprocess
+  (pps ppx_platform)))

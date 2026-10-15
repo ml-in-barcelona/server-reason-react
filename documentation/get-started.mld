@@ -28,7 +28,7 @@ opam pin server-reason-react.dev "https://github.com/ml-in-barcelona/server-reas
 Add to your dune file:
 {[
 (libraries (server-reason-react.react server-reason-react.reactDom))
-(preprocess (pps server-reason-react.ppx))
+(preprocess (pps server-reason-react.ppx ppx_platform))
 ]}
 
 {1 Usage}

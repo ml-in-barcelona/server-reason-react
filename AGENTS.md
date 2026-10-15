@@ -62,4 +62,4 @@ See `README.md` for user-facing documentation.
 
 - `SERVER_FUNCTIONS_DESIGN.md` — design notes for in-flight server-functions work
 - `benchmark/perf-work/PERF_NEXT.md` — perf work protocol (measure before changing)
-- `documentation/*.mld` — odoc pages (universal code, browser_ppx, SSR/hydration)
+- `documentation/*.mld` — odoc pages (universal code, ppx_platform, SSR/hydration)
