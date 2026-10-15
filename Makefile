@@ -74,6 +74,8 @@ install-npm:
 pin: ## Pin dependencies
 	# TODO: drop this pin once quickjs 0.5.1 is published to opam-repository
 	opam pin add quickjs.0.5.1 "git+https://github.com/ml-in-barcelona/quickjs.ml.git#0.5.1" -y
+	# TODO: drop this pin once ocaml/opam-repository#30939 publishes ppx_platform
+	opam pin add ppx_platform.0.1.0 "git+https://github.com/ml-in-barcelona/ppx_platform.git#0.1.0" -y
 
 .PHONY: init
 init: setup-githooks create-switch pin install install-npm ## Create a local dev enviroment

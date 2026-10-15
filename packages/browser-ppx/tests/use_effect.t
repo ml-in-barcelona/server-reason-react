@@ -31,7 +31,7 @@ Without -js flag, we add the browser_only transformation and browser_only applie
   let make () =
     let state, dispatch = React.useReducer reducer initialState in
     React.useEffect0 (fun () ->
-        Runtime.fail_impossible_action_in_ssr "<unkwnown>");
+        Ppx_platform_runtime.fail_impossible_action_in_ssr "<unkwnown>");
     div ~children:[] () [@JSX]
   [@@react.component]
 
@@ -71,7 +71,7 @@ Without -js flag, we add the browser_only transformation and browser_only applie
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
   let make () =
     React.useEffect2
-      (fun () -> Runtime.fail_impossible_action_in_ssr "<unkwnown>")
+      (fun () -> Ppx_platform_runtime.fail_impossible_action_in_ssr "<unkwnown>")
       (uiState, newPassword);
     div ~children:[] () [@JSX]
   [@@react.component]
@@ -120,7 +120,7 @@ Without -js flag, we add the browser_only transformation and browser_only applie
   let make () =
     let state, dispatch = React.useReducer reducer initialState in
     React.useEffect2
-      (fun () -> Runtime.fail_impossible_action_in_ssr "<unkwnown>")
+      (fun () -> Ppx_platform_runtime.fail_impossible_action_in_ssr "<unkwnown>")
       (focusedEntryText, delayInMs);
     div ~children:[] () [@JSX]
   [@@react.component]
@@ -162,7 +162,7 @@ Without -js flag, we add the browser_only transformation and browser_only applie
   let make () =
     let state, dispatch = React.useReducer reducer initialState in
     React.useEffect1
-      (fun () -> Runtime.fail_impossible_action_in_ssr "<unkwnown>")
+      (fun () -> Ppx_platform_runtime.fail_impossible_action_in_ssr "<unkwnown>")
       [| isFocused |];
     div ~children:[] () [@JSX]
   [@@react.component]

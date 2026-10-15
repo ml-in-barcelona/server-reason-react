@@ -3,7 +3,8 @@
     Mostly used internally by the ppxes *)
 
 exception Impossible_in_ssr of string
-(** Exception to throw when operations aren't meant to be running on native, mostly used by browser_ppx or ReactDOM *)
+(** Exception to throw when operations aren't meant to be running on native, mostly used by browser_ppx or ReactDOM.
+    Re-exported from [ppx_platform], so handlers on either name catch the same exception. *)
 
 val fail_impossible_action_in_ssr : string -> 'a
 

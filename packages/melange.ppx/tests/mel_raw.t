@@ -62,13 +62,14 @@ mel.raw with type
      conditionally run it via let%browser_only or switch%platform. More info at \
      https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
-  File "main.ml", line 26, characters 2-7:
-  26 | [%error
+  File "main.ml", line 14, characters 2-7:
+  14 | [%error
          ^^^^^
   Error: [server-reason-react.melange_ppx] There's a [%mel.raw "window"]
          expression in native, which should only happen in JavaScript. You need

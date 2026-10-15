@@ -3,7 +3,7 @@
  (modules ppx)
  (public_name server-reason-react.browser_ppx)
  (flags :standard -w -9)
- (libraries ppxlib ppxlib.astlib)
+ (libraries ppxlib ppxlib.astlib ppx_platform)
  (ppx_runtime_libraries runtime)
  (preprocess
   (pps ppxlib.metaquot))

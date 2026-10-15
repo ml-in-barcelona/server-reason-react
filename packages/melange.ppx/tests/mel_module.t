@@ -18,7 +18,8 @@
     in
     raise (Runtime.fail_impossible_action_in_ssr "keycloak")
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -45,7 +46,8 @@ Multiple args with optional
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "keycloak")
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -69,13 +71,14 @@ Single type (invalid OCaml, but valid in Melange)
    More info at \
    https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
-  File "main.ml", line 26, characters 3-14:
-  26 | [%%ocaml.error
+  File "main.ml", line 14, characters 3-14:
+  14 | [%%ocaml.error
           ^^^^^^^^^^^
   Error: [server-reason-react.melange_ppx] There's an external with
          [%mel.module "..."] in native, which should only happen in JavaScript.
@@ -95,7 +98,8 @@ Assets with file not found
   File "input.ml", line 1:
   Error: I/O error: ./does-not-exist.svg: No such file or directory
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -114,7 +118,8 @@ Webpack: assets like svg or images (payload to mel.module includes file extensio
   $ ./standalone.exe -impl input.ml -bundler webpack | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/1d876c8887ac1038.svg"
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -137,7 +142,8 @@ Webpack: assets like svg or images with paths outside current folder
   $ ./standalone.exe -impl $(pwd)/foo/input.ml -bundler webpack | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/1d876c8887ac1038.svg"
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -156,7 +162,8 @@ Esbuild: assets like svg or images (payload to mel.module includes file extensio
   $ ./standalone.exe -impl input.ml -bundler esbuild | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/image-DWDWZCEH.svg"
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -175,7 +182,8 @@ Esbuild: assets like svg or images with paths outside current folder
   $ ./standalone.exe -impl $(pwd)/foo/input.ml -bundler esbuild | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/image-DWDWZCEH.svg"
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -194,7 +202,8 @@ With prefix
   $ ./standalone.exe -impl $(pwd)/foo/input.ml -bundler esbuild -prefix /foo/bar | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/foo/bar/demo-4TAZDUER.txt"
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml

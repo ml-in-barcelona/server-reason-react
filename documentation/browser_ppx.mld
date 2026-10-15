@@ -6,6 +6,8 @@ For example, if you're using [Webapi] to query the DOM and extract some data fro
 
 The ppx expose the [[%browser_only]] extension and [[@browser_only]] attribute that can be used to discard functions and values, and [[switch%platform]] to conditionally compile and execute code based on the platform.
 
+[server-reason-react.browser_ppx] is built on {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform}, which provides [[%browser_only]], [[@browser_only]], [[@platform]] and [[switch%platform]]. This package adds the rewrite of [React.useEffect] and [React.useLayoutEffect] (and their numbered variants) into [[%browser_only]] effects on native. Linking [server-reason-react.browser_ppx] registers all of them, so no other ppx is needed.
+
 {1 Example}
 
 {[
@@ -53,7 +55,7 @@ let%browser_only countDomNodes = (id) => {
 };
 ]}
 
-The method tagged by [browser_only] and it will keep the function for the client build, but will be discarded for the server build. On the server build, the ppx transforms the body of function into a [Runtime.Impossible_in_ssr] exception.
+The method tagged by [browser_only] and it will keep the function for the client build, but will be discarded for the server build. On the server build, the ppx transforms the body of function into a [Runtime.Impossible_in_ssr] exception. [Runtime.Impossible_in_ssr] is the same exception as [Ppx_platform_runtime.Impossible_in_ssr], which the generated code raises.
 
 If this function ever runs on the server accidentally, it will raise the exception. If this exception isn't caught, the server will obviously crash. This situation is very unlikely to happen, but in case of not being sure, it's good to be prepared for it and add a try catch block.
 

@@ -15,13 +15,14 @@ An external without platform attribute errors
    native, or annotating it with [@platform js]. More info at \
    https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
-  File "main.ml", line 26, characters 3-14:
-  26 | [%%ocaml.error
+  File "main.ml", line 14, characters 3-14:
+  14 | [%%ocaml.error
           ^^^^^^^^^^^
   Error: [server-reason-react.melange_ppx] There's an external in native, which
          should only happen in JavaScript. You need to conditionally discard it
