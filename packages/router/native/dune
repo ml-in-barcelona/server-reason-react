@@ -2,8 +2,6 @@
  (name router_native)
  (public_name server-reason-react.router-native)
  (wrapped false)
- ; browser_only removes effect bodies from the server, leaving their setters unused
- (flags :standard -w -26-27)
  (private_modules
   RouterClientRoot
   RouterOutlet
@@ -22,8 +20,7 @@
   (pps
    server-reason-react.ppx
    -shared-folder-prefix=/native/
-   server-reason-react.rsc-native.ppx
-   ppx_platform)))
+   server-reason-react.rsc-native.ppx)))
 
 (copy_files
  (files ../runtime/shared/RouterTypes.re))

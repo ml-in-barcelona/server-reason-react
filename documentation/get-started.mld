@@ -28,7 +28,7 @@ opam pin server-reason-react.dev "https://github.com/ml-in-barcelona/server-reas
 Add to your dune file:
 {[
 (libraries (server-reason-react.react server-reason-react.reactDom))
-(preprocess (pps server-reason-react.ppx ppx_platform))
+(preprocess (pps server-reason-react.ppx))
 ]}
 
 {1 Usage}
@@ -67,7 +67,7 @@ module Counter = {
 };
 ]}
 
-Hooks like [React.useState] or [React.useEffect] are available but are no-ops when running on the server. Since components don't re-render on the server. Hooks like [React.useCallback] and [React.useMemo] have no memoization and return values just once.
+Hooks like [React.useState] or [React.useEffect] are available and effects don't run when rendering on the server. The effect body is still compiled for native, so wrap browser-only code in it with [[%browser_only]]. Since components don't re-render on the server. Hooks like [React.useCallback] and [React.useMemo] have no memoization and return values just once.
 
 {1 Server-side Rendering}
 

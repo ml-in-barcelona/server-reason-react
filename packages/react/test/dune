@@ -9,4 +9,4 @@
   server-reason-react.react
   server-reason-react.reactDom)
  (preprocess
-  (pps server-reason-react.ppx ppx_platform lwt_ppx)))
+  (pps server-reason-react.ppx lwt_ppx)))

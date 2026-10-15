@@ -1837,26 +1837,6 @@ let validate_tag_children tag children attributes : (unit, string) result =
   | false -> Ok ()
   | true -> Ok ()
 
-let effect_hooks =
-  let arities = "" :: List.init ~len:8 ~f:string_of_int in
-  List.concat_map [ "useEffect"; "useLayoutEffect" ] ~f:(fun hook -> List.map arities ~f:(fun arity -> hook ^ arity))
-
-(* Effects never run on the server. We only emit [%browser_only]: this ppx runs in preprocess_impl, before
-   context-free rules, so ppx_platform expands it when the user lists both. *)
-let wrap_effect_body expr =
-  match expr.pexp_desc with
-  | Pexp_apply
-      (({ pexp_desc = Pexp_ident { txt = Ldot (Lident "React", hook); _ }; _ } as fn), (Nolabel, body) :: rest_of_args)
-    when List.mem hook ~set:effect_hooks -> (
-      match body.pexp_desc with
-      | Pexp_extension ({ txt = "browser_only"; _ }, _) -> expr
-      (* [%browser_only] only accepts function definitions, an effect passed by name stays untouched *)
-      | Pexp_function _ ->
-          let loc = body.pexp_loc in
-          { expr with pexp_desc = Pexp_apply (fn, (Nolabel, [%expr [%browser_only [%e body]]]) :: rest_of_args) }
-      | _ -> expr)
-  | _ -> expr
-
 let traverse =
   object (_)
     inherit [Expansion_context.Base.t] Ast_traverse.map_with_context as super
@@ -1896,7 +1876,6 @@ let traverse =
           (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
           try Styles_attribute.expand expr with Error err -> [%expr [%e err]])
       | Native -> (
-          let expr = wrap_effect_body expr in
           try
             match expr.pexp_desc with
             | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
