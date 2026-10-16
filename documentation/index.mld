@@ -45,7 +45,7 @@ Aside from the core ([React], [ReactDOM] and [ReactServerDOM]), server-reason-re
 {table
  {tr {th Name} {th Description} {th Melange equivalent library}}
  {tr {td {{:https://github.com/ml-in-barcelona/ppx_platform}[ppx_platform]}}
-     {td A ppx to discard code for each platform with different attributes: [let%browser_only], [switch%platform] and [@platform]}
+     {td A ppx to discard code for each platform with different attributes: [let%melange_only], [switch%platform], [[@melange_only]] and [[@native_only]]}
      {td }}
  {tr {td {{:https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.url_native/URL/index.html}[server-reason-react.url_js] and [server-reason-react.url_native]}}
      {td Universal URL module: binds to [window.URL] in browser, implemented with {{:https://github.com/mirage/ocaml-uri}[opam-uri]} in native}

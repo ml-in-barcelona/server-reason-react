@@ -12,12 +12,12 @@ let make =
     | Router.Navigation.Failed(_) => false
     };
 
-  let%browser_only onChangeTitle = e => {
+  let%melange_only onChangeTitle = e => {
     let newValue = React.Event.Form.target(e)##value;
     setTitle(newValue);
   };
 
-  let%browser_only onChangeBody = e => {
+  let%melange_only onChangeBody = e => {
     let newValue = React.Event.Form.target(e)##value;
     setBody(newValue);
   };
@@ -35,7 +35,7 @@ let make =
         <button
           className=Theme.button
           disabled=isNavigating
-          onClick=[%browser_only
+          onClick=[%melange_only
             _ => {
               let action =
                 switch (id) {

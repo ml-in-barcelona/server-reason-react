@@ -3,9 +3,9 @@ let make = () => {
   <form
     action={
       switch%platform () {
-      | Server => `Function(ServerFunctions.formDataFunction)
+      | Native => `Function(ServerFunctions.formDataFunction)
       // doesn't matter the client value, it will never reach the browser
-      | Client => ""
+      | Melange => ""
       }
     }
     className={Cx.make([Theme.text(Theme.Color.Gray4)])}>

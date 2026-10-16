@@ -33,7 +33,7 @@ Add to your dune file:
 
 {2:ppx-platform Excluding client code}
 
-Code that uses browser APIs, like [Webapi], can't run on the server. {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform} discards it from the native build with [let%browser_only], [switch%platform] and [[@platform]]. Read its {{:https://github.com/ml-in-barcelona/ppx_platform#browser_only}README} for the syntax.
+Code that uses browser APIs, like [Webapi], can't run on the server. {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform} discards it from the native build with [let%melange_only], [switch%platform], [[@melange_only]] and [[@native_only]]. Read its {{:https://github.com/ml-in-barcelona/ppx_platform#melange_only}README} for the syntax.
 
 Add [ppx_platform] to the [pps] field of both builds. Pass [-js] on the client. On the client, [-melange] is a separate flag for [server-reason-react.ppx]:
 {[
@@ -50,9 +50,9 @@ Add [ppx_platform] to the [pps] field of both builds. Pass [-js] on the client. 
   (pps ppx_platform -js server-reason-react.ppx -melange)))
 ]}
 
-Without [ppx_platform], the compiler fails with [Uninterpreted extension 'browser_only'] on any [[%browser_only]].
+Without [ppx_platform], the compiler fails with [Uninterpreted extension 'melange_only'] on any [[%melange_only]].
 
-On native, a [let%browser_only] body raises [Runtime.Impossible_in_ssr]. It is the same exception as [Ppx_platform_runtime.Impossible_in_ssr], so one handler catches both.
+On native, a [let%melange_only] body raises [Runtime.Impossible_in_ssr]. It is the same exception as [Ppx_platform_runtime.Impossible_in_ssr], so one handler catches both.
 
 {1 Usage}
 
@@ -90,7 +90,7 @@ module Counter = {
 };
 ]}
 
-Hooks like [React.useState] or [React.useEffect] are available and effects don't run when rendering on the server. The effect body is still compiled for native, so wrap browser-only code in it with [[%browser_only]]. Since components don't re-render on the server. Hooks like [React.useCallback] and [React.useMemo] have no memoization and return values just once.
+Hooks like [React.useState] or [React.useEffect] are available and effects don't run when rendering on the server. The effect body is still compiled for native, so wrap browser-only code in it with [[%melange_only]]. Since components don't re-render on the server. Hooks like [React.useCallback] and [React.useMemo] have no memoization and return values just once.
 
 {1 Server-side Rendering}
 

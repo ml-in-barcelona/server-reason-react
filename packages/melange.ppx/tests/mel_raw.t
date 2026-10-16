@@ -9,7 +9,7 @@ mel.raw as a value
     "[server-reason-react.melange_ppx] There's a [%mel.raw \" function(element) \
      { return element.ownerDocument; } \"] expression in native, which should \
      only happen in JavaScript. You need to conditionally run it via \
-     let%browser_only or switch%platform. More info at \
+     let%melange_only or switch%platform. More info at \
      https://github.com/ml-in-barcelona/ppx_platform"]
 
 mel.raw as an unary function
@@ -23,7 +23,7 @@ mel.raw as an unary function
     "[server-reason-react.melange_ppx] There's a [%mel.raw \" function(element) \
      { return element.ownerDocument; } \"] expression in native, which should \
      only happen in JavaScript. You need to conditionally run it via \
-     let%browser_only or switch%platform. More info at \
+     let%melange_only or switch%platform. More info at \
      https://github.com/ml-in-barcelona/ppx_platform"]
 
 mel.raw as an binary function
@@ -42,7 +42,7 @@ mel.raw as an binary function
     \    console.log(number);\n\
     \    return element.ownerDocument;\n\
      } \"] expression in native, which should only happen in JavaScript. You \
-     need to conditionally run it via let%browser_only or switch%platform. More \
+     need to conditionally run it via let%melange_only or switch%platform. More \
      info at https://github.com/ml-in-barcelona/ppx_platform"]
 
 mel.raw with type
@@ -58,7 +58,7 @@ mel.raw with type
   [%error
     "[server-reason-react.melange_ppx] There's a [%mel.raw \"window\"] \
      expression in native, which should only happen in JavaScript. You need to \
-     conditionally run it via let%browser_only or switch%platform. More info at \
+     conditionally run it via let%melange_only or switch%platform. More info at \
      https://github.com/ml-in-barcelona/ppx_platform"]
 
   $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
@@ -67,12 +67,12 @@ mel.raw with type
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
-  File "main.ml", line 14, characters 2-7:
-  14 | [%error
+  File "main.ml", line 12, characters 2-7:
+  12 | [%error
          ^^^^^
   Error: [server-reason-react.melange_ppx] There's a [%mel.raw "window"]
          expression in native, which should only happen in JavaScript. You need
-         to conditionally run it via let%browser_only or switch%platform. More
+         to conditionally run it via let%melange_only or switch%platform. More
          info at https://github.com/ml-in-barcelona/ppx_platform
   [2]
 
@@ -86,6 +86,6 @@ mel.raw as a value
   [%%ocaml.error
   "[server-reason-react.melange_ppx] There's a [%mel.raw \" \
    console.log(\"running in JS\"); \"] expression in native, which should only \
-   happen in JavaScript. You need to conditionally run it via let%browser_only \
+   happen in JavaScript. You need to conditionally run it via let%melange_only \
    or switch%platform. More info at \
    https://github.com/ml-in-barcelona/ppx_platform"]

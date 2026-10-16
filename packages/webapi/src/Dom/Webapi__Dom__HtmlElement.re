@@ -3,7 +3,7 @@ module Impl = (T: {
                }) => {
   type t_htmlElement = T.t;
 
-  let%browser_only ofElement = Webapi__Dom__Element.asHtmlElement;
+  let%melange_only ofElement = Webapi__Dom__Element.asHtmlElement;
 
   [@mel.get] external accessKey: t_htmlElement => string = "accessKey";
   [@mel.set]

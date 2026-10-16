@@ -35,7 +35,7 @@
   ; Library dependencies
   (uucp (>= 16.0.0))
   (ppxlib (>= 0.36.0))
-  (ppx_platform (>= 0.1.0))
+  (ppx_platform (>= 0.3.0))
   ; quickjs 0.5.0 is a breaking release (RegExp.exec returns match_result
   ; option, captures are string option array, UTF-16 indices) and Js_re/
   ; Js_string are written against that API. 0.5.1 adds prepared regexp inputs,

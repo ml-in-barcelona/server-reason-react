@@ -3,8 +3,8 @@ let make = () => {
   <form
     action={
       switch%platform () {
-      | Server => `String("")
-      | Client =>
+      | Native => `String("")
+      | Melange =>
         Obj.magic(
           ServerFunctions.formDataWithArg.call(
             Js.Date.now() |> string_of_float,

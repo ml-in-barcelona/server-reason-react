@@ -15,7 +15,7 @@ let make = () => {
     [|routerText|],
   );
 
-  let%browser_only installNavigation = onNavigate => {
+  let%melange_only installNavigation = onNavigate => {
     let install: (string => unit, unit) => unit = [%mel.raw
       {js|(onNavigate) => {
         const handler = (event) => {
@@ -40,7 +40,7 @@ let make = () => {
     })
   );
 
-  let%browser_only toggleTheme = () => {
+  let%melange_only toggleTheme = () => {
     let run: unit => unit = [%mel.raw
       {js|() => {
         const root = document.documentElement;
@@ -52,10 +52,10 @@ let make = () => {
     run();
   };
 
-  let%browser_only onChange = event =>
+  let%melange_only onChange = event =>
     setText(React.Event.Form.target(event)##value);
 
-  let%browser_only onSubmit = event => {
+  let%melange_only onSubmit = event => {
     React.Event.Form.preventDefault(event);
     let text = text == "" ? None : Some(text);
     let destination =

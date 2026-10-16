@@ -8,11 +8,6 @@ exception Impossible_in_ssr of string
 
 val fail_impossible_action_in_ssr : string -> 'a
 
-type platform =
-  | Server
-  | Client
-      (** `Runtime.platform` is required to use switch%platform. It's a simple variant that expresses the 2 platforms *)
-
 type 'callback server_function = { id : string; call : 'callback }
 (** Type for server actions contract.
 

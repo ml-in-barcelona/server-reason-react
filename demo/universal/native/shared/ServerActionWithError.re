@@ -3,7 +3,7 @@ let make = () => {
   <div className={Cx.make([Theme.text(Theme.Color.Gray4)])}>
     <button
       className="cursor-pointer font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200 hover:bg-yellow-800"
-      onClick=[%browser_only
+      onClick=[%melange_only
         _ => {
           ServerFunctions.error.call() |> ignore;
         }

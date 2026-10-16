@@ -13,7 +13,7 @@
         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "keycloak")
@@ -42,7 +42,7 @@ Multiple args with optional
         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "keycloak")
@@ -67,7 +67,7 @@ Single type (invalid OCaml, but valid in Melange)
   "[server-reason-react.melange_ppx] There's an external with [%mel.module \
    \"...\"] in native, which should only happen in JavaScript. You need to \
    conditionally discard it from the native build, either by moving the external \
-   in a module only available in native, or annotating it with [@platform js]. \
+   in a module only available in native, or annotating it with [@melange_only]. \
    More info at https://github.com/ml-in-barcelona/ppx_platform"]
 
   $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
@@ -76,14 +76,14 @@ Single type (invalid OCaml, but valid in Melange)
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
-  File "main.ml", line 14, characters 3-14:
-  14 | [%%ocaml.error
+  File "main.ml", line 12, characters 3-14:
+  12 | [%%ocaml.error
           ^^^^^^^^^^^
   Error: [server-reason-react.melange_ppx] There's an external with
          [%mel.module "..."] in native, which should only happen in JavaScript.
          You need to conditionally discard it from the native build, either by
          moving the external in a module only available in native, or
-         annotating it with [@platform js]. More info at
+         annotating it with [@melange_only]. More info at
          https://github.com/ml-in-barcelona/ppx_platform
   [2]
 

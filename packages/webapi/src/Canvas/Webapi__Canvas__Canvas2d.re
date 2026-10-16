@@ -1,4 +1,4 @@
-[@warning "-32"]; /* Since we tag with browser_only, there are 2 bindings that aren't used */
+[@warning "-32"]; /* Since we tag with melange_only, there are 2 bindings that aren't used */
 
 type t; /* Main type, representing the 2d canvas rendering context object */
 type gradient;
@@ -138,7 +138,7 @@ let setStrokeStyle = (type a, ctx: t, _: style(a), v: a) =>
 let setFillStyle = (type a, ctx: t, _: style(a), v: a) =>
   setFillStyle(ctx, v);
 
-let%browser_only reifyStyle = (type a, x: 'a): (style(a), a) => {
+let%melange_only reifyStyle = (type a, x: 'a): (style(a), a) => {
   let isCanvasGradient = _ => false;
   let isCanvasPattern = _ => false;
 
@@ -161,8 +161,8 @@ let%browser_only reifyStyle = (type a, x: 'a): (style(a), a) => {
 [@mel.get] external fillStyle: t => 'a = "fillStyle";
 [@mel.get] external strokeStyle: t => 'a = "strokeStyle";
 
-let%browser_only fillStyle = (ctx: t) => ctx |> fillStyle |> reifyStyle;
-let%browser_only strokeStyle = (ctx: t) => ctx |> strokeStyle |> reifyStyle;
+let%melange_only fillStyle = (ctx: t) => ctx |> fillStyle |> reifyStyle;
+let%melange_only strokeStyle = (ctx: t) => ctx |> strokeStyle |> reifyStyle;
 
 [@mel.set] external shadowOffsetX: (t, float) => unit = "shadowOffsetX";
 [@mel.set] external shadowOffsetY: (t, float) => unit = "shadowOffsetY";

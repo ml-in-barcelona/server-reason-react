@@ -37,8 +37,8 @@ See `README.md` for user-facing documentation.
 - CI builds on macOS + Ubuntu × OCaml 4.14.1 + 5.4.0. Code must stay
   compatible with OCaml 4.14 (no 5.x-only stdlib functions).
 - Universal code compiles twice (native + melange). Platform-specific code
-  uses `ppx_platform` (`let%browser_only`, `switch%platform`). Effects are
-  not removed on native: wrap browser-only effect bodies with `[%browser_only]`.
+  uses `ppx_platform` (`let%melange_only`, `switch%platform`). Effects are
+  not removed on native: wrap browser-only effect bodies with `[%melange_only]`.
 
 ## Conventions
 
