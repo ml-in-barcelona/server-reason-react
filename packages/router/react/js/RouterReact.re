@@ -817,38 +817,3 @@ module Link = {
     </a>;
   };
 };
-
-let link =
-    (
-      ~destination,
-      ~className=?,
-      ~target=?,
-      ~download=?,
-      ~ariaCurrent=?,
-      ~id=?,
-      ~title=?,
-      ~rel=?,
-      ~ariaLabel=?,
-      ~onClick=?,
-      ~onMouseEnter=?,
-      ~history=?,
-      ~revalidate=?,
-      ~children,
-      (),
-    ) =>
-  <Link
-    destination
-    ?className
-    ?target
-    ?download
-    ?ariaCurrent
-    ?id
-    ?title
-    ?rel
-    ?ariaLabel
-    ?onClick
-    ?onMouseEnter
-    ?history
-    ?revalidate>
-    children
-  </Link>;

@@ -443,18 +443,22 @@ let route_module ~base_path (route : Router_declaration.route) =
       (B.pexp_constraint ~loc href_body (result_type ~loc "string"))
   in
   let link_body =
-    B.pexp_apply ~loc (B.evar ~loc "RouterReact.link")
-      [
-        (Labelled "destination", destination_call);
-        (Optional "className", B.evar ~loc "className");
-        (Optional "target", B.evar ~loc "target");
-        (Optional "download", B.evar ~loc "download");
-        (Optional "ariaCurrent", B.evar ~loc "ariaCurrent");
-        (Optional "history", B.evar ~loc "history");
-        (Optional "revalidate", B.evar ~loc "revalidate");
-        (Labelled "children", B.evar ~loc "children");
-        (Nolabel, unit_expression ~loc);
-      ]
+    let props =
+      B.pexp_apply ~loc
+        (B.evar ~loc "RouterReact.Link.makeProps")
+        [
+          (Labelled "destination", destination_call);
+          (Optional "className", B.evar ~loc "className");
+          (Optional "target", B.evar ~loc "target");
+          (Optional "download", B.evar ~loc "download");
+          (Optional "ariaCurrent", B.evar ~loc "ariaCurrent");
+          (Optional "history", B.evar ~loc "history");
+          (Optional "revalidate", B.evar ~loc "revalidate");
+          (Labelled "children", B.evar ~loc "children");
+          (Nolabel, unit_expression ~loc);
+        ]
+    in
+    B.pexp_apply ~loc (B.evar ~loc "RouterReact.Link.make") [ (Nolabel, props) ]
   in
   let link_with_unit =
     B.pexp_fun ~loc Nolabel None (B.punit ~loc) (B.pexp_constraint ~loc link_body (result_type ~loc "React.element"))
