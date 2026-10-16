@@ -278,13 +278,13 @@ query has one spelling.
 
 {2 Links}
 
-[RouterReact.link] renders an [a] element that navigates on the client. Besides
+[RouterReact.Link] renders an [a] element that navigates on the client. Besides
 [~destination], [~className], [~target], [~download] and [~ariaCurrent] it
 accepts [~id], [~title], [~rel], [~ariaLabel], [~onClick] and [~onMouseEnter].
 The [~onClick] handler runs first. When it calls [preventDefault], or the event
 is already prevented, the router does not navigate. On the server the link
 renders the same attributes and ignores both handlers. These props are on
-[RouterReact.link] and [Link] only: the generated per-route [Link]s do not
+[RouterReact.Link] only: the generated per-route [Link]s do not
 take them, because they would clash with path parameters such as [id].
 
 {2 Untyped destinations}
