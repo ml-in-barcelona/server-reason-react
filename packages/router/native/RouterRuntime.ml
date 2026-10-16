@@ -29,6 +29,12 @@ let pattern path =
   | Ok pattern -> pattern
   | Error _ -> invalid_arg ("invalid generated route pattern " ^ path)
 
+let encodeSearch search =
+  search
+  |> List.sort (fun (left, _) (right, _) -> String.compare left right)
+  |> List.concat_map (fun (name, values) -> List.map (fun value -> encode name ^ "=" ^ encode value) values)
+  |> String.concat "&"
+
 let destinationFromPattern ~pattern ~parameters ~search =
   let parameter name = List.assoc_opt name parameters in
   let path =
@@ -39,12 +45,7 @@ let destinationFromPattern ~pattern ~parameters ~search =
     | Ok path -> path
     | Error (InvalidPattern message) -> invalid_arg message
   in
-  let search =
-    search
-    |> List.sort (fun (left, _) (right, _) -> String.compare left right)
-    |> List.concat_map (fun (name, values) -> List.map (fun value -> encode name ^ "=" ^ encode value) values)
-    |> String.concat "&"
-  in
+  let search = encodeSearch search in
   destination ~path:(if search = "" then path else path ^ "?" ^ search)
 
 let href = RouterTypes.destinationHref

@@ -88,19 +88,19 @@ val streamFunctionResponse :
     @param request current Dream request *)
 
 val routes :
-  router:(React.element, 'error) RouterServer.Server.t ->
+  server:(React.element, 'error) RouterServer.Server.t ->
   actionHandler:(Dream.request -> Dream.response Lwt.t) ->
   ?diagnosticId:(exn -> string) ->
   ?revision:(unit -> string) ->
   ?ssr:(Dream.request -> bool) ->
   ?bootstrapModules:string list ->
   ?pageCacheCapacity:int ->
-  document:(React.element -> React.element) ->
+  document:(head:React.element -> React.element -> React.element) ->
   unit ->
   Dream.route list
 (** Register document, RSC, and server-function routes for a generated router.
 
-    @param router generated router server configuration
+    @param server generated router server
     @param actionHandler server-function POST handler
     @param diagnosticId produce a safe identifier for an internal exception
     @param revision produce the revision attached to a successful response
@@ -110,4 +110,4 @@ val routes :
       mount with [ReactDOM.Client.hydrateRoot], absent means [ReactDOM.Client.createRoot]
     @param bootstrapModules JavaScript modules loaded by document responses
     @param pageCacheCapacity maximum visited pages cached by the client router (default: disabled)
-    @param document wrap the routed client root in the HTML document tree *)
+    @param document build the HTML document. [~head] is the resolved metadata, to place inside [<head>]. *)

@@ -30,7 +30,8 @@ module Loader = {
     | Data('data)
     | Error('error)
     | NotFound
-    | Redirect(destination);
+    | Redirect(destination)
+    | PermanentRedirect(destination);
 };
 
 module Error = {
@@ -47,11 +48,52 @@ module Error = {
 };
 
 module Metadata = {
-  type entry = {
-    key: string,
-    name: string,
-    content: string,
-  };
+  type metaAttribute =
+    | Name
+    | Property;
+
+  type entry =
+    | Meta({
+        key: string,
+        attr: metaAttribute,
+        name: string,
+        content: string,
+      })
+    | Link({
+        key: string,
+        rel: string,
+        href: string,
+        attrs: list((string, string)),
+      });
+
+  let entryKey =
+    fun
+    | Meta({ key, _ })
+    | Link({ key, _ }) => key;
+
+  let meta = (~key=?, ~name, content) =>
+    Meta({
+      key: Option.value(key, ~default="meta:" ++ name),
+      attr: Name,
+      name,
+      content,
+    });
+
+  let property = (~key=?, ~property, content) =>
+    Meta({
+      key: Option.value(key, ~default="property:" ++ property),
+      attr: Property,
+      name: property,
+      content,
+    });
+
+  let link = (~key=?, ~rel, ~attrs=[], href) =>
+    Link({
+      key: Option.value(key, ~default="link:" ++ rel),
+      rel,
+      href,
+      attrs,
+    });
 
   type t = {
     title: option(string),
@@ -70,7 +112,8 @@ module Metadata = {
       parentEntry =>
         !
           List.exists(
-            childEntry => String.equal(parentEntry.key, childEntry.key),
+            childEntry =>
+              String.equal(entryKey(parentEntry), entryKey(childEntry)),
             child,
           ),
       parent,
@@ -304,6 +347,13 @@ module Navigation = {
     | Failed(_) => Error(Superseded)
     };
 
+  let isActive = (state, ~requestId) =>
+    switch (state.status) {
+    | Loading(active) => active.requestId == requestId
+    | Idle
+    | Failed(_) => false
+    };
+
   let fail = (state, ~requestId, ~message) =>
     switch (state.status) {
     | Loading(active) when active.requestId == requestId => {
@@ -336,14 +386,6 @@ module Navigation = {
       Shallow;
     } else {
       Content;
-    };
-
-  let classifyPop = (committed, ~target, ~targetRevision) =>
-    switch (targetRevision) {
-    | Some(revision) when String.equal(revision, committed.revision) =>
-      classifyPopLocation(committed, target)
-    | Some(_)
-    | None => Content
     };
 
   let classifyPopByContentIdentity =
@@ -408,11 +450,27 @@ module Search = {
   let defaultOptions = { history: Navigation.Replace };
 
   let parseString = value => Ok(value);
-  let parseInt = value =>
-    switch (int_of_string_opt(value)) {
-    | Some(value) => Ok(value)
-    | None => Error("expected an integer")
+  /* Plain decimal only: int_of_string_opt also takes 0x/0b/0o prefixes, `_` and `+`, and native ints are wider than
+     Melange's 32-bit ones, so the range is checked explicitly to behave the same on both. */
+  let parseInt = value => {
+    let length = String.length(value);
+    let start = length > 0 && value.[0] == '-' ? 1 : 0;
+    let rec onlyDigits = index =>
+      index >= length
+      || (
+        switch (value.[index]) {
+        | '0' .. '9' => onlyDigits(index + 1)
+        | _ => false
+        }
+      );
+    switch (
+      start < length && onlyDigits(start) ? int_of_string_opt(value) : None
+    ) {
+    | Some(parsed) when parsed >= (-2147483648) && parsed <= 2147483647 =>
+      Ok(parsed)
+    | _ => Error("expected an integer")
     };
+  };
   let parseBool = value =>
     switch (bool_of_string_opt(value)) {
     | Some(value) => Ok(value)
@@ -464,7 +522,6 @@ module NavigationResponse = {
     | FullResponse
     | PatchResponse
     | RedirectResponse
-    | FailedResponse
     | ReloadRequiredResponse;
 
   [@deriving rsc]
@@ -503,19 +560,10 @@ module NavigationResponse = {
     status: int,
   };
 
-  [@deriving rsc]
-  type failure = {
-    protocolVersion: int,
-    registryFingerprint: string,
-    message: string,
-    status: int,
-  };
-
   type t('payload) =
     | Full(full('payload))
     | Patch(patch('payload))
     | Redirect(redirect)
-    | Failed(failure)
     | ReloadRequired;
 
   type facts = {
@@ -547,7 +595,6 @@ module NavigationResponse = {
     | "full" => Some(FullResponse)
     | "patch" => Some(PatchResponse)
     | "redirect" => Some(RedirectResponse)
-    | "failed" => Some(FailedResponse)
     | "reload-required" => Some(ReloadRequiredResponse)
     | _ => None
     };
@@ -580,7 +627,6 @@ module NavigationResponse = {
       | Full(_) => FullResponse
       | Patch(_) => PatchResponse
       | Redirect(_) => RedirectResponse
-      | Failed(_) => FailedResponse
       | ReloadRequired => ReloadRequiredResponse
       };
     let versionAndFingerprint =
@@ -591,8 +637,6 @@ module NavigationResponse = {
         Some((response.protocolVersion, response.registryFingerprint))
       | Redirect(response) =>
         Some((response.protocolVersion, response.registryFingerprint))
-      | Failed(response) =>
-        Some((response.protocolVersion, response.registryFingerprint))
       | ReloadRequired => None
       };
     let responseStatus =
@@ -600,7 +644,6 @@ module NavigationResponse = {
       | Full(response) => Some(response.status)
       | Patch(response) => Some(response.status)
       | Redirect(response) => Some(response.status)
-      | Failed(response) => Some(response.status)
       | ReloadRequired => None
       };
     if (facts.requestId != activeRequestId) {

@@ -95,23 +95,6 @@ let canonicalUrlAllowed = (~basePath, url) =>
   | _ => false
   };
 
-let searchValuesFromString = search =>
-  Webapi.Url.URLSearchParams.make(search)
-  |> Webapi.Url.URLSearchParams.entries
-  |> Js.Array.from
-  |> Array.fold_left(
-       (values, (name, value)) =>
-         switch (List.assoc_opt(name, values)) {
-         | None => [(name, [value]), ...values]
-         | Some(current) => [
-             (name, current @ [value]),
-             ...List.remove_assoc(name, values),
-           ]
-         },
-       [],
-     )
-  |> List.rev;
-
 let validationMessage = error =>
   switch (error) {
   | Response.SupersededResponse => "navigation was superseded"
@@ -136,7 +119,7 @@ module Provider = {
   let make =
       (
         ~initial: Navigation.committed,
-        ~protocolVersion=1,
+        ~protocolVersion=2,
         ~registryFingerprint,
         ~basePath,
         ~pageCacheCapacity=0,
@@ -331,22 +314,13 @@ module Provider = {
         RouterRuntime.Search.update(
           ~owned,
           ~values,
-          searchValuesFromString(current.location.search),
+          RouterSearch.valuesFromString(current.location.search),
         );
-      let parameters = Webapi.Url.URLSearchParams.make("");
-      List.iter(
-        ((name, values)) =>
-          List.iter(
-            value =>
-              Webapi.Url.URLSearchParams.append(name, value, parameters),
-            values,
-          ),
-        nextValues,
-      );
-      Webapi.Url.URLSearchParams.sort(parameters);
-      let encoded = Webapi.Url.URLSearchParams.toString(parameters);
-      let search = String.equal(encoded, "") ? "" : "?" ++ encoded;
-      if (String.equal(search, current.location.search)) {
+      let search = RouterSearch.toString(nextValues);
+      if (RouterSearch.unchanged(
+            ~current=current.location.search,
+            ~next=nextValues,
+          )) {
         Navigation.Result.Committed(current);
       } else {
         commitLocation(
@@ -403,7 +377,9 @@ module Provider = {
       let from = committed.location.pathname ++ committed.location.search;
       let failNavigation = message =>
         switch (action) {
-        | Navigation.Pop => hardNavigate(~replace=true, target)
+        | Navigation.Pop =>
+          Navigation.isActive(modelRef.current.navigationState, ~requestId)
+            ? hardNavigate(~replace=true, target) : Navigation.Result.Canceled
         | Navigation.Push
         | Navigation.Replace => finishFailure(~requestId, ~message)
         };
@@ -574,8 +550,6 @@ module Provider = {
                      redirect.location,
                    )
                    |> Js.Promise.resolve
-                 | Response.Failed(failure) =>
-                   failNavigation(failure.message) |> Js.Promise.resolve
                  | Response.Patch(response) =>
                    commitResponse(
                      ~metadata=response.metadata,
@@ -743,7 +717,8 @@ module Provider = {
                   navigate,
                   navigation: Navigation.status(model.navigationState),
                   committed,
-                  search: searchValuesFromString(committed.location.search),
+                  search:
+                    RouterSearch.valuesFromString(committed.location.search),
                   updateSearch,
                   updateHash,
                 }),
@@ -781,6 +756,8 @@ let useSearch = () => {
 
 let useUpdateHash = () => useContextValue().updateHash;
 
+let useLocation = () => useContextValue().committed.location;
+
 module Link = {
   [@react.component]
   let make =
@@ -790,14 +767,22 @@ module Link = {
         ~target=?,
         ~download=?,
         ~ariaCurrent=?,
+        ~id=?,
+        ~title=?,
+        ~rel=?,
+        ~ariaLabel=?,
+        ~onClick as userOnClick=?,
+        ~onMouseEnter=?,
         ~history=Navigation.Push,
         ~revalidate=false,
         ~children,
       ) => {
     let (navigate, _) = useNavigation();
     let onClick = event => {
+      Option.iter(handler => handler(event), userOnClick);
       let plainClick =
-        React.Event.Mouse.button(event) == 0
+        !React.Event.Mouse.defaultPrevented(event)
+        && React.Event.Mouse.button(event) == 0
         && !React.Event.Mouse.altKey(event)
         && !React.Event.Mouse.ctrlKey(event)
         && !React.Event.Mouse.metaKey(event)
@@ -822,6 +807,11 @@ module Link = {
       ?target
       ?download
       ?ariaCurrent
+      ?id
+      ?title
+      ?rel
+      ?ariaLabel
+      ?onMouseEnter
       onClick>
       children
     </a>;
@@ -835,12 +825,30 @@ let link =
       ~target=?,
       ~download=?,
       ~ariaCurrent=?,
+      ~id=?,
+      ~title=?,
+      ~rel=?,
+      ~ariaLabel=?,
+      ~onClick=?,
+      ~onMouseEnter=?,
       ~history=?,
       ~revalidate=?,
       ~children,
       (),
     ) =>
   <Link
-    destination ?className ?target ?download ?ariaCurrent ?history ?revalidate>
+    destination
+    ?className
+    ?target
+    ?download
+    ?ariaCurrent
+    ?id
+    ?title
+    ?rel
+    ?ariaLabel
+    ?onClick
+    ?onMouseEnter
+    ?history
+    ?revalidate>
     children
   </Link>;

@@ -1070,7 +1070,12 @@ let redirect_endpoint ~base_path ~invalid_search (redirect : Router_declaration.
     apply_native_inputs ~loc redirect.target redirect.parameters redirect.search [] |> fun destination ->
     B.pexp_constraint ~loc destination (result_type ~loc "RouterRuntime.destination")
   in
-  let execution = B.pexp_apply ~loc (B.evar ~loc "RouterServer.Execution.redirect") [ (Nolabel, destination) ] in
+  let execution =
+    B.pexp_apply ~loc
+      (B.evar ~loc
+         (if redirect.permanent then "RouterServer.Execution.permanentRedirect" else "RouterServer.Execution.redirect"))
+      [ (Nolabel, destination) ]
+  in
   let prepared =
     B.pexp_apply ~loc
       (B.evar ~loc "RouterServer.Endpoint.prepared")
@@ -1113,6 +1118,7 @@ let redirect_endpoint ~base_path ~invalid_search (redirect : Router_declaration.
       "path:" ^ redirect.path;
       "target:" ^ expression_string redirect.target;
     ]
+    @ (if redirect.permanent then [ "permanent" ] else [])
     @ parameter_parts @ search_parts
     |> String.concat "\n" |> Digest.string |> Digest.to_hex
   in
