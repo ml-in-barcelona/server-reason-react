@@ -43,22 +43,25 @@ let outlet: (~owner: string, ~children: React.element, unit) => React.element;
 let suspense:
   (~fallback: React.element, ~children: React.element, unit) => React.element;
 
-let link:
-  (
-    ~destination: RouterRuntime.destination,
-    ~className: string=?,
-    ~target: string=?,
-    ~download: string=?,
-    ~ariaCurrent: string=?,
-    ~id: string=?,
-    ~title: string=?,
-    ~rel: string=?,
-    ~ariaLabel: string=?,
-    ~onClick: React.Event.Mouse.t => unit=?,
-    ~onMouseEnter: React.Event.Mouse.t => unit=?,
-    ~history: RouterRuntime.Navigation.historyAction=?,
-    ~revalidate: bool=?,
-    ~children: React.element,
-    unit
-  ) =>
-  React.element;
+module Link: {
+  [@react.component]
+  let make:
+    (
+      ~destination: RouterRuntime.destination,
+      ~className: string=?,
+      ~target: string=?,
+      ~download: string=?,
+      ~ariaCurrent: string=?,
+      ~id: string=?,
+      ~title: string=?,
+      ~rel: string=?,
+      ~ariaLabel: string=?,
+      ~onClick: React.Event.Mouse.t => unit=?,
+      ~onMouseEnter: React.Event.Mouse.t => unit=?,
+      ~history: RouterRuntime.Navigation.historyAction=?,
+      ~revalidate: bool=?,
+      ~children: React.element,
+      unit
+    ) =>
+    React.element;
+};
