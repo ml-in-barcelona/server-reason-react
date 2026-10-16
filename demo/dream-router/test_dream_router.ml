@@ -44,7 +44,7 @@ let ssr request = match Dream.query request "ssr" with Some "false" -> false | S
 let handler seen request =
   let routes =
     DreamRouter.routes
-      ~router:(server (registry seen))
+      ~server:(server (registry seen))
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~diagnosticId:(fun _ -> "diagnostic")
       ~revision:(fun () -> "revision")
@@ -121,7 +121,7 @@ let rejects_other_accept_values () =
 let unicode_base_path_is_routed () =
   let routes =
     DreamRouter.routes
-      ~router:(server ~basePath:"/m%C3%BCnchen" (registry (ref None)))
+      ~server:(server ~basePath:"/m%C3%BCnchen" (registry (ref None)))
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~document:(fun ~head:_ children -> children)
       ()
@@ -133,7 +133,7 @@ let unicode_base_path_is_routed () =
 let root_base_path_handler () =
   Dream.router
     (DreamRouter.routes
-       ~router:(server ~basePath:"/" (registry (ref None)))
+       ~server:(server ~basePath:"/" (registry (ref None)))
        ~actionHandler:(fun _ -> Dream.empty `OK)
        ~document:(fun ~head:_ children -> children)
        ())
@@ -161,7 +161,7 @@ let shared_action_dispatcher_handles_mount () =
   let router =
     Dream.router
       (DreamRouter.routes
-         ~router:(server (registry (ref None)))
+         ~server:(server (registry (ref None)))
          ~actionHandler:action
          ~document:(fun ~head:_ children -> children)
          ())
@@ -289,7 +289,7 @@ let patch_registry () : ((React.element, string) RouterServer.Plan.t, string) Ro
 
 let patch_handler registry request =
   let routes =
-    DreamRouter.routes ~router:(server registry)
+    DreamRouter.routes ~server:(server registry)
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~diagnosticId:(fun _ -> "diagnostic")
       ~revision:(fun () -> "revision")
@@ -413,7 +413,7 @@ let trailing_slash_reject_returns_not_found () =
       ()
   in
   let routes =
-    DreamRouter.routes ~router
+    DreamRouter.routes ~server:router
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~diagnosticId:(fun _ -> "diagnostic")
       ~revision:(fun () -> "revision")

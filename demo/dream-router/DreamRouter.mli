@@ -88,7 +88,7 @@ val streamFunctionResponse :
     @param request current Dream request *)
 
 val routes :
-  router:(React.element, 'error) RouterServer.Server.t ->
+  server:(React.element, 'error) RouterServer.Server.t ->
   actionHandler:(Dream.request -> Dream.response Lwt.t) ->
   ?diagnosticId:(exn -> string) ->
   ?revision:(unit -> string) ->
@@ -100,7 +100,7 @@ val routes :
   Dream.route list
 (** Register document, RSC, and server-function routes for a generated router.
 
-    @param router generated router server configuration
+    @param server generated router server
     @param actionHandler server-function POST handler
     @param diagnosticId produce a safe identifier for an internal exception
     @param revision produce the revision attached to a successful response
