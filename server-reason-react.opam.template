@@ -1,1 +1,5 @@
 x-maintenance-intent: ["(latest)"]
+# ponytail: drop pin-depends (and the Makefile pin) once ppx_platform 0.3.0 is published to opam-repository; pin-depends blocks publishing to opam
+pin-depends: [
+  ["ppx_platform.0.3.0" "git+https://github.com/ml-in-barcelona/ppx_platform.git#650457bd70b9a6302cf859e7888ef900e7a18d91"]
+]

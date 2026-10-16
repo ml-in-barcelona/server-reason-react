@@ -1,4 +1,4 @@
-@children_order get-started router universal-code how-to-organise-universal-code browser_ppx externals-melange-attributes
+@children_order get-started router universal-code how-to-organise-universal-code externals-melange-attributes
 
 {0 server-reason-react}
 
@@ -44,8 +44,8 @@ Aside from the core ([React], [ReactDOM] and [ReactServerDOM]), server-reason-re
 
 {table
  {tr {th Name} {th Description} {th Melange equivalent library}}
- {tr {td {{:https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_only.html}[server-reason-react.browser_ppx]}}
-     {td A ppx to discard code for each platform with different attributes: [let%browser_only], [switch%platform] and [@platform]}
+ {tr {td {{:https://github.com/ml-in-barcelona/ppx_platform}[ppx_platform]}}
+     {td A ppx to discard code for each platform with different attributes: [let%melange_only], [switch%platform], [[@melange_only]] and [[@native_only]]}
      {td }}
  {tr {td {{:https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.url_native/URL/index.html}[server-reason-react.url_js] and [server-reason-react.url_native]}}
      {td Universal URL module: binds to [window.URL] in browser, implemented with {{:https://github.com/mirage/ocaml-uri}[opam-uri]} in native}
@@ -63,7 +63,7 @@ Aside from the core ([React], [ReactDOM] and [ReactServerDOM]), server-reason-re
      {td Implementation of [Js] library for native (unsafe/incomplete). Check the issue {{:https://github.com/ml-in-barcelona/server-reason-react/issues/110}#110} for more details}
      {td {{:https://melange.re/v4.0.0/api/ml/melange/Js}melange.js}}}
  {tr {td [server-reason-react.fetch]}
-     {td Stub of fetch with browser_ppx to compile in native}
+     {td Stub of fetch with ppx_platform to compile in native}
      {td {{:https://github.com/melange-community/melange-fetch}melange.fetch}}}
  {tr {td [server-reason-react.webapi]}
      {td Stub version of Webapi library for native code compilation}
@@ -79,7 +79,6 @@ Aside from the core ([React], [ReactDOM] and [ReactServerDOM]), server-reason-re
   {li {{!page-"get-started"}Get started}}
   {li {{!page-"universal-code"}What does universal code mean?}}
   {li {{!page-"how-to-organise-universal-code"}How to organise universal code}}
-  {li {{!page-"browser_ppx"}Exclude client code from the native build}}
   {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
   {li {{!page-"ssr-and-hydration"}SSR and hydration}}
 }

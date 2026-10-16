@@ -6,7 +6,6 @@
   get-started
   universal-code
   how-to-organise-universal-code
-  browser_ppx
   externals-melange-attributes
   ssr-and-hydration))
 

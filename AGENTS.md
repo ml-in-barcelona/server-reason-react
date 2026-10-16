@@ -37,7 +37,8 @@ See `README.md` for user-facing documentation.
 - CI builds on macOS + Ubuntu × OCaml 4.14.1 + 5.4.0. Code must stay
   compatible with OCaml 4.14 (no 5.x-only stdlib functions).
 - Universal code compiles twice (native + melange). Platform-specific code
-  uses `browser-ppx` (`let%browser_only`, `switch%platform`).
+  uses `ppx_platform` (`let%melange_only`, `switch%platform`). Effects are
+  not removed on native: wrap browser-only effect bodies with `[%melange_only]`.
 
 ## Conventions
 
@@ -62,4 +63,4 @@ See `README.md` for user-facing documentation.
 
 - `SERVER_FUNCTIONS_DESIGN.md` — design notes for in-flight server-functions work
 - `benchmark/perf-work/PERF_NEXT.md` — perf work protocol (measure before changing)
-- `documentation/*.mld` — odoc pages (universal code, browser_ppx, SSR/hydration)
+- `documentation/*.mld` — odoc pages (universal code, ppx_platform, SSR/hydration)

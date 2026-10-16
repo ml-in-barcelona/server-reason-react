@@ -4,7 +4,7 @@ module Reader = {
   [@react.component]
   let make = (~promise: Js.Promise.t(string)) => {
     let value = React.Experimental.usePromise(promise);
-    let%browser_only onMouseOver = _ev => {
+    let%melange_only onMouseOver = _ev => {
       Js.log("Over the promise!");
     };
     <div className="cursor-pointer" onMouseOver> <Text> value </Text> </div>;

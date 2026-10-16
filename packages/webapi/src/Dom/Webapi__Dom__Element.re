@@ -6,7 +6,7 @@ let ofNode = (node: Dom.node): option('a) =>
 module Impl = (T: {
                  type t;
                }) => {
-  /* let%browser_only asHtmlElement: T.t => option(Dom.htmlElement) = [%mel.raw
+  /* let%melange_only asHtmlElement: T.t => option(Dom.htmlElement) = [%mel.raw
        {|
                 function(element) {
                   var ownerDocument = element.ownerDocument;

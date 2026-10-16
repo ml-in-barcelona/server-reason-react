@@ -12,11 +12,12 @@ both on the type annotation, also on the function expression.
         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "getPropertyPriority")
 
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" >> main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -40,13 +41,14 @@ Make sure is placed correctly
         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "createDocumentType")
 
   $ echo "type t" > main.ml
   $ echo "module Dom = struct type documentType end" >> main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" >> main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -65,7 +67,7 @@ Single argument (Ptyp_constr)
         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "arrayBuffer")
@@ -85,12 +87,13 @@ Labelled arguments
         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "scale")
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -111,12 +114,13 @@ Nonlabelled arguments as functions
         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "forEach")
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -134,12 +138,13 @@ Nonlabelled arguments as functions
         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "postMessage")
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
@@ -160,12 +165,13 @@ Send pipe with 'a
         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "postMessage")
 
-  $ echo "module Runtime = struct" > main.ml
+  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
