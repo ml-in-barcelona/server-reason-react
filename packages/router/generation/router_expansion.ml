@@ -733,16 +733,24 @@ let canonical_parameters ~loc parameters =
       B.pexp_tuple ~loc [ B.estring ~loc parameter.name; value ])
     parameters
 
-let branch_scope ~loc (scope : Router_declaration.scope) parameters ~reusable =
+let branch_scope ~loc (scope : Router_declaration.scope) parameters ~graftable =
   B.pexp_apply ~loc
     (B.evar ~loc "RouterServer.Branch.Scope.make")
     [
       (Labelled "id", B.estring ~loc scope.id);
       (Labelled "parameters", B.elist ~loc (canonical_parameters ~loc parameters));
-      (Labelled "reusable", B.ebool ~loc reusable);
+      (Labelled "graftable", B.ebool ~loc graftable);
     ]
 
-let scope_plan (scope : Router_declaration.scope) parameters search loaders ~reusable =
+let scope_instance_key ~loc (scope : Router_declaration.scope) parameters =
+  B.pexp_apply ~loc
+    (B.evar ~loc "RouterServer.Branch.Scope.instanceKeyOf")
+    [
+      (Labelled "id", B.estring ~loc scope.id);
+      (Labelled "parameters", B.elist ~loc (canonical_parameters ~loc parameters));
+    ]
+
+let scope_plan (scope : Router_declaration.scope) parameters search loaders =
   let loc = scope.loc in
   let callback attachment = apply_native_inputs ~loc attachment parameters search loaders in
   let component attachment = apply_native_component_inputs ~loc attachment parameters search loaders in
@@ -750,10 +758,7 @@ let scope_plan (scope : Router_declaration.scope) parameters search loaders ~reu
     (match (scope.attachments.layout, scope.attachments.loading) with
       | None, None -> []
       | layout, loading ->
-          let identity = branch_scope ~loc scope parameters ~reusable in
-          let instance_key =
-            B.pexp_apply ~loc (B.evar ~loc "RouterServer.Branch.Scope.instanceKey") [ (Nolabel, identity) ]
-          in
+          let instance_key = scope_instance_key ~loc scope parameters in
           let children = B.evar ~loc "children" in
           let body =
             match layout with
@@ -831,15 +836,13 @@ let loader_execution (route : Router_declaration.route) =
         in
         match scope.attachments.loader with
         | None ->
-            let reusable = Option.is_some scope.attachments.layout in
-            let current = scope_plan scope parameters search loader_values ~reusable in
+            let current = scope_plan scope parameters search loader_values in
             build rest parameters search loader_values (completed @ [ current ]) not_found error_boundary loader_seen
         | Some loader ->
             let run_call = apply_native_inputs ~loc:loader.loc loader.run parameters search loader_values in
             let run = B.pexp_fun ~loc:loader.loc Nolabel None (B.punit ~loc:loader.loc) run_call in
             let next_loaders = loader_values @ [ loader.result_label ] in
-            let reusable = Option.is_some scope.attachments.layout in
-            let current = scope_plan scope parameters search next_loaders ~reusable in
+            let current = scope_plan scope parameters search next_loaders in
             let next_body =
               build rest parameters search next_loaders (completed @ [ current ]) not_found error_boundary true
             in
@@ -873,17 +876,16 @@ let active_route_candidates routes pattern =
 
 let projected_branch (route : Router_declaration.route) =
   let loc = route.loc in
-  let rec build scopes parameters loader_seen projected =
+  let rec build scopes parameters projected =
     match scopes with
     | [] -> B.elist ~loc projected
     | (scope : Router_declaration.scope) :: scopes ->
         let parameters = parameters @ scope.parameters in
-        let has_loader = Option.is_some scope.attachments.loader in
-        let reusable = Option.is_some scope.attachments.layout in
-        let projected = projected @ [ branch_scope ~loc:scope.loc scope parameters ~reusable ] in
-        build scopes parameters (loader_seen || has_loader) projected
+        let graftable = Option.is_some scope.attachments.layout in
+        let projected = projected @ [ branch_scope ~loc:scope.loc scope parameters ~graftable ] in
+        build scopes parameters projected
   in
-  build route.scopes [] false []
+  build route.scopes [] []
 
 let recover_decode_failure ~loc ~branch ~scopes ~active_routes error_boundary =
   let plan = failure_plan ~loc scopes (B.evar ~loc "decodeError") None (Some error_boundary) in
@@ -912,8 +914,8 @@ let decode_endpoint ~routes (route : Router_declaration.route) prepared =
         let next_search = search @ scope.search in
         let next_pattern = RouterPattern.append pattern (parsed_path scope.path) in
         let has_loader = Option.is_some scope.attachments.loader in
-        let reusable = Option.is_some scope.attachments.layout in
-        let next_branch = branch @ [ branch_scope ~loc scope next_parameters ~reusable ] in
+        let graftable = Option.is_some scope.attachments.layout in
+        let next_branch = branch @ [ branch_scope ~loc scope next_parameters ~graftable ] in
         let next_error_boundary =
           if loader_seen then error_boundary
           else
@@ -923,7 +925,7 @@ let decode_endpoint ~routes (route : Router_declaration.route) prepared =
         in
         let next_completed =
           if loader_seen || has_loader then completed
-          else completed @ [ scope_plan scope next_parameters next_search [] ~reusable ]
+          else completed @ [ scope_plan scope next_parameters next_search [] ]
         in
         let success =
           build scopes next_pattern next_parameters next_search next_completed next_branch next_error_boundary
@@ -1136,9 +1138,7 @@ let fallback (declaration : Router_declaration.t) =
   let error_boundary =
     Option.map (fun boundary -> boundary_callback ~loc:scope.loc boundary [] search []) scope.attachments.error
   in
-  let completed =
-    match scope.attachments.loader with Some _ -> [] | None -> [ scope_plan scope [] search [] ~reusable:true ]
-  in
+  let completed = match scope.attachments.loader with Some _ -> [] | None -> [ scope_plan scope [] search [] ] in
   let planned = failure_plan ~loc completed (B.evar ~loc "error") not_found error_boundary in
   let decoded =
     List.fold_right
