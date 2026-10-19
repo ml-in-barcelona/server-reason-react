@@ -24,10 +24,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@v3.9.0
+        uses: ml-in-barcelona/gh-ci-action@v1.0.0
         with:
           ocaml-compiler: 5.2.x
-          dune-cache: true
+          with-test: false
+
+      - uses: ml-in-barcelona/gh-ci-action/dune-cache/load@v1.0.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,9 +43,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y wrk
-
-      - name: Install OCaml dependencies
-        run: opam install . --deps-only -y
 
       - name: Build native server
         run: opam exec -- dune build benchmark/native/server.exe --profile=release
@@ -94,4 +93,7 @@ jobs:
           else
             echo "No results generated" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - uses: ml-in-barcelona/gh-ci-action/dune-cache/save@v1.0.0
+        if: ${{ !cancelled() }}
 
