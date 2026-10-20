@@ -1,3 +1,8 @@
+(env
+ (_
+  (env-vars
+   (DUNE_CACHE disabled))))
+
 (cram
  (package server-reason-react)
  (enabled_if
