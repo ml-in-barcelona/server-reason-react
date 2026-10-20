@@ -79,6 +79,7 @@ Aside from the core ([React], [ReactDOM] and [ReactServerDOM]), server-reason-re
   {li {{!page-"get-started"}Get started}}
   {li {{!page-"universal-code"}What does universal code mean?}}
   {li {{!page-"how-to-organise-universal-code"}How to organise universal code}}
+  {li {{!page-"get-started".section-"ppx-platform"}Exclude client code from the native build}}
   {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
   {li {{!page-"ssr-and-hydration"}SSR and hydration}}
 }

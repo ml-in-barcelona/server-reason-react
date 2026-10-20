@@ -134,8 +134,8 @@ let answer = isClientMounted ? getAnswer() : 0;
 {@text[
 1 |          let answer = isClientMounted ? getAnswer() : 0;
                                             ^^^^^^^^^^^
-**Error** (alert melange_only): File.getAnswer
-This expression is marked to only run on the browser where JavaScript can run. You can only use it inside a let%melange_only function.
+Alert melange_only: getAnswer
+This value only exists in the Melange build. Use it inside a let%melange_only function, or a Melange branch of match%platform.
 ]}
 
 As you can see, [getAnswer] is a [melange_only] content and it must run under a [%melange_only]:
