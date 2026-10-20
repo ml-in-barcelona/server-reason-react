@@ -34,7 +34,7 @@ type scope = {
 }
 
 type leaf = { name : string; page : expression; scope : scope; loc : Location.t }
-type redirect_leaf = { id : string; target : expression; scope : scope; loc : Location.t }
+type redirect_leaf = { id : string; target : expression; permanent : bool; scope : scope; loc : Location.t }
 
 type group = { scope : scope; children : node list }
 and node = Group of group | Route of leaf | Redirect of redirect_leaf
@@ -52,6 +52,7 @@ type route = {
 type redirect = {
   id : string;
   target : expression;
+  permanent : bool;
   path : string;
   parameters : parameter list;
   search : search list;
@@ -352,7 +353,11 @@ let rec node_of_expression ~address expression =
           }
     | _ -> error ~loc:expression.pexp_loc "group requires a child list"
   else if is_identifier [ "Router"; "redirect" ] callee then
-    let () = validate_arguments ~loc:expression.pexp_loc ~allowed:[ "path"; "search"; "to_" ] ~unlabelled:0 arguments in
+    let () =
+      validate_arguments ~loc:expression.pexp_loc
+        ~allowed:[ "path"; "search"; "to_"; "permanent" ]
+        ~unlabelled:0 arguments
+    in
     let path =
       match argument (Labelled "path") arguments with
       | Some path -> string_of_expression path
@@ -363,10 +368,18 @@ let rec node_of_expression ~address expression =
       | Some target -> target
       | None -> error ~loc:expression.pexp_loc "redirect requires ~to_"
     in
+    let permanent =
+      match argument (Labelled "permanent") arguments with
+      | None -> false
+      | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "true"; _ }, None); _ } -> true
+      | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "false"; _ }, None); _ } -> false
+      | Some expression -> error ~loc:expression.pexp_loc "~permanent must be true or false"
+    in
     Redirect
       {
         id = "redirect:" ^ address;
         target;
+        permanent;
         scope = scope ~id:("redirect:" ^ address) ~path arguments expression;
         loc = expression.pexp_loc;
       }
@@ -416,7 +429,11 @@ let endpoints declaration =
     let scopes = scopes @ [ local_scope ] in
     match node with
     | Route leaf -> [ Page { name = leaf.name; page = leaf.page; path; parameters; search; scopes; loc = leaf.loc } ]
-    | Redirect leaf -> [ RedirectTo { id = leaf.id; target = leaf.target; path; parameters; search; loc = leaf.loc } ]
+    | Redirect leaf ->
+        [
+          RedirectTo
+            { id = leaf.id; target = leaf.target; permanent = leaf.permanent; path; parameters; search; loc = leaf.loc };
+        ]
     | Group group -> List.concat_map (flatten ~parent_path:path ~parameters ~search ~scopes) group.children
   in
   let endpoints =

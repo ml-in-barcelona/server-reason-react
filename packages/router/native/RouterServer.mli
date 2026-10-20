@@ -40,12 +40,7 @@ end
 
 module Registry : sig
   type t
-
-  type error =
-    | DuplicateId of string
-    | DuplicatePath of string
-    | AmbiguousPattern of string * string
-    | InvalidPattern of string
+  type error = DuplicateId of string | DuplicatePath of string | AmbiguousPattern of string * string
 
   val make : Route.t list -> (t, error) result
   (** Builds a registry after rejecting duplicate identities and patterns that could match the same pathname with equal
@@ -125,7 +120,10 @@ module Execution : sig
   val done_ : 'result -> ('result, 'error) t
 
   val redirect : RouterRuntime.destination -> ('result, 'error) t
-  (** Ends execution with a redirect without running a loader. *)
+  (** Ends execution with a temporary redirect without running a loader. *)
+
+  val permanentRedirect : RouterRuntime.destination -> ('result, 'error) t
+  (** Ends execution with a permanent redirect without running a loader. *)
 
   val load :
     (unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t) -> ('data -> ('result, 'error) t) -> ('result, 'error) t
@@ -215,6 +213,10 @@ module Plan : sig
     ('view, 'error) resolved Lwt.t
   (** Resolves metadata and headers from every scope, then renders either the whole layout chain or only its changed
       suffix. Omitting layouts for a patch does not omit their response metadata or headers. *)
+
+  val resolvedElement : (React.element, 'error) resolved -> React.element
+  (** The element to render: [resolved.element], or a built-in plain paragraph when the app declares no boundary for the
+      failure ("Not found", "Bad request" or "Something went wrong"). It never includes error details. *)
 end
 
 (** A generated route endpoint.
@@ -318,10 +320,12 @@ module ServerEngine : sig
     | Patch of ('view, 'error) patch
     | ReloadRequired
     | Redirect of RouterRuntime.destination
-        (** A navigation redirect requested by a route loader. Adapters answer with a see-other response. *)
+        (** A navigation redirect requested by a route loader. Document adapters answer with a see-other redirect (303).
+        *)
     | PermanentRedirect of RouterRuntime.destination
-        (** A pathname canonicalization redirect. Adapters answer documents with status 308 so the request method
-            survives the redirect. *)
+        (** A permanent redirect: pathname canonicalization, a loader that returns [Loader.PermanentRedirect], or a
+            [Router.redirect ~permanent:true]. Adapters answer documents with status 308 so the request method survives
+            the redirect. *)
 
   val run :
     registry:(('view, 'error) Plan.t, 'error) EndpointRegistry.t ->
@@ -394,6 +398,58 @@ module Server : sig
     revision:(unit -> string) ->
     ServerEngine.request ->
     ('view, 'error) ServerEngine.outcome Lwt.t
+end
+
+(** Server-agnostic pieces of an HTTP adapter. An adapter parses its request into a {!ServerEngine.request}, calls
+    {!Server.run}, passes the outcome to {!reply}, and writes the {!reply} with its own server. Nothing here depends on
+    an HTTP server. *)
+module Adapter : sig
+  val metadata_element : RouterRuntime.Metadata.t -> React.element
+  (** Renders resolved metadata as head elements: [<title>], [<meta name="description">], then each entry as a [<meta>]
+      or [<link>] in order. Every element has the stable React key ["router:" ^ key]. For a [Link], attributes named
+      [rel] or [href] (any case) in [attrs] are ignored: the [rel] and [href] fields win. The result goes in [<head>]
+      and is also sent to the client in navigation responses. *)
+
+  val document_element :
+    (React.element, 'error) Server.t ->
+    pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    (React.element, 'error) ServerEngine.full ->
+    React.element
+  (** Builds the HTML document for a full response. [document ~head children] builds [<html>]. [head] is the metadata
+      element, to be placed inside [<head>]. [children] holds the routed root and a marker that tells the client
+      bootstrap whether the server rendered the markup, and goes in [<body>]. *)
+
+  val full_model : (React.element, 'error) ServerEngine.full -> React.model_value
+  val patch_model : (React.element, 'error) ServerEngine.patch -> React.model_value
+
+  val redirect_model :
+    protocolVersion:int -> registryFingerprint:string -> RouterRuntime.destination -> React.model_value
+
+  type body =
+    | Empty
+    | Html of React.element  (** An HTML document. Render it with the server's bootstrap modules. *)
+    | Model of { location : string; model : React.model_value }
+        (** A navigation response. [location] is the value for the [X-Location] header. *)
+
+  type reply = { status : int; headers : (string * string) list; body : body }
+  (** [headers] holds every protocol header for the outcome, including [Content-Type] for [Html] and [Model] and
+      [Location] for redirects. The adapter adds nothing but transport details. *)
+
+  val reply :
+    (React.element, 'error) Server.t ->
+    target:string ->
+    pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    kind:ServerEngine.requestKind ->
+    (React.element, 'error) ServerEngine.outcome ->
+    reply
+  (** Maps an outcome to status, headers and body. [target] is the request target, used for [X-Location] on RSC
+      redirects. [kind] is the request kind given to {!Server.run}. Every reply carries [Vary: Accept].
+      - Full and patch: the resolved status and headers.
+      - Document redirect: 303 ([Redirect]) or 308 ([PermanentRedirect]) with [Location].
+      - RSC redirect: 200 with [Router-Response: redirect], [Router-Registry] and [Cache-Control: private, no-store].
+      - [ReloadRequired]: 409 with [Router-Response: reload-required] and [Cache-Control: private, no-store]. *)
 end
 
 val statusOfError :

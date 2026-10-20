@@ -230,175 +230,52 @@ let createFromRequest ?(debug = false) ?(disableSSR = false) ?(layout = fun chil
           stream_html ~debug ~skipRoot:disableSSR ~bootstrapScriptContent ~bootstrapScripts ~bootstrapModules
             (layout element))
 
-let metadata_element metadata =
-  let open RouterRuntime.Metadata in
-  let title =
-    Option.map
-      (fun title -> React.createElementWithKey ~key:"router:title" "title" [] [ React.string title ])
-      metadata.title
-  in
-  let description =
-    Option.map
-      (fun content ->
-        React.createElementWithKey ~key:"router:description" "meta"
-          [ React.JSX.String ("name", "name", "description"); React.JSX.String ("content", "content", content) ]
-          [])
-      metadata.description
-  in
-  let entries =
-    List.map
-      (fun entry ->
-        React.createElementWithKey ~key:("router:" ^ entry.key) "meta"
-          [ React.JSX.String ("name", "name", entry.name); React.JSX.String ("content", "content", entry.content) ]
-          [])
-      metadata.entries
-  in
-  React.list (List.filter_map Fun.id [ title; description ] @ entries)
+let respond ~skipRoot ~bootstrapModules (reply : RouterServer.Adapter.reply) =
+  let code = reply.status and headers = reply.headers in
+  match reply.body with
+  | Empty -> Dream.respond ~code ~headers ""
+  | Html element -> stream_html ~code ~headers ~skipRoot ~bootstrapModules element
+  | Model { location; model } -> stream_model_value ~code ~headers ~location model
 
-let resolved_element (resolved : (React.element, 'error) RouterServer.Plan.resolved) =
-  Option.value ~default:React.null resolved.element
-
-(* The marker lets the bootstrap module detect from the DOM whether the server rendered the root markup: it sits next
-   to the routed root, so [skipRoot] drops it together with the markup it signals. *)
-let ssr_marker =
-  React.createElementWithKey ~key:"router:ssr" "div"
-    [ React.JSX.String ("id", "id", "ssr-query-param"); React.JSX.Style [ ("display", "display", "none") ] ]
-    []
-
-let document_element ~router ~pageCacheCapacity ~document
-    (response : (React.element, 'error) RouterServer.ServerEngine.full) =
-  let pathname, query = Dream.split_target response.canonical_url in
-  let search = if String.equal query "" then "" else "?" ^ query in
-  let initial : RouterRuntime.Navigation.committed =
-    {
-      location = { RouterRuntime.Navigation.pathname; search; hash = ""; key = "server" };
-      revision = response.revision;
-      matches = response.matches;
-      layouts = response.layouts;
-    }
-  in
-  let children =
-    RouterServer.Server.clientRootWithCache router ~pageCacheCapacity ~initial
-      ~metadata:(metadata_element response.resolved.metadata)
-      ~children:(resolved_element response.resolved)
-  in
-  document (React.list [ ssr_marker; children ])
-
-let full_model (response : (React.element, 'error) RouterServer.ServerEngine.full) =
-  let full : React.element RouterRuntime.NavigationResponse.full =
-    {
-      protocolVersion = response.protocol_version;
-      registryFingerprint = response.registry_fingerprint;
-      canonicalUrl = response.canonical_url;
-      status = RouterRuntime.Status.toInt response.resolved.status;
-      matches = response.matches;
-      layouts = response.layouts;
-      targetRevision = response.revision;
-      metadata = metadata_element response.resolved.metadata;
-      payload = resolved_element response.resolved;
-    }
-  in
-  RouterRuntime.NavigationResponse.full_to_rsc RSC.Primitives.react_element_to_rsc full |> RSC.to_model
-
-let patch_model (response : (React.element, 'error) RouterServer.ServerEngine.patch) =
-  let patch : React.element RouterRuntime.NavigationResponse.patch =
-    {
-      protocolVersion = response.protocol_version;
-      registryFingerprint = response.registry_fingerprint;
-      baseRevision = response.base_revision;
-      targetRevision = response.revision;
-      replaceFrom = response.replace_from;
-      canonicalUrl = response.canonical_url;
-      status = RouterRuntime.Status.toInt response.resolved.status;
-      matches = response.matches;
-      layouts = response.layouts;
-      metadata = metadata_element response.resolved.metadata;
-      payload = resolved_element response.resolved;
-    }
-  in
-  RouterRuntime.NavigationResponse.patch_to_rsc RSC.Primitives.react_element_to_rsc patch |> RSC.to_model
-
-let redirect_model ~protocolVersion ~registryFingerprint destination =
-  let redirect : RouterRuntime.NavigationResponse.redirect =
-    { protocolVersion; registryFingerprint; location = RouterRuntime.href destination; status = 200 }
-  in
-  RouterRuntime.NavigationResponse.redirect_to_rsc redirect |> RSC.to_model
-
-let handler ~router ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = [])
+let handler ~server ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = [])
     ?(pageCacheCapacity = 0) ~document =
-  let protocolVersion = RouterServer.Server.protocolVersion router in
-  let registryFingerprint = RouterServer.Server.fingerprint router in
-  fun request ->
-    with_render_context request (fun () ->
-        let pathname, query = Dream.target request |> Dream.split_target in
-        let search = if String.equal query "" then "" else "?" ^ query in
-        let kind =
-          match Dream.header request "Accept" with
-          | Some accept when is_react_component_header accept -> RouterServer.ServerEngine.Rsc
-          | Some _ | None -> RouterServer.ServerEngine.Document
-        in
-        let navigation =
-          match kind with
-          | RouterServer.ServerEngine.Document -> None
-          | RouterServer.ServerEngine.Rsc ->
-              Some
-                {
-                  RouterServer.ServerEngine.from = Dream.header request "Router-Navigation-From";
-                  registry = Dream.header request "Router-Registry";
-                  base_revision = Dream.header request "Router-Base-Revision";
-                }
-        in
-        let outcome =
-          RouterServer.Server.run router ~diagnosticId ~revision
-            { RouterServer.ServerEngine.pathname; search; hash = ""; kind; navigation }
-        in
-        let redirect ?status destination =
-          match kind with
-          | RouterServer.ServerEngine.Document -> Dream.redirect ?status request (RouterRuntime.href destination)
-          | RouterServer.ServerEngine.Rsc ->
-              stream_model_value ~code:200
-                ~headers:
-                  [
-                    ("Content-Type", "application/react.component");
-                    ("Cache-Control", "private, no-store");
-                    ("Vary", "Accept");
-                    ("Router-Response", "redirect");
-                  ]
-                ~location:(Dream.target request)
-                (redirect_model ~protocolVersion ~registryFingerprint destination)
-        in
-        Lwt.bind outcome (function
-          | RouterServer.ServerEngine.Redirect destination -> redirect destination
-          | RouterServer.ServerEngine.PermanentRedirect destination -> redirect ~status:`Permanent_Redirect destination
-          | RouterServer.ServerEngine.ReloadRequired ->
-              Dream.respond ~code:409
-                ~headers:
-                  [ ("Vary", "Accept"); ("Router-Response", "reload-required"); ("Cache-Control", "private, no-store") ]
-                ""
-          | RouterServer.ServerEngine.Patch response ->
-              let code = response.resolved.status |> RouterRuntime.Status.toInt in
-              let headers = response.resolved.headers |> RouterRuntime.Headers.toList in
-              stream_model_value ~code ~headers ~location:response.canonical_url (patch_model response)
-          | RouterServer.ServerEngine.Full response -> (
-              let code = response.resolved.status |> RouterRuntime.Status.toInt in
-              let headers = response.resolved.headers |> RouterRuntime.Headers.toList in
-              match response.kind with
-              | RouterServer.ServerEngine.Document ->
-                  stream_html ~code ~headers
-                    ~skipRoot:(not (ssr request))
-                    ~bootstrapModules
-                    (document_element ~router ~pageCacheCapacity ~document response)
-              | RouterServer.ServerEngine.Rsc ->
-                  stream_model_value ~code ~headers ~location:response.canonical_url (full_model response))))
+ fun request ->
+  with_render_context request (fun () ->
+      let target = Dream.target request in
+      let pathname, query = Dream.split_target target in
+      let search = if String.equal query "" then "" else "?" ^ query in
+      let kind =
+        match Dream.header request "Accept" with
+        | Some accept when is_react_component_header accept -> RouterServer.ServerEngine.Rsc
+        | Some _ | None -> RouterServer.ServerEngine.Document
+      in
+      let navigation =
+        match kind with
+        | RouterServer.ServerEngine.Document -> None
+        | RouterServer.ServerEngine.Rsc ->
+            Some
+              {
+                RouterServer.ServerEngine.from = Dream.header request "Router-Navigation-From";
+                registry = Dream.header request "Router-Registry";
+                base_revision = Dream.header request "Router-Base-Revision";
+              }
+      in
+      let%lwt outcome =
+        RouterServer.Server.run server ~diagnosticId ~revision
+          { RouterServer.ServerEngine.pathname; search; hash = ""; kind; navigation }
+      in
+      RouterServer.Adapter.reply server ~target ~pageCacheCapacity ~document ~kind outcome
+      |> respond ~skipRoot:(not (ssr request)) ~bootstrapModules)
 
-let routes ~router ~actionHandler ?(diagnosticId = fun _ -> string_of_int (Random.bits ()))
+let routes ~server ~actionHandler ?(diagnosticId = fun _ -> string_of_int (Random.bits ()))
     ?(revision = fun () -> string_of_int (Random.bits ())) ?(ssr = fun _request -> true) ?(bootstrapModules = [])
     ?(pageCacheCapacity = 0) ~document () =
-  let basePath = RouterServer.Server.basePath router |> Dream.from_percent_encoded in
-  let handler = handler ~router ~diagnosticId ~revision ~ssr ~bootstrapModules ~pageCacheCapacity ~document in
+  let basePath = RouterServer.Server.basePath server |> Dream.from_percent_encoded in
+  let handler = handler ~server ~diagnosticId ~revision ~ssr ~bootstrapModules ~pageCacheCapacity ~document in
+  let wildcard = if String.equal basePath "/" then "/**" else basePath ^ "/**" in
   [
     Dream.get basePath handler;
-    Dream.get (basePath ^ "/**") handler;
+    Dream.get wildcard handler;
     Dream.post basePath actionHandler;
-    Dream.post (basePath ^ "/**") actionHandler;
+    Dream.post wildcard actionHandler;
   ]

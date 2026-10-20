@@ -34,7 +34,7 @@ Router.make(
 routes under a shared path prefix and layout. Both accept attachments, as does
 the root.
 
-[Router.redirect] declares an inbound temporary redirect without adding a
+[Router.redirect] declares an inbound redirect, temporary by default, without adding a
 route constructor or link helper to the generated application API:
 
 {[
@@ -43,6 +43,11 @@ Router.redirect(
   ~to_=(~id, ()) => Router.Note.destination(~id, ()),
 )
 ]}
+
+Add [~permanent=true] for a permanent redirect. Document requests then
+receive status 308, so the request method survives the redirect. A temporary
+redirect answers documents with a see-other response. A client navigation
+receives the redirect envelope in both cases.
 
 The destination callback receives the redirect's decoded path and search
 values, including values inherited from parent groups and the root. Redirects
@@ -74,6 +79,23 @@ each module:
   function and a [make] component. On groups and routes, [~error] is a boundary
   component.
 - [~metadata] and [~headers] are plain functions, not modules.
+
+{2 Names and labels}
+
+A route name is a bare constructor, such as [Note]. A dotted name is an error.
+Each route name must be unique, and these names are reserved because the
+generated module already uses them: [Status], [Loader], [Error], [Metadata],
+[Headers], [Navigation], [Search], and [Link].
+
+Path parameter names, search parameter names, and loader result labels become
+labelled arguments of the generated helpers. Within one branch they must be
+unique. These labels belong to the generated API and cannot be used:
+[applicationStatus], [ariaCurrent], [basePath], [children], [className],
+[decodeError], [destination], [download], [error], [fallback], [href], [input],
+[item], [make], [options], [pattern], [registry], [search], [target],
+[updateSearch], [unsafeDestination], [useNavigation], [useRoute], [useSearch],
+[useUpdateHash], [value], and [values]. The generator reports a conflict at
+the route that uses the label.
 
 {2 Path syntax}
 
@@ -123,6 +145,10 @@ pathnames that end with one or more slashes:
   survives the redirect. The query string is preserved.
 - [Reject] treats the request as not found.
 
+Under [Redirect], a pathname that still starts with [//] after the trailing
+slashes are removed, such as [//host/], is not found. A redirect to it would
+be a protocol-relative URL that points at another host.
+
 {3 Path parameter codecs}
 
 The router decodes a segment written [:name<Module.t>] with [Module.parse]
@@ -141,6 +167,9 @@ let to_string = string_of_int;
 
 Codecs receive percent-decoded segments. The router owns URL encoding. [bool],
 [int], and [string] are built in. [bool] accepts exactly [true] and [false].
+[int] accepts an optional [-] followed by ASCII digits, within the 32-bit
+signed range. It rejects [+5], [0x10], [1_000], and larger values on native and
+in the browser alike. Search parameters use the same [int] codec.
 [to_string] must return one non-empty, valid UTF-8 path segment. Destination
 construction raises [Invalid_argument] for an empty value, [/], [.], [..],
 control characters, or invalid UTF-8. Valid output is percent-encoded. A failed
@@ -214,6 +243,13 @@ layout mounted. When a loader fails, its scope and everything below it leave
 the response, and the graft moves up to the deepest scope the response still
 renders.
 
+A response without a valid [Router-Response] header, or with a header value
+other than [full], [patch], [redirect], or [reload-required], fails the
+navigation. A [Push] or [Replace] navigation then keeps the current page and
+sets the status to [Failed]. A [Pop] navigation hard-navigates to the target,
+unless a newer navigation has replaced it, in which case the [Pop] is canceled.
+The protocol has no [failed] response kind. The protocol version is 2.
+
 {2 Search updates}
 
 [Router.useSearch] returns the decoded search record and its typed update
@@ -231,6 +267,34 @@ depends on a search value, navigate to a destination carrying the new value
 instead of calling [updateSearch].
 
 [Router.useUpdateHash] commits hash-only changes without a request.
+
+[RouterReact.useLocation] returns the committed location: [pathname], [search]
+(with its leading [?]), [hash] and [key]. On the server it reads the location
+the page renders for. Like the other hooks it needs an ancestor provider.
+
+Search values are percent-encoded the same way in destinations and in
+[updateSearch]: a space is [%20], never [+], and names are sorted. One logical
+query has one spelling.
+
+{2 Links}
+
+[RouterReact.link] renders an [a] element that navigates on the client. Besides
+[~destination], [~className], [~target], [~download] and [~ariaCurrent] it
+accepts [~id], [~title], [~rel], [~ariaLabel], [~onClick] and [~onMouseEnter].
+The [~onClick] handler runs first. When it calls [preventDefault], or the event
+is already prevented, the router does not navigate. On the server the link
+renders the same attributes and ignores both handlers. These props are on
+[RouterReact.link] and [Link] only: the generated per-route [Link]s do not
+take them, because they would clash with path parameters such as [id].
+
+{2 Untyped destinations}
+
+Wrapping frameworks and server-function results cannot use generated
+destination functions. [RouterRuntime.destination ~path] builds a destination
+from a path that already includes its encoded search, and [RouterRuntime.href]
+turns a destination back into its string. A server function returns the href
+string. The client rebuilds the destination with [destination ~path] and
+passes it to [navigate].
 
 {1 Loaders}
 
@@ -255,12 +319,44 @@ module NoteLoader = {
 Loaders execute parent-first and complete before response headers or RSC
 rendering begin. The scope's components receive [Data] ([~note] in the
 manifest above). [NotFound] and [Error] render the nearest boundary, and
-[Redirect(destination)] escapes the whole branch.
+[Redirect(destination)] escapes the whole branch. [PermanentRedirect(destination)]
+does the same and answers documents with status 308. Use it only for moves
+that never change. Building a destination from user input, such as a [?next=]
+parameter, can create an open redirect, and browsers cache 308 responses.
 
 A loader runs again on every request, including patches, so a patch that
 reuses the loader's scope keeps the layout rendered from the {e previous}
 result. Use [~revalidate=true] when a navigation must show a layout rebuilt
 from fresh loader data.
+
+A patch still runs every loader on the matched branch, not only the loaders
+of the scopes it sends. Child loaders receive the results of their ancestors,
+so the server cannot skip an ancestor loader.
+
+Loaders read request-local data, such as a session or a request id, through a
+key that the server adapter owns. The router passes no request context to
+loaders. Create an [Lwt.key], set it with [Lwt.with_value], and read it with
+[Lwt.get] inside the loader. The key must wrap the {e whole} handler, including
+the streaming response, not only [Server.run]. A streaming body, for example
+the callback of [Dream.stream], runs after the handler returns. Lwt copies the
+storage into a callback when the callback is registered, so a key set only
+around [Server.run] is empty there.
+
+{[
+let requestKey : Dream.request Lwt.key = Lwt.new_key ()
+
+let handler request =
+  Lwt.with_value requestKey (Some request) (fun () ->
+      (* Server.run, the outcome match and Dream.stream all run here. *)
+      Lwt.bind (RouterServer.Server.run server ~diagnosticId ~revision engineRequest)
+        (respond request))
+
+(* In a loader: *)
+let load ~id:_ () =
+  match Lwt.get requestKey with
+  | Some request -> findSession request
+  | None -> Lwt.return Router.Loader.NotFound
+]}
 
 Keep loaders for fast validation, redirects, and route-level not-found
 decisions; stream slow data from async server components inside the route
@@ -289,6 +385,11 @@ nested scope renders the nearest ancestor [~error] boundary before any loader
 at or below the failing scope runs. Root search failures use [~invalidSearch]
 when declared.
 
+When no boundary applies, the response keeps its status and the adapter
+renders a built-in plain paragraph ([Not found], [Bad request], or
+[Something went wrong]) through [RouterServer.Plan.resolvedElement]. It never
+shows error details. [DreamRouter] uses it.
+
 {1 Metadata and headers}
 
 [~metadata] and [~headers] resolve per scope on every response, including
@@ -303,6 +404,42 @@ module NoteMetadata = {
 };
 ]}
 
+Entries add tags to the document head. Build them with helpers:
+
+{[
+Router.Metadata.make(
+  ~title="Note",
+  ~entries=[
+    Router.Metadata.meta(~name="robots", "noindex"),
+    Router.Metadata.property(~property="og:title", "Note"),
+    Router.Metadata.link(~rel="canonical", "https://example.com/note"),
+    Router.Metadata.link(
+      ~key="alternate:es",
+      ~rel="alternate",
+      ~attrs=[("hreflang", "es")],
+      "https://example.com/es/note",
+    ),
+  ],
+  (),
+)
+]}
+
+An entry is [Meta { key; attr; name; content }] ([attr] is [Name] or
+[Property]) or [Link { key; rel; href; attrs }]. There is no free HTML,
+[<script>] or [<style>], and no [lang]: the app sets [lang] in its document
+hook.
+
+Merge works by key. A child entry replaces a parent entry with the same key
+in place. New child entries go after the parent entries. The default keys are
+[meta:<name>], [property:<property>] and [link:<rel>]. The prefix keeps a
+[meta] and a [link] with the same word apart, and [name] apart from
+[property]. A tag that repeats, such as several [alternate] links or
+[og:image], needs an explicit [~key], or the last one replaces the others.
+Rendering adds the React key ["router:" ^ key]. [attrs] named [rel] or [href]
+are ignored: the [rel] and [href] arguments win. A [meta] named
+[description] renders next to the [~description] field and does not replace
+it. Use one of them.
+
 {1 Server integration}
 
 The native generator emits [RouterRegistry.server], a configured
@@ -312,9 +449,35 @@ navigation headers, then calls [RouterServer.Server.run]. The adapter maps the
 resulting full, patch, redirect, permanent-redirect, or reload-required outcome
 to its HTTP server and streams render data through [ReactServerDOM].
 
-The repository's [demo/dream-router/DreamRouter.ml] implements this boundary
-for Dream and can be used as an adapter reference. [DreamRouter] is demo-only:
-it is not installed by any published package.
+[RouterServer.Adapter] holds the parts that do not depend on a server, so an
+adapter only parses the request and writes the reply:
+
+- [Adapter.reply server ~target ~pageCacheCapacity ~document ~kind outcome]
+  returns [{ status; headers; body }]. [body] is [Empty], [Html element] or
+  [Model { location; model }]. [headers] holds all protocol headers: [Vary:
+  Accept] on every reply, [Router-Response], [Router-Registry] and
+  [Cache-Control: private, no-store] for navigation replies, [Location] for
+  document redirects (303, or 308 for a permanent redirect), and 409 with
+  [Router-Response: reload-required] when the registry changed. The adapter
+  writes [Html] with its bootstrap modules, and [Model] as a stream with
+  [X-Location] set to [location] and [X-Content-Type-Options: nosniff].
+- [Adapter.document_element], [Adapter.full_model], [Adapter.patch_model],
+  [Adapter.redirect_model] and [Adapter.metadata_element] are the pieces
+  [reply] uses. [document] is [~head -> children -> element]: the app builds
+  [<html>] itself, puts [head] (the resolved metadata) in [<head>] and
+  [children] in [<body>]. [document] must place [head]: the routed root does
+  not render the metadata again on the server, so a document that drops
+  [head] has no title or meta tags. In the browser the router renders the
+  metadata itself, and React adopts the tags already in [<head>] when it
+  hydrates and updates them on navigation.
+
+Bootstrap modules and the skip-root choice are not part of the reply. The
+adapter picks them for each request when it writes [Html].
+
+The repository's [demo/dream-router/DreamRouter.ml] is a thin Dream adapter
+over these functions. It also parses the request and sets the request
+context. [DreamRouter] is demo-only: it is not installed by any published
+package.
 
 {1 Libraries}
 

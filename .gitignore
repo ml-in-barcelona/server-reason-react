@@ -79,3 +79,5 @@ demo/.running/*
 
 # Local design notes
 /design/
+
+/.agents/*
