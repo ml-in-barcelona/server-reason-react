@@ -52,7 +52,7 @@ Add [ppx_platform] to the [pps] field of both builds. Pass [-js] on the client. 
 
 Without [ppx_platform], the compiler fails with [Uninterpreted extension 'melange_only'] on any [[%melange_only]].
 
-On native, a [let%melange_only] body raises [Runtime.Impossible_in_ssr]. It is the same exception as [Ppx_platform_runtime.Impossible_in_ssr], so one handler catches both.
+On native, a [let%melange_only] body raises [Runtime.Impossible_in_ssr]. It is the same exception as [Ppx_platform.Melange_only], so one handler catches both.
 
 {1 Usage}
 

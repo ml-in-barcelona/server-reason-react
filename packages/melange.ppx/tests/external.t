@@ -15,7 +15,7 @@ An external without platform attribute errors
    native, or annotating it with [@melange_only]. More info at \
    https://github.com/ml-in-barcelona/ppx_platform"]
 
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml

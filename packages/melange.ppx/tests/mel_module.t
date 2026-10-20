@@ -18,7 +18,7 @@
     in
     raise (Runtime.fail_impossible_action_in_ssr "keycloak")
 
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -46,7 +46,7 @@ Multiple args with optional
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "keycloak")
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -70,7 +70,7 @@ Single type (invalid OCaml, but valid in Melange)
    in a module only available in native, or annotating it with [@melange_only]. \
    More info at https://github.com/ml-in-barcelona/ppx_platform"]
 
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -97,7 +97,7 @@ Assets with file not found
   File "input.ml", line 1:
   Error: I/O error: ./does-not-exist.svg: No such file or directory
 
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -117,7 +117,7 @@ Webpack: assets like svg or images (payload to mel.module includes file extensio
   $ ./standalone.exe -impl input.ml -bundler webpack | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/1d876c8887ac1038.svg"
 
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -141,7 +141,7 @@ Webpack: assets like svg or images with paths outside current folder
   $ ./standalone.exe -impl $(pwd)/foo/input.ml -bundler webpack | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/1d876c8887ac1038.svg"
 
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -161,7 +161,7 @@ Esbuild: assets like svg or images (payload to mel.module includes file extensio
   $ ./standalone.exe -impl input.ml -bundler esbuild | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/image-DWDWZCEH.svg"
 
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -181,7 +181,7 @@ Esbuild: assets like svg or images with paths outside current folder
   $ ./standalone.exe -impl $(pwd)/foo/input.ml -bundler esbuild | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/image-DWDWZCEH.svg"
 
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
@@ -201,7 +201,7 @@ With prefix
   $ ./standalone.exe -impl $(pwd)/foo/input.ml -bundler esbuild -prefix /foo/bar | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let img = "/foo/bar/demo-4TAZDUER.txt"
 
-  $ echo "module Ppx_platform_runtime = struct exception Impossible_in_ssr of string let fail_impossible_action_in_ssr (_ : string) = raise (Impossible_in_ssr \"\") end" > main.ml
+  $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml

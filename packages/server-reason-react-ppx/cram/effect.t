@@ -28,5 +28,5 @@ An explicit [%melange_only] inside an effect is expanded by ppx_platform when bo
         None)
       [| a |];
     React.useEffect1
-      (fun () -> Ppx_platform_runtime.fail_impossible_action_in_ssr "<unkwnown>")
+      (fun () -> Ppx_platform.fail_melange_only "<unkwnown>")
       [| a |]
