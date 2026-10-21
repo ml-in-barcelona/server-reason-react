@@ -33,15 +33,15 @@ Let's start by triggering a hydration error on purpose. Take a look at this code
 [@react.component]
 let make = () => {
   let backgroundColor = switch%platform () {
-    | Server => "red"
-    | Client => "blue"
+    | Native => "red"
+    | Melange => "blue"
   };
 
   <div className=backgroundColor />;
 };
 ]}
 
-We use [switch%platform] to provide different values on the server and client. To understand how [switch%platform] works, look at the {{!page-"browser_ppx"} browser_ppx page}.
+We use [switch%platform] to provide different values on the server and client. To understand how [switch%platform] works, look at the {{:https://github.com/ml-in-barcelona/ppx_platform#matchplatform}ppx_platform README}.
 
 And let's see the diagram below, which shows how the code will behave:
 
@@ -123,10 +123,10 @@ let isFocusable =
   isClientMounted ? children->isFocusableElement : false;
 ]}
 
-Even with [isClientMounted], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you can use [%browser_only].
+Even with [isClientMounted], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you can use [%melange_only].
 
 {@reasonml[
-let%browser_only getAnswer = () => 42
+let%melange_only getAnswer = () => 42
 
 let answer = isClientMounted ? getAnswer() : 0;
 ]}
@@ -134,40 +134,40 @@ let answer = isClientMounted ? getAnswer() : 0;
 {@text[
 1 |          let answer = isClientMounted ? getAnswer() : 0;
                                             ^^^^^^^^^^^
-**Error** (alert browser_only): File.getAnswer
-This expression is marked to only run on the browser where JavaScript can run. You can only use it inside a let%browser_only function.
+Alert melange_only: getAnswer
+This value only exists in the Melange build. Use it inside a let%melange_only function, or a Melange branch of match%platform.
 ]}
 
-As you can see, [getAnswer] is a [browser_only] content and it must run under a [%browser_only]:
+As you can see, [getAnswer] is a [melange_only] content and it must run under a [%melange_only]:
 
 {@reasonml[
-let%browser_only getAnswer = () => 42
+let%melange_only getAnswer = () => 42
 
-let answer = isClientMounted ? [%browser_only () => getAnswer()]() : 0;
+let answer = isClientMounted ? [%melange_only () => getAnswer()]() : 0;
 ]}
 
-{3 Combine [switch%platform] and [%browser_only] with [isClientMounted]}
+{3 Combine [switch%platform] and [%melange_only] with [isClientMounted]}
 
-[switch%platform] and [browser_only] are extensions that help us discarting parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: {{!page-"browser_ppx"} browser_ppx page}).
+[switch%platform] and [melange_only] are extensions that help us discarting parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform README}).
 
 So we should use [switch%platform] when we don't have a single way to provide the same value. If there is a way to provide the same value, but not in a single way, you'll need [switch%platform] like following:
 
 {@reasonml[
 let foo = switch%platform () {
-  | Server => foo_native()
-  | Client => foo_client()
+  | Native => foo_native()
+  | Melange => foo_client()
 }
 ]}
 
 Here, [foo] will have the same value on both targets. There's no need for [isClientMounted] because Hydrate will never throw an error.
 
-The usage of [isClientMounted] forces the execution of the code to behave proeprly, but it does not avoid compiler error because the code needs to compile on both targets. So, you will need [isClientMounted] and [browser_only] together:
+The usage of [isClientMounted] forces the execution of the code to behave proeprly, but it does not avoid compiler error because the code needs to compile on both targets. So, you will need [isClientMounted] and [melange_only] together:
 
 {@reasonml[
-let%browser_only foo_cant_compile_on_native = () => "Hey"
+let%melange_only foo_cant_compile_on_native = () => "Hey"
 
 let value = isClientMounted
-  ? [%browser_only () => foo_cant_compile_on_native()]
+  ? [%melange_only () => foo_cant_compile_on_native()]
   : "Yah"
 ]}
 
@@ -206,7 +206,7 @@ let make = () => {
 };
 ]}
 
-Again, even with [ServerOrClientRender], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you must use [%browser_only].
+Again, even with [ServerOrClientRender], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you must use [%melange_only].
 
 {@reasonml[
 // Imagine a BlueComponent.re being a client only component
@@ -224,13 +224,13 @@ Again, even with [ServerOrClientRender], the content {b MUST} compile on [native
 **Error**: Unbound module BlueComponent
 ]}
 
-As you can see, [BlueComponent] is not available on [native], cause it's client only and must run under a [%browser_only]:
+As you can see, [BlueComponent] is not available on [native], cause it's client only and must run under a [%melange_only]:
 
 {@reasonml[
 <ServerOrClientRender
   server={() => <RedComponent />}
   client={
-    [%browser_only () => <BlueClientComponentOnly />]
+    [%melange_only () => <BlueClientComponentOnly />]
   }
 />
 ]}
@@ -254,4 +254,4 @@ Use [<ClientOnly/>] when the server JSX can be empty ([RR.null]) and only want t
 </ClientOnly>
 ]}
 
-Again, we should use [%browser_only] even when using [ClientOnly] since the content {b MUST} compile on [native].
+Again, we should use [%melange_only] even when using [ClientOnly] since the content {b MUST} compile on [native].

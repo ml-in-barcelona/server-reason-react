@@ -2,7 +2,7 @@
 
 [melange.ppx] is designed to preprocess Melange programs (simplifying code generation for common use cases like generating bindings or code from types). It's not compatible with native, but if you want to share a module with [melange.ppx] we provide a drop-in replacement called: [server-reason-react.melange_ppx].
 
-Most of the features are shimmed to not work on the server and the compiler will warn to wrap it in [browser_only] expressions.
+Most of the features are shimmed to not work on the server and the compiler will warn to wrap it in [melange_only] expressions.
 
 {1 [server-reason-react.melange_ppx] supports}
 
