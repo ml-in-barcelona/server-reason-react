@@ -98,33 +98,35 @@ let outlet = (~owner, ~children, ()) =>
 let suspense = (~fallback, ~children, ()) =>
   <React.Suspense fallback> children </React.Suspense>;
 
-let link =
-    (
-      ~destination,
-      ~className=?,
-      ~target=?,
-      ~download=?,
-      ~ariaCurrent=?,
-      ~id=?,
-      ~title=?,
-      ~rel=?,
-      ~ariaLabel=?,
-      ~onClick as _=?,
-      ~onMouseEnter as _=?,
-      ~history as _=?,
-      ~revalidate as _=?,
-      ~children,
-      (),
-    ) =>
-  <a
-    href={RouterRuntime.href(destination)}
-    ?className
-    ?target
-    ?download
-    ?ariaCurrent
-    ?id
-    ?title
-    ?rel
-    ?ariaLabel>
-    children
-  </a>;
+module Link = {
+  [@react.component]
+  let make =
+      (
+        ~destination,
+        ~className=?,
+        ~target=?,
+        ~download=?,
+        ~ariaCurrent=?,
+        ~id=?,
+        ~title=?,
+        ~rel=?,
+        ~ariaLabel=?,
+        ~onClick as _=?,
+        ~onMouseEnter as _=?,
+        ~history as _=?,
+        ~revalidate as _=?,
+        ~children,
+      ) =>
+    <a
+      href={RouterRuntime.href(destination)}
+      ?className
+      ?target
+      ?download
+      ?ariaCurrent
+      ?id
+      ?title
+      ?rel
+      ?ariaLabel>
+      children
+    </a>;
+};

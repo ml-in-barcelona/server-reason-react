@@ -16,7 +16,7 @@
  (wrapped false)
  (libraries melange.js reason-react server-reason-react.rsc)
  (preprocess
-  (pps server-reason-react.rsc.ppx melange.ppx)))
+  (pps server-reason-react.rsc.ppx reason-react-ppx melange.ppx)))
 
 (melange.emit
  (target test_cycle_js)

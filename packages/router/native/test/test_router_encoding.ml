@@ -40,11 +40,12 @@ let sorted_by_code_point () =
 let link_attributes () =
   let html =
     ReactDOM.renderToString
-      (RouterReact.link ~destination:(RouterRuntime.destination ~path:"/a") ~id:"i" ~title:"t" ~rel:"nofollow"
-         ~ariaLabel:"l"
-         ~onClick:(fun _ -> ())
-         ~onMouseEnter:(fun _ -> ())
-         ~children:(React.string "x") ())
+      (RouterReact.Link.make
+         (RouterReact.Link.makeProps ~destination:(RouterRuntime.destination ~path:"/a") ~id:"i" ~title:"t"
+            ~rel:"nofollow" ~ariaLabel:"l"
+            ~onClick:(fun _ -> ())
+            ~onMouseEnter:(fun _ -> ())
+            ~children:(React.string "x") ()))
   in
   Alcotest.(check string) "html" {|<a href="/a" id="i" title="t" rel="nofollow" aria-label="l">x</a>|} html
 

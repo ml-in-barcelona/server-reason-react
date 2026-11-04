@@ -108,16 +108,15 @@ let testCustomScalarRejectsSlash = () => {
 
 let testGeneratedLink = () => {
   let link =
-    Router.Note.make(
-      ~workspaceId=WorkspaceId.make(7),
-      ~id=NoteId.make(42),
-      ~className="note-link",
-      ~target="_blank",
-      ~download="note.txt",
-      ~ariaCurrent="page",
-      ~children=React.string("Open"),
-      (),
-    );
+    <Router.Note
+      workspaceId={WorkspaceId.make(7)}
+      id={NoteId.make(42)}
+      className="note-link"
+      target="_blank"
+      download="note.txt"
+      ariaCurrent="page">
+      {React.string("Open")}
+    </Router.Note>;
   let html = ReactDOM.renderToStaticMarkup(link);
   Alcotest.check(
     Alcotest.string,
