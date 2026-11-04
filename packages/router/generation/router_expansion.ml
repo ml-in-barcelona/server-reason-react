@@ -38,6 +38,8 @@ let unsafe_destination_expression ~loc =
 let react_component_attribute ~loc =
   { attr_name = { txt = "react.component"; loc }; attr_payload = PStr []; attr_loc = loc }
 
+let jsx_attribute ~loc = { attr_name = { txt = "JSX"; loc }; attr_payload = PStr []; attr_loc = loc }
+
 let search_destination_type ~loc (search : Router_declaration.search) =
   match search.kind with Required | Optional | Default _ -> search.typ | Many -> list_type ~loc search.typ
 
@@ -443,9 +445,9 @@ let route_module ~base_path (route : Router_declaration.route) =
       (B.pexp_constraint ~loc href_body (result_type ~loc "string"))
   in
   let link_body =
-    let props =
+    let element =
       B.pexp_apply ~loc
-        (B.evar ~loc "RouterReact.Link.makeProps")
+        (B.evar ~loc "RouterReact.Link.createElement")
         [
           (Labelled "destination", destination_call);
           (Optional "className", B.evar ~loc "className");
@@ -454,11 +456,11 @@ let route_module ~base_path (route : Router_declaration.route) =
           (Optional "ariaCurrent", B.evar ~loc "ariaCurrent");
           (Optional "history", B.evar ~loc "history");
           (Optional "revalidate", B.evar ~loc "revalidate");
-          (Labelled "children", B.evar ~loc "children");
+          (Labelled "children", B.elist ~loc [ B.evar ~loc "children" ]);
           (Nolabel, unit_expression ~loc);
         ]
     in
-    B.pexp_apply ~loc (B.evar ~loc "RouterReact.Link.make") [ (Nolabel, props) ]
+    { element with pexp_attributes = [ jsx_attribute ~loc ] }
   in
   let link_with_unit =
     B.pexp_fun ~loc Nolabel None (B.punit ~loc) (B.pexp_constraint ~loc link_body (result_type ~loc "React.element"))
