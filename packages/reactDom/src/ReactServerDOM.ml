@@ -817,7 +817,13 @@ module Model = struct
               let promise =
                 try%lwt
                   let%lwt element = promise in
-                  let result = to_chunk (Value (turn_element_into_payload ~context ~debug_info element)) in
+                  let payload =
+                    if debug then
+                      attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
+                          turn_element_into_payload ~context ~debug_info element)
+                    else turn_element_into_payload ~context ~debug_info element
+                  in
+                  let result = to_chunk (Value payload) in
                   React.current_tree_context := saved_ctx;
                   Lwt.return result
                 with exn ->
@@ -836,7 +842,7 @@ module Model = struct
       | Client_component { key; import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
-          let client_props = models_to_payload ~context ~to_chunk ~env props in
+          let client_props = models_to_payload ~context ~debug ~filter_stack_frame ~to_chunk ~env props in
           (* Client references are lazy references ("$L<id>"): the client must not block on the module row, it resolves it when the chunk loads. *)
           node ~env ~tag:(lazy_value index) ~key ~props:client_props []
       | Provider { children; push; async_key; async_value } ->
@@ -874,7 +880,9 @@ module Model = struct
                      AFTER the current one (pingedTasks), so the resolution row
                      is serialized and written after the row that references it. *)
                   Stream.push_deferred ~context (fun index ->
-                      match model_to_payload ~context ~to_chunk ~env (value_to_model value) with
+                      match
+                        model_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env (value_to_model value)
+                      with
                       | payload -> to_chunk (Value payload) index
                       | exception exn -> to_chunk (Error (env, exn_to_error exn)) index)
               | Sleep ->
@@ -882,7 +890,7 @@ module Model = struct
                     try%lwt
                       let%lwt value = promise in
                       let model = value_to_model value in
-                      let payload = model_to_payload ~context ~to_chunk ~env model in
+                      let payload = model_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env model in
                       Lwt.return (to_chunk (Value payload))
                     with exn ->
                       let error = exn_to_error exn in
@@ -896,15 +904,15 @@ module Model = struct
             Stream.remember_written_promise ~context written_key index;
             `String (promise_value index))
     | List list ->
-        let list = List.map (fun element -> model_to_payload ~context ~to_chunk ~env element) list in
+        let list = List.map (model_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env) list in
         `List list
-    | Assoc assoc ->
-        let assoc = List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) assoc in
-        `Assoc assoc
+    | Assoc assoc -> `Assoc (models_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env assoc)
     | Function action -> `String (outline_server_function ~context ~to_chunk action)
 
-  and models_to_payload ~context ~to_chunk ~env props =
-    List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) props
+  and models_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env props =
+    List.map
+      (fun (name, value) -> (name, model_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env value))
+      props
 
   (* React renders the model at a task's ROOT destructively (retryTask →
      renderModelDestructive): the chain of transparent wrappers and components
@@ -1444,7 +1452,10 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
   | Client_component { key; import_module; import_name; props; client } ->
       let context = fiber.context in
       let env = fiber.env in
-      let props = Model.models_to_payload ~context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) ~env props in
+      let props =
+        Model.models_to_payload ~debug:fiber.debug ~filter_stack_frame:fiber.filter_stack_frame ~context
+          ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) ~env props
+      in
       let%lwt html = client_to_html ~fiber client in
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
       let index =
