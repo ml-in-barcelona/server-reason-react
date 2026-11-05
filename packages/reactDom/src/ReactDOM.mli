@@ -55,6 +55,9 @@ val write_element_to_buffer_internal : Buffer.t -> separators:bool -> prev_text:
 
 val escape_to_buffer : Buffer.t -> string -> unit
 
+val write_int_to_buffer : Buffer.t -> int -> unit
+(** Writes the decimal digits of an int, the same text as [string_of_int], without allocating an intermediate string. *)
+
 (** {2 The rest of the API is there for compatibility with ReactDOM's reason-react} *)
 
 module Ref = React.DOMRef

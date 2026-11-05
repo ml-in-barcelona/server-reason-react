@@ -180,6 +180,20 @@ let context () =
   in
   assert_string (write app) "<span>provided</span>"
 
+let write_int () =
+  List.iter
+    (fun n ->
+      let buf = Buffer.create 24 in
+      ReactDOM.write_int_to_buffer buf n;
+      assert_string (Buffer.contents buf) (string_of_int n))
+    [ 0; 1; 9; 10; 99; 100; 12345; -1; -9; -10; -100; -12345; max_int; min_int; max_int - 1; min_int + 1 ]
+
+let int_children_and_attributes () =
+  let element =
+    React.createElement "td" [ React.JSX.int "colSpan" "colSpan" min_int ] [ React.int max_int; React.int (-7) ]
+  in
+  assert_string (write element) (Printf.sprintf "<td colSpan=\"%d\">%d%d</td>" min_int max_int (-7))
+
 let test title fn = (Printf.sprintf "ReactDOM.write_to_buffer / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
@@ -211,4 +225,6 @@ let tests =
     test "react custom attributes ignored" react_custom_attributes_ignored;
     test "async component raises" async_component_raises;
     test "context" context;
+    test "write_int_to_buffer matches string_of_int" write_int;
+    test "int children and attributes" int_children_and_attributes;
   ]

@@ -65,7 +65,7 @@
           Buffer.add_char(__buf, ' ');
           Buffer.add_string(__buf, "tabindex");
           Buffer.add_string(__buf, "=\"");
-          Buffer.add_string(__buf, Stdlib.string_of_int(v: int));
+          ReactDOM.write_int_to_buffer(__buf, v: int);
           Buffer.add_char(__buf, '"');
         };
         Buffer.add_string(__buf, "></div>");

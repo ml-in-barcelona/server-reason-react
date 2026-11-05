@@ -427,7 +427,7 @@ and element =
   | Static of { prerendered : string; original : element }
   | Writer of { emit : Buffer.t -> separators:bool -> unit; original : unit -> element }
       (** Like [Static] but writes directly into the caller's buffer. Used by the PPX for subtrees with static skeleton
-          \+ dynamic string/int/float holes (the [Needs_string_concat] and [Needs_buffer] tiers).
+          \+ dynamic string/int/float holes (the [Needs_buffer] tier).
 
           [separators] tells the emit function whether adjacent text nodes must be delimited with an [<!-- -->] comment,
           matching react-dom: [renderToString] needs the delimiters so hydration can split merged text nodes,
