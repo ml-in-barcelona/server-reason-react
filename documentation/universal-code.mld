@@ -18,7 +18,7 @@ In this aspect server-reason-react is not much different than Node.js. For examp
 
 In our case, those browser APIs don't exist on native, but the difference with Node.js is that we need the code to compile, meanwhile Node.js (being JIT) will raise an error at runtime if your code tries to use those APIs. In OCaml, those modules need to be present.
 
-Which makes those modules either present but stubbed on native or discarded with [browser_ppx].
+Which makes those modules either present but stubbed on native or discarded with [ppx_platform].
 
 {2 Exposes a common interface to both platforms}
 

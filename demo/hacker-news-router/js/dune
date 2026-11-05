@@ -15,7 +15,7 @@
   server-reason-react.runtime)
  (preprocess
   (pps
-   browser_ppx
+   ppx_platform
    -js
    server-reason-react.ppx
    -melange

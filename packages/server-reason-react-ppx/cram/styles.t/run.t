@@ -214,11 +214,12 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           Buffer.add_string __buf "class";
           Buffer.add_string __buf "=\"";
           ReactDOM.escape_to_buffer __buf
-            (match
+            (let __existing = "lola" in
+             match
                match x with None -> None | Some x -> Some (CSS.className x)
              with
-             | None -> "lola"
-             | Some x -> x ^ " " ^ "lola"
+             | None -> __existing
+             | Some __incoming -> __incoming ^ " " ^ __existing
               : string);
           Buffer.add_char __buf '"';
           (match
@@ -242,13 +243,14 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                    (React.JSX.String
                       ( "class",
                         "className",
-                        (match
+                        (let __existing = "lola" in
+                         match
                            match x with
                            | None -> None
                            | Some x -> Some (CSS.className x)
                          with
-                         | None -> "lola"
-                         | Some x -> x ^ " " ^ "lola"
+                         | None -> __existing
+                         | Some __incoming -> __incoming ^ " " ^ __existing
                           : string) ));
                  (match
                     (match x with None -> None | Some x -> Some (CSS.styles x)
@@ -280,19 +282,16 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           Buffer.add_string __buf " style=\"";
           ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string
-               (match
+               (let __existing =
+                  (("background-color", "backgroundColor", "gainsboro")
+                   :: ([] : (string * string * string) list)
+                    : ReactDOM.Style.t)
+                in
+                match
                   match x with None -> None | Some x -> Some (CSS.styles x)
                 with
-                | None ->
-                    (("background-color", "backgroundColor", "gainsboro")
-                     :: ([] : (string * string * string) list)
-                      : ReactDOM.Style.t)
-                | Some x ->
-                    ReactDOM.Style.combine
-                      (("background-color", "backgroundColor", "gainsboro")
-                       :: ([] : (string * string * string) list)
-                        : ReactDOM.Style.t)
-                      x
+                | None -> __existing
+                | Some __incoming -> ReactDOM.Style.combine __existing __incoming
                  : ReactDOM.Style.t));
           Buffer.add_char __buf '"';
           Buffer.add_string __buf "></div>";
@@ -312,21 +311,19 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                  | Some v -> Some (React.JSX.String ("class", "className", v)));
                  Some
                    (React.JSX.Style
-                      (match
+                      (let __existing =
+                         (("background-color", "backgroundColor", "gainsboro")
+                          :: ([] : (string * string * string) list)
+                           : ReactDOM.Style.t)
+                       in
+                       match
                          match x with
                          | None -> None
                          | Some x -> Some (CSS.styles x)
                        with
-                       | None ->
-                           (("background-color", "backgroundColor", "gainsboro")
-                            :: ([] : (string * string * string) list)
-                             : ReactDOM.Style.t)
-                       | Some x ->
-                           ReactDOM.Style.combine
-                             (("background-color", "backgroundColor", "gainsboro")
-                              :: ([] : (string * string * string) list)
-                               : ReactDOM.Style.t)
-                             x
+                       | None -> __existing
+                       | Some __incoming ->
+                           ReactDOM.Style.combine __existing __incoming
                         : ReactDOM.Style.t));
                ])
             []);
@@ -342,29 +339,27 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           Buffer.add_string __buf "class";
           Buffer.add_string __buf "=\"";
           ReactDOM.escape_to_buffer __buf
-            (match
+            (let __existing = "lola" in
+             match
                match x with None -> None | Some x -> Some (CSS.className x)
              with
-             | None -> "lola"
-             | Some x -> x ^ " " ^ "lola"
+             | None -> __existing
+             | Some __incoming -> __incoming ^ " " ^ __existing
               : string);
           Buffer.add_char __buf '"';
           Buffer.add_string __buf " style=\"";
           ReactDOM.escape_to_buffer __buf
             (ReactDOM.Style.to_string
-               (match
+               (let __existing =
+                  (("background-color", "backgroundColor", "gainsboro")
+                   :: ([] : (string * string * string) list)
+                    : ReactDOM.Style.t)
+                in
+                match
                   match x with None -> None | Some x -> Some (CSS.styles x)
                 with
-                | None ->
-                    (("background-color", "backgroundColor", "gainsboro")
-                     :: ([] : (string * string * string) list)
-                      : ReactDOM.Style.t)
-                | Some x ->
-                    ReactDOM.Style.combine
-                      (("background-color", "backgroundColor", "gainsboro")
-                       :: ([] : (string * string * string) list)
-                        : ReactDOM.Style.t)
-                      x
+                | None -> __existing
+                | Some __incoming -> ReactDOM.Style.combine __existing __incoming
                  : ReactDOM.Style.t));
           Buffer.add_char __buf '"';
           Buffer.add_string __buf "></div>";
@@ -378,32 +373,182 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                    (React.JSX.String
                       ( "class",
                         "className",
-                        (match
+                        (let __existing = "lola" in
+                         match
                            match x with
                            | None -> None
                            | Some x -> Some (CSS.className x)
                          with
-                         | None -> "lola"
-                         | Some x -> x ^ " " ^ "lola"
+                         | None -> __existing
+                         | Some __incoming -> __incoming ^ " " ^ __existing
                           : string) ));
                  Some
                    (React.JSX.Style
-                      (match
+                      (let __existing =
+                         (("background-color", "backgroundColor", "gainsboro")
+                          :: ([] : (string * string * string) list)
+                           : ReactDOM.Style.t)
+                       in
+                       match
                          match x with
                          | None -> None
                          | Some x -> Some (CSS.styles x)
                        with
-                       | None ->
-                           (("background-color", "backgroundColor", "gainsboro")
-                            :: ([] : (string * string * string) list)
-                             : ReactDOM.Style.t)
-                       | Some x ->
-                           ReactDOM.Style.combine
-                             (("background-color", "backgroundColor", "gainsboro")
-                              :: ([] : (string * string * string) list)
-                               : ReactDOM.Style.t)
-                             x
+                       | None -> __existing
+                       | Some __incoming ->
+                           ReactDOM.Style.combine __existing __incoming
                         : ReactDOM.Style.t));
+               ])
+            []);
+    }
+  ;;
+  
+  React.Writer
+    {
+      emit =
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
+          Buffer.add_char __buf ' ';
+          Buffer.add_string __buf "class";
+          Buffer.add_string __buf "=\"";
+          ReactDOM.escape_to_buffer __buf
+            (let __incoming = CSS.className x in
+             match className with
+             | None -> __incoming
+             | Some __existing -> __incoming ^ " " ^ __existing
+              : string);
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf " style=\"";
+          ReactDOM.escape_to_buffer __buf
+            (ReactDOM.Style.to_string (CSS.styles x : ReactDOM.Style.t));
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 Some
+                   (React.JSX.String
+                      ( "class",
+                        "className",
+                        (let __incoming = CSS.className x in
+                         match className with
+                         | None -> __incoming
+                         | Some __existing -> __incoming ^ " " ^ __existing
+                          : string) ));
+                 Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
+               ])
+            []);
+    }
+  ;;
+  
+  React.Writer
+    {
+      emit =
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
+          Buffer.add_char __buf ' ';
+          Buffer.add_string __buf "class";
+          Buffer.add_string __buf "=\"";
+          ReactDOM.escape_to_buffer __buf (CSS.className x : string);
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf " style=\"";
+          ReactDOM.escape_to_buffer __buf
+            (ReactDOM.Style.to_string
+               (let __incoming = CSS.styles x in
+                match style with
+                | None -> __incoming
+                | Some __existing -> ReactDOM.Style.combine __existing __incoming
+                 : ReactDOM.Style.t));
+          Buffer.add_char __buf '"';
+          Buffer.add_string __buf "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 Some
+                   (React.JSX.String
+                      ("class", "className", (CSS.className x : string)));
+                 Some
+                   (React.JSX.Style
+                      (let __incoming = CSS.styles x in
+                       match style with
+                       | None -> __incoming
+                       | Some __existing ->
+                           ReactDOM.Style.combine __existing __incoming
+                        : ReactDOM.Style.t));
+               ])
+            []);
+    }
+  ;;
+  
+  React.Writer
+    {
+      emit =
+        (fun __buf ~separators:_ ->
+          Buffer.add_string __buf "<div";
+          (match
+             (match
+                ( (match x with None -> None | Some x -> Some (CSS.className x)),
+                  className )
+              with
+              | None, None -> None
+              | Some __incoming, None -> Some __incoming
+              | None, Some __existing -> Some __existing
+              | Some __incoming, Some __existing ->
+                  Some (__incoming ^ " " ^ __existing)
+               : string option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char __buf ' ';
+              Buffer.add_string __buf "class";
+              Buffer.add_string __buf "=\"";
+              ReactDOM.escape_to_buffer __buf (v : string);
+              Buffer.add_char __buf '"');
+          (match
+             (match x with None -> None | Some x -> Some (CSS.styles x)
+               : ReactDOM.Style.t option)
+           with
+          | None -> ()
+          | Some v ->
+              Buffer.add_string __buf " style=\"";
+              ReactDOM.escape_to_buffer __buf
+                (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
+              Buffer.add_char __buf '"');
+          Buffer.add_string __buf "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 (match
+                    (match
+                       ( (match x with
+                         | None -> None
+                         | Some x -> Some (CSS.className x)),
+                         className )
+                     with
+                     | None, None -> None
+                     | Some __incoming, None -> Some __incoming
+                     | None, Some __existing -> Some __existing
+                     | Some __incoming, Some __existing ->
+                         Some (__incoming ^ " " ^ __existing)
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("class", "className", v)));
+                 (match
+                    (match x with None -> None | Some x -> Some (CSS.styles x)
+                      : ReactDOM.Style.t option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.Style v));
                ])
             []);
     }
@@ -448,9 +593,10 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
   
   div
     ~className:
-      (match match x with None -> None | Some x -> Some (CSS.className x) with
-      | None -> "lola"
-      | Some x -> x ^ " " ^ "lola")
+      (let __existing = "lola" in
+       match match x with None -> None | Some x -> Some (CSS.className x) with
+       | None -> __existing
+       | Some __incoming -> __incoming ^ " " ^ __existing)
     ?style:(match x with None -> None | Some x -> Some (CSS.styles x))
     ~children:[] () [@JSX]
   ;;
@@ -458,27 +604,56 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
   div
     ?className:(match x with None -> None | Some x -> Some (CSS.className x))
     ~style:
-      (match match x with None -> None | Some x -> Some (CSS.styles x) with
-      | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
-      | Some x ->
-          ReactDOM.Style.combine
-            (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
-            x)
+      (let __existing = ReactDOM.Style.make ~backgroundColor:"gainsboro" () in
+       match match x with None -> None | Some x -> Some (CSS.styles x) with
+       | None -> __existing
+       | Some __incoming -> ReactDOM.Style.combine __existing __incoming)
     ~children:[] () [@JSX]
   ;;
   
   div
     ~className:
-      (match match x with None -> None | Some x -> Some (CSS.className x) with
-      | None -> "lola"
-      | Some x -> x ^ " " ^ "lola")
+      (let __existing = "lola" in
+       match match x with None -> None | Some x -> Some (CSS.className x) with
+       | None -> __existing
+       | Some __incoming -> __incoming ^ " " ^ __existing)
     ~style:
-      (match match x with None -> None | Some x -> Some (CSS.styles x) with
-      | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
-      | Some x ->
-          ReactDOM.Style.combine
-            (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
-            x)
+      (let __existing = ReactDOM.Style.make ~backgroundColor:"gainsboro" () in
+       match match x with None -> None | Some x -> Some (CSS.styles x) with
+       | None -> __existing
+       | Some __incoming -> ReactDOM.Style.combine __existing __incoming)
+    ~children:[] () [@JSX]
+  ;;
+  
+  div
+    ~className:
+      (let __incoming = CSS.className x in
+       match className with
+       | None -> __incoming
+       | Some __existing -> __incoming ^ " " ^ __existing)
+    ~style:(CSS.styles x) ~children:[] () [@JSX]
+  ;;
+  
+  div ~className:(CSS.className x)
+    ~style:
+      (let __incoming = CSS.styles x in
+       match style with
+       | None -> __incoming
+       | Some __existing -> ReactDOM.Style.combine __existing __incoming)
+    ~children:[] () [@JSX]
+  ;;
+  
+  div
+    ?className:
+      (match
+         ( (match x with None -> None | Some x -> Some (CSS.className x)),
+           className )
+       with
+      | None, None -> None
+      | Some __incoming, None -> Some __incoming
+      | None, Some __existing -> Some __existing
+      | Some __incoming, Some __existing -> Some (__incoming ^ " " ^ __existing))
+    ?style:(match x with None -> None | Some x -> Some (CSS.styles x))
     ~children:[] () [@JSX]
   ;;
   

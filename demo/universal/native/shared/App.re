@@ -86,7 +86,7 @@ let make = () => {
 
   let (title, setTitle) = RR.useStateValue("Server Reason React");
 
-  let%browser_only onChangeTitle = e => {
+  let%melange_only onChangeTitle = e => {
     let value = React.Event.Form.target(e)##value;
     setTitle(value);
   };

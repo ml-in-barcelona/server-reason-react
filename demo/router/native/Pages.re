@@ -59,12 +59,13 @@ module AppLayout = {
 
 module Document = {
   [@react.component]
-  let make = (~children) =>
+  let make = (~head, ~children) =>
     <html suppressHydrationWarning=true className="h-full" lang="en">
       <head>
         <meta charSet="utf-8" />
         <title> {React.string("server-reason-react notes")} </title>
         <link rel="stylesheet" href="/output.css" />
+        head
       </head>
       <body suppressHydrationWarning=true className="h-full"> children </body>
     </html>;

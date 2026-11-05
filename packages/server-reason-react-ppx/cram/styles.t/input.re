@@ -7,6 +7,9 @@
 <div className="lola" styles=?x />;
 <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} styles=?x />;
 <div className="lola" style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} styles=?x />;
+<div ?className styles=x />;
+<div ?style styles=x />;
+<div ?className styles=?x />;
 
 /* Module-qualified components should NOT get ~styles expanded.
    ~styles is passed through as a regular prop. */

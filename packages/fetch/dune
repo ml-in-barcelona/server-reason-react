@@ -4,4 +4,4 @@
  (libraries server-reason-react.js)
  (modules Fetch)
  (preprocess
-  (pps melange_native_ppx browser_ppx)))
+  (pps melange_native_ppx ppx_platform)))

@@ -1,4 +1,5 @@
 (library
  (name runtime)
  (modes :standard melange)
+ (libraries ppx_platform.runtime)
  (public_name server-reason-react.runtime))

@@ -411,7 +411,7 @@ module FormData = struct
   module EntryValue = struct
     type t
 
-    let%browser_only classify t = if Js.typeof t = "string" then `String (Obj.magic t) else `File (Obj.magic t)
+    let%melange_only classify t = if Js.typeof t = "string" then `String (Obj.magic t) else `File (Obj.magic t)
   end
 
   module Iterator = struct

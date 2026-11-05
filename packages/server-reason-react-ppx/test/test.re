@@ -512,6 +512,28 @@ let aria_props = () => {
   );
 };
 
+let data_props = () => {
+  let component =
+    <div
+      dataFoo="plain"
+      dataFoo__bar="double"
+      dataFoo___="trailing"
+      dataFoo_bar="single"
+      dataURL="acronym"
+      dataURLPath="acronym then word"
+      dataFoo_Bar="underscore then uppercase"
+      dataVersion2="digit"
+      dataVersion20="digits"
+      data2="leading digit"
+      data_foo="leading underscore"
+      datafoo="lowercase"
+    />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(component),
+    {|<div data-foo="plain" data-foo--bar="double" data-foo---="trailing" data-foo-bar="single" data-url="acronym" data-url-path="acronym then word" data-foo-bar="underscore then uppercase" data-version2="digit" data-version20="digits" data2="leading digit" data-foo="leading underscore" datafoo="lowercase"></div>|},
+  );
+};
+
 module Optional_prop = {
   [@react.component]
   let make = () => {
@@ -1182,6 +1204,7 @@ Alcotest_lwt.run(
     test("children_multiple_elements", children_multiple_elements),
     test("create_element_variadic", create_element_variadic),
     test("aria_props", aria_props),
+    test("data_props", data_props),
     test("optional_prop", optional_prop),
     test("context", context),
     test("context_2", context_2),

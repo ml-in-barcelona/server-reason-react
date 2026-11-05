@@ -1,11 +1,11 @@
 [@react.client.component]
 let make = (~initial: int) => {
-  let (state, [@browser_only] setCount) = RR.useStateValue(initial);
+  let (state, [@melange_only] setCount) = RR.useStateValue(initial);
 
   let onClick = _ => {
     switch%platform () {
-    | Client => setCount(state + 1)
-    | Server => ()
+    | Melange => setCount(state + 1)
+    | Native => ()
     };
   };
 
@@ -23,12 +23,12 @@ module Double = {
   /* This component tests that client components can be nested in modules */
   [@react.client.component]
   let make = (~initial: int) => {
-    let (state, [@browser_only] setCount) = RR.useStateValue(initial);
+    let (state, [@melange_only] setCount) = RR.useStateValue(initial);
 
     let onClick = _ => {
       switch%platform () {
-      | Client => setCount(state + 2)
-      | Server => ()
+      | Melange => setCount(state + 2)
+      | Native => ()
       };
     };
 

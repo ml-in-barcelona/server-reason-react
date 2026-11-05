@@ -22,7 +22,7 @@
   demo_router_js
   server-reason-react.router)
  (preprocess
-  (pps browser_ppx -js reason-react-ppx melange.ppx)))
+  (pps ppx_platform -js reason-react-ppx melange.ppx)))
 
 (rule
  (enabled_if

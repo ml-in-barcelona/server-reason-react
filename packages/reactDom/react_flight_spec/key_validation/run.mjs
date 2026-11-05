@@ -45,23 +45,6 @@ for (const fixture of native.filter((fixture) => !fixture.hydration)) {
       const payload = row.slice(row.indexOf(":") + 1);
       if (payload.startsWith("[") || payload.startsWith("{")) checkTuples(JSON.parse(payload), fixture.env, tuples);
     }
-    const expectedSpanStates = {
-      "static-host": [1, 1],
-      "unkeyed-list": [2, 2],
-      "unkeyed-array": [2, 2],
-      "singleton-list": [2],
-      "singleton-array": [2],
-      "keyed-list": [0, 0],
-      "keyed-array": [0, 0],
-      "extracted-static": [2],
-      "cloned-static": [2],
-      "forwarded-host-slot": [1],
-      "forwarded-list": [2],
-    }[fixture.name];
-    if (expectedSpanStates) {
-      assert.deepEqual(tuples.filter((tuple) => tuple[1] === "span").map((tuple) => tuple[6]), expectedSpanStates);
-    }
-    if (fixture.name === "static-host") assert.equal(tuples[0][6], 0, "Bare root validation");
     if (fixture.name === "server-error-redaction") {
       assert.equal(fixture.chunks.join("").includes("private-key-validation-error"), fixture.env === "Dev");
     }

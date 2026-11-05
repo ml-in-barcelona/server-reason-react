@@ -10,7 +10,7 @@ let make = () => {
     React.Event.Form.preventDefault(event);
   };
 
-  let%browser_only onChange = event => {
+  let%melange_only onChange = event => {
     let target = React.Event.Form.target(event);
     let nextText = target##value;
     let next = nextText == "" ? None : Some(nextText);

@@ -12,6 +12,11 @@ let destinationFromPattern:
   destination;
 let href: destination => string;
 
+/** Query string without the leading [?]: names sorted, every name and value
+    percent-encoded. Destinations and [updateSearch] both use it so one query
+    has one spelling. */
+let encodeSearch: list((string, list(string))) => string;
+
 module Status: {
   type t =
     | Ok
@@ -30,7 +35,8 @@ module Loader: {
     | Data('data)
     | Error('error)
     | NotFound
-    | Redirect(destination);
+    | Redirect(destination)
+    | PermanentRedirect(destination);
 };
 
 module Error: {
@@ -47,11 +53,42 @@ module Error: {
 };
 
 module Metadata: {
-  type entry = {
-    key: string,
-    name: string,
-    content: string,
-  };
+  type metaAttribute =
+    | Name
+    | Property;
+
+  type entry =
+    | Meta({
+        key: string,
+        attr: metaAttribute,
+        name: string,
+        content: string,
+      })
+    | Link({
+        key: string,
+        rel: string,
+        href: string,
+        attrs: list((string, string)),
+      });
+
+  let entryKey: entry => string;
+
+  /** `<meta name=... content=...>`. The default key is `"meta:" ++ name`. */
+  let meta: (~key: string=?, ~name: string, string) => entry;
+
+  /** `<meta property=... content=...>`. The default key is `"property:" ++ property`. */
+  let property: (~key: string=?, ~property: string, string) => entry;
+
+  /** `<link rel=... href=... attrs>`. The default key is `"link:" ++ rel`. Pass an explicit key for a repeated rel
+      such as several `alternate` links. `attrs` named `rel` or `href` are ignored when rendering. */
+  let link:
+    (
+      ~key: string=?,
+      ~rel: string,
+      ~attrs: list((string, string))=?,
+      string
+    ) =>
+    entry;
 
   type t = {
     title: option(string),
@@ -150,11 +187,10 @@ module Navigation: {
   let commit:
     (state, ~requestId: int, ~baseRevision: string, ~next: committed) =>
     result(state, commitError);
+  let isActive: (state, ~requestId: int) => bool;
   let fail: (state, ~requestId: int, ~message: string) => state;
   let shallow: (state, ~location: location, ~action: historyAction) => state;
   let hashOnly: (state, ~location: location, ~action: historyAction) => state;
-  let classifyPop:
-    (committed, ~target: location, ~targetRevision: option(string)) => kind;
   let classifyPopByContentIdentity:
     (
       committed,
@@ -237,7 +273,6 @@ module NavigationResponse: {
     | FullResponse
     | PatchResponse
     | RedirectResponse
-    | FailedResponse
     | ReloadRequiredResponse;
 
   [@deriving rsc]
@@ -276,19 +311,10 @@ module NavigationResponse: {
     status: int,
   };
 
-  [@deriving rsc]
-  type failure = {
-    protocolVersion: int,
-    registryFingerprint: string,
-    message: string,
-    status: int,
-  };
-
   type t('payload) =
     | Full(full('payload))
     | Patch(patch('payload))
     | Redirect(redirect)
-    | Failed(failure)
     | ReloadRequired;
 
   type facts = {

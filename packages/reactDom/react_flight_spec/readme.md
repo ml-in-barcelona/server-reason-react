@@ -1,8 +1,8 @@
 # React Flight protocol spec
 
 A verifiable specification of the React Flight (RSC) wire protocol. It checks
-`ReactServerDOM.render_model` against React's production bytes, with a separately
-checked key-validation extension, and checks
+`ReactServerDOM.render_model` against React's production bytes, ignoring the
+key-validation fields, and checks
 `ReactServerDOM.decodeReply`/`decodeFormDataReply` against `encodeReply`.
 
 ## How it works
@@ -17,11 +17,9 @@ Every case under `cases/shared/` is a single-source Reason file that compiles **
 
 React's output is committed under `fixtures/*.flight` (one Flight row per line,
 normalized as described in [protocol.md](./protocol.md)). An OCaml conformance runner
-(`conformance/`) renders the same cases natively. It requires seven-field element
-tuples with `null` production debug fields and a validation state of `0`, `1`, or
-`2`. It removes only those suffix byte spans, then compares each row against the
-committed fixture. It does not reserialize the remaining JSON. Native and browser
-tests separately assert the expected validation states and warnings.
+(`conformance/`) renders the same cases natively. It removes the validation fields
+(`,null,null,0|1|2` at the end of each element tuple), then byte-compares each row
+against the committed fixture. Native and browser tests assert the validation states.
 
 The **reply direction** (client → server) works the other way around: `reply/cases.mjs`
 declares plain JS argument values, `reply/generate-reply.mjs` encodes them with the real
@@ -43,8 +41,7 @@ cases/native/     native library (copy_files from shared).
 cases/js/         melange.emit target (copy_files from shared).
 fixtures/         committed golden output of the real React.
 conformance/      alcotest runners: flight_spec_conformance (server → client)
-                  and reply_spec_conformance (client → server), plus strict
-                  element-extension projection tests.
+                  and reply_spec_conformance (client → server).
 key_validation/   native fixture exporter and development/production browser tests.
 reply/            reply-direction spec: cases.mjs (JS argument values),
                   generate-reply.mjs (encodeReply → fixtures), fixtures/.
