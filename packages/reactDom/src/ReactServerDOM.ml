@@ -1415,19 +1415,24 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
   | Fragment children -> render_element_to_html ~fiber ~debug_info children
   | List list -> elements_to_html ~fiber ~debug_info list
   | Array arr -> elements_to_html ~fiber ~debug_info (Array.to_list arr)
-  | Upper_case_component (name, component) -> (
+  | Upper_case_component (name, component) ->
       let saved_ctx = !React.current_tree_context in
-      React.reset_component_id_state saved_ctx;
-      match component () with
-      | element ->
-          let did_use_id = React.check_did_render_id_hook () in
-          if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-          let%lwt result = continue_with_debug_html ~fiber ~name ~debug_info element in
+      let rec render () =
+        React.reset_component_id_state saved_ctx;
+        match component () with
+        | element ->
+            let did_use_id = React.check_did_render_id_hook () in
+            if did_use_id then
+              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+            continue_with_debug_html ~fiber ~name ~debug_info element
+        | exception React.Suspend (Any_promise promise) ->
+            React.current_tree_context := saved_ctx;
+            let%lwt _ = promise in
+            render ()
+      in
+      Lwt.finalize render (fun () ->
           React.current_tree_context := saved_ctx;
-          Lwt.return result
-      | exception exn ->
-          React.current_tree_context := saved_ctx;
-          raise exn)
+          Lwt.return_unit)
   | Async_component (name, component) -> (
       let saved_ctx = !React.current_tree_context in
       React.reset_component_id_state saved_ctx;
