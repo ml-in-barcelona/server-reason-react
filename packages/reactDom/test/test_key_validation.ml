@@ -611,6 +611,19 @@ let sync_html_failure_restores_context () =
         [ false; true ])
     [ None; Some `Prod; Some `Dev ]
 
+let mapped_children () =
+  matrix (fun env debug renderer ->
+      let tree =
+        node "div"
+          [
+            React.Children.map (React.list [ leaf "i"; node ~key:"x" "b" [] ]) Fun.id;
+            React.Children.mapWithIndex (React.array [| leaf "em" |]) (fun _ _ -> leaf "u");
+          ]
+      in
+      let%lwt rows = render ?env ~debug renderer tree in
+      check_states ?env [ state "div" 0; state "i" 1; keyed "b" "x" 1; state "u" 1 ] rows;
+      Lwt.return_unit)
+
 let test name run =
   Alcotest_lwt.test_case name `Quick (fun _ () ->
       Lwt.pick
@@ -641,5 +654,6 @@ let tests =
         test "debug through model collections and promises" debug_through_models;
         test "error redaction and boundary validation" errors_and_boundary_state;
         test "sync HTML failure restores useId context" sync_html_failure_restores_context;
+        test "Children.map results are static" mapped_children;
       ] );
   ]

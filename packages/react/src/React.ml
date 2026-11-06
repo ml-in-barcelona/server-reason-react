@@ -909,16 +909,15 @@ end
 module Children = struct
   let map element fn =
     match element with
-    | List children -> List.map fn children |> list
-    | Static_children children -> Static_children (List.map fn children)
-    | Array children -> Array.map fn children |> array
+    | List children | Static_children children -> Static_children (List.map fn children)
+    | Array children -> Static_children (Array.to_list (Array.map fn children))
     | _ -> fn element
 
   let mapWithIndex element fn =
     match element with
-    | List children -> List.mapi (fun index element -> fn element index) children |> list
-    | Static_children children -> Static_children (List.mapi (fun index element -> fn element index) children)
-    | Array children -> Array.mapi (fun index element -> fn element index) children |> array
+    | List children | Static_children children ->
+        Static_children (List.mapi (fun index element -> fn element index) children)
+    | Array children -> Static_children (Array.to_list (Array.mapi (fun index element -> fn element index) children))
     | _ -> fn element 0
 
   let forEach element fn =

@@ -280,8 +280,8 @@ consumer, or Suspense boundary, and the result of a server component give a stat
 position; a runtime collection gives a missing-key state. A literal child extracted from a host and
 re-inserted into a runtime collection reports a missing key, where React does not.
 
-[React.Children.map] and [mapWithIndex] over a [React.Static_children] return a
-[React.Static_children], so mapped children stay static.
+[React.Children.map] and [mapWithIndex] return a [React.Static_children], so
+mapped children are static, as React's keyed [Children.map] results never warn.
 
 The default environment remains [`Prod]. Error details remain redacted. The
 validation fields add 12 uncompressed bytes per production element tuple and let

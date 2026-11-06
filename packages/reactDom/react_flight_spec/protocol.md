@@ -148,8 +148,8 @@ runtime collection members: `2` without a key, `0` with one. A single forwarded
 child takes the state of the slot it finally lands in. A literal child extracted
 from a host and re-inserted into a runtime collection therefore reports `2`,
 where React reports `1`. Model promise resolutions use their own structure,
-independent of the first reference's position. `React.Children.map` over a
-`React.Static_children` returns a `React.Static_children`.
+independent of the first reference's position. `React.Children.map` and
+`mapWithIndex` return a `React.Static_children`, so mapped children report `1`.
 
 Native server-component invocation keys and fragment keys are currently discarded.
 This validation support covers represented host, client, and Suspense elements.
