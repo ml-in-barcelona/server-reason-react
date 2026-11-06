@@ -873,6 +873,19 @@ let text_separator_matches_unoptimized_tree = () => {
 module CSS = {
   let className = ((className, _)) => className;
   let styles = ((_, styles)) => styles;
+  let make = (className, vars) => (
+    className,
+    List.fold_left(
+      (style, (key, value)) =>
+        ReactDOM.Style.unsafeAddProp(style, key, value),
+      ReactDOM.Style.make(),
+      vars,
+    ),
+  );
+  let merge = ((className1, style1), (className2, style2)) => (
+    String.trim(className1 ++ " " ++ className2),
+    ReactDOM.Style.combine(style1, style2),
+  );
 };
 
 let styles_attribute = () => {
@@ -915,7 +928,7 @@ let styles_attribute_optional_some_with_class = () => {
   let div = <div className="lola" ?styles />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    {|<div class="some-class-name lola" style="background-color:gainsboro"></div>|},
+    {|<div class="lola some-class-name" style="background-color:gainsboro"></div>|},
   );
 };
 
@@ -946,7 +959,7 @@ let styles_attribute_optional_some_with_class_and_style = () => {
     />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    {|<div class="some-class-name lola" style="color:white;background-color:gainsboro"></div>|},
+    {|<div class="lola some-class-name" style="color:white;background-color:gainsboro"></div>|},
   );
 };
 

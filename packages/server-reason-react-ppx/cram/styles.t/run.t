@@ -92,7 +92,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           Buffer.add_string __buf "class";
           Buffer.add_string __buf "=\"";
           ReactDOM.escape_to_buffer __buf
-            (CSS.className x ^ " " ^ "lola" : string);
+            (CSS.className
+               (CSS.merge (CSS.make "lola" []) (CSS.make (CSS.className x) []))
+              : string);
           Buffer.add_char __buf '"';
           Buffer.add_string __buf " style=\"";
           ReactDOM.escape_to_buffer __buf
@@ -109,7 +111,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                    (React.JSX.String
                       ( "class",
                         "className",
-                        (CSS.className x ^ " " ^ "lola" : string) ));
+                        (CSS.className
+                           (CSS.merge (CSS.make "lola" [])
+                              (CSS.make (CSS.className x) []))
+                          : string) ));
                  Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
                ])
             []);
@@ -168,7 +173,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           Buffer.add_string __buf "class";
           Buffer.add_string __buf "=\"";
           ReactDOM.escape_to_buffer __buf
-            (CSS.className x ^ " " ^ "lola" : string);
+            (CSS.className
+               (CSS.merge (CSS.make "lola" []) (CSS.make (CSS.className x) []))
+              : string);
           Buffer.add_char __buf '"';
           Buffer.add_string __buf " style=\"";
           ReactDOM.escape_to_buffer __buf
@@ -191,7 +198,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                    (React.JSX.String
                       ( "class",
                         "className",
-                        (CSS.className x ^ " " ^ "lola" : string) ));
+                        (CSS.className
+                           (CSS.merge (CSS.make "lola" [])
+                              (CSS.make (CSS.className x) []))
+                          : string) ));
                  Some
                    (React.JSX.Style
                       (ReactDOM.Style.combine
@@ -219,7 +229,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                match x with None -> None | Some x -> Some (CSS.className x)
              with
              | None -> __existing
-             | Some __incoming -> __incoming ^ " " ^ __existing
+             | Some __incoming ->
+                 CSS.className
+                   (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))
               : string);
           Buffer.add_char __buf '"';
           (match
@@ -250,7 +262,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                            | Some x -> Some (CSS.className x)
                          with
                          | None -> __existing
-                         | Some __incoming -> __incoming ^ " " ^ __existing
+                         | Some __incoming ->
+                             CSS.className
+                               (CSS.merge (CSS.make __existing [])
+                                  (CSS.make __incoming []))
                           : string) ));
                  (match
                     (match x with None -> None | Some x -> Some (CSS.styles x)
@@ -344,7 +359,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                match x with None -> None | Some x -> Some (CSS.className x)
              with
              | None -> __existing
-             | Some __incoming -> __incoming ^ " " ^ __existing
+             | Some __incoming ->
+                 CSS.className
+                   (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))
               : string);
           Buffer.add_char __buf '"';
           Buffer.add_string __buf " style=\"";
@@ -380,7 +397,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                            | Some x -> Some (CSS.className x)
                          with
                          | None -> __existing
-                         | Some __incoming -> __incoming ^ " " ^ __existing
+                         | Some __incoming ->
+                             CSS.className
+                               (CSS.merge (CSS.make __existing [])
+                                  (CSS.make __incoming []))
                           : string) ));
                  Some
                    (React.JSX.Style
@@ -415,7 +435,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
             (let __incoming = CSS.className x in
              match className with
              | None -> __incoming
-             | Some __existing -> __incoming ^ " " ^ __existing
+             | Some __existing ->
+                 CSS.className
+                   (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))
               : string);
           Buffer.add_char __buf '"';
           Buffer.add_string __buf " style=\"";
@@ -436,7 +458,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                         (let __incoming = CSS.className x in
                          match className with
                          | None -> __incoming
-                         | Some __existing -> __incoming ^ " " ^ __existing
+                         | Some __existing ->
+                             CSS.className
+                               (CSS.merge (CSS.make __existing [])
+                                  (CSS.make __incoming []))
                           : string) ));
                  Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
                ])
@@ -500,7 +525,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               | Some __incoming, None -> Some __incoming
               | None, Some __existing -> Some __existing
               | Some __incoming, Some __existing ->
-                  Some (__incoming ^ " " ^ __existing)
+                  Some
+                    (CSS.className
+                       (CSS.merge (CSS.make __existing [])
+                          (CSS.make __incoming [])))
                : string option)
            with
           | None -> ()
@@ -538,7 +566,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                      | Some __incoming, None -> Some __incoming
                      | None, Some __existing -> Some __existing
                      | Some __incoming, Some __existing ->
-                         Some (__incoming ^ " " ^ __existing)
+                         Some
+                           (CSS.className
+                              (CSS.merge (CSS.make __existing [])
+                                 (CSS.make __incoming [])))
                       : string option)
                   with
                  | None -> None
@@ -570,7 +601,9 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
   ;;
   
   div
-    ~className:(CSS.className x ^ " " ^ "lola")
+    ~className:
+      (CSS.className
+         (CSS.merge (CSS.make "lola" []) (CSS.make (CSS.className x) [])))
     ~style:(CSS.styles x) ~children:[] () [@JSX]
   ;;
   
@@ -583,7 +616,9 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
   ;;
   
   div
-    ~className:(CSS.className x ^ " " ^ "lola")
+    ~className:
+      (CSS.className
+         (CSS.merge (CSS.make "lola" []) (CSS.make (CSS.className x) [])))
     ~style:
       (ReactDOM.Style.combine
          (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
@@ -596,7 +631,9 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
       (let __existing = "lola" in
        match match x with None -> None | Some x -> Some (CSS.className x) with
        | None -> __existing
-       | Some __incoming -> __incoming ^ " " ^ __existing)
+       | Some __incoming ->
+           CSS.className
+             (CSS.merge (CSS.make __existing []) (CSS.make __incoming [])))
     ?style:(match x with None -> None | Some x -> Some (CSS.styles x))
     ~children:[] () [@JSX]
   ;;
@@ -616,7 +653,9 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
       (let __existing = "lola" in
        match match x with None -> None | Some x -> Some (CSS.className x) with
        | None -> __existing
-       | Some __incoming -> __incoming ^ " " ^ __existing)
+       | Some __incoming ->
+           CSS.className
+             (CSS.merge (CSS.make __existing []) (CSS.make __incoming [])))
     ~style:
       (let __existing = ReactDOM.Style.make ~backgroundColor:"gainsboro" () in
        match match x with None -> None | Some x -> Some (CSS.styles x) with
@@ -630,7 +669,9 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
       (let __incoming = CSS.className x in
        match className with
        | None -> __incoming
-       | Some __existing -> __incoming ^ " " ^ __existing)
+       | Some __existing ->
+           CSS.className
+             (CSS.merge (CSS.make __existing []) (CSS.make __incoming [])))
     ~style:(CSS.styles x) ~children:[] () [@JSX]
   ;;
   
@@ -652,7 +693,10 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
       | None, None -> None
       | Some __incoming, None -> Some __incoming
       | None, Some __existing -> Some __existing
-      | Some __incoming, Some __existing -> Some (__incoming ^ " " ^ __existing))
+      | Some __incoming, Some __existing ->
+          Some
+            (CSS.className
+               (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))))
     ?style:(match x with None -> None | Some x -> Some (CSS.styles x))
     ~children:[] () [@JSX]
   ;;

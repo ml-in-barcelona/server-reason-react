@@ -45,7 +45,10 @@ let test_expand_styles_with_previous_className () =
   let expanded_attributes = expand_attributes lowercase_jsx_apply attributes in
   assert_list
     [
-      (Labelled "className", [%expr CSS.className generated_styles ^ " " ^ "previous-class-name"]);
+      ( Labelled "className",
+        [%expr
+          CSS.className (CSS.merge (CSS.make "previous-class-name" []) (CSS.make (CSS.className generated_styles) []))]
+      );
       (Labelled "style", [%expr CSS.styles generated_styles]);
     ]
     expanded_attributes
@@ -71,7 +74,9 @@ let test_expand_styles_with_previous_optional_className () =
       ( Labelled "className",
         [%expr
           let __incoming = CSS.className generated_styles in
-          match previous_class_name with None -> __incoming | Some __existing -> __incoming ^ " " ^ __existing] );
+          match previous_class_name with
+          | None -> __incoming
+          | Some __existing -> CSS.className (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))] );
       (Labelled "style", [%expr CSS.styles generated_styles]);
     ]
     expanded_attributes
@@ -103,7 +108,7 @@ let test_expand_optional_styles_with_previous_className () =
           let __existing = "previous-class-name" in
           match match Some generated_styles with None -> None | Some x -> Some (CSS.className x) with
           | None -> __existing
-          | Some __incoming -> __incoming ^ " " ^ __existing] );
+          | Some __incoming -> CSS.className (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))] );
       (Optional "style", [%expr match Some generated_styles with None -> None | Some x -> Some (CSS.styles x)]);
     ]
     expanded_attributes
@@ -123,7 +128,8 @@ let test_expand_optional_styles_with_previous_optional_className () =
           | None, None -> None
           | Some __incoming, None -> Some __incoming
           | None, Some __existing -> Some __existing
-          | Some __incoming, Some __existing -> Some (__incoming ^ " " ^ __existing)] );
+          | Some __incoming, Some __existing ->
+              Some (CSS.className (CSS.merge (CSS.make __existing []) (CSS.make __incoming [])))] );
       (Optional "style", [%expr match Some generated_styles with None -> None | Some x -> Some (CSS.styles x)]);
     ]
     expanded_attributes
