@@ -1475,6 +1475,64 @@ let debug_async_component () =
     ];
   Lwt.return ()
 
+let debug_pending_async_component () =
+  let app =
+    React.Upper_case_component
+      ( "App",
+        fun () ->
+          React.Async_component
+            ( "AsyncChild",
+              fun () ->
+                let%lwt () = sleep ~ms:5 in
+                Lwt.return (React.createElement "span" [] [ React.string "async" ]) ) )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~debug:true ~filter_stack_frame:drop_all_frames app in
+  assert_list_of_strings !output
+    [
+      "1:{\"name\":\"App\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "0:D\"$1\"\n";
+      "0:\"$L2\"\n";
+      "4:{\"name\":\"AsyncChild\",\"env\":\"Server\",\"key\":null,\"owner\":\"$1\",\"stack\":[],\"props\":{}}\n";
+      "3:D\"$4\"\n";
+      "3:[\"$\",\"span\",null,{\"children\":\"async\"},\"$1\",null,1]\n";
+      "2:\"$3\"\n";
+    ];
+  Lwt.return ()
+
+let debug_client_component_props () =
+  let component name = React.Upper_case_component (name, fun () -> React.createElement "b" [] [ React.string name ]) in
+  let client props =
+    React.Client_component
+      { key = None; props; client = React.null; import_module = "./client.js"; import_name = "Client" }
+  in
+  let app =
+    client
+      [
+        ("element", React.Model.Element (component "InProp"));
+        ("promise", React.Model.Promise (delayed_value (), fun () -> React.Model.Element (component "InPromise")));
+        ("list", React.Model.List [ React.Model.Element (component "InList") ]);
+        ("assoc", React.Model.Assoc [ ("nested", React.Model.Element (component "InAssoc")) ]);
+      ]
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~debug:true ~filter_stack_frame:drop_all_frames app in
+  assert_list_of_strings !output
+    [
+      "1:I[\"./client.js\",[],\"Client\"]\n";
+      "2:{\"name\":\"InProp\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "0:D\"$2\"\n";
+      "4:{\"name\":\"InList\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "0:D\"$4\"\n";
+      "5:{\"name\":\"InAssoc\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "0:D\"$5\"\n";
+      "0:[\"$\",\"$L1\",null,{\"element\":[\"$\",\"b\",null,{\"children\":\"InProp\"},null,null,1],\"promise\":\"$@3\",\"list\":[[\"$\",\"b\",null,{\"children\":\"InList\"},null,null,1]],\"assoc\":{\"nested\":[\"$\",\"b\",null,{\"children\":\"InAssoc\"},null,null,1]}},null,null,0]\n";
+      "6:{\"name\":\"InPromise\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "0:D\"$6\"\n";
+      "3:[\"$\",\"b\",null,{\"children\":\"InPromise\"},null,null,1]\n";
+    ];
+  Lwt.return ()
+
 let debug_outlines_components () =
   let app = React.Upper_case_component ("App", fun () -> React.createElement "h1" [] [ React.string "title" ]) in
   let output, subscribe = capture_stream () in
@@ -1999,6 +2057,8 @@ let tests =
     test "env_development_adds_debug_info" env_development_adds_debug_info;
     test "debug_nested_owner_chain" debug_nested_owner_chain;
     test "debug_async_component" debug_async_component;
+    test "debug_pending_async_component" debug_pending_async_component;
+    test "debug_client_component_props" debug_client_component_props;
     test "debug_outlines_components" debug_outlines_components;
     test "debug_not_emitted_without_flag" debug_not_emitted_without_flag;
     test "debug_wire_format" debug_wire_format;
