@@ -18,18 +18,21 @@ type updateHash =
   (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
   navigationResult;
 
-let link =
-    (
-      ~destination as _,
-      ~className as _=?,
-      ~target as _=?,
-      ~download as _=?,
-      ~ariaCurrent as _=?,
-      ~history as _=?,
-      ~revalidate as _=?,
-      ~children,
-      (),
-    ) => children;
+module Link = {
+  let makeProps =
+      (
+        ~destination as _,
+        ~className as _=?,
+        ~target as _=?,
+        ~download as _=?,
+        ~ariaCurrent as _=?,
+        ~history as _=?,
+        ~revalidate as _=?,
+        ~children,
+        (),
+      ) => children;
+  let make = children => children;
+};
 let navigate: navigate = (~history as _=?, ~revalidate as _=?, _destination) =>
   assert(false);
 let updateSearch: updateSearch =
