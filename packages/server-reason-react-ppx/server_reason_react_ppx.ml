@@ -425,11 +425,7 @@ let emit_attr_value_write ~loc ~info ~value_expr =
   in
   match info.kind with
   | DomProps.String -> quoted [%expr ReactDOM.escape_to_buffer __buf ([%e value_expr] : string)]
-  | DomProps.Int ->
-      (* [string_of_int] allocates a small short-lived string, but measures
-         ~15% faster per write than [Printf.bprintf b "%d"], whose
-         CamlinternalFormat dispatch outweighs the allocation it saves. *)
-      quoted [%expr Buffer.add_string __buf (Stdlib.string_of_int ([%e value_expr] : int))]
+  | DomProps.Int -> quoted [%expr ReactDOM.write_int_to_buffer __buf ([%e value_expr] : int)]
   | DomProps.Bool ->
       (* Matches [Bool (name, _, true) -> " " ^ name] / [false -> nothing]. *)
       [%expr
@@ -479,9 +475,7 @@ type compile_time_textness = Ct_text | Ct_markup | Ct_unknown
 (* Emit the [Buffer.t -> separators:bool -> unit] body for a
    [static_part list]. Writes the static skeleton inline; each dynamic hole
    becomes a [Buffer.add_*] / escape / attribute-emission call that runs at
-   render time with no intermediate allocation. Shared by the
-   [Needs_string_concat] and [Needs_buffer] tiers, which produce the same
-   emit function; the tier names only record what the analysis found.
+   render time with no intermediate allocation.
 
    Text-separator protocol ([renderToString] parity, required for
    hydration): adjacent text nodes must be delimited by [<!-- -->] when
@@ -566,7 +560,7 @@ let emit_parts_emit_fn ~loc parts =
                 Some [%expr ReactDOM.escape_to_buffer __buf [%e e]]
             | Dynamic_int e ->
                 let loc = e.pexp_loc in
-                Some [%expr Buffer.add_string __buf (Stdlib.string_of_int [%e e])]
+                Some [%expr ReactDOM.write_int_to_buffer __buf [%e e]]
             | Dynamic_element e ->
                 let loc = e.pexp_loc in
                 uses_separators := true;
@@ -624,7 +618,7 @@ let rewrite_lowercase ~loc tag_name args children =
       let html_expr = estring ~loc html_with_doctype in
       let original = generate_create_element ~loc ~tag_name ~key ~props ~children in
       [%expr React.Static { prerendered = [%e html_expr]; original = [%e original] }]
-  | Static_analysis.Needs_string_concat parts | Static_analysis.Needs_buffer parts ->
+  | Static_analysis.Needs_buffer parts ->
       (* Emit a [Buffer.t -> separators:bool -> unit] that writes directly into the caller's
          buffer. Avoids the N-per-subtree [Buffer.create] + [Buffer.contents]
          that a [Static] wrapping would cost.

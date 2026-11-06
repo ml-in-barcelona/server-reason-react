@@ -3,6 +3,8 @@ module Ref = React.DOMRef
 
 type domRef = Ref.t
 
+let write_int_to_buffer = Html.write_int
+
 let is_react_custom_attribute attr =
   match attr with
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning" | "suppressHydrationWarning" -> true
@@ -43,7 +45,12 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
       Buffer.add_string buf "=\"";
       Html.escape buf value;
       Buffer.add_char buf '"'
-  | Int (name, _, value) -> write_raw_attribute buf name (Int.to_string value)
+  | Int (name, _, value) ->
+      Buffer.add_char buf ' ';
+      Buffer.add_string buf name;
+      Buffer.add_string buf "=\"";
+      write_int_to_buffer buf value;
+      Buffer.add_char buf '"'
   | Float (name, _, value) -> write_raw_attribute buf name (Js.Float.toString value)
   (* Events don't get rendered on SSR *)
   | Event _ -> ()
@@ -162,7 +169,7 @@ type mode = String | Markup
 let write_text_node buf (element : React.element) =
   match element with
   | Text text -> Html.escape buf text
-  | Int i -> Buffer.add_string buf (Int.to_string i)
+  | Int i -> write_int_to_buffer buf i
   | Float f -> Buffer.add_string buf (Js.Float.toString f)
   | _ -> raise (Invalid_argument "write_text_node expects a Text, Int or Float element")
 

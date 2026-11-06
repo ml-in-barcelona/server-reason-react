@@ -628,7 +628,7 @@ and element =
 
           [original] is a thunk that rebuilds the variant-tree form on-demand for [cloneElement] / RSC consumers. Same
           name as [Static.original] for symmetry; this variant's version is lazy. Emitted by the PPX for the
-          [Needs_string_concat] and [Needs_buffer] analysis tiers. *)
+          [Needs_buffer] analysis tier. *)
   | Fragment of element
   | Empty
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
