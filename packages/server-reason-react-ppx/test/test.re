@@ -814,6 +814,37 @@ let text_separator_float_holes = () => {
   assert_string(ReactDOM.renderToStaticMarkup(el), {|<span>1.5x</span>|});
 };
 
+let text_separator_leaf_holes = () => {
+  let f = 1.5;
+  let empty = React.null;
+  let italic = <i />;
+  let float_after_text = <span> {React.string("a")} {React.float(f)} </span>;
+  let empty_keeps_run =
+    <span> {React.string("a")} empty {React.string("b")} </span>;
+  let element_ends_run =
+    <span> {React.string("a")} italic {React.string("b")} </span>;
+  assert_string(
+    ReactDOM.renderToString(float_after_text),
+    {|<span>a<!-- -->1.5</span>|},
+  );
+  assert_string(
+    ReactDOM.renderToString(empty_keeps_run),
+    {|<span>a<!-- -->b</span>|},
+  );
+  assert_string(
+    ReactDOM.renderToString(element_ends_run),
+    {|<span>a<i></i>b</span>|},
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(float_after_text),
+    {|<span>a1.5</span>|},
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(empty_keeps_run),
+    {|<span>ab</span>|},
+  );
+};
+
 let text_separator_stream = () => {
   /* renderToStream has renderToString semantics: Writer subtrees must emit
      the separators there too. */
@@ -1151,6 +1182,7 @@ Alcotest_lwt.run(
       text_separator_component_ending_in_element,
     ),
     test("text_separator_float_holes", text_separator_float_holes),
+    test("text_separator_leaf_holes", text_separator_leaf_holes),
     test_lwt("text_separator_stream", text_separator_stream),
     test("styles_attribute", styles_attribute),
     test("styles_attribute_optional", styles_attribute_optional),
