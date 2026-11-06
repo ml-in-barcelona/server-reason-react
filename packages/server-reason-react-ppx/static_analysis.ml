@@ -52,18 +52,8 @@ type attr_analysis_result = Ok of parsed_attr option | Invalid
    list of ordered parts mixing static runs with dynamic-attribute slots.
    The list preserves source order so the emitted HTML is deterministic. *)
 type attrs_analysis = All_static of string | Mixed_attrs of static_part list | Validation_failed
-
-type children_analysis =
-  | No_children
-  | All_static_children of string
-  | All_string_dynamic of static_part list
-  | Mixed_children of static_part list
-
-type element_analysis =
-  | Fully_static of string
-  | Needs_string_concat of static_part list
-  | Needs_buffer of static_part list
-  | Cannot_optimize
+type children_analysis = No_children | All_static_children of string | Dynamic_children of static_part list
+type element_analysis = Fully_static of string | Needs_buffer of static_part list | Cannot_optimize
 
 (* Merge adjacent static chunks, except across a text→text boundary: those
    two chunks must stay separate so the emission side can put the
@@ -369,13 +359,11 @@ let analyze_children children =
   | Some children ->
       let parts = List.map analyze_child children in
       let all_static = List.for_all (function Static_str _ -> true | _ -> false) parts in
-      let has_element_dynamic = List.exists (function Dynamic_element _ -> true | _ -> false) parts in
       if all_static && not (has_adjacent_text parts) then (
         let buf = Buffer.create 128 in
         List.iter (function Static_str { html; _ } -> Buffer.add_string buf html | _ -> ()) parts;
         All_static_children (Buffer.contents buf))
-      else if not has_element_dynamic then All_string_dynamic parts
-      else Mixed_children parts
+      else Dynamic_children parts
 
 let mixed_attrs_parts ~tag_name ~is_self_closing ~children_parts attr_parts =
   let open_prefix = static_markup (Printf.sprintf "<%s" tag_name) in
@@ -399,12 +387,7 @@ let analyze_element ~tag_name ~attrs ~children =
   | All_static attrs_html, All_static_children children_html ->
       let html = Printf.sprintf "<%s%s>%s</%s>" tag_name attrs_html children_html tag_name in
       Fully_static html
-  | All_static attrs_html, All_string_dynamic parts ->
-      let open_tag = Printf.sprintf "<%s%s>" tag_name attrs_html in
-      let close_tag = Printf.sprintf "</%s>" tag_name in
-      let all_parts = static_markup open_tag :: (parts @ [ static_markup close_tag ]) in
-      Needs_string_concat (coalesce_static_parts all_parts)
-  | All_static attrs_html, Mixed_children parts ->
+  | All_static attrs_html, Dynamic_children parts ->
       let open_tag = Printf.sprintf "<%s%s>" tag_name attrs_html in
       let close_tag = Printf.sprintf "</%s>" tag_name in
       let all_parts = static_markup open_tag :: (parts @ [ static_markup close_tag ]) in
@@ -423,7 +406,7 @@ let analyze_element ~tag_name ~attrs ~children =
         mixed_attrs_parts ~tag_name ~is_self_closing:false ~children_parts:[ static_markup children_html ] attr_parts
       in
       Needs_buffer (coalesce_static_parts parts)
-  | Mixed_attrs attr_parts, All_string_dynamic children_parts | Mixed_attrs attr_parts, Mixed_children children_parts ->
+  | Mixed_attrs attr_parts, Dynamic_children children_parts ->
       let parts = mixed_attrs_parts ~tag_name ~is_self_closing:false ~children_parts attr_parts in
       Needs_buffer (coalesce_static_parts parts)
 
