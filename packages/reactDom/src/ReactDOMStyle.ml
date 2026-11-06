@@ -747,13 +747,21 @@ let camelcaseToKebabcase str =
     done;
     Buffer.contents buf
 
-let add (styles : t) ((_, jsx_key, _) as prop) : t =
-  if List.exists (fun (_, k, _) -> String.equal k jsx_key) styles then
-    List.map (fun ((_, k, _) as p) -> if String.equal k jsx_key then prop else p) styles
-  else styles @ [ prop ]
+let rec mem key = function [] -> false | (_, k, _) :: rest -> String.equal key k || mem key rest
 
-let combine (styles1 : t) (styles2 : t) : t = List.fold_left add [] (styles1 @ styles2)
-let unsafeAddProp styles key value : t = add styles (camelcaseToKebabcase key, key, value)
+let rec replace ((_, key, _) as prop) = function
+  | [] -> []
+  | ((_, k, _) as p) :: rest -> if String.equal key k then prop :: rest else p :: replace prop rest
+
+let push_rev acc ((_, key, _) as prop) = if mem key acc then replace prop acc else prop :: acc
+
+let combine (styles1 : t) (styles2 : t) : t =
+  List.rev (List.fold_left push_rev (List.fold_left push_rev [] styles1) styles2)
+
+let unsafeAddProp styles key value : t =
+  let prop = (camelcaseToKebabcase key, key, value) in
+  if mem key styles then List.map (fun ((_, k, _) as p) -> if String.equal key k then prop else p) styles
+  else styles @ [ prop ]
 
 (* Since we don't have a proper representation of `< .. > Js.t` yet,
    we can't make the unsafeAddStyle
