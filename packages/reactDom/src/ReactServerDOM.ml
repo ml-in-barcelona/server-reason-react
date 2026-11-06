@@ -13,7 +13,12 @@ module Key_validation = struct
     | Dynamic_item, None -> Missing_key
     | Value, _ | Dynamic_item, Some _ -> Unvalidated
 
-  let to_int = function Unvalidated -> 0 | Validated -> 1 | Missing_key -> 2
+  let to_json : t -> Yojson.Basic.t = function Unvalidated -> `Int 0 | Validated -> `Int 1 | Missing_key -> `Int 2
+
+  let null_tail : t -> Yojson.Basic.t list = function
+    | Unvalidated -> [ `Null; `Null; `Int 0 ]
+    | Validated -> [ `Null; `Null; `Int 1 ]
+    | Missing_key -> [ `Null; `Null; `Int 2 ]
 end
 
 let create_stack_trace () =
@@ -592,8 +597,12 @@ module Model = struct
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
-    let owner = match env with `Prod -> `Null | `Dev -> chunk_ref_or_null owner in
-    `List [ `String "$"; `String tag; key; `Assoc props; owner; `Null; `Int (Key_validation.to_int validation) ]
+    let tail =
+      match (env, owner) with
+      | `Prod, _ | `Dev, None -> Key_validation.null_tail validation
+      | `Dev, Some idx -> [ `String (ref_value idx); `Null; Key_validation.to_json validation ]
+    in
+    `List (`String "$" :: `String tag :: key :: `Assoc props :: tail)
 
   (* React outlines the suspense symbol once per stream as its own row
      (e.g. 1:"$Sreact.suspense", pushed before any row that references it,
