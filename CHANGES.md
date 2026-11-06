@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Make `ReactDOM.Style.combine` and `ReactDOM.Style.unsafeAddProp` behave like reason-react's `Object.assign`: a repeated key gives one entry that keeps its first position and takes the last value. Before, the entries were appended, so `combine (make ~color:"red" ()) (make ~color:"blue" ())` rendered `color:red;color:blue`, which differs from React's `color:blue` and warns on hydration. The `styles=` expansion and `CSS.merge` in styled-ppx call `combine`, so they are fixed too by @davesnx
 * Fix the `styles=` expansion when the element already carries an optional `?className` or `?style`: the merge treated the optional value as a plain string or style (`CSS.className x ^ " " ^ className` with `className : string option`) and handed a plain value to the optional argument, so `<div ?className styles=x />` failed to type-check. Every combination of optional and required sides now matches on the option; when either side is always present the merged attribute drops its `?`. Generated binders are `__incoming`/`__existing`, so a user value named `x` on one side is no longer captured by the other by @davesnx
 * **Breaking**: `server-reason-react.browser_ppx` is removed in favor of the new `ppx_platform` package, which provides `let%melange_only`, `[@melange_only]`, `[@native_only]`, `switch%platform` and the `-js` flag. server-reason-react uses `ppx_platform` 0.3.0, which rejects the old names with a compile error that names the replacement:
 

@@ -41,6 +41,46 @@ let unsafe_add_prop_camel_with_digits () =
   let styles = ReactDOM.Style.unsafeAddProp (ReactDOM.Style.make ()) "grid_area1" "main" in
   assert_styles styles "grid_area1:main"
 
+let combine_same_key_last_value_wins () =
+  let styles = ReactDOM.Style.combine (ReactDOM.Style.make ~color:"red" ()) (ReactDOM.Style.make ~color:"blue" ()) in
+  assert_styles styles "color:blue"
+
+let combine_key_keeps_first_position () =
+  let styles =
+    ReactDOM.Style.combine
+      (ReactDOM.Style.combine
+         (ReactDOM.Style.make ~background:"red" ())
+         (ReactDOM.Style.make ~backgroundColor:"blue" ()))
+      (ReactDOM.Style.make ~background:"green" ())
+  in
+  assert_styles styles "background:green;background-color:blue"
+
+let combine_same_custom_property () =
+  let a = ReactDOM.Style.unsafeAddProp (ReactDOM.Style.make ()) "--tone" "#0000FF" in
+  assert_styles (ReactDOM.Style.combine a a) "--tone:#0000FF";
+  assert_styles (ReactDOM.Style.combine a (ReactDOM.Style.combine a a)) "--tone:#0000FF"
+
+let combine_distinct_keys_keep_order () =
+  let one = ReactDOM.Style.unsafeAddProp (ReactDOM.Style.make ()) "--one" "1" in
+  let two = ReactDOM.Style.unsafeAddProp (ReactDOM.Style.make ()) "--two" "2" in
+  let three = ReactDOM.Style.unsafeAddProp (ReactDOM.Style.make ()) "--three" "3" in
+  assert_styles (ReactDOM.Style.combine (ReactDOM.Style.combine one two) three) "--one:1;--two:2;--three:3"
+
+let combine_empty_value_replaces_and_keeps_position () =
+  let base = ReactDOM.Style.make ~color:"red" ~display:"block" () in
+  let cleared = ReactDOM.Style.combine base (ReactDOM.Style.make ~color:"" ()) in
+  assert_styles cleared "display:block";
+  assert_styles (ReactDOM.Style.combine cleared (ReactDOM.Style.make ~color:"blue" ())) "color:blue;display:block"
+
+let unsafe_add_prop_same_key_last_value_wins () =
+  let styles = ReactDOM.Style.unsafeAddProp (ReactDOM.Style.make ()) "--g" "8px" in
+  let styles = ReactDOM.Style.unsafeAddProp styles "--g" "12px" in
+  assert_styles styles "--g:12px"
+
+let unsafe_add_prop_existing_key_keeps_position () =
+  let styles = ReactDOM.Style.make ~color:"red" ~display:"block" () in
+  assert_styles (ReactDOM.Style.unsafeAddProp styles "color" "blue") "color:blue;display:block"
+
 let style_order_matters () =
   let styles = ReactDOM.Style.make ~lineBreak:"100px" ~overflowWrap:"break-word" () in
   assert_styles styles "line-break:100px;overflow-wrap:break-word"
@@ -62,7 +102,13 @@ let tests =
       unsafe_add_prop_css_custom_property_with_var_value;
     test "unsafeAddProp preserves simple CSS custom property" unsafe_add_prop_css_custom_property_simple;
     test "unsafeAddProp does not insert dashes around digits/underscores" unsafe_add_prop_camel_with_digits;
-    (* TODO: Add more test for unsafeAddProp *)
+    test "unsafeAddProp same key keeps one entry with the last value" unsafe_add_prop_same_key_last_value_wins;
+    test "unsafeAddProp existing key keeps its position" unsafe_add_prop_existing_key_keeps_position;
+    test "combine same key keeps the last value" combine_same_key_last_value_wins;
+    test "combine key keeps its first position" combine_key_keeps_first_position;
+    test "combine same custom property gives one entry" combine_same_custom_property;
+    test "combine distinct keys keep order" combine_distinct_keys_keep_order;
+    test "combine empty value replaces and keeps position" combine_empty_value_replaces_and_keeps_position;
     test "order matters" style_order_matters;
     test "order matters II" style_order_matters_2;
   ]

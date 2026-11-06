@@ -730,12 +730,6 @@ let to_string (styles : t) : string =
   write_to_buffer buf styles;
   Buffer.contents buf
 
-(* TODO: Remove conversion to sequences, can do List.combine *)
-let combine (styles1 : t) (styles2 : t) : t =
-  let seq1 = styles1 |> List.to_seq in
-  let seq2 = styles2 |> List.to_seq in
-  Seq.append seq1 seq2 |> List.of_seq
-
 let camelcaseToKebabcase str =
   let len = String.length str in
   let is_uppercase c = c >= 'A' && c <= 'Z' in
@@ -753,10 +747,13 @@ let camelcaseToKebabcase str =
     done;
     Buffer.contents buf
 
-let unsafeAddProp styles key value : t =
-  (* Adds the (key, value) into last position, mirroring reason-react's
-     Object.assign semantics where a new key lands at the end. *)
-  styles @ [ (camelcaseToKebabcase key, key, value) ]
+let add (styles : t) ((_, jsx_key, _) as prop) : t =
+  if List.exists (fun (_, k, _) -> String.equal k jsx_key) styles then
+    List.map (fun ((_, k, _) as p) -> if String.equal k jsx_key then prop else p) styles
+  else styles @ [ prop ]
+
+let combine (styles1 : t) (styles2 : t) : t = List.fold_left add [] (styles1 @ styles2)
+let unsafeAddProp styles key value : t = add styles (camelcaseToKebabcase key, key, value)
 
 (* Since we don't have a proper representation of `< .. > Js.t` yet,
    we can't make the unsafeAddStyle
