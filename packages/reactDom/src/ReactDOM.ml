@@ -331,8 +331,20 @@ let render_to_buffer ~mode buf element =
   let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
   ()
 
-let write_element_to_buffer_internal buf ~separators ~prev_text element : bool =
-  render_tree buf ~separators ~doctype:false ~prev_text element
+let write_element_to_buffer_internal buf ~separators ~prev_text (element : React.element) : bool =
+  match element with
+  | Empty -> prev_text
+  | Static { prerendered; _ } ->
+      Buffer.add_string buf prerendered;
+      false
+  | Writer { emit; _ } ->
+      emit buf ~separators;
+      false
+  | Text _ | Int _ | Float _ ->
+      if prev_text && separators then Buffer.add_string buf "<!-- -->";
+      write_text_node buf element;
+      true
+  | _ -> render_tree buf ~separators ~doctype:false ~prev_text element
 
 let write_element_to_buffer buf ~separators ~prev_text element =
   write_element_to_buffer_internal buf ~separators ~prev_text element
