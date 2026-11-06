@@ -36,7 +36,6 @@ let rec write_int_digits buf n =
   end
   else Buffer.add_char buf (Char.chr (Char.code '0' - n))
 
-(* Digits are written from the negated value so [min_int], whose negation overflows, works. *)
 let write_int buf n =
   if n < 0 then begin
     Buffer.add_char buf '-';
