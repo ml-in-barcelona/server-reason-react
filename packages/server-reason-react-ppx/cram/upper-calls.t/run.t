@@ -5,7 +5,9 @@
   let upper_children_single = foo =>
     Upper.make(Upper.makeProps(~children=foo, ()));
   let upper_children_multiple = (foo, bar) =>
-    Upper.make(Upper.makeProps(~children=React.list([foo, bar]), ()));
+    Upper.make(
+      Upper.makeProps(~children=React.Static_children([foo, bar]), ()),
+    );
   let upper_children =
     Page.make(
       Page.makeProps(

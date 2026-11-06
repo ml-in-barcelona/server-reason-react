@@ -1,9 +1,9 @@
 # React Flight protocol spec
 
-A verifiable specification of the React Flight (RSC) wire protocol, used to keep
-`ReactServerDOM.render_model` byte-compatible with the real React implementation,
-and `ReactServerDOM.decodeReply`/`decodeFormDataReply` faithful to what the real
-`encodeReply` sends.
+A verifiable specification of the React Flight (RSC) wire protocol. It checks
+`ReactServerDOM.render_model` against React's production bytes, ignoring the
+key-validation fields, and checks
+`ReactServerDOM.decodeReply`/`decodeFormDataReply` against `encodeReply`.
 
 ## How it works
 
@@ -17,8 +17,9 @@ Every case under `cases/shared/` is a single-source Reason file that compiles **
 
 React's output is committed under `fixtures/*.flight` (one Flight row per line,
 normalized as described in [protocol.md](./protocol.md)). An OCaml conformance runner
-(`conformance/`) renders the same cases natively and byte-compares each row against the
-committed fixture. Fixture diffs across React version bumps *are* the protocol changelog.
+(`conformance/`) renders the same cases natively. It removes the validation fields
+(`,null,null,0|1|2` at the end of each element tuple), then byte-compares each row
+against the committed fixture. Native and browser tests assert the validation states.
 
 The **reply direction** (client → server) works the other way around: `reply/cases.mjs`
 declares plain JS argument values, `reply/generate-reply.mjs` encodes them with the real
@@ -41,6 +42,7 @@ cases/js/         melange.emit target (copy_files from shared).
 fixtures/         committed golden output of the real React.
 conformance/      alcotest runners: flight_spec_conformance (server → client)
                   and reply_spec_conformance (client → server).
+key_validation/   native fixture exporter and development/production browser tests.
 reply/            reply-direction spec: cases.mjs (JS argument values),
                   generate-reply.mjs (encodeReply → fixtures), fixtures/.
 ```
@@ -58,6 +60,21 @@ make spec-generate-reply  # client → server .reply fixtures
 make spec-check
 ```
 
+To test native rows through the shipped Flight client and React DOM in Chromium:
+
+```sh
+# In packages/reactDom/react_flight_spec:
+npm ci
+npx --no-install playwright install chromium
+
+# From the repository root:
+make test-flight-key-validation
+```
+
+The browser tests use React, React DOM, and the Flight client at 19.1.0. They cover
+key warnings, client props, async rows, document mounting, and streamed hydration.
+Results and native rows are written to `_build/flight-key-validation/`.
+
 ## Known divergences (xfail)
 
 Cases annotated with `~xfail` in `cases/shared/Cases.re` (model direction) or in the
@@ -65,13 +82,14 @@ registry of `conformance/reply_spec_conformance.ml` (reply direction) are **expe
 to mismatch; the conformance runners assert that they *do* mismatch, so they flip
 loudly when fixed.
 
-**There are currently no known divergences in either direction: every case
-matches the React fixtures byte-for-byte.** All divergences the spec caught
+Every case matches the React fixtures after the checked element-validation
+extension is removed. The reply direction compares the original payloads.
+Earlier divergences the spec caught
 (including the reply-side `$$`-unescape bug and the missing server-reference
 dedup) were fixed on
 this branch — see the git history for the alignment work: `$`-string escaping,
 numeric props as strings, `$` instead of `$L` client references, inlined
-suspense symbol, unconditional 7-tuple element rows, shared-thenable dedup
+suspense symbol, shared-thenable dedup
 (`writtenObjects`), async components at the task root resolving into the
 task's own row, sync throws at the root erroring the root row (`0:E`), and
 `E`-row flushing after the model rows of the same flush.

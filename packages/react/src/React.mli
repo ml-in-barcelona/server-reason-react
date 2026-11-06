@@ -609,6 +609,10 @@ and element =
     }
   | List of element list
   | Array of element array
+  | Static_children of element list
+      (** A literal sibling group written in JSX under a component or a fragment. Only the PPX builds it. Its members
+          are static child positions for key validation, while a [List] or [Array] member is still a runtime collection.
+          Transparent for rendering. *)
   | Text of string
   | Int of int
   | Float of float
@@ -647,6 +651,9 @@ end
 module StrictMode : module type of Fragment
 
 val createElement : string -> JSX.prop list -> element list -> element
+(** The child list contains explicit sibling positions. Wrap a runtime collection with [list] or [array] so its members
+    remain eligible for missing-key warnings. *)
+
 val createElementWithKey : ?key:string -> string -> JSX.prop list -> element list -> element
 val component : 'props component -> 'props component
 val isValidElement : element -> bool

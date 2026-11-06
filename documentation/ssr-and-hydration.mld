@@ -255,3 +255,34 @@ Use [<ClientOnly/>] when the server JSX can be empty ([RR.null]) and only want t
 ]}
 
 Again, we should use [%melange_only] even when using [ClientOnly] since the content {b MUST} compile on [native].
+
+{1 Flight child keys}
+
+[ReactServerDOM] sends key-validation metadata in both [`Prod] and [`Dev].
+Explicit sibling positions do not require list keys. Runtime collections created
+with [React.list] or [React.array] require keys on their element members.
+
+{[
+let static = React.createElement "div" [] [first; second]
+let dynamic = React.createElement "div" [] [React.list items]
+]}
+
+Static-ness is a property of the container, not of the element. The native PPX
+builds [React.Static_children] for the literal children of a component or a
+fragment, [<Component> a b </Component>], in place of [React.list]. Its members are
+static; a [React.list] or [React.array] member inside it is still a runtime
+collection. Code that inspects [React.element] directly must handle this
+constructor.
+
+A single forwarded child carries no information of its own and takes the state of
+the slot it lands in: a host child list, the single child of a fragment, provider,
+consumer, or Suspense boundary, and the result of a server component give a static
+position; a runtime collection gives a missing-key state. A literal child extracted from a host and
+re-inserted into a runtime collection reports a missing key, where React does not.
+
+[React.Children.map] and [mapWithIndex] return a [React.Static_children], so
+mapped children are static, as React's keyed [Children.map] results never warn.
+
+The default environment remains [`Prod]. Error details remain redacted. The
+validation fields add 12 uncompressed bytes per production element tuple and let
+a development client report missing keys without warning about static siblings.
