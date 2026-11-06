@@ -3,20 +3,7 @@ module Ref = React.DOMRef
 
 type domRef = Ref.t
 
-let rec write_int_digits buf n =
-  if n <= -10 then begin
-    write_int_digits buf (n / 10);
-    Buffer.add_char buf (Char.chr (Char.code '0' - (n mod 10)))
-  end
-  else Buffer.add_char buf (Char.chr (Char.code '0' - n))
-
-(* Digits are written from the negated value so [min_int], whose negation overflows, works. *)
-let write_int_to_buffer buf n =
-  if n < 0 then begin
-    Buffer.add_char buf '-';
-    write_int_digits buf n
-  end
-  else write_int_digits buf (-n)
+let write_int_to_buffer = Html.write_int
 
 let is_react_custom_attribute attr =
   match attr with
