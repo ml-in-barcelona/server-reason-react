@@ -730,12 +730,6 @@ let to_string (styles : t) : string =
   write_to_buffer buf styles;
   Buffer.contents buf
 
-(* TODO: Remove conversion to sequences, can do List.combine *)
-let combine (styles1 : t) (styles2 : t) : t =
-  let seq1 = styles1 |> List.to_seq in
-  let seq2 = styles2 |> List.to_seq in
-  Seq.append seq1 seq2 |> List.of_seq
-
 let camelcaseToKebabcase str =
   let len = String.length str in
   let is_uppercase c = c >= 'A' && c <= 'Z' in
@@ -753,10 +747,21 @@ let camelcaseToKebabcase str =
     done;
     Buffer.contents buf
 
+let rec mem key = function [] -> false | (_, k, _) :: rest -> String.equal key k || mem key rest
+
+let rec replace ((_, key, _) as prop) = function
+  | [] -> []
+  | ((_, k, _) as p) :: rest -> if String.equal key k then prop :: rest else p :: replace prop rest
+
+let push_rev acc ((_, key, _) as prop) = if mem key acc then replace prop acc else prop :: acc
+
+let combine (styles1 : t) (styles2 : t) : t =
+  List.rev (List.fold_left push_rev (List.fold_left push_rev [] styles1) styles2)
+
 let unsafeAddProp styles key value : t =
-  (* Adds the (key, value) into last position, mirroring reason-react's
-     Object.assign semantics where a new key lands at the end. *)
-  styles @ [ (camelcaseToKebabcase key, key, value) ]
+  let prop = (camelcaseToKebabcase key, key, value) in
+  if mem key styles then List.map (fun ((_, k, _) as p) -> if String.equal key k then prop else p) styles
+  else styles @ [ prop ]
 
 (* Since we don't have a proper representation of `< .. > Js.t` yet,
    we can't make the unsafeAddStyle
