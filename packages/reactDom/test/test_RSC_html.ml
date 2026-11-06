@@ -1599,6 +1599,27 @@ let flight_hints_inside_suspense_boundary () =
        '>window.srr_stream.push()</script>";
     ]
 
+let component_suspended_by_use_promise_is_retried () =
+  let promise, wake = Lwt.wait () in
+  let calls = ref 0 in
+  let app =
+    React.Upper_case_component
+      ( "Suspended",
+        fun () ->
+          incr calls;
+          React.Experimental.usePromise promise;
+          React.createElement "span" [] [ React.string "resolved" ] )
+  in
+  let render = ReactServerDOM.render_html ~env:`Prod app in
+  Lwt.wakeup wake ();
+  let%lwt html, _subscribe = render in
+  Alcotest.(check bool)
+    "html starts with the resolved content" true
+    (String.starts_with ~prefix:"<span>resolved</span>" html);
+  Alcotest.(check int) "component attempts" 2 !calls;
+  Alcotest.(check bool) "tree context restored" true (!React.current_tree_context = React.Tree_context.empty);
+  Lwt.return ()
+
 let tests =
   [
     test "debug_adds_debug_info" debug_adds_debug_info;
@@ -1664,4 +1685,5 @@ let tests =
     test "immediate_boundary_title_is_hoisted_to_head" immediate_boundary_title_is_hoisted_to_head;
     test "flight_hints_emit_hint_rows" flight_hints_emit_hint_rows;
     test "flight_hints_inside_suspense_boundary" flight_hints_inside_suspense_boundary;
+    test "component_suspended_by_use_promise_is_retried" component_suspended_by_use_promise_is_retried;
   ]

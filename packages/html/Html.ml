@@ -29,6 +29,20 @@ let escape buf s =
       done
   | () -> Buffer.add_string buf s
 
+let rec write_int_digits buf n =
+  if n <= -10 then begin
+    write_int_digits buf (n / 10);
+    Buffer.add_char buf (Char.chr (Char.code '0' - (n mod 10)))
+  end
+  else Buffer.add_char buf (Char.chr (Char.code '0' - n))
+
+let write_int buf n =
+  if n < 0 then begin
+    Buffer.add_char buf '-';
+    write_int_digits buf n
+  end
+  else write_int_digits buf (-n)
+
 type attribute = [ `Present of string | `Value of string * string | `Omitted ]
 type attribute_list = attribute list
 
@@ -80,7 +94,7 @@ let to_string ?(add_separator_between_text_nodes = true) element =
   let rec write element =
     match element with
     | Null -> should_add_doctype_to_html.contents <- false
-    | Int i -> Buffer.add_string out (Int.to_string i)
+    | Int i -> write_int out i
     | Float f -> Buffer.add_string out (Float.to_string f)
     | String text ->
         let is_previous_text_node = previous_node_was_text.contents in

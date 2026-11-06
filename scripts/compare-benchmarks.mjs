@@ -29,9 +29,11 @@ const formatValue = (value) =>
     ? Math.round(value).toLocaleString('en-US')
     : value.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
-const lines = ['## Benchmarks', ''];
+const lines = [];
+let summary;
 
 if (!baseline) {
+  summary = `${current.length} benchmarks, no baseline from \`main\` yet`;
   lines.push('No baseline from `main` available yet, showing absolute values only.', '');
   lines.push('| Benchmark | ops/sec |');
   lines.push('| --- | ---: |');
@@ -39,6 +41,8 @@ if (!baseline) {
     lines.push(`| ${bench.name} | ${formatValue(bench.value)} |`);
   }
 } else {
+  let faster = 0;
+  let slower = 0;
   lines.push(`Comparison against \`main\` (${baselineCommit ?? 'unknown'}). Higher is better.`, '');
   lines.push('| Benchmark | main (ops/sec) | PR (ops/sec) | Change |');
   lines.push('| --- | ---: | ---: | ---: |');
@@ -51,6 +55,8 @@ if (!baseline) {
     const change = ((bench.value - base.value) / base.value) * 100;
     const marker =
       change >= NOISE_THRESHOLD ? '🟢' : change <= -NOISE_THRESHOLD ? '🔴' : '';
+    if (change >= NOISE_THRESHOLD) faster++;
+    if (change <= -NOISE_THRESHOLD) slower++;
     const sign = change >= 0 ? '+' : '';
     lines.push(
       `| ${bench.name} | ${formatValue(base.value)} | ${formatValue(bench.value)} | ${sign}${change.toFixed(1)}% ${marker} |`,
@@ -60,6 +66,17 @@ if (!baseline) {
   lines.push(
     `<sub>Changes within ±${NOISE_THRESHOLD}% are likely noise from the CI runner.</sub>`,
   );
+  summary = `${current.length} benchmarks: ${faster} 🟢 faster, ${slower} 🔴 slower`;
 }
 
-process.stdout.write(lines.join('\n') + '\n');
+const output = [
+  '## Benchmarks',
+  '',
+  '<details>',
+  `<summary>${summary}</summary>`,
+  '',
+  ...lines,
+  '',
+  '</details>',
+];
+process.stdout.write(output.join('\n') + '\n');
