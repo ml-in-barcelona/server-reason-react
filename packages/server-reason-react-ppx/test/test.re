@@ -443,7 +443,84 @@ let data_props = () => {
     />;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    {|<div data-foo="plain" data-foo--bar="double" data-foo---="trailing" data-foo-bar="single" data-url="acronym" data-url-path="acronym then word" data-foo-bar="underscore then uppercase" data-version2="digit" data-version20="digits" data2="leading digit" data-foo="leading underscore" datafoo="lowercase"></div>|},
+    {|<div data-foo="plain" data-foo__bar="double" data-foo___="trailing" data-foo_bar="single" data-url="acronym" data-url-path="acronym then word" data-foo_bar="underscore then uppercase" data-version2="digit" data-version20="digits" data2="leading digit" data_foo="leading underscore" datafoo="lowercase"></div>|},
+  );
+};
+
+let render_model_chunks = element => {
+  let output = ref([]);
+  let subscribe = chunk => {
+    output := Stdlib.List.append(output^, [chunk]);
+    Lwt.return();
+  };
+  let%lwt () = ReactServerDOM.render_model(~subscribe, element);
+  Lwt.return(Stdlib.String.concat("", output^));
+};
+
+let data_props_flight_names = () => {
+  let%lwt chunks =
+    render_model_chunks(
+      <div
+        dataFoo="plain"
+        dataFoo__bar="double"
+        dataFoo___="trailing"
+        dataFoo_bar="single"
+        dataURL="acronym"
+        dataURLPath="acronym then word"
+        dataFoo_Bar="underscore then uppercase"
+        dataVersion2="digit"
+        dataVersion20="digits"
+        data2="leading digit"
+        data_foo="leading underscore"
+        datafoo="lowercase"
+      />,
+    );
+  assert_string(
+    chunks,
+    {|0:["$","div",null,{"data-foo":"plain","data-foo__bar":"double","data-foo___":"trailing","data-foo_bar":"single","data-url":"acronym","data-url-path":"acronym then word","data-version2":"digit","data-version20":"digits","data2":"leading digit","data_foo":"leading underscore","datafoo":"lowercase"}]
+|},
+  );
+  Lwt.return();
+};
+
+let data_props_flight_collision_first_wins = () => {
+  let%lwt chunks =
+    render_model_chunks(<div dataURL="first" dataUrl="second" />);
+  assert_string(chunks, {|0:["$","div",null,{"data-url":"first"}]
+|});
+  Lwt.return();
+};
+
+let data_props_flight_collision_optional_both_some = () => {
+  let a = Some("first");
+  let b = Some("second");
+  let%lwt chunks = render_model_chunks(<div dataURL=?a dataUrl=?b />);
+  assert_string(chunks, {|0:["$","div",null,{"data-url":"first"}]
+|});
+  Lwt.return();
+};
+
+let data_props_flight_collision_optional_second_some = () => {
+  let a = None;
+  let b = Some("second");
+  let%lwt chunks = render_model_chunks(<div dataURL=?a dataUrl=?b />);
+  assert_string(chunks, {|0:["$","div",null,{"data-url":"second"}]
+|});
+  Lwt.return();
+};
+
+let data_props_flight_collision_first_none = () => {
+  let a = None;
+  let%lwt chunks = render_model_chunks(<div dataURL=?a dataUrl="fallback" />);
+  assert_string(chunks, {|0:["$","div",null,{"data-url":"fallback"}]
+|});
+  Lwt.return();
+};
+
+let data_props_collision_html = () => {
+  assert_string(
+    ReactDOM.renderToStaticMarkup(<div dataURL="first" dataUrl="second" />),
+    {|<div data-url="first" data-url="second"></div>|},
   );
 };
 
@@ -1144,6 +1221,24 @@ Alcotest_lwt.run(
     test("create_element_variadic", create_element_variadic),
     test("aria_props", aria_props),
     test("data_props", data_props),
+    test("data_props_collision_html", data_props_collision_html),
+    test_lwt("data_props_flight_names", data_props_flight_names),
+    test_lwt(
+      "data_props_flight_collision_first_wins",
+      data_props_flight_collision_first_wins,
+    ),
+    test_lwt(
+      "data_props_flight_collision_optional_both_some",
+      data_props_flight_collision_optional_both_some,
+    ),
+    test_lwt(
+      "data_props_flight_collision_optional_second_some",
+      data_props_flight_collision_optional_second_some,
+    ),
+    test_lwt(
+      "data_props_flight_collision_first_none",
+      data_props_flight_collision_first_none,
+    ),
     test("optional_prop", optional_prop),
     test("context", context),
     test("context_2", context_2),

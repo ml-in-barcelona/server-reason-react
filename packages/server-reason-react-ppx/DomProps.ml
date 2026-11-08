@@ -1631,7 +1631,7 @@ let camelcaseToKebabcase str =
   let buf = Buffer.create (len + 4) in
   String.iteri
     (fun i c ->
-      if c = '_' then Buffer.add_char buf '-'
+      if c = '_' then Buffer.add_char buf '_'
       else if is_upper c then (
         let prev = if i > 0 then Some str.[i - 1] else None in
         let next_is_lower = i + 1 < len && is_lower str.[i + 1] in
@@ -1647,7 +1647,7 @@ let findByJsxName ~tag name =
   let byReasonName p = getReasonJSXName p = jsxName in
   if isDataAttribute jsxName then
     let name = camelcaseToKebabcase jsxName in
-    Ok (Attribute { name; jsxName; reasonJsxName = jsxName; type_ = String })
+    Ok (Attribute { name; jsxName = name; reasonJsxName = jsxName; type_ = String })
   else if jsxName = "styles" then
     (* styles needs to be "valid" for the ppx to validate, but the type isn't important, since it's expanded into className and style *)
     Ok (Attribute { name; jsxName; reasonJsxName = jsxName; type_ = String })
