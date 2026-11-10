@@ -572,6 +572,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         let render_fallback_html () =
           let fallback_buf = Buffer.create 128 in
           let%lwt () = render_to_buffer ~env ~stream_context fallback_buf (Option.value fallback ~default:React.null) in
+          previous_node_was_text := false;
           Lwt.return (Buffer.contents fallback_buf)
         in
         let buffer_length = Buffer.length buf in
