@@ -13,8 +13,8 @@ Js.typeof	wontfix	Requires JS runtime type tags.
 # --- Js.Array ---
 Js.Array.isArray	orange	Always returns true; there is no runtime type information (Js_array.ml:10).
 Js.Array.includes	orange	Uses OCaml structural equality; JS SameValueZero differs (NaN, object identity).
-Js.Array.indexOf	orange	Negative ~start handling diverges from JS (audit/areas/belt-js.md).
-Js.Array.lastIndexOfFrom	orange	Negative ~from handling diverges from JS (audit/areas/belt-js.md).
+Js.Array.indexOf	orange	Negative ~start handling diverges from JS.
+Js.Array.lastIndexOfFrom	orange	Negative ~start handling diverges from JS.
 Js.Array.from	wontfix	Requires JS iterables; array_like values cannot be constructed natively.
 Js.Array.fromMap	wontfix	Requires JS iterables; array_like values cannot be constructed natively.
 Js.Array.copyWithin	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.

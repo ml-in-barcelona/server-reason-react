@@ -39,7 +39,7 @@ module Private = struct
   let rule =
     let expand (stru : structure) =
       Typemod_hide.check stru;
-      let last_loc = (List.hd stru).pstr_loc in
+      let last_loc = (List.hd (List.rev stru)).pstr_loc in
       let first_loc = (List.hd stru).pstr_loc in
       let loc = { first_loc with loc_end = last_loc.loc_end } in
       Ast_helper.[ Str.open_ (Opn.mk ~override:Override (Mod.structure ~loc stru)) ] |> List.hd
@@ -49,7 +49,7 @@ module Private = struct
       let handler ~ctxt:_ { txt = payload; loc } =
         match payload with
         | PStr work -> expand work
-        | PSig _ | PTyp _ | PPat _ -> Location.raise_errorf ~loc "private extension is not support"
+        | PSig _ | PTyp _ | PPat _ -> Location.raise_errorf ~loc "private extension is not supported"
       in
 
       let extender = Extension.V3.declare label Structure_item extractor handler in
@@ -108,32 +108,6 @@ module Mel_module = struct
     let filename ~base content = Filename.(chop_extension base ^ "-" ^ hash content ^ extension base)
   end
 
-  (*
-     (* For now, rspack doesn't support real content hashes, see https://github.com/web-infra-dev/rspack/issues/6606 *)
-      module Rspack = struct
-         (* This code is adapted from Rspack hashing algorithm:
-            https://github.com/web-infra-dev/rspack/blob/0a5cf0ddf38d41c2cad58c95ee9c1d3bd95e377f/crates/rspack_hash/src/lib.rs
-         *)
-         let hex_to_little_endian hex_str =
-           (* Split the hex string into byte pairs *)
-           let rec split_into_bytes acc i =
-             if i >= String.length hex_str then List.rev acc
-             else
-               let byte = String.sub hex_str i 2 in
-               split_into_bytes (byte :: acc) (i + 2)
-           in
-           (* Join byte pairs into a single string *)
-           let join_bytes bytes = String.concat "" bytes in
-           (* Perform the transformation *)
-           let bytes = split_into_bytes [] 0 in
-           let reversed_bytes = List.rev bytes in
-           join_bytes reversed_bytes
-
-         let hash content =
-           let open XXHash in
-           let hash = XXH3_64.hash content in
-           hex_to_little_endian (XXH3_64.to_hex hash)
-       end *)
   module Webpack = struct
     (* Needs following config in webpack.config.js, see https://webpack.js.org/configuration/output/#outputhashfunction
        ```
@@ -622,17 +596,6 @@ let rec get_return_core_type = function
   | { ptyp_desc = Ptyp_arrow (_, _, rest); _ } -> get_return_core_type rest
   | core_type -> core_type
 
-let get_function_name pattern =
-  let rec go pattern =
-    match pattern with
-    | Ppat_var { txt = name; _ } -> Some name
-    | Ppat_constraint (pattern, _) -> go pattern.ppat_desc
-    | _ -> None
-  in
-  go pattern
-
-let get_label = function Ptyp_constr ({ txt = Lident label; _ }, _) -> Some label | _ -> None
-
 (* Extract the `t` from [@mel.send.pipe: t] *)
 let get_send_pipe pval_attributes =
   if is_send_pipe pval_attributes then
@@ -653,7 +616,6 @@ let extract_args_labels_types acc pval_type =
     (* In case of being mel.as, ignore those *)
     | { ptyp_desc = Ptyp_arrow (_label, t1, _t2); _ } when is_mel_as t1 -> acc
     | { ptyp_desc = Ptyp_arrow (_label, _t1, t2); _ } when is_mel_as t2 -> acc
-    | { ptyp_desc = Ptyp_arrow (_label, t1, t2); _ } when is_mel_as t1 && is_mel_as t2 -> acc
     | { ptyp_desc = Ptyp_arrow (label, t1, t2); _ } ->
         let pattern = Builder.ppat_var ~loc:t1.ptyp_loc { loc = t1.ptyp_loc; txt = "_" } in
         go ((label, pattern, t1) :: acc) t2
@@ -683,9 +645,9 @@ let construct_pval_with_send_pipe send_pipe_core_type pval_type =
         | _, _ ->
             Builder.ptyp_arrow ~loc:t2.ptyp_loc label t1
               (Builder.ptyp_arrow ~loc:t2.ptyp_loc Nolabel send_pipe_core_type t2))
-    (* In case of being a single ptyp_* turn into ptyp_* -> t *)
+    (* In case of being a single ptyp_* turn into t -> ptyp_* *)
     | { ptyp_desc = Ptyp_constr ({ txt = _; loc }, _); _ } | { ptyp_desc = Ptyp_var _; ptyp_loc = loc; _ } ->
-        Builder.ptyp_arrow ~loc Nolabel core_type send_pipe_core_type
+        Builder.ptyp_arrow ~loc Nolabel send_pipe_core_type core_type
     (* Here we ignore the Ptyp_any *)
     | _ -> core_type
   in
@@ -822,18 +784,6 @@ let external_found_in_native_message ~loc =
        https://github.com/ml-in-barcelona/ppx_platform"
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
-
-let get_function_arity pattern =
-  let rec go arity params body =
-    match params with
-    | _ :: rest -> go (arity + 1) rest body
-    | [] -> (
-        match body with
-        | Pfunction_body { pexp_desc = Pexp_function (more_params, _, inner_body); _ } ->
-            go arity more_params inner_body
-        | _ -> arity)
-  in
-  match pattern with Pexp_function (params, _, body) -> go 0 params body | _ -> 0
 
 let transform_external_arrow ~loc pval_name pval_attributes pval_type =
   let pipe_type =

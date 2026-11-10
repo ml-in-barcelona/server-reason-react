@@ -1,7 +1,6 @@
 (lang dune 3.9)
 (using melange 0.1)
 (using directory-targets 0.1)
-(using mdx 0.4)
 
 (cram enable)
 
@@ -25,7 +24,7 @@
  (synopsis "Rendering React components on the server natively")
  (depends
   ; General system dependencies
-  (ocaml (>= 4.14.1))
+  (ocaml (>= 5.3.0))
   (reason (>= 3.17.2))
   ; melange 7.0.0 inlines externals cross-module and breaks relative
   ; [@mel.module "./..."] paths (e.g. ReactServerDOMEsbuild.js); fixed in
@@ -33,7 +32,6 @@
   (melange (and (>= 3.0.0) (or (< 7.0.0) (>= 7.0.1))))
 
   ; Library dependencies
-  (uucp (>= 16.0.0))
   (ppxlib (>= 0.36.0))
   (ppx_platform (>= 0.3.0))
   ; quickjs 0.5.0 is a breaking release (RegExp.exec returns match_result
@@ -51,10 +49,11 @@
   (zarith (>= 1.14))
   (uutf (>= 1.0.3))
   (melange-fetch (>= 0.2.0))
-  (melange-json (>= 2.0.0))
   (melange-json-native (>= 2.0.0))
   (melange-webapi (>= 0.21.0))
   (reason-react (>= 0.17.0))
+  (reason-react-ppx (>= 0.17.0))
+  (cmdliner (>= 1.1.0))
 
   ; Documentation
   (odoc :with-doc)
@@ -74,11 +73,8 @@
   (lambdasoup :with-dev-setup)
   (mtime :with-dev-setup)
 
-  (reason-react-ppx :with-dev-setup)
-
   ; Test dependencies
   (alcotest :with-test)
   (alcotest-lwt :with-test)
   (fmt :with-test)
-  (merlin :with-test)
 ))

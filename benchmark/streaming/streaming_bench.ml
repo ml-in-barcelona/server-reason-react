@@ -1,10 +1,4 @@
-(** Streaming Benchmark for server-reason-react
-
-    Measures:
-    - Time to first byte (TTFB)
-    - Time to full render
-    - Chunk sizes
-    - Memory during streaming *)
+(** Times [renderToStaticMarkup] and [renderToString] per scenario. *)
 
 let measure_time_us f =
   let start = Unix.gettimeofday () in
@@ -122,8 +116,6 @@ let main () =
       scenarios
   in
 
-  print_comparison_table results;
+  print_comparison_table results
 
-  Lwt.return ()
-
-let () = Lwt_main.run (main ())
+let () = main ()

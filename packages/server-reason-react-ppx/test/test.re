@@ -71,6 +71,15 @@ let bool_attributes = () => {
   );
 };
 
+let input_form_attributes = () => {
+  let input =
+    <input formMethod="post" formNoValidate=true formTarget="_blank" />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(input),
+    {|<input formmethod="post" formnovalidate formtarget="_blank" />|},
+  );
+};
+
 let innerhtml = () => {
   let p = <p> {React.string("text")} </p>;
   assert_string(ReactDOM.renderToStaticMarkup(p), "<p>text</p>");
@@ -258,6 +267,12 @@ let onClick_empty = () => {
   let onClick = Some(_ => Stdlib.print_endline("clicked"));
   let div = <div ?onClick />;
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
+};
+
+let onSelect_non_optional = () => {
+  let onSelect = (_: React.Event.Selection.t) => ();
+  let input = <input onSelect />;
+  assert_string(ReactDOM.renderToStaticMarkup(input), {|<input />|});
 };
 
 let svg_1 = () => {
@@ -773,26 +788,22 @@ let server_function_reference = () => {
 };
 
 let server_function_reference_args_error = () => {
-  (
-    try(
-      FunctionReferences.get(ServerFunction.simpleResponse.id)
-      |> (
-        fun
-        | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
-        | _ => assert(false)
-      )
-      |> Stdlib.ignore
-    ) {
-    | Failure(error) =>
-      assert_string(
-        error,
-        "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
-      )
-      |> Stdlib.ignore
-    }
-  )
-  |> Stdlib.ignore;
-  Lwt.return_unit;
+  switch (
+    FunctionReferences.get(ServerFunction.simpleResponse.id)
+    |> (
+      fun
+      | Some(Body(handler)) => handler([|`String("John"), `String("30")|])
+      | _ => assert(false)
+    )
+  ) {
+  | _ => Alcotest.fail("Expected Invalid_argument")
+  | exception (Invalid_argument(error)) =>
+    assert_string(
+      error,
+      "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
+    );
+    Lwt.return_unit;
+  };
 };
 
 let server_function_reference_form_data = () => {
@@ -1303,6 +1314,7 @@ Alcotest_lwt.run(
     test("empty_attribute", empty_attribute),
     test("bool_attribute", bool_attribute),
     test("bool_attributes", bool_attributes),
+    test("input_form_attributes", input_form_attributes),
     test("innerhtml", innerhtml),
     test("int_attribute", int_attribute),
     test("svg_1", svg_1),
@@ -1339,6 +1351,7 @@ Alcotest_lwt.run(
     ),
     test("children_lowercase", children_lowercase),
     test("event_onClick", onClick_empty),
+    test("event_onSelect", onSelect_non_optional),
     test("children_one_element", children_one_element),
     test("children_multiple_elements", children_multiple_elements),
     test("create_element_variadic", create_element_variadic),

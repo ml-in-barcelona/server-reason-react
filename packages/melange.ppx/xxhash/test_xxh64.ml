@@ -8,7 +8,6 @@ let data =
     ("asd", 0x631c37ce72a97393L);
     ("asdf", 0x415872f599cea71eL);
     ("abc", 0x44bc2cf5ad770999L);
-    ("abc", 0x44bc2cf5ad770999L);
     ("abcd", 0xde0327b0d25d92ccL);
     ("abcde", 0x07e3670c0c8dc7ebL);
     ("abcdef", 0xfa8afd82c423144dL);

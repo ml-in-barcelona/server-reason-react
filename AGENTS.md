@@ -29,13 +29,12 @@ See `README.md` for user-facing documentation.
 
 ## Gotchas
 
-- quickjs is pinned from git until 0.5.1 is on opam-repository: `make pin`
-  (see the `pin` target in `Makefile` and the constraint comment in
-  `dune-project`). quickjs 0.x minors are breaking; keep the `< 0.6.0` bound.
+- quickjs 0.x minors are breaking; keep the `< 0.6.0` bound (see the
+  constraint comment in `dune-project`).
 - melange 7.0.0 (exactly) is excluded — see the constraint comment in
   `dune-project`.
-- CI builds on macOS + Ubuntu × OCaml 4.14.1 + 5.4.0. Code must stay
-  compatible with OCaml 4.14 (no 5.x-only stdlib functions).
+- CI builds on macOS + Ubuntu × OCaml 5.3.0 + 5.4.0. Code must stay
+  compatible with OCaml 5.3 (no stdlib functions added in 5.4).
 - Universal code compiles twice (native + melange). Platform-specific code
   uses `ppx_platform` (`let%melange_only`, `switch%platform`). Effects are
   not removed on native: wrap browser-only effect bodies with `[%melange_only]`.
@@ -61,6 +60,5 @@ See `README.md` for user-facing documentation.
 
 ## Where design decisions live
 
-- `SERVER_FUNCTIONS_DESIGN.md` — design notes for in-flight server-functions work
 - `benchmark/perf-work/PERF_NEXT.md` — perf work protocol (measure before changing)
 - `documentation/*.mld` — odoc pages (universal code, ppx_platform, SSR/hydration)

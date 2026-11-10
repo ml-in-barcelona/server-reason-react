@@ -1,13 +1,4 @@
-let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
-let check_json = Alcotest.check yojson "should be equal"
-
-let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a list) =
-  Alcotest.check (Alcotest.list ty) "should be equal" right left
-
 let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_list_of_strings (left : string list) (right : string list) =
-  Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
 let test title fn =
   ( Printf.sprintf "ReactServerDOM.render_html / %s" title,
@@ -553,6 +544,48 @@ let head_reorders_children_by_priority () =
        App\"},null,null,1],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width\"},null,null,1],[\"$\",\"script\",null,{\"async\":true,\"src\":\"/app.js\"},null,null,1]]},null,null,1],[\"$\",\"body\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Content\"},null,null,1]},null,null,1]]},null,null,0]\n\
        '>window.srr_stream.push()</script></html>"
 
+let head_resources_dedupe_with_body_resources () =
+  let app =
+    html
+      [
+        head
+          [
+            React.createElement "title" [] [ React.string "T" ];
+            link ~rel:"stylesheet" ~precedence:"default" ~href:"/a.css" ();
+            script ~async:true ~src:"/a.js" ();
+            link ~rel:"stylesheet" ~href:"/p.css" ();
+            link ~rel:"stylesheet" ~href:"/p.css" ();
+          ];
+        body
+          [
+            link ~rel:"stylesheet" ~precedence:"default" ~href:"/a.css" ();
+            link ~rel:"stylesheet" ~precedence:"default" ~href:"/b.css" ();
+            script ~async:true ~src:"/a.js" ();
+            div [] [ React.string "x" ];
+          ];
+      ]
+  in
+  assert_html app
+    ~shell:
+      {|<!DOCTYPE html><html><head><link href="/a.css" rel="stylesheet" precedence="default" /><link href="/b.css" rel="stylesheet" precedence="default" /><script async src="/a.js"></script><title>T</title><link href="/p.css" rel="stylesheet" /><link href="/p.css" rel="stylesheet" /></head><body><div>x</div></body><script data-payload='0:["$","html",null,{"children":[["$","head",null,{"children":[["$","title",null,{"children":"T"},null,null,1],["$","link",null,{"href":"/a.css","rel":"stylesheet","precedence":"default"},null,null,1],["$","script",null,{"async":true,"src":"/a.js"},null,null,1],["$","link",null,{"href":"/p.css","rel":"stylesheet"},null,null,1],["$","link",null,{"href":"/p.css","rel":"stylesheet"},null,null,1]]},null,null,1],["$","body",null,{"children":[["$","link",null,{"href":"/a.css","rel":"stylesheet","precedence":"default"},null,null,1],["$","link",null,{"href":"/b.css","rel":"stylesheet","precedence":"default"},null,null,1],["$","script",null,{"async":true,"src":"/a.js"},null,null,1],["$","div",null,{"children":"x"},null,null,1]]},null,null,1]]},null,null,0]
+'>window.srr_stream.push()</script></html>|}
+
+let head_resources_from_components_keep_first () =
+  let styles =
+    React.Upper_case_component ("Styles", fun () -> link ~rel:"stylesheet" ~precedence:"low" ~href:"/a.css" ())
+  in
+  let app =
+    html
+      [
+        head [ styles; styles; link ~rel:"stylesheet" ~precedence:"high" ~href:"/a.css" () ];
+        body [ div [] [ React.string "x" ] ];
+      ]
+  in
+  assert_html app
+    ~shell:
+      {|<!DOCTYPE html><html><head><link href="/a.css" rel="stylesheet" precedence="low" /></head><body><div>x</div></body><script data-payload='0:["$","html",null,{"children":[["$","head",null,{"children":[["$","link",null,{"href":"/a.css","rel":"stylesheet","precedence":"low"},null,null,1],["$","link",null,{"href":"/a.css","rel":"stylesheet","precedence":"low"},null,null,1],["$","link",null,{"href":"/a.css","rel":"stylesheet","precedence":"high"},null,null,1]]},null,null,1],["$","body",null,{"children":["$","div",null,{"children":"x"},null,null,1]},null,null,1]]},null,null,0]
+'>window.srr_stream.push()</script></html>|}
+
 let html_attributes_are_preserved () =
   let app = html ~attributes:[ React.JSX.String ("lang", "lang", "en") ] [] in
   assert_html app
@@ -593,5 +626,7 @@ let tests =
     test "upper_case_component_with_resources" upper_case_component_with_resources;
     test "hoisted_elements_order_issue" hoisted_elements_order_issue;
     test "head_reorders_children_by_priority" head_reorders_children_by_priority;
+    test "head_resources_dedupe_with_body_resources" head_resources_dedupe_with_body_resources;
+    test "head_resources_from_components_keep_first" head_resources_from_components_keep_first;
     test "html_attributes_are_preserved" html_attributes_are_preserved;
   ]

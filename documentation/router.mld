@@ -429,8 +429,8 @@ An entry is [Meta { key; attr; name; content }] ([attr] is [Name] or
 [<script>] or [<style>], and no [lang]: the app sets [lang] in its document
 hook.
 
-Merge works by key. A child entry replaces a parent entry with the same key
-in place. New child entries go after the parent entries. The default keys are
+Merge works by key. A child entry removes the parent entry with the same key.
+Child entries go after the remaining parent entries. The default keys are
 [meta:<name>], [property:<property>] and [link:<rel>]. The prefix keeps a
 [meta] and a [link] with the same word apart, and [name] apart from
 [property]. A tag that repeats, such as several [alternate] links or

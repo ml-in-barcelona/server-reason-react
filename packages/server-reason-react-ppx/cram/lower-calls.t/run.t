@@ -5046,8 +5046,8 @@
         ),
     });
   let self_closing_tag_with_children = [%ocaml.error
-    "\"meta\" is a self-closing tag and must not have \"children\".\\n"
+    "server-reason-react: \"meta\" is a self-closing tag and must not have \"children\"."
   ];
   let self_closing_tag_with_dangerouslySetInnerHtml = [%ocaml.error
-    "server-reason-react: \"meta\" is a self-closing tag and must not have \"children\".\\n"
+    "server-reason-react: \"meta\" is a self-closing tag and must not have \"dangerouslySetInnerHTML\"."
   ];

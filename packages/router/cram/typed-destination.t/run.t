@@ -34,7 +34,7 @@
   $ ocamlc -c NoteId.ml
   $ ocamlc -c Router_compat.mli
   $ ocamlc -i Router.ml > Router.interface
-  $ grep -E '^type route|^val useRoute|useIsActive' Router.interface
+  $ grep -E '^type route|^val useRoute' Router.interface
   type route =
   val useRoute : unit -> route option
   $ grep -E 'RouterRuntime\.(Navigation\.|Search\.)|RouterReact' Router.interface

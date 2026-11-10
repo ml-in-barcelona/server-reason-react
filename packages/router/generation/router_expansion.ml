@@ -809,7 +809,7 @@ let failure_plan ~loc scopes error not_found error_boundary =
 
 let loader_execution (route : Router_declaration.route) =
   let loc = route.loc in
-  let rec build scopes parameters search loader_values completed not_found error_boundary loader_seen =
+  let rec build scopes parameters search loader_values completed not_found error_boundary =
     match scopes with
     | [] ->
         let page =
@@ -839,7 +839,7 @@ let loader_execution (route : Router_declaration.route) =
         | None ->
             let reusable = Option.is_some scope.attachments.layout in
             let current = scope_plan scope parameters search loader_values ~reusable in
-            build rest parameters search loader_values (completed @ [ current ]) not_found error_boundary loader_seen
+            build rest parameters search loader_values (completed @ [ current ]) not_found error_boundary
         | Some loader ->
             let run_call = apply_native_inputs ~loc:loader.loc loader.run parameters search loader_values in
             let run = B.pexp_fun ~loc:loader.loc Nolabel None (B.punit ~loc:loader.loc) run_call in
@@ -847,7 +847,7 @@ let loader_execution (route : Router_declaration.route) =
             let reusable = Option.is_some scope.attachments.layout in
             let current = scope_plan scope parameters search next_loaders ~reusable in
             let next_body =
-              build rest parameters search next_loaders (completed @ [ current ]) not_found error_boundary true
+              build rest parameters search next_loaders (completed @ [ current ]) not_found error_boundary
             in
             let next = B.pexp_fun ~loc:loader.loc Nolabel None (B.pvar ~loc:loader.loc loader.result_label) next_body in
             let failed =
@@ -858,7 +858,7 @@ let loader_execution (route : Router_declaration.route) =
               (B.evar ~loc:loader.loc "RouterServer.Execution.loadWithBoundary")
               [ (Labelled "run", run); (Labelled "failure", failure); (Labelled "next", next) ])
   in
-  build route.scopes [] [] [] [] None None false
+  build route.scopes [] [] [] [] None None
 
 let parsed_path path =
   match RouterPattern.parse path with
@@ -879,17 +879,16 @@ let active_route_candidates routes pattern =
 
 let projected_branch (route : Router_declaration.route) =
   let loc = route.loc in
-  let rec build scopes parameters loader_seen projected =
+  let rec build scopes parameters projected =
     match scopes with
     | [] -> B.elist ~loc projected
     | (scope : Router_declaration.scope) :: scopes ->
         let parameters = parameters @ scope.parameters in
-        let has_loader = Option.is_some scope.attachments.loader in
         let reusable = Option.is_some scope.attachments.layout in
         let projected = projected @ [ branch_scope ~loc:scope.loc scope parameters ~reusable ] in
-        build scopes parameters (loader_seen || has_loader) projected
+        build scopes parameters projected
   in
-  build route.scopes [] false []
+  build route.scopes [] []
 
 let recover_decode_failure ~loc ~branch ~scopes ~active_routes error_boundary =
   let plan = failure_plan ~loc scopes (B.evar ~loc "decodeError") None (Some error_boundary) in

@@ -92,7 +92,7 @@ This is useful for:
 **The official benchmark** — compares pure rendering performance without HTTP overhead:
 
 ```bash
-make bench-render        # Native vs Bun side-by-side
+make bench-render        # Native vs Node vs Bun
 make bench-render-native # Native only
 make bench-render-bun    # Bun only
 ```
@@ -146,7 +146,7 @@ make bench-js-http    # JavaScript frameworks only
 | `deep10-100` | 10-100 level deep tree | Recursion performance |
 | `wide10-1000` | 10-1000 siblings | Array rendering |
 | `table10-500` | Data table rows | Real-world tables |
-| `props_*` | Many HTML attributes | Attribute serialization |
+| `props*` | Many HTML attributes | Attribute serialization |
 | `ecommerce24-100` | Product grid | E-commerce SSR |
 | `dashboard` | Analytics page | Admin UI |
 | `blog10-100` | Article + comments | Content-heavy |
@@ -193,12 +193,12 @@ make wrk-test PORT=3000 SCENARIO=table100
 
 ### Measurement
 - Multiple iterations with statistical analysis
-- Core_bench: 10,000 calls per benchmark
+- Render: a `Unix.gettimeofday` loop, 10,000 iterations per benchmark in `bench.ml` (1,000 for Lwt benchmarks) and 100 per scenario in `streaming_bench.ml`
 - HTTP: 10-30 seconds with wrk (configurable)
 
 ### Environment
 - All frameworks run single-threaded for fair comparison
-- React runtimes require `NODE_ENV=production` — `render-bench.ts` refuses to run otherwise, and `make bench-render` sets it automatically. React's development build skips a large amount of dev-only validation in production and is 3–7x faster as a result.
+- React runtimes require `NODE_ENV=production` — `render-bench.ts` refuses to run otherwise, and `make bench-render` sets it automatically. React's production build skips dev-only validation and is 3–7x faster than the development build.
 - Same React/component tree across frameworks
 
 ### Metrics Reported
@@ -255,6 +255,8 @@ To add a new scenario:
 1. Create `benchmark/scenarios/NewScenario.re`
 2. Add to the scenario list in:
    - `benchmark/native/server.re`
-   - `benchmark/micro/micro_bench.re`
+   - `benchmark/bench.ml`
+   - `benchmark/streaming/streaming_bench.ml`
+   - `benchmark/memory/memory_bench.ml`
    - `benchmark/frameworks/shared/scenarios.jsx`
 3. Run benchmarks: `make bench`

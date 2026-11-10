@@ -28,8 +28,6 @@ module Data = {
     "But, imagine it's dynamic",
   ];
 
-  let get = () => fakeData;
-
   let cached = ref(false);
   let destroy = () => cached := false;
   let promise = () => {

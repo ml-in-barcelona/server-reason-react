@@ -30,13 +30,3 @@
  (name router_bench)
  (modules router_bench)
  (libraries unix server-reason-react.router-native))
-
-(rule
- (alias bench)
- (action
-  (run ./bench.exe)))
-
-(rule
- (alias bench-json)
- (action
-  (run ./bench.exe --json)))

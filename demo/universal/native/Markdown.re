@@ -62,7 +62,8 @@ let convert_lists = text => {
     | line when Str.string_match(Str.regexp("^\\*\\s*\\(.*\\)$"), line, 0) =>
       "<li>" ++ Str.matched_group(1, line) ++ "</li>"
     | line
-        when Str.string_match(Str.regexp("^\\d+\\.\\s*\\(.*\\)$"), line, 0) =>
+        when
+          Str.string_match(Str.regexp("^[0-9]+\\.[ \t]*\\(.*\\)$"), line, 0) =>
       "<li>" ++ Str.matched_group(1, line) ++ "</li>"
     | _ => line
     };
@@ -106,14 +107,6 @@ let convert_lists = text => {
   |> List.map(process_line)
   |> wrap_consecutive_items
   |> String.concat("\n");
-};
-
-let wrap_lists = text => {
-  text
-  |> Str.global_replace(
-       Str.regexp("<li>.*</li>\\(\n<li>.*</li>\\)*"),
-       "<ul>\\0</ul>",
-     );
 };
 
 let convert_blockquotes = text => {
@@ -200,7 +193,6 @@ let toHTML = markdown => {
   |> convert_code
   |> convert_links
   |> convert_lists
-  |> wrap_lists
   |> convert_blockquotes
   |> convert_paragraphs
   |> String.trim;
@@ -208,7 +200,7 @@ let toHTML = markdown => {
 
 let extract_text = markdown => {
   markdown
-  |> Str.global_replace(Str.regexp("\\[([^]]*)\\]\\([^)]*\\)"), "\\1")
+  |> Str.global_replace(Str.regexp("\\[\\([^]]*\\)\\]([^)]*)"), "\\1")
   |> Str.global_replace(Str.regexp("\\*\\*\\([^*]*\\)\\*\\*"), "\\1")
   |> Str.global_replace(Str.regexp("\\*\\([^*]*\\)\\*"), "\\1")
   |> Str.global_replace(Str.regexp("__\\([^_]*\\)__"), "\\1")
@@ -217,11 +209,10 @@ let extract_text = markdown => {
   |> Str.global_replace(Str.regexp("`\\([^`]*\\)`"), "\\1")
   |> Str.global_replace(Str.regexp("```[^`]*```"), "")
   |> Str.global_replace(Str.regexp("^#+ .*$"), "\n")
-  |> Str.global_replace(Str.regexp("^#* .*$"), "\n")
   |> Str.global_replace(Str.regexp("> \\|>"), "")
-  |> Str.global_replace(Str.regexp("\\[\\|\\]\\|\\(\\|\\)"), "")
-  |> Str.global_replace(Str.regexp("-\\|\\+\\|\\*\\s+"), "")
-  |> Str.global_replace(Str.regexp("^\\d+\\.\\s+"), "")
+  |> Str.global_replace(Str.regexp("\\[\\|\\]\\|(\\|)"), "")
+  |> Str.global_replace(Str.regexp("^[-+*][ \t]+"), "")
+  |> Str.global_replace(Str.regexp("^[0-9]+\\.[ \t]+"), "")
   |> Str.global_replace(Str.regexp("\\\\"), "")
   |> String.trim;
 };

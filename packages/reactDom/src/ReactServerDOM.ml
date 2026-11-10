@@ -725,7 +725,7 @@ module Model = struct
       | Static { original; _ } -> turn_element_into_payload ~context ~debug_info ~site original
       | Writer { original; _ } -> turn_element_into_payload ~context ~debug_info ~site (original ())
       | Text t -> `String (escape_string_value t)
-      (* Numeric text nodes cross the wire as raw JSON numbers, like React;
+      (* Numeric text nodes cross the wire as raw JSON numbers;
          integral floats print without the decimal part (JSON.stringify). *)
       | Int i -> `Int i
       | Float f -> float_to_json f
@@ -1342,8 +1342,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
                 Lwt.return (boundary_to_chunk ?nonce:fiber.nonce html)
               with exn ->
                 (* The placeholder already flushed: stream a $RX client-render instruction so the client flips the
-                   boundary to errored and retries rendering it there, mirroring react-dom's post-flush errored
-                   boundary. take_rx_definition runs at push time, keeping the $RX definition once-per-stream. *)
+                   boundary to errored and retries rendering it there. take_rx_definition runs at push time, keeping the $RX definition once-per-stream. *)
                 Lwt.return (fun index ->
                     client_render_boundary_to_chunk ?nonce:fiber.nonce ~env:fiber.env
                       ~message:(client_render_error_message exn) ~include_definition:(Stream.take_rx_definition context)
@@ -1757,6 +1756,11 @@ let sort_head_children children =
   let stylesheets = ref [] in
   let scripts = ref [] in
   let other = ref [] in
+  let push_resource bucket ~key_attr el =
+    let key_of = function Html.Node { attributes; _ } -> get_html_attr key_attr attributes | _ -> None in
+    let key = key_of el in
+    if Option.is_none key || not (List.exists (fun e -> key_of e = key) !bucket) then bucket := el :: !bucket
+  in
   let rec distribute = function
     | [] -> ()
     | Html.Null :: rest -> distribute rest
@@ -1767,8 +1771,8 @@ let sort_head_children children =
         (match classify_head_element el with
         | Charset -> charset := el :: !charset
         | Viewport -> viewport := el :: !viewport
-        | Stylesheet_resource -> stylesheets := el :: !stylesheets
-        | Async_script -> scripts := el :: !scripts
+        | Stylesheet_resource -> push_resource stylesheets ~key_attr:"href" el
+        | Async_script -> push_resource scripts ~key_attr:"src" el
         | Other -> other := el :: !other);
         distribute rest
   in
@@ -2000,6 +2004,7 @@ let create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?
      $I  → Infinity
      $-0 → Negative zero
      $-  → Negative infinity
+     $T  → Temporary Reference (resolved through temporaryReferences)
 
    Outlined model types (resolved from FormData entries):
      $Q  → Map → Assoc (if all keys are strings) or List of [key, value] pairs
@@ -2008,7 +2013,6 @@ let create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?
      $F  → Server Reference → Assoc {id, bound}
 
    Unsupported (raise Invalid_argument with descriptive message):
-     $T  → Temporary Reference (no infrastructure)
      $@  → Promise (not representable as synchronous JSON)
      $A/$O/$o/$U/$S/$s/$L/$l/$G/$g/$M/$m/$V → TypedArrays/ArrayBuffer (binary data)
      $B  → Blob (binary data)

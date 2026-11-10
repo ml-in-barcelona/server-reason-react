@@ -43,7 +43,8 @@ module Impl = (T: {
   let removeEventListenerUseCapture =
       (_string, _callback: Dom.event => unit, _t: T.t): unit =>
     ();
-  let dispatchEvent: Dom.event_like('a) => bool = _eventLike => false;
+  let dispatchEvent = (_eventLike: Dom.event_like('a), _t: T.t): bool =>
+    false;
 
   /**
    *  non-standard event-specific functions

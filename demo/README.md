@@ -1,6 +1,6 @@
 ## Requirements
 
-- npm (and run `npm install` from the root of the project)
+- npm (and run `make install-npm` from the root of the project)
 - [watchexec](https://github.com/watchexec/watchexec)
 
 # Usage

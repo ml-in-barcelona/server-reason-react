@@ -12,11 +12,11 @@ let zero_styles () =
   let styles = ReactDOM.Style.make () in
   assert_styles styles ""
 
-let emtpy_value () =
+let empty_value () =
   let styles = ReactDOM.Style.make ~background:"" () in
   assert_styles styles ""
 
-let emtpy_value_with_more () =
+let empty_value_with_more () =
   let styles = ReactDOM.Style.make ~background:"" ~color:"transparent" () in
   assert_styles styles "color:transparent"
 
@@ -89,6 +89,10 @@ let style_order_matters_2 () =
   let styles = ReactDOM.Style.make ~opacity:"1.0" ~stress:"0" ~width:"20" ~backgroundColor:"red" ~columnGap:"2px" () in
   assert_styles styles "background-color:red;stress:0;width:20;opacity:1.0;column-gap:2px"
 
+let cursor_renders_once () =
+  let styles = ReactDOM.Style.make ?cursor:(Some "pointer") () in
+  assert_styles styles "cursor:pointer"
+
 let test title fn = (Printf.sprintf "ReactDOM.Style.make / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
@@ -96,6 +100,8 @@ let tests =
     test "generate empty style" zero_styles;
     test "generate one style" one_styles;
     test "generate more than one style" two_styles;
+    test "empty value is skipped" empty_value;
+    test "empty value is skipped among others" empty_value_with_more;
     test "unsafeAddProp should be kebab-case" unsafe_add_prop;
     test "unsafeAddProp preserves CSS custom property keys verbatim" unsafe_add_prop_css_custom_property;
     test "unsafeAddProp preserves CSS custom property with var() value"
@@ -111,4 +117,5 @@ let tests =
     test "combine empty value replaces and keeps position" combine_empty_value_replaces_and_keeps_position;
     test "order matters" style_order_matters;
     test "order matters II" style_order_matters_2;
+    test "cursor renders one declaration" cursor_renders_once;
   ]
