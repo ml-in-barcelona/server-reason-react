@@ -37,7 +37,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | [Js.Null](#jsnull) | 8 | 3 | 0 | 0 | 0 |
 | [Js.Nullable](#jsnullable) | 6 | 4 | 1 | 0 | 0 |
 | [Js.Obj](#jsobj) | 0 | 4 | 0 | 0 | 0 |
-| [Js.Promise](#jspromise) | 4 | 8 | 0 | 0 | 0 |
+| [Js.Promise](#jspromise) | 10 | 0 | 2 | 0 | 0 |
 | [Js.Re](#jsre) | 17 | 2 | 0 | 0 | 0 |
 | [Js.Set](#jsset) | 11 | 0 | 0 | 0 | 0 |
 | [Js.String](#jsstring) | 33 | 0 | 6 | 1 | 1 |
@@ -553,18 +553,18 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 
 | Function | Status | Notes |
 | --- | --- | --- |
-| `all` | ⚪️ |  |
-| `all2` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml. |
-| `all3` | ⚪️ |  |
-| `all4` | ⚪️ |  |
-| `all5` | ⚪️ |  |
-| `all6` | ⚪️ |  |
-| `catch` | ⚪️ |  |
-| `make` | ⚪️ |  |
-| `race` | 🟢 | Ported Melange suite + node-cited empty-race case: packages/Js/test/melange_tests/js_promise.ml. |
-| `reject` | ⚪️ |  |
+| `all` | 🟢 | Ported Melange suite + node-cited cases (fail fast, input order, empty array): packages/Js/test/melange_tests/js_promise.ml. |
+| `all2` | 🟢 | Ported Melange suite + node-cited cases (fail fast, input order): packages/Js/test/melange_tests/js_promise.ml. |
+| `all3` | 🟢 | node-cited fail-fast case (first rejection in time): packages/Js/test/melange_tests/js_promise.ml. |
+| `all4` | 🟢 | node-cited fail-fast case: packages/Js/test/melange_tests/js_promise.ml. |
+| `all5` | 🟢 | node-cited input-order case: packages/Js/test/melange_tests/js_promise.ml. |
+| `all6` | 🟢 | node-cited input-order case: packages/Js/test/melange_tests/js_promise.ml. |
+| `catch` | 🟠 | A raising handler rejects, as in JS; but callbacks run synchronously when the promise is already settled; JS always queues them as microtasks. Tested in packages/Js/test/melange_tests/js_promise.ml. |
+| `make` | 🟢 | Ported Melange suite + node-cited cases (settles once, executor raise rejects): packages/Js/test/melange_tests/js_promise.ml. |
+| `race` | 🟢 | Ported Melange suite + node-cited cases (empty race, array order, losers not canceled): packages/Js/test/melange_tests/js_promise.ml. |
+| `reject` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml. |
 | `resolve` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml. |
-| `then_` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml. |
+| `then_` | 🟠 | A raising callback rejects, as in JS; but callbacks run synchronously when the promise is already settled; JS always queues them as microtasks. Tested in packages/Js/test/melange_tests/js_promise.ml. |
 
 ## Js.Re
 
