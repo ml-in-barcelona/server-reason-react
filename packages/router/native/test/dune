@@ -1,5 +1,5 @@
 (tests
- (names test_router_server test_router_encoding)
+ (names test_router_server test_router_encoding test_router_react)
  (libraries
   alcotest
   lwt
