@@ -7,16 +7,7 @@
   type keycloak
   
   let keycloak : string -> keycloak =
-   fun _ ->
-    let () =
-      Printf.printf
-        {|
-  There is a Melange's external (for example: [@mel.get]) call from native code.
-  
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
-  |}
-    in
-    raise (Runtime.fail_impossible_action_in_ssr "keycloak")
+   fun _ -> Runtime.fail_impossible_action_in_ssr "keycloak"
 
   $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
@@ -36,16 +27,7 @@ Multiple args with optional
   type keycloak
   
   let keycloak : ?z:int -> int -> foo:string -> keycloak =
-   fun ?z:_ _ ~foo:_ ->
-    let () =
-      Printf.printf
-        {|
-  There is a Melange's external (for example: [@mel.get]) call from native code.
-  
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
-  |}
-    in
-    raise (Runtime.fail_impossible_action_in_ssr "keycloak")
+   fun ?z:_ _ ~foo:_ -> Runtime.fail_impossible_action_in_ssr "keycloak"
   $ echo "module Ppx_platform = struct exception Melange_only of string let fail_melange_only (_ : string) = raise (Melange_only \"\") end" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
