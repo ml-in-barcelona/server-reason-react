@@ -4,16 +4,13 @@ type env = [ `Dev | `Prod ]
 let is_dev = function `Dev -> true | `Prod -> false
 
 module Key_validation = struct
-  type t = Unvalidated | Validated | Missing_key
   type site = Value | Static_slot | Dynamic_item
 
-  let at_element ~site ~key =
+  let to_json ~site ~key : Yojson.Basic.t =
     match (site, key) with
-    | Static_slot, _ -> Validated
-    | Dynamic_item, None -> Missing_key
-    | Value, _ | Dynamic_item, Some _ -> Unvalidated
-
-  let to_json : t -> Yojson.Basic.t = function Unvalidated -> `Int 0 | Validated -> `Int 1 | Missing_key -> `Int 2
+    | Static_slot, _ -> `Int 1
+    | Dynamic_item, None -> `Int 2
+    | Value, _ | Dynamic_item, Some _ -> `Int 0
 end
 
 let create_stack_trace () =
@@ -584,16 +581,16 @@ module Model = struct
   let props_to_json props = List.filter_map prop_to_json props
   let chunk_ref_or_null = function None -> `Null | Some idx -> `String (ref_value idx)
 
-  let node ~env ~validation ~tag ?(key = None) ~props ?(owner = None) children : json =
+  let node ~env ~site ~tag ?(key = None) ~props ?(owner = None) children : json =
+    let tail =
+      match env with `Prod -> [] | `Dev -> [ chunk_ref_or_null owner; `Null; Key_validation.to_json ~site ~key ]
+    in
     let key = match key with None -> `Null | Some key -> `String key in
     let props =
       match children with
       | [] -> props
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
-    in
-    let tail =
-      match env with `Prod -> [] | `Dev -> [ chunk_ref_or_null owner; `Null; Key_validation.to_json validation ]
     in
     `List (`String "$" :: `String tag :: key :: `Assoc props :: tail)
 
@@ -611,7 +608,7 @@ module Model = struct
      When the fallback prop is absent from the JSX, React omits the key from
      the props object entirely (an explicit fallback={null} serializes as
      "fallback":null and arrives here as [Some `Null]). *)
-  let suspense_node ~env ~validation ~tag ~key ~fallback children : json =
+  let suspense_node ~env ~site ~tag ~key ~fallback children : json =
     let fallback_prop = match fallback with None -> [] | Some fallback -> [ ("fallback", fallback) ] in
     let props =
       match children with
@@ -619,10 +616,10 @@ module Model = struct
       | [ one ] -> ("children", one) :: fallback_prop
       | _ -> ("children", `List children) :: fallback_prop
     in
-    node ~env ~validation ~tag ~key ~props []
+    node ~env ~site ~tag ~key ~props []
 
-  let suspense_placeholder ~env ~validation ~tag ~key ~fallback index =
-    suspense_node ~env ~validation ~tag ~key ~fallback [ `String (lazy_value index) ]
+  let suspense_placeholder ~env ~site ~tag ~key ~fallback index =
+    suspense_node ~env ~site ~tag ~key ~fallback [ `String (lazy_value index) ]
 
   let component_ref ~module_ ~name =
     let id = `String module_ in
@@ -724,9 +721,7 @@ module Model = struct
     let rec turn_element_into_payload ~context ~debug_info ~(site : Key_validation.site) element =
       match (element : React.element) with
       | Empty -> `Null
-      | Static_list children ->
-          `List
-            (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info ~site:Static_slot) children)
+      | Static_list children -> items ~context ~debug_info ~site:Key_validation.Static_slot children
       | Static { original; _ } -> turn_element_into_payload ~context ~debug_info ~site original
       | Writer { original; _ } -> turn_element_into_payload ~context ~debug_info ~site (original ())
       | Text t -> `String (escape_string_value t)
@@ -745,20 +740,12 @@ module Model = struct
               attributes
           in
           let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
-          node ~env ~validation:(Key_validation.at_element ~site ~key) ~key ~tag ~props ~owner
+          node ~env ~site ~key ~tag ~props ~owner
             (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info ~site:Static_slot) children)
       (* A single element passed as a wrapper's children prop is a static position in React (jsx marks it validated). *)
       | Fragment children -> turn_element_into_payload ~context ~debug_info ~site:Static_slot children
-      | List children ->
-          `List
-            (map_children_with_tree_context
-               (turn_element_into_payload ~context ~debug_info ~site:Dynamic_item)
-               children)
-      | Array children ->
-          `List
-            (map_children_with_tree_context
-               (turn_element_into_payload ~context ~debug_info ~site:Dynamic_item)
-               (Array.to_list children))
+      | List children -> items ~context ~debug_info ~site:Key_validation.Dynamic_item children
+      | Array children -> items ~context ~debug_info ~site:Key_validation.Dynamic_item (Array.to_list children)
       | Upper_case_component (name, component) -> (
           let saved_ctx = !React.current_tree_context in
           React.reset_component_id_state saved_ctx;
@@ -766,12 +753,7 @@ module Model = struct
             let did_use_id = React.check_did_render_id_hook () in
             if did_use_id then
               React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-            let result =
-              if debug then
-                attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
-                    turn_element_into_payload ~context ~debug_info ~site:Static_slot element)
-              else turn_element_into_payload ~context ~debug_info ~site:Static_slot element
-            in
+            let result = component_result ~context ~debug_info ~name element in
             React.current_tree_context := saved_ctx;
             result
           in
@@ -824,12 +806,7 @@ module Model = struct
               let did_use_id = React.check_did_render_id_hook () in
               if did_use_id then
                 React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-              let result =
-                if debug then
-                  attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
-                      turn_element_into_payload ~context ~debug_info ~site:Static_slot element)
-                else turn_element_into_payload ~context ~debug_info ~site:Static_slot element
-              in
+              let result = component_result ~context ~debug_info ~name element in
               React.current_tree_context := saved_ctx;
               result
           | Sleep ->
@@ -839,12 +816,7 @@ module Model = struct
               let promise =
                 try%lwt
                   let%lwt element = promise in
-                  let payload =
-                    if debug then
-                      attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
-                          turn_element_into_payload ~context ~debug_info ~site:Static_slot element)
-                    else turn_element_into_payload ~context ~debug_info ~site:Static_slot element
-                  in
+                  let payload = component_result ~context ~debug_info ~name element in
                   let result = to_chunk (Value payload) in
                   React.current_tree_context := saved_ctx;
                   Lwt.return result
@@ -860,14 +832,13 @@ module Model = struct
           let tag = suspense_tag ~context ~to_chunk in
           let children = turn_element_into_payload ~context ~debug_info ~site:Static_slot children in
           let fallback = Option.map (turn_element_into_payload ~context ~debug_info ~site:Static_slot) fallback in
-          suspense_node ~env ~validation:(Key_validation.at_element ~site ~key) ~tag ~key ~fallback [ children ]
+          suspense_node ~env ~site ~tag ~key ~fallback [ children ]
       | Client_component { key; import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
-          let client_props = models_to_payload ~debug ~filter_stack_frame ~context ~to_chunk ~env props in
+          let client_props = models_to_payload ~context ~debug ~filter_stack_frame ~to_chunk ~env props in
           (* Client references are lazy references ("$L<id>"): the client must not block on the module row, it resolves it when the chunk loads. *)
-          node ~env ~validation:(Key_validation.at_element ~site ~key) ~tag:(lazy_value index) ~key ~props:client_props
-            []
+          node ~env ~site ~tag:(lazy_value index) ~key ~props:client_props []
       | Provider { children; push; async_key; async_value } ->
           let pop = push () in
           (* [with_value] must span the sync serialization: async components below capture the Lwt storage when
@@ -876,6 +847,13 @@ module Model = struct
               Lwt.with_value async_key (Some async_value) (fun () ->
                   turn_element_into_payload ~context ~debug_info ~site:Static_slot children))
       | Consumer children -> turn_element_into_payload ~context ~debug_info ~site:Static_slot children
+    and items ~context ~debug_info ~site children =
+      `List (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info ~site) children)
+    and component_result ~context ~debug_info ~name element =
+      if debug then
+        attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
+            turn_element_into_payload ~context ~debug_info ~site:Static_slot element)
+      else turn_element_into_payload ~context ~debug_info ~site:Static_slot element
     in
     turn_element_into_payload ~context ~debug_info ~site element
 
@@ -930,16 +908,8 @@ module Model = struct
             Stream.remember_written_promise ~context written_key index;
             `String (promise_value index))
     | List list ->
-        let list =
-          List.map
-            (fun element ->
-              model_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env ~site:Dynamic_item element)
-            list
-        in
-        `List list
-    | Assoc assoc ->
-        let assoc = models_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env assoc in
-        `Assoc assoc
+        `List (List.map (model_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env ~site:Dynamic_item) list)
+    | Assoc assoc -> `Assoc (models_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env assoc)
     | Function action -> `String (outline_server_function ~context ~to_chunk action)
 
   and models_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env props =
@@ -1504,13 +1474,10 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
           (model_to_chunk ?nonce:fiber.nonce (Component_ref ref))
       in
       (* Client references are lazy references ("$L<id>"), see Model.element_to_payload. *)
-      let model =
-        Model.node ~env ~validation:(Key_validation.at_element ~site ~key) ~tag:(Model.lazy_value index) ~key ~props []
-      in
+      let model = Model.node ~env ~site ~tag:(Model.lazy_value index) ~key ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
       let context = fiber.context in
-      let validation = Key_validation.at_element ~site ~key in
       let%lwt html_fallback, model_fallback =
         match fallback with
         | None -> Lwt.return (Html.null, None)
@@ -1543,9 +1510,9 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
             let index = Stream.push_boundary_async ~context (fun () -> promise) in
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
-                Model.suspense_placeholder ~env:fiber.env ~validation ~tag ~key ~fallback:model_fallback index )
+                Model.suspense_placeholder ~env:fiber.env ~site ~tag ~key ~fallback:model_fallback index )
         | Return (html, model) ->
-            let model = Model.suspense_node ~env:fiber.env ~validation ~tag ~key ~fallback:model_fallback [ model ] in
+            let model = Model.suspense_node ~env:fiber.env ~site ~tag ~key ~fallback:model_fallback [ model ] in
             Lwt.return (html_suspense_immediate html, model)
         | Fail exn -> Lwt.reraise exn
       with exn ->
@@ -1560,15 +1527,13 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
         in
         let index = Stream.push ~context to_chunk in
         let html = html_suspense_placeholder ~fallback:html_fallback index in
-        Lwt.return (html, Model.suspense_placeholder ~env:fiber.env ~validation ~tag ~key ~fallback:model_fallback index)
-      )
+        Lwt.return (html, Model.suspense_placeholder ~env:fiber.env ~site ~tag ~key ~fallback:model_fallback index))
   | Provider { children; push; async_key; async_value } ->
       with_provider_value ~push ~async_key ~async_value (fun () ->
           render_element_to_html ~fiber ~debug_info ~site:Static_slot children)
   | Consumer children -> render_element_to_html ~fiber ~debug_info ~site:Static_slot children
   | Lower_case_element { key; tag; attributes; children } ->
-      render_lower_case_element ~fiber ~debug_info ~validation:(Key_validation.at_element ~site ~key) ~key ~tag
-        ~attributes ~children ()
+      render_lower_case_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ()
 
 (* The HTML-path twin of Model.attach_debug_info/outline_with_debug_ref: the first component attaches its debug rows to the root row (id 0, embedded in the shell); nested components are outlined into their own model row with a D ref while their HTML stays inline. *)
 and continue_with_debug_html ~(fiber : Fiber.t) ~name ~debug_info element =
@@ -1600,55 +1565,53 @@ and continue_with_debug_html ~(fiber : Fiber.t) ~name ~debug_info element =
         Stream.write context (model_to_chunk ?nonce:fiber.nonce (Value child_model) model_index);
         Lwt.return (html, `String (Model.ref_value model_index))
 
-and render_lower_case_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children () =
+and render_lower_case_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children () =
   let inner_html = ReactDOM.getDangerouslyInnerHtml attributes in
   (* Record the root tag on first lower-case element visit *)
   (match Fiber.root_tag ~fiber with Some _ -> () | None -> Fiber.set_root_tag ~fiber tag);
   match classify_element ~fiber ~tag ~attributes with
   | Regular when String.equal tag "form" ->
-      render_form_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html ()
-  | Regular -> render_regular_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html ()
+      render_form_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html ()
+  | Regular -> render_regular_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html ()
   | Html_root ->
       (* Skip rendering the <html> wrapper since we reconstruct it in reconstruct_document *)
       Fiber.set_html_attributes ~fiber (ReactDOM.attributes_to_html attributes);
       let%lwt html, model =
-        render_regular_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html ()
+        render_regular_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html ()
       in
       let html_children = match html with Html.Node { children; _ } -> Html.list children | _ -> html in
       Lwt.return (html_children, model)
   | Head_section ->
       fiber.inside_head <- true;
       let%lwt value =
-        handle_hoistable_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html
+        handle_hoistable_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html
           ~on_push:Fiber.push_head_element ()
       in
       fiber.inside_head <- false;
       Lwt.return value
   | Body_section ->
       fiber.inside_body <- true;
-      let%lwt value =
-        render_regular_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html ()
-      in
+      let%lwt value = render_regular_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html () in
       fiber.inside_body <- false;
       Lwt.return value
   | Hoistable_resource ->
-      handle_hoistable_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html
+      handle_hoistable_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html
         ~on_push:Fiber.push_resource ()
   | Hoistable_meta ->
-      handle_hoistable_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html
+      handle_hoistable_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html
         ~on_push:Fiber.push_extra_head_child ()
 
-and handle_hoistable_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html ~on_push () =
+and handle_hoistable_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html ~on_push () =
   fiber.hoisted_count <- fiber.hoisted_count + 1;
   let props = Model.props_to_json attributes in
   let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
   let create_model children =
     (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
     match (Html.is_self_closing_tag tag, inner_html) with
-    | _, Some _ | true, _ -> Model.node ~env:fiber.env ~validation ~tag ~key ~props ~owner []
+    | _, Some _ | true, _ -> Model.node ~env:fiber.env ~site ~tag ~key ~props ~owner []
     | false, None ->
         let children = match children with `List l -> l | other -> [ other ] in
-        Model.node ~env:fiber.env ~validation ~tag ~key ~props ~owner children
+        Model.node ~env:fiber.env ~site ~tag ~key ~props ~owner children
   in
   let create_html_node ~html_props ~children_html =
     match inner_html with
@@ -1686,25 +1649,24 @@ and process_attributes ~context ~nonce ?form_action_id attributes =
   in
   (html_props, json_props)
 
-and render_regular_element ~fiber ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html () =
+and render_regular_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html () =
   let html_props, json_props = process_attributes ~context:fiber.context ~nonce:fiber.nonce attributes in
   let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
   match (Html.is_self_closing_tag tag, inner_html) with
   | true, _ ->
-      Lwt.return
-        (Html.node tag html_props [], Model.node ~env:fiber.env ~validation ~tag ~key ~props:json_props ~owner [])
+      Lwt.return (Html.node tag html_props [], Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner [])
   | false, Some inner_html ->
       Lwt.return
         ( Html.node tag html_props [ Html.raw inner_html ],
-          Model.node ~env:fiber.env ~validation ~tag ~key ~props:json_props ~owner [] )
+          Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner [] )
   | false, None ->
       let%lwt html, model = elements_to_html ~fiber ~debug_info ~site:Static_slot children in
       let model_children = match model with `List l -> l | other -> [ other ] in
       Lwt.return
         ( Html.node tag html_props [ html ],
-          Model.node ~env:fiber.env ~validation ~tag ~key ~props:json_props ~owner model_children )
+          Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner model_children )
 
-and render_form_element ~(fiber : Fiber.t) ~debug_info ~validation ~key ~tag ~attributes ~children ~inner_html () =
+and render_form_element ~(fiber : Fiber.t) ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html () =
   let context = fiber.context in
   let action_id =
     List.find_map
@@ -1717,20 +1679,20 @@ and render_form_element ~(fiber : Fiber.t) ~debug_info ~validation ~key ~tag ~at
   | Some inner_html, _ ->
       Lwt.return
         ( Html.node tag html_props [ Html.raw inner_html ],
-          Model.node ~env:fiber.env ~validation ~tag ~key ~props:json_props ~owner [] )
+          Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner [] )
   | None, Some action_id ->
       let html_props, hidden = apply_form_action_attrs html_props action_id in
       let%lwt html, model = elements_to_html ~fiber ~debug_info ~site:Static_slot children in
       let model_children = match model with `List l -> l | other -> [ other ] in
       Lwt.return
         ( Html.node tag html_props [ Html.list [ hidden; html ] ],
-          Model.node ~env:fiber.env ~validation ~tag ~key ~props:json_props ~owner model_children )
+          Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner model_children )
   | None, None ->
       let%lwt html, model = elements_to_html ~fiber ~debug_info ~site:Static_slot children in
       let model_children = match model with `List l -> l | other -> [ other ] in
       Lwt.return
         ( Html.node tag html_props [ html ],
-          Model.node ~env:fiber.env ~validation ~tag ~key ~props:json_props ~owner model_children )
+          Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner model_children )
 
 and elements_to_html ~fiber ~debug_info ~(site : Key_validation.site) elements =
   let%lwt html_and_models =

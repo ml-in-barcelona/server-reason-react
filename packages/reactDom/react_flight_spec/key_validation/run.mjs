@@ -141,24 +141,7 @@ const server = createServer((request, response) => {
     response.end();
   }
 });
-async function listen() {
-  for (let port = 25000; port <= 25099; port++) {
-    try {
-      await new Promise((resolve, reject) => {
-        server.once("error", reject);
-        server.listen(port, "0.0.0.0", () => {
-          server.removeListener("error", reject);
-          resolve();
-        });
-      });
-      return;
-    } catch (error) {
-      if (error.code !== "EADDRINUSE") throw error;
-    }
-  }
-  throw new Error("No free browser test port in 25000–25099");
-}
-await listen();
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch();
 const results = [];

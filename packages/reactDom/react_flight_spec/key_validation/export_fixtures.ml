@@ -57,26 +57,22 @@ let extracted () =
 
 let forward render children = React.Upper_case_component ("Forward", fun () -> render children)
 
+let deferred ~ready value =
+  if ready then (Lwt.return value, no_release)
+  else
+    let promise, resolver = Lwt.wait () in
+    (promise, fun () -> Lwt.wakeup resolver value)
+
 let async_collection ~ready ~keyed () =
   let value = React.list (if keyed then keyed_pair () else pair ()) in
-  let promise, release =
-    if ready then (Lwt.return value, no_release)
-    else
-      let promise, resolver = Lwt.wait () in
-      (promise, fun () -> Lwt.wakeup resolver value)
-  in
+  let promise, release = deferred ~ready value in
   (suspense (React.Async_component ("AsyncCollection", fun () -> promise)), release)
 
 let promise_props ~ready ~keyed ~reverse () =
   let value =
     React.Model.List (List.map (fun el -> React.Model.Element el) (if keyed then keyed_pair () else pair ()))
   in
-  let promise, release =
-    if ready then (Lwt.return value, no_release)
-    else
-      let promise, resolver = Lwt.wait () in
-      (promise, fun () -> Lwt.wakeup resolver value)
-  in
+  let promise, release = deferred ~ready value in
   let shared = React.Model.Promise (promise, Fun.id) in
   let props = [ ("promise", shared); ("other", shared) ] in
   (suspense (client ~props:(if reverse then List.rev props else props) React.null), release)

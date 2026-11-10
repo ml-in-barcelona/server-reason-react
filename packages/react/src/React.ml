@@ -910,13 +910,13 @@ module Children = struct
   let map element fn =
     match element with
     | List children | Static_list children -> Static_list (List.map fn children)
-    | Array children -> Static_list (Array.to_list (Array.map fn children))
+    | Array children -> Static_list (List.init (Array.length children) (fun index -> fn children.(index)))
     | _ -> fn element
 
   let mapWithIndex element fn =
     match element with
     | List children | Static_list children -> Static_list (List.mapi (fun index element -> fn element index) children)
-    | Array children -> Static_list (Array.to_list (Array.mapi (fun index element -> fn element index) children))
+    | Array children -> Static_list (List.init (Array.length children) (fun index -> fn children.(index) index))
     | _ -> fn element 0
 
   let forEach element fn =
