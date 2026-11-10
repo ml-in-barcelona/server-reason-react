@@ -1938,8 +1938,10 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
 
                   The $RX scripts are written straight into the subscriber's buffer since the stream subscription is about to be cancelled by Lwt.pick. The [Aborting]/[Closed] lifecycle guards the pushes of tasks that resolve later. *)
                 (let%lwt reason = Lwt.pick triggers in
-                 (match Stream.begin_abort context with
-                 | None -> ()
+                 match Stream.begin_abort context with
+                 (* The render already completed: the subscription still drains the queued rows and writes the end
+                    script, and Lwt.pick cancels this branch. *)
+                 | None -> fst (Lwt.task ())
                  | Some tasks ->
                      let pending_boundaries = Stream.boundary_rows tasks in
                      let pending_rows = Stream.task_rows tasks in
@@ -1957,8 +1959,8 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
                               (client_render_boundary_to_chunk ?nonce ~env ~message
                                  ~include_definition:(Stream.take_rx_definition context) index)))
                        pending_boundaries;
-                     Stream.close_and_cancel context tasks);
-                 finish ());
+                     Stream.close_and_cancel context tasks;
+                     finish ());
               ]
       in
       Lwt.return (Html.to_string html, subscribe))
