@@ -38,6 +38,8 @@ let unsafe_destination_expression ~loc =
 let react_component_attribute ~loc =
   { attr_name = { txt = "react.component"; loc }; attr_payload = PStr []; attr_loc = loc }
 
+let jsx_attribute ~loc = { attr_name = { txt = "JSX"; loc }; attr_payload = PStr []; attr_loc = loc }
+
 let search_destination_type ~loc (search : Router_declaration.search) =
   match search.kind with Required | Optional | Default _ -> search.typ | Many -> list_type ~loc search.typ
 
@@ -443,18 +445,22 @@ let route_module ~base_path (route : Router_declaration.route) =
       (B.pexp_constraint ~loc href_body (result_type ~loc "string"))
   in
   let link_body =
-    B.pexp_apply ~loc (B.evar ~loc "RouterReact.link")
-      [
-        (Labelled "destination", destination_call);
-        (Optional "className", B.evar ~loc "className");
-        (Optional "target", B.evar ~loc "target");
-        (Optional "download", B.evar ~loc "download");
-        (Optional "ariaCurrent", B.evar ~loc "ariaCurrent");
-        (Optional "history", B.evar ~loc "history");
-        (Optional "revalidate", B.evar ~loc "revalidate");
-        (Labelled "children", B.evar ~loc "children");
-        (Nolabel, unit_expression ~loc);
-      ]
+    let element =
+      B.pexp_apply ~loc
+        (B.evar ~loc "RouterReact.Link.createElement")
+        [
+          (Labelled "destination", destination_call);
+          (Optional "className", B.evar ~loc "className");
+          (Optional "target", B.evar ~loc "target");
+          (Optional "download", B.evar ~loc "download");
+          (Optional "ariaCurrent", B.evar ~loc "ariaCurrent");
+          (Optional "history", B.evar ~loc "history");
+          (Optional "revalidate", B.evar ~loc "revalidate");
+          (Labelled "children", B.elist ~loc [ B.evar ~loc "children" ]);
+          (Nolabel, unit_expression ~loc);
+        ]
+    in
+    { element with pexp_attributes = [ jsx_attribute ~loc ] }
   in
   let link_with_unit =
     B.pexp_fun ~loc Nolabel None (B.punit ~loc) (B.pexp_constraint ~loc link_body (result_type ~loc "React.element"))
@@ -1070,7 +1076,12 @@ let redirect_endpoint ~base_path ~invalid_search (redirect : Router_declaration.
     apply_native_inputs ~loc redirect.target redirect.parameters redirect.search [] |> fun destination ->
     B.pexp_constraint ~loc destination (result_type ~loc "RouterRuntime.destination")
   in
-  let execution = B.pexp_apply ~loc (B.evar ~loc "RouterServer.Execution.redirect") [ (Nolabel, destination) ] in
+  let execution =
+    B.pexp_apply ~loc
+      (B.evar ~loc
+         (if redirect.permanent then "RouterServer.Execution.permanentRedirect" else "RouterServer.Execution.redirect"))
+      [ (Nolabel, destination) ]
+  in
   let prepared =
     B.pexp_apply ~loc
       (B.evar ~loc "RouterServer.Endpoint.prepared")
@@ -1113,6 +1124,7 @@ let redirect_endpoint ~base_path ~invalid_search (redirect : Router_declaration.
       "path:" ^ redirect.path;
       "target:" ^ expression_string redirect.target;
     ]
+    @ (if redirect.permanent then [ "permanent" ] else [])
     @ parameter_parts @ search_parts
     |> String.concat "\n" |> Digest.string |> Digest.to_hex
   in

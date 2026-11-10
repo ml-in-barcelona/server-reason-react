@@ -1,4 +1,4 @@
-[@platform native]
+[@native_only]
 include {
           let useStateValue = initialState => {
             let setValueStatic = _newState => ();
@@ -6,7 +6,7 @@ include {
           };
         };
 
-[@platform js]
+[@melange_only]
 include {
           [@mel.module "react"]
           external useState:

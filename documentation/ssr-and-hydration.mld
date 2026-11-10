@@ -33,15 +33,15 @@ Let's start by triggering a hydration error on purpose. Take a look at this code
 [@react.component]
 let make = () => {
   let backgroundColor = switch%platform () {
-    | Server => "red"
-    | Client => "blue"
+    | Native => "red"
+    | Melange => "blue"
   };
 
   <div className=backgroundColor />;
 };
 ]}
 
-We use [switch%platform] to provide different values on the server and client. To understand how [switch%platform] works, look at the {{!page-"browser_ppx"} browser_ppx page}.
+We use [switch%platform] to provide different values on the server and client. To understand how [switch%platform] works, look at the {{:https://github.com/ml-in-barcelona/ppx_platform#matchplatform}ppx_platform README}.
 
 And let's see the diagram below, which shows how the code will behave:
 
@@ -123,10 +123,10 @@ let isFocusable =
   isClientMounted ? children->isFocusableElement : false;
 ]}
 
-Even with [isClientMounted], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you can use [%browser_only].
+Even with [isClientMounted], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you can use [%melange_only].
 
 {@reasonml[
-let%browser_only getAnswer = () => 42
+let%melange_only getAnswer = () => 42
 
 let answer = isClientMounted ? getAnswer() : 0;
 ]}
@@ -134,40 +134,40 @@ let answer = isClientMounted ? getAnswer() : 0;
 {@text[
 1 |          let answer = isClientMounted ? getAnswer() : 0;
                                             ^^^^^^^^^^^
-**Error** (alert browser_only): File.getAnswer
-This expression is marked to only run on the browser where JavaScript can run. You can only use it inside a let%browser_only function.
+Alert melange_only: getAnswer
+This value only exists in the Melange build. Use it inside a let%melange_only function, or a Melange branch of match%platform.
 ]}
 
-As you can see, [getAnswer] is a [browser_only] content and it must run under a [%browser_only]:
+As you can see, [getAnswer] is a [melange_only] content and it must run under a [%melange_only]:
 
 {@reasonml[
-let%browser_only getAnswer = () => 42
+let%melange_only getAnswer = () => 42
 
-let answer = isClientMounted ? [%browser_only () => getAnswer()]() : 0;
+let answer = isClientMounted ? [%melange_only () => getAnswer()]() : 0;
 ]}
 
-{3 Combine [switch%platform] and [%browser_only] with [isClientMounted]}
+{3 Combine [switch%platform] and [%melange_only] with [isClientMounted]}
 
-[switch%platform] and [browser_only] are extensions that help us discarting parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: {{!page-"browser_ppx"} browser_ppx page}).
+[switch%platform] and [melange_only] are extensions that help us discarting parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform README}).
 
 So we should use [switch%platform] when we don't have a single way to provide the same value. If there is a way to provide the same value, but not in a single way, you'll need [switch%platform] like following:
 
 {@reasonml[
 let foo = switch%platform () {
-  | Server => foo_native()
-  | Client => foo_client()
+  | Native => foo_native()
+  | Melange => foo_client()
 }
 ]}
 
 Here, [foo] will have the same value on both targets. There's no need for [isClientMounted] because Hydrate will never throw an error.
 
-The usage of [isClientMounted] forces the execution of the code to behave proeprly, but it does not avoid compiler error because the code needs to compile on both targets. So, you will need [isClientMounted] and [browser_only] together:
+The usage of [isClientMounted] forces the execution of the code to behave proeprly, but it does not avoid compiler error because the code needs to compile on both targets. So, you will need [isClientMounted] and [melange_only] together:
 
 {@reasonml[
-let%browser_only foo_cant_compile_on_native = () => "Hey"
+let%melange_only foo_cant_compile_on_native = () => "Hey"
 
 let value = isClientMounted
-  ? [%browser_only () => foo_cant_compile_on_native()]
+  ? [%melange_only () => foo_cant_compile_on_native()]
   : "Yah"
 ]}
 
@@ -206,7 +206,7 @@ let make = () => {
 };
 ]}
 
-Again, even with [ServerOrClientRender], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you must use [%browser_only].
+Again, even with [ServerOrClientRender], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you must use [%melange_only].
 
 {@reasonml[
 // Imagine a BlueComponent.re being a client only component
@@ -224,13 +224,13 @@ Again, even with [ServerOrClientRender], the content {b MUST} compile on [native
 **Error**: Unbound module BlueComponent
 ]}
 
-As you can see, [BlueComponent] is not available on [native], cause it's client only and must run under a [%browser_only]:
+As you can see, [BlueComponent] is not available on [native], cause it's client only and must run under a [%melange_only]:
 
 {@reasonml[
 <ServerOrClientRender
   server={() => <RedComponent />}
   client={
-    [%browser_only () => <BlueClientComponentOnly />]
+    [%melange_only () => <BlueClientComponentOnly />]
   }
 />
 ]}
@@ -254,4 +254,39 @@ Use [<ClientOnly/>] when the server JSX can be empty ([RR.null]) and only want t
 </ClientOnly>
 ]}
 
-Again, we should use [%browser_only] even when using [ClientOnly] since the content {b MUST} compile on [native].
+Again, we should use [%melange_only] even when using [ClientOnly] since the content {b MUST} compile on [native].
+
+{1 Flight child keys}
+
+With [~env:`Dev], [ReactServerDOM] sends key-validation metadata with each
+element. Explicit sibling positions do not require list keys. Runtime collections
+created with [React.list] or [React.array] require keys on their element members.
+
+{[
+let static = React.createElement "div" [] [first; second]
+let dynamic = React.createElement "div" [] [React.list items]
+]}
+
+Static-ness is a property of the container, not of the element. The native PPX
+builds [React.Static_list] for the literal children of a component or a
+fragment, [<Component> a b </Component>], in place of [React.list]. Its members are
+static; a [React.list] or [React.array] member inside it is still a runtime
+collection. Code that inspects [React.element] directly must handle this
+constructor.
+
+A single forwarded child carries no information of its own and takes the state of
+the slot it lands in: a host child list, the single child of a fragment, provider,
+consumer, or Suspense boundary, and the result of a server component give a static
+position; a runtime collection gives a missing-key state. A literal child extracted from a host and
+re-inserted into a runtime collection reports a missing key, where React does not.
+
+[React.Children.map] and [mapWithIndex] give each mapped element the key React
+gives it ([.0], [.1], [.$key]) and return a [React.Static_list], so mapped
+children are static. React instead passes a missing-key warning on to the mapped
+copy of an unkeyed member of a runtime collection; server-reason-react does not
+report that warning.
+
+The default environment remains [`Prod], which sends React's four-field element
+tuples without this metadata. A development client then warns about unkeyed
+static siblings. Use [~env:`Dev] while developing with a development client, as
+React pairs its development server with its development client.

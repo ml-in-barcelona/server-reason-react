@@ -9,7 +9,7 @@ let make = (~id: NoteId.t) => {
     | Router.Navigation.Idle
     | Router.Navigation.Failed(_) => false
     };
-  let%browser_only onClick = _ => {
+  let%melange_only onClick = _ => {
     setIsDeleting(true);
     ServerFunctions.Notes.delete_.call(~id)
     |> Js.Promise.then_(_ => {

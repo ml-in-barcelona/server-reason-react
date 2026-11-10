@@ -107,36 +107,134 @@ let children_map_list_element () =
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div class=\"divider\">foo</div><div class=\"divider\">lola</div>"
 
+let span ?key () = React.createElementWithKey ?key "span" [] []
+
+let rec describe = function
+  | React.Lower_case_element { tag; key; _ } -> tag ^ " " ^ Option.value key ~default:"null"
+  | React.Static { original; _ } -> "static " ^ describe original
+  | React.Writer { original; _ } -> "writer " ^ describe (original ())
+  | React.Upper_case_component (name, render) -> name ^ " -> " ^ describe (render ())
+  | React.Text text -> "text " ^ text
+  | React.Fragment _ -> "fragment"
+  | React.Empty -> "null"
+  | _ -> "other"
+
+let members = function
+  | React.Static_list members | React.List members -> List.map describe members
+  | React.Array members -> List.map describe (Array.to_list members)
+  | element -> [ "not a collection: " ^ describe element ]
+
+let check_map label expected mapped = Alcotest.(check (list string)) label expected (members mapped)
+
+let children_map_returns_static_list () =
+  let is_static_list = function React.Static_list _ -> true | _ -> false in
+  List.iter
+    (fun (label, mapped) -> Alcotest.(check bool) label true (is_static_list mapped))
+    [
+      ("list", React.Children.map (React.list [ span () ]) Fun.id);
+      ("array", React.Children.mapWithIndex (React.array [| span () |]) (fun child _ -> child));
+      ("Static_list", React.Children.map (React.Static_list [ span () ]) Fun.id);
+      ("single element", React.Children.map (span ()) Fun.id);
+    ]
+
 let children_map_keys () =
-  let span ?key () = React.createElementWithKey ?key "span" [] [] in
-  let key_of = function
-    | React.Lower_case_element { key; _ } | React.Client_component { key; _ } | React.Suspense { key; _ } -> key
-    | _ -> None
-  in
-  let keys = function
-    | React.List members -> List.map key_of members
-    | React.Array members -> Array.to_list (Array.map key_of members)
-    | _ -> Alcotest.fail "expected a collection"
-  in
-  let check label expected mapped = Alcotest.(check (list (option string))) label expected (keys mapped) in
-  check "unkeyed members get index keys" [ Some ".0"; Some ".1" ]
+  check_map "unkeyed members get index keys" [ "span .0"; "span .1" ]
     (React.Children.map (React.list [ span (); span () ]) Fun.id);
-  check "array keeps its shape" [ Some ".0" ] (React.Children.map (React.array [| span () |]) Fun.id);
-  check "keyed member" [ Some ".$a" ] (React.Children.map (React.list [ span ~key:"a" () ]) Fun.id);
-  check "escaped key" [ Some ".$a=0b=2c" ] (React.Children.map (React.list [ span ~key:"a=b:c" () ]) Fun.id);
-  let eleven = React.Children.map (React.list (List.init 11 (fun _ -> span ()))) Fun.id in
-  Alcotest.(check (option string)) "index in base 36" (Some ".a") (List.nth (keys eleven) 10);
-  check "callback key is prefixed" [ Some "x/.0" ]
+  check_map "array members" [ "span .0" ] (React.Children.map (React.array [| span () |]) Fun.id);
+  check_map "keyed member" [ "span .$a" ] (React.Children.map (React.list [ span ~key:"a" () ]) Fun.id);
+  check_map "escaped key" [ "span .$a=0b=2c" ] (React.Children.map (React.list [ span ~key:"a=b:c" () ]) Fun.id);
+  check_map "index in base 36"
+    (List.init 11 (fun index -> "span ." ^ if index = 10 then "a" else string_of_int index))
+    (React.Children.map (React.list (List.init 11 (fun _ -> span ()))) Fun.id);
+  check_map "callback key is prefixed" [ "span x/.0" ]
     (React.Children.map (React.list [ span () ]) (fun _ -> span ~key:"x" ()));
-  check "slashes in a callback key are doubled" [ Some "x//y/.0" ]
-    (React.Children.map (React.list [ span () ]) (fun _ -> span ~key:"x/y" ()));
-  check "same key is not prefixed" [ Some ".$k" ]
-    (React.Children.map (React.list [ span ~key:"k" () ]) (fun child -> child));
-  check "text results are untouched" [ None ] (React.Children.map (React.list [ span () ]) (fun _ -> React.string "t"));
-  check "mapWithIndex keys too" [ Some ".0"; Some ".1" ]
-    (React.Children.mapWithIndex (React.list [ span (); span () ]) (fun child _ -> child));
-  let single = span () in
-  Alcotest.(check bool) "single element maps without a key" true (React.Children.map single Fun.id == single)
+  check_map "slashes in a callback key are doubled" [ "span x//y/.0"; "span x///y/.1" ]
+    (React.Children.mapWithIndex
+       (React.list [ span (); span () ])
+       (fun _ index -> span ~key:(if index = 0 then "x/y" else "x//y") ()));
+  check_map "same key is not prefixed" [ "span .$a" ] (React.Children.map (React.list [ span ~key:"a" () ]) Fun.id);
+  check_map "other key on a keyed member" [ "span b/.$a" ]
+    (React.Children.map (React.list [ span ~key:"a" () ]) (fun _ -> span ~key:"b" ()));
+  check_map "text members keep their index" [ "text hello"; "span .1" ]
+    (React.Children.map (React.list [ React.string "hello"; span () ]) Fun.id);
+  check_map "null members keep their index" [ "span .1" ]
+    (React.Children.map (React.list [ React.null; span () ]) Fun.id);
+  check_map "the callback sees null members" [ "text was null"; "span .1" ]
+    (React.Children.map
+       (React.list [ React.null; span () ])
+       (function React.Empty -> React.string "was null" | child -> child));
+  check_map "null results are dropped" [] (React.Children.map (React.list [ span (); span () ]) (fun _ -> React.null));
+  check_map "mapWithIndex keys too" [ "span .0"; "span .1" ]
+    (React.Children.mapWithIndex (React.list [ span (); span () ]) (fun child _ -> child))
+
+let children_map_static_list () =
+  let calls = ref 0 in
+  check_map "every member of a Static_list is mapped" [ "span .0"; "span .1" ]
+    (React.Children.map
+       (React.Static_list [ span (); span () ])
+       (fun child ->
+         incr calls;
+         child));
+  Alcotest.(check int) "callback calls" 2 !calls
+
+let children_map_optimized_elements () =
+  let static ?key () = React.Static { prerendered = "<span></span>"; original = span ?key () } in
+  let writer ?key () =
+    React.Writer { emit = (fun buffer ~separators:_ -> Buffer.add_string buffer "<span></span>"); original = span ?key }
+  in
+  check_map "unkeyed Static and Writer results" [ "static span .0"; "writer span .1" ]
+    (React.Children.map (React.list [ static (); writer () ]) Fun.id);
+  check_map "keyed Static and Writer members"
+    [ "static span .$a"; "writer span .$b" ]
+    (React.Children.map (React.list [ static ~key:"a" (); writer ~key:"b" () ]) Fun.id);
+  check_map "Static callback key is prefixed" [ "static span x/.0" ]
+    (React.Children.map (React.list [ span () ]) (fun _ -> static ~key:"x" ()));
+  match React.Children.map (React.list [ static () ]) Fun.id with
+  | React.Static_list [ React.Static { prerendered; _ } ] ->
+      Alcotest.(check string) "prerendered markup is kept" "<span></span>" prerendered
+  | _ -> Alcotest.fail "expected a Static member"
+
+let children_map_flattens () =
+  check_map "array results are flattened under the member key" [ "span .0/.0"; "span .0/.1" ]
+    (React.Children.map (React.list [ span () ]) (fun _ -> React.list [ span (); span () ]));
+  check_map "array results under a keyed member" [ "span .$k/.0"; "span .$k/.$z" ]
+    (React.Children.map (React.list [ span ~key:"k" () ]) (fun _ -> React.array [| span (); span ~key:"z" () |]));
+  check_map "nested input is flattened" [ "span .0:0"; "span .0:1"; "span .1" ]
+    (React.Children.map (React.list [ React.list [ span (); span () ]; span () ]) Fun.id);
+  check_map "keyed member of nested input" [ "span .0:$k"; "span .1" ]
+    (React.Children.map (React.Static_list [ React.list [ span ~key:"k" () ]; span () ]) Fun.id);
+  let indices = ref [] in
+  let _ =
+    React.Children.mapWithIndex
+      (React.list [ React.list [ span (); span () ]; React.null; span () ])
+      (fun child index ->
+        indices := index :: !indices;
+        child)
+  in
+  Alcotest.(check (list int)) "mapWithIndex counts flattened members" [ 0; 1; 2; 3 ] (List.rev !indices)
+
+let children_map_single_child () =
+  check_map "single element" [ "span .0" ] (React.Children.map (span ()) Fun.id);
+  check_map "single keyed element" [ "span .$a" ] (React.Children.map (span ~key:"a" ()) Fun.id);
+  let called = ref false in
+  let mapped =
+    React.Children.map React.null (fun child ->
+        called := true;
+        child)
+  in
+  Alcotest.(check bool) "null is returned as is" true (mapped == React.null);
+  Alcotest.(check bool) "callback is not called for null" false !called
+
+let children_map_component_results () =
+  let component ?key name = React.Upper_case_component (name, fun () -> span ?key ()) in
+  check_map "component result takes the member key" [ "C -> span .0"; "C -> span .1" ]
+    (React.Children.map (React.list [ span (); span () ]) (fun _ -> component "C"));
+  check_map "keyed component result joins the keys" [ "C -> span .0,k" ]
+    (React.Children.map (React.list [ span () ]) (fun _ -> component ~key:"k" "C"));
+  check_map "nested component results" [ "Outer -> C -> span .$a" ]
+    (React.Children.map
+       (React.list [ span ~key:"a" () ])
+       (fun _ -> React.Upper_case_component ("Outer", fun () -> component "C")))
 
 let use_ref_works () =
   let app =
@@ -474,7 +572,13 @@ let tests =
       test "experimental hooks" experimental_hooks;
       test "Children.map" children_map_one_element;
       test "Children.map" children_map_list_element;
+      test "Children.map returns a Static_list" children_map_returns_static_list;
       test "Children.map keys" children_map_keys;
+      test "Children.map over a Static_list" children_map_static_list;
+      test "Children.map keys Static and Writer" children_map_optimized_elements;
+      test "Children.map flattens like React" children_map_flattens;
+      test "Children.map single child" children_map_single_child;
+      test "Children.map component results" children_map_component_results;
       test "useRef" use_ref_works;
       test "invalid_children" invalid_children;
       test "invalid_dangerouslySetInnerHtml" invalid_dangerouslySetInnerHtml;

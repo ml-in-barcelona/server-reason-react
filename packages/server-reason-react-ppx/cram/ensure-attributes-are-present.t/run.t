@@ -14,7 +14,7 @@
                 prerendered = "<div>lol</div>";
                 original = React.createElement "div" [] [ React.string "lol" ];
               } )
-    [@@platform js]
+    [@@melange_only]
   
     let make ?(key : string option) (_Props : < > Js.t) = make ?key ()
-  end [@@platform js]
+  end [@@melange_only]

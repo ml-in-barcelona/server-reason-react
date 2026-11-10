@@ -1,4 +1,4 @@
-[@platform native]
+[@native_only]
 let readNotesCached = React.cache(sleep => DB.readNotes(~sleep, ()));
 
 module NoteList = {
@@ -26,7 +26,7 @@ module NoteList = {
   };
 };
 
-[@platform native]
+[@native_only]
 [@react.async.component]
 let make = () => {
   open Lwt.Syntax;

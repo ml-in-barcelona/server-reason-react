@@ -34,7 +34,7 @@ type scope = {
 }
 
 type leaf = { name : string; page : expression; scope : scope; loc : Location.t }
-type redirect_leaf = { id : string; target : expression; scope : scope; loc : Location.t }
+type redirect_leaf = { id : string; target : expression; permanent : bool; scope : scope; loc : Location.t }
 
 type group = { scope : scope; children : node list }
 and node = Group of group | Route of leaf | Redirect of redirect_leaf
@@ -52,6 +52,7 @@ type route = {
 type redirect = {
   id : string;
   target : expression;
+  permanent : bool;
   path : string;
   parameters : parameter list;
   search : search list;

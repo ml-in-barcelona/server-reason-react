@@ -27,8 +27,6 @@ let decodeNavigation = (kind, value) =>
     )
   | Response.RedirectResponse =>
     Response.Redirect(Response.redirect_of_rsc(value))
-  | Response.FailedResponse =>
-    Response.Failed(Response.failure_of_rsc(value))
   | Response.ReloadRequiredResponse => Response.ReloadRequired
   };
 
@@ -97,6 +95,7 @@ let fetch =
                Js.Promise.resolve(Error(InvalidContentType(contentType)));
              } else {
                Fetch.Response.body(httpResponse)
+               // No ~callServer: the call that hydrated the page already registered it globally and this call reuses it.
                |> ReactServerDOMEsbuild.createFromReadableStream
                |> Js.Promise.then_((wire: RSC.t) =>
                     Js.Promise.resolve(

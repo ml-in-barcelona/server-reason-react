@@ -54,22 +54,24 @@ let server =
       getAndPost(Routes.serverOnlyRSC, Examples.ServerOnlyRSC.handler),
       ...List.concat([
            DreamRouter.routes(
-             ~router=RouterRegistry.server,
+             ~server=RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
              ~ssr=shouldSSR,
              ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
-             ~document=children => <Pages.Document> children </Pages.Document>,
+             ~document=
+               (~head, children) =>
+                 <Pages.Document head> children </Pages.Document>,
              (),
            ),
            DreamRouter.routes(
-             ~router=Demo_hacker_news_router_native.RouterRegistry.server,
+             ~server=Demo_hacker_news_router_native.RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
              ~ssr=shouldSSR,
              ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
              ~pageCacheCapacity=32,
              ~document=
-               children =>
-                 <Demo_hacker_news_router_native.Pages.Document>
+               (~head, children) =>
+                 <Demo_hacker_news_router_native.Pages.Document head>
                    children
                  </Demo_hacker_news_router_native.Pages.Document>,
              (),

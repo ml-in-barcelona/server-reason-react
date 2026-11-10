@@ -3,8 +3,8 @@ let make = () => {
   <form
     action={
       switch%platform () {
-      | Server => `String("")
-      | Client => Obj.magic(ServerFunctions.formDataFunction.call)
+      | Native => `String("")
+      | Melange => Obj.magic(ServerFunctions.formDataFunction.call)
       }
     }
     className={Cx.make([Theme.text(Theme.Color.Gray4)])}>

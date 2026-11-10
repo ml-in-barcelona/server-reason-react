@@ -19,7 +19,7 @@
   ../../../packages/react-server-dom-esbuild/ReactServerDOMEsbuild.js)
  (preprocess
   (pps
-   browser_ppx
+   ppx_platform
    -js
    server-reason-react.ppx
    -melange

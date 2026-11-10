@@ -9,7 +9,9 @@ type updateHash =
   unit ->
   RouterRuntime.Navigation.Result.t
 
-let link ~destination:_ ?className:_ ?target:_ ?download:_ ?ariaCurrent:_ ?history:_ ?revalidate:_ ~children:_ () = ()
+module Link = struct
+  let createElement ~destination:_ ?className:_ ?target:_ ?download:_ ?ariaCurrent:_ ?history:_ ?revalidate:_ ~children:_ () = ()
+end
 let navigate ?history:_ ?revalidate:_ _destination = failwith "not used"
 let updateHash ~hash:_ ?history:_ () = failwith "not used"
 let useNavigation () = (navigate, RouterRuntime.Navigation.Idle)

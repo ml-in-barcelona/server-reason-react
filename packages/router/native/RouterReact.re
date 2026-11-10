@@ -29,17 +29,21 @@ module Provider = {
   let make =
       (
         ~initial,
-        ~protocolVersion as _=1,
+        ~protocolVersion as _=2,
         ~registryFingerprint as _,
         ~basePath as _,
         ~pageCacheCapacity as _=0,
-        ~metadata,
+        ~metadata as _,
         ~children,
       ) =>
+    /* The document's [~head] already renders the metadata; rendering it here
+       too would emit every tag twice, because SSR hoists title, meta and link
+       into <head>. The empty slot keeps the child positions (and so useId)
+       equal to the client tree, which renders the metadata first. */
     provider(
       React.Context.makeProps(
         ~value=Some({ committed: initial }),
-        ~children=React.array([|metadata, children|]),
+        ~children=React.array([|React.null, children|]),
         (),
       ),
     );
@@ -79,6 +83,11 @@ let useSearch = () => {
   (values, updateSearch);
 };
 let useUpdateHash = () => updateHash;
+let useLocation = () =>
+  switch (React.useContext(context)) {
+  | Some(value) => value.committed.location
+  | None => invalid_arg("router hooks require an ancestor Router.Provider")
+  };
 
 let outlet = (~owner, ~children, ()) =>
   RouterOutlet.make(
@@ -89,23 +98,35 @@ let outlet = (~owner, ~children, ()) =>
 let suspense = (~fallback, ~children, ()) =>
   <React.Suspense fallback> children </React.Suspense>;
 
-let link =
-    (
-      ~destination,
-      ~className=?,
-      ~target=?,
-      ~download=?,
-      ~ariaCurrent=?,
-      ~history as _=?,
-      ~revalidate as _=?,
-      ~children,
-      (),
-    ) =>
-  <a
-    href={RouterRuntime.href(destination)}
-    ?className
-    ?target
-    ?download
-    ?ariaCurrent>
-    children
-  </a>;
+module Link = {
+  [@react.component]
+  let make =
+      (
+        ~destination,
+        ~className=?,
+        ~target=?,
+        ~download=?,
+        ~ariaCurrent=?,
+        ~id=?,
+        ~title=?,
+        ~rel=?,
+        ~ariaLabel=?,
+        ~onClick as _=?,
+        ~onMouseEnter as _=?,
+        ~history as _=?,
+        ~revalidate as _=?,
+        ~children,
+      ) =>
+    <a
+      href={RouterRuntime.href(destination)}
+      ?className
+      ?target
+      ?download
+      ?ariaCurrent
+      ?id
+      ?title
+      ?rel
+      ?ariaLabel>
+      children
+    </a>;
+};

@@ -1624,29 +1624,30 @@ let getAttributes tag =
 
 let isDataAttribute = String.starts_with ~prefix:"data"
 
-let string_of_chars chars =
-  let buf = Buffer.create 16 in
-  List.iter (Buffer.add_char buf) chars;
-  Buffer.contents buf
-
-let chars_of_string str = List.init (String.length str) (String.get str)
-
 let camelcaseToKebabcase str =
-  let rec loop acc = function
-    | [] -> acc
-    | [ x ] -> x :: acc
-    | x :: y :: xs ->
-        if Char.uppercase_ascii y == y then loop ('-' :: x :: acc) (Char.lowercase_ascii y :: xs)
-        else loop (x :: acc) (y :: xs)
-  in
-  str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
+  let len = String.length str in
+  let is_upper c = c >= 'A' && c <= 'Z' in
+  let is_lower c = c >= 'a' && c <= 'z' in
+  let buf = Buffer.create (len + 4) in
+  String.iteri
+    (fun i c ->
+      if c = '_' then Buffer.add_char buf '_'
+      else if is_upper c then (
+        let prev = if i > 0 then Some str.[i - 1] else None in
+        let next_is_lower = i + 1 < len && is_lower str.[i + 1] in
+        let starts_word = match prev with None | Some '_' -> false | Some p -> (not (is_upper p)) || next_is_lower in
+        if starts_word then Buffer.add_char buf '-';
+        Buffer.add_char buf (Char.lowercase_ascii c))
+      else Buffer.add_char buf c)
+    str;
+  Buffer.contents buf
 
 let findByJsxName ~tag name =
   let jsxName = name in
   let byReasonName p = getReasonJSXName p = jsxName in
   if isDataAttribute jsxName then
     let name = camelcaseToKebabcase jsxName in
-    Ok (Attribute { name; jsxName; reasonJsxName = jsxName; type_ = String })
+    Ok (Attribute { name; jsxName = name; reasonJsxName = jsxName; type_ = String })
   else if jsxName = "styles" then
     (* styles needs to be "valid" for the ppx to validate, but the type isn't important, since it's expanded into className and style *)
     Ok (Attribute { name; jsxName; reasonJsxName = jsxName; type_ = String })

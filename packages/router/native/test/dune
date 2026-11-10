@@ -1,8 +1,10 @@
-(test
- (name test_router_server)
+(tests
+ (names test_router_server test_router_encoding)
  (libraries
   alcotest
   lwt
   lwt.unix
+  server-reason-react.react
+  server-reason-react.reactDom
   server-reason-react.router-native
   server-reason-react.rsc-native))

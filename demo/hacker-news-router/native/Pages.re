@@ -365,7 +365,7 @@ module NotFound = {
 
 module Document = {
   [@react.component]
-  let make = (~children) =>
+  let make = (~head, ~children) =>
     <html suppressHydrationWarning=true lang="en" className="h-full">
       <head>
         <meta charSet="utf-8" />
@@ -391,6 +391,7 @@ module Document = {
             "__html": "try{var t=localStorage.getItem('hn-theme');document.documentElement.dataset.hnTheme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}",
           }
         />
+        head
       </head>
       <body suppressHydrationWarning=true> children </body>
     </html>;

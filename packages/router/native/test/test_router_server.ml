@@ -1,4 +1,12 @@
 let test title fn = Alcotest.test_case title `Quick fn
+
+let contains ~needle value =
+  let limit = String.length value - String.length needle in
+  let rec loop index =
+    index <= limit && (String.equal (String.sub value index (String.length needle)) needle || loop (index + 1))
+  in
+  loop 0
+
 let route ~id ~path = RouterServer.Route.make ~id ~path
 
 let registry routes =
@@ -392,12 +400,59 @@ let error_status () =
 
 let metadata_composition () =
   let open RouterRuntime.Metadata in
-  let parent = make ~title:"Parent" ~entries:[ { key = "robots"; name = "robots"; content = "index" } ] () in
-  let child = make ~description:"Child" ~entries:[ { key = "robots"; name = "robots"; content = "noindex" } ] () in
+  let parent = make ~title:"Parent" ~entries:[ meta ~name:"robots" "index"; link ~rel:"canonical" "/a" ] () in
+  let child = make ~description:"Child" ~entries:[ meta ~name:"robots" "noindex"; meta ~name:"extra" "x" ] () in
   let merged = merge parent child in
   Alcotest.(check (option string)) "title" (Some "Parent") merged.title;
   Alcotest.(check (option string)) "description" (Some "Child") merged.description;
-  Alcotest.(check int) "deduplicated" 1 (List.length merged.entries)
+  Alcotest.(check (list string))
+    "parent order kept, child replaces and appends"
+    [ "link:canonical"; "meta:robots"; "meta:extra" ]
+    (List.map entryKey merged.entries);
+  match merged.entries with
+  | [ _; Meta { content; _ }; _ ] -> Alcotest.(check string) "child wins" "noindex" content
+  | _ -> Alcotest.fail "unexpected entries"
+
+let metadata_default_keys () =
+  let open RouterRuntime.Metadata in
+  Alcotest.(check string) "meta" "meta:description" (entryKey (meta ~name:"description" "x"));
+  Alcotest.(check string) "property" "property:og:title" (entryKey (property ~property:"og:title" "x"));
+  Alcotest.(check string) "link" "link:canonical" (entryKey (link ~rel:"canonical" "/x"));
+  Alcotest.(check string) "explicit" "k" (entryKey (link ~key:"k" ~rel:"alternate" "/x"));
+  (* A meta and a link whose names coincide must not replace each other. *)
+  let merged = merge (make ~entries:[ meta ~name:"icon" "a" ] ()) (make ~entries:[ link ~rel:"icon" "/i.png" ] ()) in
+  Alcotest.(check int) "no accidental collision" 2 (List.length merged.entries);
+  let merged = merge (make ~entries:[ meta ~name:"x" "a" ] ()) (make ~entries:[ property ~property:"x" "b" ] ()) in
+  Alcotest.(check int) "name and property differ" 2 (List.length merged.entries)
+
+let metadata_repeated_tags_with_explicit_keys () =
+  let open RouterRuntime.Metadata in
+  let alternate lang = link ~key:("alt:" ^ lang) ~rel:"alternate" ~attrs:[ ("hreflang", lang) ] ("/" ^ lang) in
+  let merged = merge (make ~entries:[ alternate "en" ] ()) (make ~entries:[ alternate "es" ] ()) in
+  Alcotest.(check int) "both kept" 2 (List.length merged.entries);
+  let merged = merge merged (make ~entries:[ link ~key:"alt:en" ~rel:"alternate" "/en2" ] ()) in
+  Alcotest.(check int) "same key replaced" 2 (List.length merged.entries)
+
+let metadata_rendering () =
+  let open RouterRuntime.Metadata in
+  let html =
+    make ~title:"T" ~description:"D"
+      ~entries:
+        [
+          meta ~name:"robots" "noindex";
+          property ~property:"og:title" "Og";
+          link ~rel:"canonical" "/c";
+          link ~key:"alt:es" ~rel:"alternate" ~attrs:[ ("hreflang", "es"); ("rel", "evil"); ("HREF", "/evil") ] "/es";
+        ]
+      ()
+    |> RouterServer.Adapter.metadata_element |> ReactDOM.renderToStaticMarkup
+  in
+  Alcotest.(check string)
+    "markup"
+    "<title>T</title><meta name=\"description\" content=\"D\" /><meta name=\"robots\" content=\"noindex\" /><meta \
+     property=\"og:title\" content=\"Og\" /><link rel=\"canonical\" href=\"/c\" /><link rel=\"alternate\" href=\"/es\" \
+     hreflang=\"es\" />"
+    html
 
 let header_composition () =
   let open RouterRuntime.Headers in
@@ -617,6 +672,30 @@ let builtin_bool_codec () =
     (fun value -> match parseBool value with Ok _ -> Alcotest.failf "accepted %s" value | Error _ -> ())
     [ "True"; "FALSE"; "1"; "0"; ""; "yes" ]
 
+let builtin_int_codec () =
+  let open RouterRuntime.Search in
+  List.iter
+    (fun (value, expected) -> Alcotest.(check bool) value true (parseInt value = Ok expected))
+    [ ("0", 0); ("42", 42); ("-5", -5); ("007", 7); ("2147483647", 2147483647); ("-2147483648", -2147483648) ];
+  List.iter
+    (fun value -> match parseInt value with Ok _ -> Alcotest.failf "accepted %S" value | Error _ -> ())
+    [
+      "";
+      "-";
+      "+5";
+      "0x10";
+      "0b11";
+      "0o7";
+      "1_000";
+      " 1";
+      "1 ";
+      "1.5";
+      "--1";
+      "2147483648";
+      "-2147483649";
+      "99999999999999999999";
+    ]
+
 let typed_search_decoding () =
   let open RouterRuntime.Search in
   let values = [ ("page", [ "2" ]); ("tag", [ "one"; "two" ]) ] in
@@ -637,9 +716,18 @@ let pop_navigation_kind () =
   let committed = initial_commit "r1" "/notes" in
   let hashTarget = { committed.location with hash = "#details" } in
   let searchTarget = { committed.location with search = "?q=cat" } in
-  Alcotest.(check bool) "hash" true (classifyPop committed ~target:hashTarget ~targetRevision:(Some "r1") = HashOnly);
-  Alcotest.(check bool) "search" true (classifyPop committed ~target:searchTarget ~targetRevision:(Some "r1") = Shallow);
-  Alcotest.(check bool) "stale" true (classifyPop committed ~target:searchTarget ~targetRevision:(Some "old") = Content)
+  Alcotest.(check bool)
+    "hash" true
+    (classifyPopByContentIdentity committed ~target:hashTarget ~currentIdentity:"r1" ~targetIdentity:(Some "r1")
+    = HashOnly);
+  Alcotest.(check bool)
+    "search" true
+    (classifyPopByContentIdentity committed ~target:searchTarget ~currentIdentity:"r1" ~targetIdentity:(Some "r1")
+    = Shallow);
+  Alcotest.(check bool)
+    "stale" true
+    (classifyPopByContentIdentity committed ~target:searchTarget ~currentIdentity:"r1" ~targetIdentity:(Some "old")
+    = Content)
 
 let typed_endpoint_decoding () =
   let endpoint =
@@ -706,6 +794,50 @@ let run_trailing_slash_engine ~trailingSlash ~basePath ~pathname ?(search = "") 
        ~protocolVersion:1
        { pathname; search; hash = ""; kind = Document; navigation = None })
 
+let run_redirect_engine ~kind execution =
+  let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+    RouterServer.Endpoint.make ~id:"old" ~path:"/old" ~activeRoutes:[] ~fingerprint:"old" ~decode:(fun _ ->
+        Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution))
+  in
+  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  Lwt_main.run
+    (RouterServer.ServerEngine.run ~registry ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
+       ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+       ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+       ~diagnosticId:(fun _ -> "diagnostic")
+       ~revision:(fun () -> "revision")
+       ~protocolVersion:1
+       { pathname = "/old"; search = ""; hash = ""; kind; navigation = None })
+
+let loader_permanent_redirect_reaches_engine () =
+  let destination = RouterRuntime.destination ~path:"/new" in
+  let execution () =
+    RouterServer.Execution.load
+      (fun () -> Lwt.return (RouterRuntime.Loader.PermanentRedirect destination))
+      (fun (_ : unit) -> RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:"old"))
+  in
+  List.iter
+    (fun kind ->
+      match run_redirect_engine ~kind execution with
+      | RouterServer.ServerEngine.PermanentRedirect found ->
+          Alcotest.(check string) "destination" "/new" (RouterRuntime.href found)
+      | _ -> Alcotest.fail "expected permanent redirect")
+    [ RouterServer.ServerEngine.Document; RouterServer.ServerEngine.Rsc ]
+
+let execution_permanent_redirect_skips_loaders () =
+  let destination = RouterRuntime.destination ~path:"/new" in
+  let execution () = RouterServer.Execution.permanentRedirect destination in
+  match run_redirect_engine ~kind:Document execution with
+  | RouterServer.ServerEngine.PermanentRedirect found ->
+      Alcotest.(check string) "destination" "/new" (RouterRuntime.href found)
+  | _ -> Alcotest.fail "expected permanent redirect"
+
+let loader_redirect_stays_temporary () =
+  let destination = RouterRuntime.destination ~path:"/new" in
+  match run_redirect_engine ~kind:Document (fun () -> RouterServer.Execution.redirect destination) with
+  | RouterServer.ServerEngine.Redirect _ -> ()
+  | _ -> Alcotest.fail "expected temporary redirect"
+
 let trailing_slash_redirects_to_canonical () =
   match
     run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/app"
@@ -739,12 +871,40 @@ let trailing_slash_reject_is_not_found () =
       Alcotest.(check int) "status" 404 (RouterRuntime.Status.toInt full.resolved.status)
   | _ -> Alcotest.fail "expected not-found response"
 
+let trailing_slash_redirect_never_leaves_the_origin () =
+  List.iter
+    (fun pathname ->
+      match run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname () with
+      | RouterServer.ServerEngine.PermanentRedirect destination ->
+          Alcotest.failf "%s redirected to %s" pathname (RouterRuntime.href destination)
+      | RouterServer.ServerEngine.Full full ->
+          Alcotest.(check int) pathname 404 (RouterRuntime.Status.toInt full.resolved.status)
+      | _ -> Alcotest.fail "expected not-found response")
+    [ "//evil.example/"; "///evil.example//"; "//evil.example/notes/"; "/\\evil.example/"; "/\\\\evil.example/" ]
+
 let root_pathname_is_canonical () =
   match run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname:"/" () with
   | RouterServer.ServerEngine.PermanentRedirect _ -> Alcotest.fail "expected no redirect for the root pathname"
   | RouterServer.ServerEngine.Full full ->
       Alcotest.(check int) "status" 404 (RouterRuntime.Status.toInt full.resolved.status)
   | _ -> Alcotest.fail "expected full response"
+
+let default_boundary_renders_text () =
+  let render error =
+    let resolved =
+      Lwt_main.run
+        (RouterServer.Plan.resolve (RouterServer.Plan.failure ~scopes:[] ~error ()) ~applicationStatus:(fun _ ->
+             RouterRuntime.Status.InternalServerError))
+    in
+    Alcotest.(check bool) "no app boundary" true (Option.is_none resolved.element);
+    ReactDOM.renderToString (RouterServer.Plan.resolvedElement resolved)
+  in
+  Alcotest.(check string)
+    "not found" "<p>Not found</p>"
+    (render (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute }));
+  Alcotest.(check string)
+    "application error hides details" "<p>Something went wrong</p>"
+    (render (RouterRuntime.Error.Application "secret detail"))
 
 let server_base_path_validation () =
   let endpoint : ((unit, unit) RouterServer.Plan.t, unit) RouterServer.Endpoint.t =
@@ -772,6 +932,131 @@ let server_base_path_validation () =
       in
       Alcotest.(check bool) basePath true rejected)
     [ ""; "app"; "/app/"; "/app?preview"; "/münchen"; "/%61pp" ]
+
+let adapter_server () =
+  let page =
+    RouterServer.Plan.success
+      ~scopes:
+        [
+          RouterServer.Plan.Scope.make
+            ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"Item" ~description:"D" ()))
+            ();
+        ]
+      ~page:(React.createElement "main" [] [ React.string "item" ])
+  in
+  let endpoint path id decode_result =
+    RouterServer.Endpoint.make ~id ~path
+      ~activeRoutes:[ (id, []) ]
+      ~fingerprint:id
+      ~decode:(fun _ -> Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution:decode_result))
+  in
+  let registry =
+    RouterServer.EndpointRegistry.makeExn
+      [
+        endpoint "/item" "item" (fun () -> RouterServer.Execution.done_ page);
+        endpoint "/go" "go" (fun () ->
+            RouterServer.Execution.load
+              (fun () -> Lwt.return (RouterRuntime.Loader.Redirect (RouterRuntime.destination ~path:"/item")))
+              (fun () -> RouterServer.Execution.done_ page));
+      ]
+  in
+  RouterServer.Server.make ~basePath:"/app" ~registry
+    ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+    ()
+
+let adapter_reply ?(registry = None) ~kind pathname =
+  let server = adapter_server () in
+  let navigation =
+    match kind with
+    | RouterServer.ServerEngine.Document -> None
+    | Rsc ->
+        Some
+          {
+            RouterServer.ServerEngine.from = Some "/app";
+            registry = Some (Option.value registry ~default:("2." ^ RouterServer.Server.fingerprint server));
+            base_revision = Some "base";
+          }
+  in
+  let outcome =
+    Lwt_main.run
+      (RouterServer.Server.run server
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~revision:(fun () -> "revision")
+         { pathname; search = ""; hash = ""; kind; navigation })
+  in
+  RouterServer.Adapter.reply server ~target:pathname ~pageCacheCapacity:0
+    ~document:(fun ~head children ->
+      React.createElement "html" []
+        [ React.createElement "head" [] [ head ]; React.createElement "body" [] [ children ] ])
+    ~kind outcome
+
+let header name (reply : RouterServer.Adapter.reply) = List.assoc_opt name reply.headers
+let check_header reply name expected = Alcotest.(check (option string)) name expected (header name reply)
+
+let count_occurrences ~needle haystack =
+  let n = String.length needle in
+  let rec go from acc =
+    if from + n > String.length haystack then acc
+    else if String.sub haystack from n = needle then go (from + n) (acc + 1)
+    else go (from + 1) acc
+  in
+  go 0 0
+
+let adapter_document_reply () =
+  let reply = adapter_reply ~kind:Document "/app/item" in
+  Alcotest.(check int) "status" 200 reply.status;
+  check_header reply "Vary" (Some "Accept");
+  check_header reply "Content-Type" (Some "text/html; charset=utf-8");
+  match reply.body with
+  | Html element ->
+      let html, _subscribe = Lwt_main.run (ReactServerDOM.render_html ~skipRoot:false element) in
+      Alcotest.(check bool) "head before root" true (contains ~needle:"<head><title>Item</title>" html);
+      Alcotest.(check bool) "routed markup" true (contains ~needle:"<main>item</main>" html);
+      Alcotest.(check int) "one title" 1 (count_occurrences ~needle:"<title>" html);
+      Alcotest.(check int) "one meta" 1 (count_occurrences ~needle:"<meta name=\"description\"" html)
+  | Empty | Model _ -> Alcotest.fail "expected html"
+
+let adapter_rsc_reply () =
+  let reply = adapter_reply ~kind:Rsc "/app/item" in
+  Alcotest.(check int) "status" 200 reply.status;
+  check_header reply "Vary" (Some "Accept");
+  check_header reply "Router-Response" (Some "full");
+  check_header reply "Router-Registry" (Some ("2." ^ RouterServer.Server.fingerprint (adapter_server ())));
+  check_header reply "Cache-Control" (Some "private, no-store");
+  match reply.body with
+  | Model { location; _ } -> Alcotest.(check string) "x-location" "/app/item" location
+  | Empty | Html _ -> Alcotest.fail "expected model"
+
+let adapter_reload_required_reply () =
+  let reply = adapter_reply ~registry:(Some "2.wrong") ~kind:Rsc "/app/item" in
+  Alcotest.(check int) "status" 409 reply.status;
+  check_header reply "Vary" (Some "Accept");
+  check_header reply "Router-Response" (Some "reload-required");
+  check_header reply "Cache-Control" (Some "private, no-store");
+  Alcotest.(check bool) "empty body" true (reply.body = Empty)
+
+let adapter_document_redirect_reply () =
+  let temporary = adapter_reply ~kind:Document "/app/go" in
+  Alcotest.(check int) "temporary status" 303 temporary.status;
+  check_header temporary "Location" (Some "/item");
+  check_header temporary "Vary" (Some "Accept");
+  let permanent = adapter_reply ~kind:Document "/app/item/" in
+  Alcotest.(check int) "permanent status" 308 permanent.status;
+  check_header permanent "Location" (Some "/app/item");
+  check_header permanent "Vary" (Some "Accept")
+
+let adapter_rsc_redirect_reply () =
+  let reply = adapter_reply ~kind:Rsc "/app/go" in
+  Alcotest.(check int) "status" 200 reply.status;
+  check_header reply "Vary" (Some "Accept");
+  check_header reply "Router-Response" (Some "redirect");
+  check_header reply "Router-Registry" (Some ("2." ^ RouterServer.Server.fingerprint (adapter_server ())));
+  check_header reply "Cache-Control" (Some "private, no-store");
+  check_header reply "Content-Type" (Some "application/react.component");
+  match reply.body with
+  | Model { location; _ } -> Alcotest.(check string) "x-location" "/app/go" location
+  | Empty | Html _ -> Alcotest.fail "expected model"
 
 let full_plan_composition () =
   let open RouterRuntime in
@@ -888,6 +1173,9 @@ let () =
           test "fatal loader exceptions propagate" fatal_loader_exceptions_propagate;
           test "error status" error_status;
           test "metadata composition" metadata_composition;
+          test "metadata default keys" metadata_default_keys;
+          test "metadata repeated tags with explicit keys" metadata_repeated_tags_with_explicit_keys;
+          test "metadata rendering" metadata_rendering;
           test "header composition" header_composition;
           test "latest navigation wins" latest_navigation_wins;
           test "stale revision rejected" stale_revision_rejected;
@@ -902,17 +1190,28 @@ let () =
           test "history action selects mutation" history_action_selects_mutation;
           test "hash-only location commit" hash_only_location_commit;
           test "builtin bool codec" builtin_bool_codec;
+          test "builtin int codec" builtin_int_codec;
           test "typed search decoding" typed_search_decoding;
           test "shallow search preserves unowned values" shallow_search_preserves_unowned_values;
           test "pop navigation kind" pop_navigation_kind;
           test "typed endpoint decoding" typed_endpoint_decoding;
           test "typed endpoint decode error" typed_endpoint_decode_error;
+          test "loader permanent redirect reaches engine" loader_permanent_redirect_reaches_engine;
+          test "execution permanent redirect" execution_permanent_redirect_skips_loaders;
+          test "loader redirect stays temporary" loader_redirect_stays_temporary;
           test "trailing slash redirects to canonical" trailing_slash_redirects_to_canonical;
           test "trailing slash redirect collapses repeated slashes" trailing_slash_redirect_collapses_repeated_slashes;
           test "trailing slash redirects base path root" trailing_slash_redirects_base_path_root;
           test "trailing slash reject is not found" trailing_slash_reject_is_not_found;
+          test "trailing slash redirect never leaves the origin" trailing_slash_redirect_never_leaves_the_origin;
           test "root pathname is canonical" root_pathname_is_canonical;
+          test "default boundary renders text" default_boundary_renders_text;
           test "server base path validation" server_base_path_validation;
+          test "adapter document reply" adapter_document_reply;
+          test "adapter rsc reply" adapter_rsc_reply;
+          test "adapter reload required reply" adapter_reload_required_reply;
+          test "adapter document redirect reply" adapter_document_redirect_reply;
+          test "adapter rsc redirect reply" adapter_rsc_redirect_reply;
           test "full plan composition" full_plan_composition;
           test "failure plan selects not-found boundary" failure_plan_selects_not_found_boundary;
           test "shared layout prefix uses canonical identity" shared_layout_prefix_uses_canonical_identity;
