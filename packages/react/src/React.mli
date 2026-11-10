@@ -609,6 +609,10 @@ and element =
     }
   | List of element list
   | Array of element array
+  | Static_list of element list
+      (** A literal sibling group written in JSX under a component or a fragment. Only the PPX builds it. Its members
+          are static child positions for key validation, while a [List] or [Array] member is still a runtime collection.
+          Transparent for rendering. *)
   | Text of string
   | Int of int
   | Float of float
@@ -647,6 +651,9 @@ end
 module StrictMode : module type of Fragment
 
 val createElement : string -> JSX.prop list -> element list -> element
+(** The child list contains explicit sibling positions. Wrap a runtime collection with [list] or [array] so its members
+    remain eligible for missing-key warnings. *)
+
 val createElementWithKey : ?key:string -> string -> JSX.prop list -> element list -> element
 val component : 'props component -> 'props component
 val isValidElement : element -> bool
@@ -909,7 +916,20 @@ val setDisplayName : 'component -> string -> unit
 
 module Children : sig
   val map : element -> (element -> element) -> element
+  (** Maps children like React's [Children.map] and returns a [Static_list]. A [List], [Array] or [Static_list] is
+      flattened, nested collections included; any other element, a single one included, is one child. [null] gives
+      [null] without calling the function. A [null] result is dropped, and a collection result is flattened.
+
+      Every mapped element gets React's key: [.<index in base 36>] for an unkeyed child, [.$<key>] for a keyed child
+      with [=] and [:] escaped as [=0] and [=2], [:] between the levels of nested collections, and a [<result key>/]
+      prefix when the function returns an element with a different key. A server component result passes its key to the
+      element it renders, joined as [<key>,<rendered key>] as React's Flight server does. A [Fragment], [Provider] or
+      [Consumer] result has no key field and stays unkeyed, as does a fragment or collection that a server component
+      renders; React sends a keyed fragment there. *)
+
   val mapWithIndex : element -> (element -> int -> element) -> element
+  (** Like [map]; the index counts the children passed to the function, after flattening. *)
+
   val forEach : element -> (element -> unit) -> unit
   val forEachWithIndex : element -> (element -> int -> unit) -> unit
   val count : element -> int

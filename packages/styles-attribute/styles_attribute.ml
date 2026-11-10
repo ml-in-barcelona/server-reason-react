@@ -46,7 +46,8 @@ let expand_attributes ~loc attributes =
                   | Some __incoming, Some __existing -> Some [%e combine [%expr __incoming] [%expr __existing]]] ))
   in
   let merge_className =
-    merge ~name:"className" ~combine:(fun incoming existing -> [%expr [%e incoming] ^ " " ^ [%e existing]])
+    merge ~name:"className" ~combine:(fun incoming existing ->
+        [%expr CSS.className (CSS.merge (CSS.make [%e existing] []) (CSS.make [%e incoming] []))])
   in
   let merge_style =
     merge ~name:"style" ~combine:(fun incoming existing -> [%expr ReactDOM.Style.combine [%e existing] [%e incoming]])
