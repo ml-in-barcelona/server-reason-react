@@ -2048,6 +2048,7 @@ type decode_ctx = {
   formData : Js.FormData.t option;
   temporaryReferences : (string -> json option) option;
   resolving : string list;
+  decoded : (string, json) Hashtbl.t;
 }
 
 let resolve_temporary_reference ctx id =
@@ -2123,8 +2124,13 @@ and resolve_and_decode_outlined ctx fd hex_id =
   if List.mem entry_key ctx.resolving then
     Error (Printf.sprintf "decodeReply: cyclic reference to outlined entry %s" entry_key)
   else
-    let* resolved = resolve_from_formdata fd hex_id in
-    decode_value { ctx with resolving = entry_key :: ctx.resolving } resolved
+    match Hashtbl.find_opt ctx.decoded entry_key with
+    | Some decoded -> Ok decoded
+    | None ->
+        let* resolved = resolve_from_formdata fd hex_id in
+        let* decoded = decode_value { ctx with resolving = entry_key :: ctx.resolving } resolved in
+        Hashtbl.replace ctx.decoded entry_key decoded;
+        Ok decoded
 
 and resolve_outlined ctx type_name hex_id =
   match ctx.formData with
@@ -2161,7 +2167,7 @@ let decode_arguments ctx arguments =
 
 let decodeReply ?temporaryReferences body =
   protect_reply_decode (fun () ->
-      let context = { formData = None; temporaryReferences; resolving = [] } in
+      let context = { formData = None; temporaryReferences; resolving = []; decoded = Hashtbl.create 0 } in
       let* arguments = parse_reply_arguments ~invalid_json:"Invalid JSON" body in
       decode_arguments context arguments)
 
@@ -2207,7 +2213,7 @@ let extract_user_form_data formData ~prefix =
 
 let decodeFormDataReply ?temporaryReferences formData =
   protect_reply_decode (fun () ->
-      let context = { formData = Some formData; temporaryReferences; resolving = [] } in
+      let context = { formData = Some formData; temporaryReferences; resolving = []; decoded = Hashtbl.create 8 } in
       let* arguments, prefix = read_form_data_reply formData in
       let* arguments = decode_arguments context arguments in
       Ok (arguments, extract_user_form_data formData ~prefix))
