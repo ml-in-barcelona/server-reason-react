@@ -916,7 +916,20 @@ val setDisplayName : 'component -> string -> unit
 
 module Children : sig
   val map : element -> (element -> element) -> element
+  (** Maps children like React's [Children.map] and returns a [Static_list]. A [List], [Array] or [Static_list] is
+      flattened, nested collections included; any other element, a single one included, is one child. [null] gives
+      [null] without calling the function. A [null] result is dropped, and a collection result is flattened.
+
+      Every mapped element gets React's key: [.<index in base 36>] for an unkeyed child, [.$<key>] for a keyed child
+      with [=] and [:] escaped as [=0] and [=2], [:] between the levels of nested collections, and a [<result key>/]
+      prefix when the function returns an element with a different key. A server component result passes its key to the
+      element it renders, joined as [<key>,<rendered key>] as React's Flight server does. A [Fragment], [Provider] or
+      [Consumer] result has no key field and stays unkeyed, as does a fragment or collection that a server component
+      renders; React sends a keyed fragment there. *)
+
   val mapWithIndex : element -> (element -> int -> element) -> element
+  (** Like [map]; the index counts the children passed to the function, after flattening. *)
+
   val forEach : element -> (element -> unit) -> unit
   val forEachWithIndex : element -> (element -> int -> unit) -> unit
   val count : element -> int
