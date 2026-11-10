@@ -144,8 +144,16 @@
 
   $ server-reason-react.router-gen --mode handles --source reserved-label.ml < reserved-label.ml
   File "reserved-label.ml", line 1, characters 28-82:
-  Error: router: branch input label options conflicts with a generated router argument
+  Error: router: branch input label history conflicts with a generated router argument
   [2]
+
+  $ server-reason-react.router-gen --mode handles --source reserved-revalidate.ml < reserved-revalidate.ml
+  File "reserved-revalidate.ml", line 2, characters 2-44:
+  Error: router: branch input label revalidate conflicts with a generated router argument
+  [2]
+
+  $ server-reason-react.router-gen --mode handles --source options-label.ml < options-label.ml > Router.ml
+  $ ocamlc -c Router.ml
 
   $ server-reason-react.router-gen --mode handles --source reserved-pattern.ml < reserved-pattern.ml
   File "reserved-pattern.ml", line 1, characters 28-82:

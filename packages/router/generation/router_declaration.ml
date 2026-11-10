@@ -399,13 +399,14 @@ let generated_labels =
     "download";
     "error";
     "fallback";
+    "history";
     "href";
     "input";
     "item";
     "make";
-    "options";
     "pattern";
     "registry";
+    "revalidate";
     "search";
     "target";
     "updateSearch";
