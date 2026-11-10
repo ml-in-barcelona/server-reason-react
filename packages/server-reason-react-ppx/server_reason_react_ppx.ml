@@ -97,7 +97,7 @@ let rewrite_component ~loc tag args children =
     match children with
     | None -> args
     | Some [ children ] -> (Labelled "children", children) :: args
-    | Some children -> (Labelled "children", [%expr React.list [%e pexp_list ~loc children]]) :: args
+    | Some children -> (Labelled "children", [%expr React.Static_list [%e pexp_list ~loc children]]) :: args
   in
   let key_args, non_key_args = List.partition ~f:is_key_arg props_args in
   let make_props = pexp_ident ~loc (component_make_props_ident tag) in
@@ -1923,7 +1923,7 @@ let traverse =
                 | [], _ -> expr
                 | _, rest_attributes ->
                     let children = transform_items_of_list ~loc expr in
-                    let new_expr = [%expr React.fragment (React.list [%e children])] in
+                    let new_expr = [%expr React.fragment (React.Static_list [%e children])] in
                     { new_expr with pexp_attributes = rest_attributes })
             | _ -> expr
           with Error err -> [%expr [%e err]])
