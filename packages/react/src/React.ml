@@ -912,17 +912,84 @@ module Uncurried = struct
 end
 
 module Children = struct
-  let map element fn =
-    match element with
-    | List children | Static_list children -> Static_list (List.map fn children)
-    | Array children -> Static_list (List.init (Array.length children) (fun index -> fn children.(index)))
-    | _ -> fn element
+  let escape_key key =
+    let buf = Buffer.create (String.length key + 4) in
+    String.iter
+      (function '=' -> Buffer.add_string buf "=0" | ':' -> Buffer.add_string buf "=2" | c -> Buffer.add_char buf c)
+      key;
+    Buffer.contents buf
+
+  let escape_user_key key =
+    let buf = Buffer.create (String.length key + 2) in
+    let last = String.length key - 1 in
+    String.iteri
+      (fun i c ->
+        Buffer.add_char buf c;
+        if c = '/' && (i = last || key.[i + 1] <> '/') then Buffer.add_char buf '/')
+      key;
+    Buffer.contents buf
+
+  let rec base36 n =
+    let digit d = String.make 1 (Char.chr (if d < 10 then 48 + d else 87 + d)) in
+    if n < 36 then digit n else base36 (n / 36) ^ digit (n mod 36)
+
+  let rec key_of = function
+    | Lower_case_element { key; _ } | Client_component { key; _ } | Suspense { key; _ } -> key
+    | Static { original; _ } -> key_of original
+    | Writer { original; _ } -> key_of (original ())
+    | _ -> None
+
+  let rec with_key key = function
+    | Lower_case_element element -> Lower_case_element { element with key = Some key }
+    | Client_component component -> Client_component { component with key = Some key }
+    | Suspense suspense -> Suspense { suspense with key = Some key }
+    | Static static -> Static { static with original = with_key key static.original }
+    | Writer writer -> Writer { writer with original = (fun () -> with_key key (writer.original ())) }
+    | Upper_case_component (name, render) -> Upper_case_component (name, fun () -> with_key_path key (render ()))
+    | Async_component (name, render) -> Async_component (name, fun () -> Lwt.map (with_key_path key) (render ()))
+    | element -> element
+
+  and with_key_path path element =
+    match key_of element with Some key -> with_key (path ^ "," ^ key) element | None -> with_key path element
+
+  let element_key index element = match key_of element with Some key -> "$" ^ escape_key key | None -> base36 index
+
+  let map_into element fn =
+    let mapped = ref [] in
+    let rec visit ~prefix ~name fn = function
+      | List members | Static_list members -> visit_members ~prefix ~name fn members
+      | Array members -> visit_members ~prefix ~name fn (Array.to_list members)
+      | child -> (
+          let child_key = if name = "" then "." ^ element_key 0 child else name in
+          match fn child with
+          | (List _ | Array _ | Static_list _) as result ->
+              visit ~prefix:(escape_user_key child_key ^ "/") ~name:"" Fun.id result
+          | Empty -> ()
+          | result ->
+              let key =
+                match key_of result with
+                | Some key when key_of child <> Some key -> prefix ^ escape_user_key key ^ "/" ^ child_key
+                | Some _ | None -> prefix ^ child_key
+              in
+              mapped := with_key key result :: !mapped)
+    and visit_members ~prefix ~name fn members =
+      let separator = if name = "" then "." else name ^ ":" in
+      List.iteri (fun index member -> visit ~prefix ~name:(separator ^ element_key index member) fn member) members
+    in
+    visit ~prefix:"" ~name:"" fn element;
+    Static_list (List.rev !mapped)
 
   let mapWithIndex element fn =
     match element with
-    | List children | Static_list children -> Static_list (List.mapi (fun index element -> fn element index) children)
-    | Array children -> Static_list (List.init (Array.length children) (fun index -> fn children.(index) index))
-    | _ -> fn element 0
+    | Empty -> Empty
+    | element ->
+        let count = ref 0 in
+        map_into element (fun child ->
+            let index = !count in
+            incr count;
+            fn child index)
+
+  let map element fn = mapWithIndex element (fun child _ -> fn child)
 
   let forEach element fn =
     match element with

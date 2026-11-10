@@ -633,7 +633,7 @@ let mapped_children () =
           ]
       in
       let%lwt rows = render ?env ~debug renderer tree in
-      check_states ?env [ state "div" 0; state "i" 1; keyed "b" "x" 1; state "u" 1 ] rows;
+      check_states ?env [ state "div" 0; keyed "i" ".0" 1; keyed "b" ".$x" 1; keyed "u" ".0" 1 ] rows;
       Lwt.return_unit)
 
 let test name run =

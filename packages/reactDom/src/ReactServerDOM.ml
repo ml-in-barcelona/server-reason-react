@@ -1504,7 +1504,15 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
                 Lwt.return to_chunk
               with exn ->
                 let error = Model.exn_to_error exn in
-                let to_chunk index = model_to_chunk ?nonce:fiber.nonce (Error (fiber.env, error)) index in
+                let to_chunk index =
+                  Html.list
+                    [
+                      model_to_chunk ?nonce:fiber.nonce (Error (fiber.env, error)) index;
+                      client_render_boundary_to_chunk ?nonce:fiber.nonce ~env:fiber.env
+                        ~message:(client_render_error_message exn)
+                        ~include_definition:(Stream.take_rx_definition context) index;
+                    ]
+                in
                 Lwt.return to_chunk
             in
             let index = Stream.push_boundary_async ~context (fun () -> promise) in
@@ -1941,8 +1949,10 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
 
                   The $RX scripts are written straight into the subscriber's buffer since the stream subscription is about to be cancelled by Lwt.pick. The [Aborting]/[Closed] lifecycle guards the pushes of tasks that resolve later. *)
                 (let%lwt reason = Lwt.pick triggers in
-                 (match Stream.begin_abort context with
-                 | None -> ()
+                 match Stream.begin_abort context with
+                 (* The render already completed: the subscription still drains the queued rows and writes the end
+                    script, and Lwt.pick cancels this branch. *)
+                 | None -> fst (Lwt.task ())
                  | Some tasks ->
                      let pending_boundaries = Stream.boundary_rows tasks in
                      let pending_rows = Stream.task_rows tasks in
@@ -1960,8 +1970,8 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
                               (client_render_boundary_to_chunk ?nonce ~env ~message
                                  ~include_definition:(Stream.take_rx_definition context) index)))
                        pending_boundaries;
-                     Stream.close_and_cancel context tasks);
-                 finish ());
+                     Stream.close_and_cancel context tasks;
+                     finish ());
               ]
       in
       Lwt.return (Html.to_string html, subscribe))
@@ -2051,6 +2061,7 @@ type decode_ctx = {
   formData : Js.FormData.t option;
   temporaryReferences : (string -> json option) option;
   resolving : string list;
+  decoded : (string, json) Hashtbl.t;
 }
 
 let resolve_temporary_reference ctx id =
@@ -2126,8 +2137,13 @@ and resolve_and_decode_outlined ctx fd hex_id =
   if List.mem entry_key ctx.resolving then
     Error (Printf.sprintf "decodeReply: cyclic reference to outlined entry %s" entry_key)
   else
-    let* resolved = resolve_from_formdata fd hex_id in
-    decode_value { ctx with resolving = entry_key :: ctx.resolving } resolved
+    match Hashtbl.find_opt ctx.decoded entry_key with
+    | Some decoded -> Ok decoded
+    | None ->
+        let* resolved = resolve_from_formdata fd hex_id in
+        let* decoded = decode_value { ctx with resolving = entry_key :: ctx.resolving } resolved in
+        Hashtbl.replace ctx.decoded entry_key decoded;
+        Ok decoded
 
 and resolve_outlined ctx type_name hex_id =
   match ctx.formData with
@@ -2164,7 +2180,7 @@ let decode_arguments ctx arguments =
 
 let decodeReply ?temporaryReferences body =
   protect_reply_decode (fun () ->
-      let context = { formData = None; temporaryReferences; resolving = [] } in
+      let context = { formData = None; temporaryReferences; resolving = []; decoded = Hashtbl.create 0 } in
       let* arguments = parse_reply_arguments ~invalid_json:"Invalid JSON" body in
       decode_arguments context arguments)
 
@@ -2210,7 +2226,7 @@ let extract_user_form_data formData ~prefix =
 
 let decodeFormDataReply ?temporaryReferences formData =
   protect_reply_decode (fun () ->
-      let context = { formData = Some formData; temporaryReferences; resolving = [] } in
+      let context = { formData = Some formData; temporaryReferences; resolving = []; decoded = Hashtbl.create 8 } in
       let* arguments, prefix = read_form_data_reply formData in
       let* arguments = decode_arguments context arguments in
       Ok (arguments, extract_user_form_data formData ~prefix))

@@ -144,6 +144,23 @@ let suspense_with_always_throwing_in_prod () =
   let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Prod (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<!--$!--><template></template>Loading...<!--/$-->" ]
 
+let suspense_with_throwing_child_after_sibling_in_prod () =
+  let app () =
+    React.createElement "main" []
+      [
+        mk_suspense ~fallback:(React.string "Loading...")
+          ~children:
+            (React.list
+               [
+                 React.createElement "span" [] [ React.string "Before" ];
+                 React.createElement "section" [] [ always_throwing_component () ];
+               ])
+          ();
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Prod (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<main><!--$!--><template></template>Loading...<!--/$--></main>" ]
+
 let suspense_with_react_use () =
   Sleep.destroy ();
   let time =
@@ -206,6 +223,59 @@ let suspense_with_async_component () =
     [
       "<div><!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$--></div>";
       "<div hidden id=\"S:0\"><div>Sleep 0. seconds<!-- -->, <!-- -->lol</div></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+    ]
+
+let suspense_with_partial_children_in_shell () =
+  let app () =
+    React.createElement "main" []
+      [
+        mk_suspense ~fallback:(React.string "Loading...")
+          ~children:
+            (React.list
+               [
+                 React.createElement "span" [] [ React.string "Before" ];
+                 React.createElement "section" [] [ deffered_component ~seconds:0. ~children:(React.string "lol") () ];
+               ])
+          ();
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream
+    [
+      "<main><!--$?--><template id=\"B:0\"></template>Loading...<!--/$--></main>";
+      "<div hidden id=\"S:0\"><span>Before</span><section><div>Sleep 0. seconds<!-- -->, <!-- \
+       -->lol</div></section></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+    ]
+
+let suspense_fallback_does_not_add_text_separator_after_boundary () =
+  let app () =
+    React.createElement "p" []
+      [
+        React.string "a";
+        mk_suspense ~fallback:(React.string "F")
+          ~children:
+            (React.list
+               [
+                 React.createElement "b" [] [ React.string "x" ];
+                 deffered_component ~seconds:0. ~children:(React.string "lol") ();
+               ])
+          ();
+        React.string "c";
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream
+    [
+      "<p>a<!--$?--><template id=\"B:0\"></template>F<!--/$-->c</p>";
+      "<div hidden id=\"S:0\"><b>x</b><div>Sleep 0. seconds<!-- -->, <!-- -->lol</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
@@ -929,7 +999,11 @@ let tests =
     test "suspense_with_async_component" suspense_with_async_component;
     test "suspense_with_always_throwing" suspense_with_always_throwing;
     test "suspense_with_always_throwing_in_prod" suspense_with_always_throwing_in_prod;
+    test "suspense_with_throwing_child_after_sibling_in_prod" suspense_with_throwing_child_after_sibling_in_prod;
     test "boundary_resolves_while_shell_is_suspended" boundary_resolves_while_shell_is_suspended;
+    test "suspense_with_partial_children_in_shell" suspense_with_partial_children_in_shell;
+    test "suspense_fallback_does_not_add_text_separator_after_boundary"
+      suspense_fallback_does_not_add_text_separator_after_boundary;
     test "suspense_with_nested_suspense" suspense_with_nested_suspense;
     test "suspense_with_nested_suspenses" suspense_with_nested_suspenses;
     test "suspense_with_nested_suspense_with_error" suspense_with_nested_suspense_with_error;

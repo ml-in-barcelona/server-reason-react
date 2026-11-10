@@ -280,8 +280,11 @@ consumer, or Suspense boundary, and the result of a server component give a stat
 position; a runtime collection gives a missing-key state. A literal child extracted from a host and
 re-inserted into a runtime collection reports a missing key, where React does not.
 
-[React.Children.map] and [mapWithIndex] return a [React.Static_list], so
-mapped children are static, as React's keyed [Children.map] results never warn.
+[React.Children.map] and [mapWithIndex] give each mapped element the key React
+gives it ([.0], [.1], [.$key]) and return a [React.Static_list], so mapped
+children are static. React instead passes a missing-key warning on to the mapped
+copy of an unkeyed member of a runtime collection; server-reason-react does not
+report that warning.
 
 The default environment remains [`Prod], which sends React's four-field element
 tuples without this metadata. A development client then warns about unkeyed

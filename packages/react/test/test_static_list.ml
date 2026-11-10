@@ -16,10 +16,11 @@ let group_operations () =
 
 let map_keeps_group () =
   let a = span () and b = span () in
+  let keyed key = React.createElementWithKey ~key "span" [] [] in
   (match React.Children.map (React.Static_list [ a; b ]) Fun.id with
   | React.Static_list [ x; y ] ->
-      check_same "first member" a x;
-      check_same "second member" b y
+      Alcotest.(check bool) "first member, keyed .0" true (x = keyed ".0");
+      Alcotest.(check bool) "second member, keyed .1" true (y = keyed ".1")
   | _ -> Alcotest.fail "map over a group yields a group");
   match React.Children.mapWithIndex (React.Static_list [ a; b ]) (fun child _ -> child) with
   | React.Static_list [ _; _ ] -> ()
