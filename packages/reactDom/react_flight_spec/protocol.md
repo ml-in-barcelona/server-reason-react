@@ -141,7 +141,7 @@ The extension adds 12 uncompressed bytes per production element tuple.
 Static-ness is a property of the container, never of the element value. Children
 of a host element, the single child of a fragment, provider, consumer, or
 Suspense boundary (and its fallback), the result of a server component, and
-members of `React.Static_children`, the literal sibling group the PPX builds for
+members of `React.Static_list`, the literal sibling group the PPX builds for
 `<Component> a b </Component>` and fragments, are static, as React's `jsx`
 marks a single `children` prop. Members of `React.list`, `React.array`, and `React.Model.List` are
 runtime collection members: `2` without a key, `0` with one. A single forwarded
@@ -149,7 +149,7 @@ child takes the state of the slot it finally lands in. A literal child extracted
 from a host and re-inserted into a runtime collection therefore reports `2`,
 where React reports `1`. Model promise resolutions use their own structure,
 independent of the first reference's position. `React.Children.map` and
-`mapWithIndex` return a `React.Static_children`, so mapped children report `1`.
+`mapWithIndex` return a `React.Static_list`, so mapped children report `1`.
 
 Native server-component invocation keys and fragment keys are currently discarded.
 This validation support covers represented host, client, and Suspense elements.

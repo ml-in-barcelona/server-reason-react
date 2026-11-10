@@ -1,17 +1,14 @@
   $ ../ppx.sh --output re input.re
-  let fragment = foo => [@bla] React.fragment(React.Static_children([foo]));
+  let fragment = foo => [@bla] React.fragment(React.Static_list([foo]));
   let poly_children_fragment = (foo, bar) =>
-    React.fragment(React.Static_children([foo, bar]));
+    React.fragment(React.Static_list([foo, bar]));
   let nested_fragment = (foo, bar, baz) =>
     React.fragment(
-      React.Static_children([
-        foo,
-        React.fragment(React.Static_children([bar, baz])),
-      ]),
+      React.Static_list([foo, React.fragment(React.Static_list([bar, baz]))]),
     );
   let nested_fragment_with_lower = foo =>
     React.fragment(
-      React.Static_children([
+      React.Static_list([
         React.Writer({
           emit: (__buf, ~separators as __separators) => {
             Buffer.add_string(__buf, "<div>");
@@ -64,7 +61,7 @@
                   Stdlib.__FUNCTION__,
                   () =>
                     React.fragment(
-                      React.Static_children([
+                      React.Static_list([
                         React.Writer({
                           emit: (__buf, ~separators as _) => {
                             Buffer.add_string(__buf, "<div>");

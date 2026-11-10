@@ -4,7 +4,7 @@ let json = Alcotest.testable Yojson.Basic.pretty_print ( = )
 let check_json = Alcotest.check json
 let node ?key ?(attributes = []) tag children = React.createElementWithKey ?key tag attributes children
 let leaf tag = node tag []
-let group children = React.Static_children children
+let group children = React.Static_list children
 let no_frames _ _ = false
 
 let parse_rows chunks =
@@ -293,7 +293,7 @@ let shared_promises () =
                     (List.length (List.filter (fun (row, _) -> row = id) rows));
                   let expected =
                     match resolved with
-                    | React.Model.Element (React.Static_children _) -> [ state "span" 1 ]
+                    | React.Model.Element (React.Static_list _) -> [ state "span" 1 ]
                     | React.Model.Element _ -> [ state "span" 0 ]
                     | _ -> [ state "span" 2; state "b" 1 ]
                   in

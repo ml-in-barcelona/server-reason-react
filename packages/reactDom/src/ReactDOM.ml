@@ -215,7 +215,7 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
         Fun.protect ~finally:pop (fun () -> render buf prev_text children)
     | Consumer children -> render buf prev_text children
     | Fragment children -> render buf prev_text children
-    | List list | Static_children list -> render_children_list buf prev_text list
+    | List list | Static_list list -> render_children_list buf prev_text list
     | Array arr -> render_children_array buf prev_text arr
     | Upper_case_component (_, component) -> render_upper_case_component buf prev_text component
     | Async_component (_name, _component) -> unsupported_sync async_component_sync_error
@@ -515,7 +515,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
           Lwt.reraise exn)
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List list | Static_children list -> render_children_list_lwt render_element list
+    | List list | Static_list list -> render_children_list_lwt render_element list
     | Array arr -> render_children_array_lwt render_element arr
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | (Text _ | Int _ | Float _) as text_node ->

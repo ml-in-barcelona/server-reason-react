@@ -384,7 +384,7 @@ let static_children_groups = () => {
   let siblings = <ForwardChildren> {child()} {child()} </ForwardChildren>;
   Alcotest.check(Alcotest.int, "siblings evaluated once", 3, calls^);
   switch (siblings) {
-  | React.Static_children([
+  | React.Static_list([
       React.Lower_case_element(_),
       React.Lower_case_element(_),
     ]) =>
@@ -404,7 +404,7 @@ let static_children_groups = () => {
   Alcotest.check(Alcotest.int, "fragment child evaluated once", 4, calls^);
   switch (fragment) {
   | React.Fragment(
-      React.Static_children([React.Lower_case_element(_), collection]),
+      React.Static_list([React.Lower_case_element(_), collection]),
     ) =>
     Alcotest.check(
       Alcotest.bool,

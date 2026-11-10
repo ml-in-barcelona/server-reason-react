@@ -609,7 +609,7 @@ and element =
     }
   | List of element list
   | Array of element array
-  | Static_children of element list
+  | Static_list of element list
       (** A literal sibling group written in JSX under a component or a fragment. Only the PPX builds it. Its members
           are static child positions for key validation, while a [List] or [Array] member is still a runtime collection.
           Transparent for rendering. *)

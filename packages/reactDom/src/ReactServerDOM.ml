@@ -731,7 +731,7 @@ module Model = struct
     let rec turn_element_into_payload ~context ~debug_info ~(site : Key_validation.site) element =
       match (element : React.element) with
       | Empty -> `Null
-      | Static_children children ->
+      | Static_list children ->
           `List
             (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info ~site:Static_slot) children)
       | Static { original; _ } -> turn_element_into_payload ~context ~debug_info ~site original
@@ -1311,7 +1311,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Int i -> Lwt.return (Html.string (Int.to_string i))
   | Float f -> Lwt.return (Html.string (Js.Float.toString f))
   | Fragment children -> client_to_html ~fiber children
-  | List childrens | Static_children childrens ->
+  | List childrens | Static_list childrens ->
       let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) childrens in
       Lwt.return (Html.list html)
   | Array childrens ->
@@ -1448,7 +1448,7 @@ let classify_element ~(fiber : Fiber.t) ~tag ~attributes =
 let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_validation.site) (element : React.element) :
     (Html.element * json) Lwt.t =
   match element with
-  | Static_children list -> elements_to_html ~fiber ~debug_info ~site:Static_slot list
+  | Static_list list -> elements_to_html ~fiber ~debug_info ~site:Static_slot list
   | Empty -> Lwt.return (Html.null, `Null)
   | Static { prerendered; original } ->
       (* Static carries HTML prerendered at compile time (ppx optimization). The model walk below hoists any <title>/<meta>/<link>/async <script> in the subtree into the fiber — but the prerendered bytes still contain them at their original position. When that happens, use the walked HTML to avoid emitting them twice. *)

@@ -1,7 +1,7 @@
 A forwarded single child takes the validation state of the slot it lands in. A
 host child list gives state 1, a runtime list gives state 2, whatever the type
 annotation on the component. Literal siblings under a component form a
-React.Static_children group and keep state 1. Custom child types still compile.
+React.Static_list group and keep state 1. Custom child types still compile.
 
   $ cat > dune-project << EOF
   > (lang dune 3.10)

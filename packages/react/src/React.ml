@@ -421,7 +421,7 @@ and element =
     }
   | List of element list
   | Array of element array
-  | Static_children of element list
+  | Static_list of element list
   | Text of string
   | Int of int
   | Float of float
@@ -506,7 +506,7 @@ let createElementWithKey = create_element_with_key
 let component component = component
 
 let isValidElement = function
-  | Text _ | Int _ | Float _ | List _ | Array _ | Static_children _ | Empty -> false
+  | Text _ | Int _ | Float _ | List _ | Array _ | Static_list _ | Empty -> false
   | Lower_case_element _ | Upper_case_component _ | Async_component _ | Client_component _ | Static _ | Writer _
   | Fragment _ | Provider _ | Consumer _ | Suspense _ ->
       true
@@ -537,7 +537,7 @@ let rec cloneElement element new_attributes =
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
   | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
   | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
-  | Static_children _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Static_children group")
+  | Static_list _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Static_list")
   | Provider _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Provider")
   | Consumer _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Consumer")
   | Suspense _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Suspense")
@@ -909,20 +909,19 @@ end
 module Children = struct
   let map element fn =
     match element with
-    | List children | Static_children children -> Static_children (List.map fn children)
-    | Array children -> Static_children (Array.to_list (Array.map fn children))
+    | List children | Static_list children -> Static_list (List.map fn children)
+    | Array children -> Static_list (Array.to_list (Array.map fn children))
     | _ -> fn element
 
   let mapWithIndex element fn =
     match element with
-    | List children | Static_children children ->
-        Static_children (List.mapi (fun index element -> fn element index) children)
-    | Array children -> Static_children (Array.to_list (Array.mapi (fun index element -> fn element index) children))
+    | List children | Static_list children -> Static_list (List.mapi (fun index element -> fn element index) children)
+    | Array children -> Static_list (Array.to_list (Array.mapi (fun index element -> fn element index) children))
     | _ -> fn element 0
 
   let forEach element fn =
     match element with
-    | List children | Static_children children -> List.iter fn children
+    | List children | Static_list children -> List.iter fn children
     | Array children -> Array.iter fn children
     | _ ->
         let _ = fn element in
@@ -930,7 +929,7 @@ module Children = struct
 
   let forEachWithIndex element fn =
     match element with
-    | List children | Static_children children -> List.iteri (fun index element -> fn element index) children
+    | List children | Static_list children -> List.iteri (fun index element -> fn element index) children
     | Array children -> Array.iteri (fun index element -> fn element index) children
     | _ ->
         let _ = fn element 0 in
@@ -938,15 +937,15 @@ module Children = struct
 
   let count element =
     match element with
-    | List children | Static_children children -> List.length children
+    | List children | Static_list children -> List.length children
     | Array children -> Array.length children
     | Empty -> 0
     | _ -> 1
 
   let only element =
     match element with
-    | List (child :: _) | Static_children (child :: _) -> child
-    | List [] | Static_children [] -> raise (Invalid_argument "Expected at least one child")
+    | List (child :: _) | Static_list (child :: _) -> child
+    | List [] | Static_list [] -> raise (Invalid_argument "Expected at least one child")
     | Array children ->
         if Array.length children >= 1 then Array.get children 0
         else raise (Invalid_argument "Expected at least one child")
