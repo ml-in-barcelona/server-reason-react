@@ -599,7 +599,27 @@ let emit_parts_emit_fn ~loc parts =
   if !uses_separators then [%expr fun __buf ~separators:__separators -> [%e body]]
   else [%expr fun __buf ~separators:_ -> [%e body]]
 
+let reject_repeated_props ~tag_name args =
+  let seen = Hashtbl.create 8 in
+  List.iter args ~f:(fun (label, expr) ->
+      let jsx_name = get_label label in
+      let name =
+        match DomProps.findByJsxName ~tag:tag_name jsx_name with
+        | Ok (DomProps.Attribute { name; _ }) -> name
+        | Ok (DomProps.Event { jsxName; _ }) -> jsxName
+        | Error _ -> jsx_name
+      in
+      match Hashtbl.find_opt seen name with
+      | None -> Hashtbl.add seen name jsx_name
+      | Some first when String.equal first jsx_name ->
+          raise_errorf ~loc:expr.pexp_loc "server-reason-react: the prop %s appears more than once on <%s>" jsx_name
+            tag_name
+      | Some first ->
+          raise_errorf ~loc:expr.pexp_loc "server-reason-react: %s and %s both render as the attribute %s" jsx_name
+            first name)
+
 let rewrite_lowercase ~loc tag_name args children =
+  reject_repeated_props ~tag_name args;
   let key =
     args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
   in

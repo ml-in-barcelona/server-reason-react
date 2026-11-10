@@ -568,13 +568,23 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         let render_fallback_html () =
           let fallback_buf = Buffer.create 128 in
           let%lwt () = render_to_buffer ~env ~stream_context fallback_buf (Option.value fallback ~default:React.null) in
+          previous_node_was_text := false;
           Lwt.return (Buffer.contents fallback_buf)
+        in
+        let buffer_length = Buffer.length buf in
+        let saved_should_add_doctype = !should_add_doctype in
+        let saved_previous_node_was_text = !previous_node_was_text in
+        let discard_partial_children () =
+          Buffer.truncate buf buffer_length;
+          should_add_doctype := saved_should_add_doctype;
+          previous_node_was_text := saved_previous_node_was_text
         in
         try%lwt
           let%lwt () = render_element children in
           Lwt.return ()
         with
         | React.Suspend (Any_promise promise) -> (
+            discard_partial_children ();
             match Lwt.state promise with
             | Lwt.Return _ -> render_element children
             | Lwt.Fail exn ->
@@ -628,6 +638,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
                 write_suspense_fallback buf ~boundary_id:current_boundary_id fallback_html;
                 Lwt.return ())
         | exn ->
+            discard_partial_children ();
             let%lwt fallback_html = render_fallback_html () in
             write_suspense_fallback_error buf ~env ~exn fallback_html;
             Lwt.return ())
