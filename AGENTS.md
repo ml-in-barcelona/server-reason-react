@@ -33,9 +33,8 @@ See `README.md` for user-facing documentation.
   constraint comment in `dune-project`).
 - melange 7.0.0 (exactly) is excluded — see the constraint comment in
   `dune-project`.
-- CI builds on macOS + Ubuntu with OCaml 5.4.0. The opam lower bound is
-  OCaml 4.14.1, so code must stay compatible with OCaml 4.14 (no 5.x-only
-  stdlib functions); CI does not check this.
+- CI builds on macOS + Ubuntu × OCaml 4.14.1 + 5.4.0. Code must stay
+  compatible with OCaml 4.14 (no 5.x-only stdlib functions).
 - Universal code compiles twice (native + melange). Platform-specific code
   uses `ppx_platform` (`let%melange_only`, `switch%platform`). Effects are
   not removed on native: wrap browser-only effect bodies with `[%melange_only]`.

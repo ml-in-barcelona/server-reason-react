@@ -645,9 +645,9 @@ let construct_pval_with_send_pipe send_pipe_core_type pval_type =
         | _, _ ->
             Builder.ptyp_arrow ~loc:t2.ptyp_loc label t1
               (Builder.ptyp_arrow ~loc:t2.ptyp_loc Nolabel send_pipe_core_type t2))
-    (* In case of being a single ptyp_* turn into ptyp_* -> t *)
+    (* In case of being a single ptyp_* turn into t -> ptyp_* *)
     | { ptyp_desc = Ptyp_constr ({ txt = _; loc }, _); _ } | { ptyp_desc = Ptyp_var _; ptyp_loc = loc; _ } ->
-        Builder.ptyp_arrow ~loc Nolabel core_type send_pipe_core_type
+        Builder.ptyp_arrow ~loc Nolabel send_pipe_core_type core_type
     (* Here we ignore the Ptyp_any *)
     | _ -> core_type
   in
