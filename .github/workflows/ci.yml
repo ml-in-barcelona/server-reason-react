@@ -49,8 +49,6 @@ jobs:
         uses: ml-in-barcelona/gh-ci-action@v1.2.0
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          pins: |
-            quickjs.0.5.1 git+https://github.com/ml-in-barcelona/quickjs.ml.git#0.5.1
           with-doc: true
           with-dev-setup: true
 
@@ -96,6 +94,7 @@ jobs:
           retention-days: 1
 
       - name: Run benchmarks
+        if: matrix.os != 'ubuntu-latest'
         run: make bench
 
       - name: Run benchmarks as JSON

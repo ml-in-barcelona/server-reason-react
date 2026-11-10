@@ -1,0 +1,53 @@
+(include_subdirs unqualified)
+
+(library
+ (name webapi_tests)
+ (libraries webapi js fetch dom)
+ (modules
+  :standard
+  \
+  Webapi__Canvas__Canvas2d__test
+  Webapi__Dom__AnimationEvent__test
+  Webapi__Dom__BeforeUnloadEvent__test
+  Webapi__Dom__ClipboardEvent__test
+  Webapi__Dom__CloseEvent__test
+  Webapi__Dom__CompositionEvent__test
+  Webapi__Dom__CustomEvent__test
+  Webapi__Dom__Document__test
+  Webapi__Dom__DomStringMap__test
+  Webapi__Dom__DomTokenList__test
+  Webapi__Dom__DragEvent__test
+  Webapi__Dom__Element__test
+  Webapi__Dom__ErrorEvent__test
+  Webapi__Dom__Event__test
+  Webapi__Dom__FocusEvent__test
+  Webapi__Dom__GlobalEventHandlers__test
+  Webapi__Dom__History__test
+  Webapi__Dom__HtmlDocument__test
+  Webapi__Dom__HtmlElement__test
+  Webapi__Dom__IdbVersionChangeEvent__test
+  Webapi__Dom__InputEvent__test
+  Webapi__Dom__KeyboardEvent__test
+  Webapi__Dom__Location__test
+  Webapi__Dom__MouseEvent__test
+  Webapi__Dom__Node__test
+  Webapi__Dom__PageTransitionEvent__test
+  Webapi__Dom__PointerEvent__test
+  Webapi__Dom__PopStateEvent__test
+  Webapi__Dom__ProgressEvent__test
+  Webapi__Dom__Range__test
+  Webapi__Dom__RelatedEvent__test
+  Webapi__Dom__Selection__test
+  Webapi__Dom__StorageEvent__test
+  Webapi__Dom__SvgZoomEvent__test
+  Webapi__Dom__TimeEvent__test
+  Webapi__Dom__TouchEvent__test
+  Webapi__Dom__TrackEvent__test
+  Webapi__Dom__TransitionEvent__test
+  Webapi__Dom__UiEvent__test
+  Webapi__Dom__WebGlContextEvent__test
+  Webapi__Dom__WheelEvent__test
+  Webapi__Dom__Window__test
+  Webapi__Url__test)
+ (preprocess
+  (pps melange_native_ppx)))

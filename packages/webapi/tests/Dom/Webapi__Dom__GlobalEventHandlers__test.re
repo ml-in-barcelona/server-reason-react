@@ -1,3 +1,4 @@
+open TestHelpers;
 open Webapi.Dom;
 
 let handleSelection = _ => print_endline("change");

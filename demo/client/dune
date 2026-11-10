@@ -1,8 +1,3 @@
-(env
- (_
-  (env-vars
-   ("DEMO_ENV" "development"))))
-
 (melange.emit
  (enabled_if
   (= %{profile} dev))
@@ -52,4 +47,4 @@
    %{entrypoints}
    --output=dist/demo
    --extract=true
-   --env=%{env:DEMO_ENV='production'})))
+   --env=%{env:DEMO_ENV=development})))

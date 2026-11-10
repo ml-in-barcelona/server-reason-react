@@ -69,13 +69,8 @@ install-npm: ## Install npm dependencies
 	cd demo && npm install;
 	cd demo/client && npm install
 
-.PHONY: pin
-pin: ## Pin dependencies
-	# TODO: drop this pin once quickjs 0.5.1 is published to opam-repository
-	opam pin add quickjs.0.5.1 "git+https://github.com/ml-in-barcelona/quickjs.ml.git#0.5.1" -y
-
 .PHONY: init
-init: setup-githooks create-switch pin install install-npm ## Create a local dev environment
+init: setup-githooks create-switch install install-npm ## Create a local dev environment
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests

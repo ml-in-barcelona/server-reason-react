@@ -1,2 +1,2 @@
 let _ =
-  Webapi.Dom.window |> Webapi.Dom.Window.performance |> Webapi.Performance.now;
+  TestHelpers.window |> Webapi.Dom.Window.performance |> Webapi.Performance.now;

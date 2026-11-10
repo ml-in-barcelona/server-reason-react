@@ -29,9 +29,8 @@ See `README.md` for user-facing documentation.
 
 ## Gotchas
 
-- quickjs is pinned from git until 0.5.1 is on opam-repository: `make pin`
-  (see the `pin` target in `Makefile` and the constraint comment in
-  `dune-project`). quickjs 0.x minors are breaking; keep the `< 0.6.0` bound.
+- quickjs 0.x minors are breaking; keep the `< 0.6.0` bound (see the
+  constraint comment in `dune-project`).
 - melange 7.0.0 (exactly) is excluded — see the constraint comment in
   `dune-project`.
 - CI builds on macOS + Ubuntu with OCaml 5.4.0. The opam lower bound is

@@ -1,9 +1,6 @@
 name: Framework Comparison
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       frameworks:
@@ -26,8 +23,9 @@ jobs:
       - name: Setup OCaml
         uses: ml-in-barcelona/gh-ci-action@v1.2.0
         with:
-          ocaml-compiler: 5.2.x
+          ocaml-compiler: 5.4.0
           with-test: false
+          with-dev-setup: true
 
       - uses: ml-in-barcelona/gh-ci-action/dune-cache/load@v1.2.0
 
