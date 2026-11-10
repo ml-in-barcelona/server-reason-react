@@ -67,6 +67,7 @@ jobs:
         run: make build
 
       - name: Check formatting
+        if: matrix.ocaml-compiler == '5.4.0'
         run: make format-check
 
       - name: Run tests
