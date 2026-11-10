@@ -461,7 +461,7 @@ let client_with_promise_failed_props () =
   assert_html (app ()) ~env:`Prod
     ~shell:
       "<div>Server Content</div>Client with Props<script data-payload='0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,2],[\"$\",\"$L2\",null,{\"promise\":\"$@1\"},null,null,2]]\n\
+       Content\"}],[\"$\",\"$L2\",null,{\"promise\":\"$@1\"}]]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
@@ -628,7 +628,7 @@ let client_with_sync_error_under_client_suspense_in_prod () =
   (* Production must not leak the exception message or backtrace into the HTML: bare template, no data-msg *)
   assert_html app ~env:`Prod ~disable_backtrace:true
     ~shell:
-      "<!--$!--><template></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{},null,null,0]\n\
+      "<!--$!--><template></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{}]\n\
        '>window.srr_stream.push()</script>"
     [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
 
@@ -666,8 +666,7 @@ let client_with_async_error_under_client_suspense_in_prod () =
   (* Production passes no message to $RX, only the digest slot *)
   assert_html app ~env:`Prod ~disable_backtrace:true
     ~shell:
-      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
-       data-payload='0:[\"$\",\"$L2\",null,{},null,null,0]\n\
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L2\",null,{}]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";

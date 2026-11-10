@@ -61,26 +61,30 @@ let render ?env ?debug renderer element =
 let root rows = List.assoc "0" rows
 
 let prop name = function
-  | `List [ `String "$"; _; _; `Assoc props; _; _; _ ] -> List.assoc name props
+  | `List (`String "$" :: _ :: _ :: `Assoc props :: _) -> List.assoc name props
   | _ -> Alcotest.fail "Expected element tuple"
 
 let summaries ?env rows =
   let rec walk = function
-    | `List (`String "$" :: fields) -> (
-        match fields with
-        | [ `String tag; key; (`Assoc _ as props); owner; stack; `Int validation ] ->
-            Alcotest.(check bool) "validation range" true (validation >= 0 && validation <= 2);
-            check_json "stack" `Null stack;
-            if env <> Some `Dev then check_json "production owner" `Null owner;
-            let tag =
-              if String.starts_with ~prefix:"$L" tag then "client"
-              else if String.starts_with ~prefix:"$" tag then
-                let id = String.sub tag 1 (String.length tag - 1) in
-                match List.assoc_opt id rows with Some (`String "$Sreact.suspense") -> "suspense" | _ -> tag
-              else tag
-            in
-            (tag, key, validation) :: walk props
-        | _ -> Alcotest.fail "Element tuple must have seven fields")
+    | `List (`String "$" :: `String tag :: key :: (`Assoc _ as props) :: tail) ->
+        let validation =
+          match (env, tail) with
+          | Some `Dev, [ _owner; stack; `Int validation ] ->
+              Alcotest.(check bool) "validation range" true (validation >= 0 && validation <= 2);
+              check_json "stack" `Null stack;
+              Some validation
+          | Some `Dev, _ -> Alcotest.fail "Development element tuple must have seven fields"
+          | _, [] -> None
+          | _ -> Alcotest.fail "Production element tuple must have four fields"
+        in
+        let tag =
+          if String.starts_with ~prefix:"$L" tag then "client"
+          else if String.starts_with ~prefix:"$" tag then
+            let id = String.sub tag 1 (String.length tag - 1) in
+            match List.assoc_opt id rows with Some (`String "$Sreact.suspense") -> "suspense" | _ -> tag
+          else tag
+        in
+        (tag, key, validation) :: walk props
     | `List values -> List.concat_map walk values
     | `Assoc fields -> List.concat_map (fun (_, value) -> walk value) fields
     | _ -> []
@@ -88,7 +92,15 @@ let summaries ?env rows =
   List.concat_map (fun (_, value) -> walk value) rows |> List.sort compare
 
 let check_states ?env expected rows =
-  let as_json values = `List (List.map (fun (tag, key, state) -> `List [ `String tag; key; `Int state ]) values) in
+  let expected =
+    List.map (fun (tag, key, state) -> (tag, key, if env = Some `Dev then Some state else None)) expected
+  in
+  let as_json values =
+    `List
+      (List.map
+         (fun (tag, key, state) -> `List [ `String tag; key; Option.fold ~none:`Null ~some:(fun s -> `Int s) state ])
+         values)
+  in
   check_json "element validation" (as_json (List.sort compare expected)) (as_json (summaries ?env rows))
 
 let state tag flag = (tag, `Null, flag)

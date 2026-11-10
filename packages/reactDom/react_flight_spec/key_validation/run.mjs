@@ -26,9 +26,12 @@ if (!controlsOnly) await writeFile(path.join(artifacts, "native.json"), JSON.str
 function checkTuples(value, env, tuples) {
   if (Array.isArray(value)) {
     if (value[0] === "$") {
-      assert.equal(value.length, 7, "Native element tuple must have seven fields");
-      assert.ok([0, 1, 2].includes(value[6]), "Native validation must be 0, 1, or 2");
-      if (env !== "Dev") assert.deepEqual(value.slice(4, 6), [null, null]);
+      if (env === "Dev") {
+        assert.equal(value.length, 7, "Development element tuple must have seven fields");
+        assert.ok([0, 1, 2].includes(value[6]), "Native validation must be 0, 1, or 2");
+      } else {
+        assert.equal(value.length, 4, "Production element tuple must have four fields");
+      }
       tuples.push(value);
     }
     value.forEach((item) => checkTuples(item, env, tuples));
@@ -239,6 +242,7 @@ try {
     for (const fixture of [...controls, ...native]) {
       // React's production decoder rejects debug rows (error 504).
       if (environment === "production" && fixture.debug) continue;
+      if (environment === "development" && fixture.env !== "Dev" && fixture.env !== "control") continue;
       if (!filter || fixture.name.includes(filter)) await runCase(environment, fixture);
     }
   }

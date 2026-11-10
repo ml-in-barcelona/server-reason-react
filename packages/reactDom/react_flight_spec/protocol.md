@@ -1,9 +1,9 @@
 # React Flight wire protocol notes
 
-Observed from `react-server-dom-webpack@19.1.0` with `NODE_ENV=production`.
-The fixtures record that production format. server-reason-react extends element
-tuples with key-validation fields, as described below. Conformance removes those
-fields and compares all remaining bytes with the fixtures.
+Observed from `react-server-dom-webpack@19.1.0` with `NODE_ENV=production`
+(the prod wire format is the contract; dev adds debug rows and stacks on top).
+This file is kept honest by the fixtures: if a statement here disagrees with a
+committed `.flight` file, the fixture wins.
 
 ## Stream framing
 
@@ -118,9 +118,9 @@ React prod encodes an element as a 4-tuple:
   as the special strings `"$NaN"`, `"$Infinity"`, `"$-Infinity"` and
   `"$-0"` (`props_float_extremes`, `children_float_large`).
 
-React's development server appends `[debugOwner, debugStack, validated]`.
-server-reason-react sends these three fields in **both** environments so a
-development client can distinguish static positions from runtime collections:
+Prod emits the 4-tuple form. Dev appends the debug fields
+`[debugOwner, debugStack, validated]`, producing 7-tuples. server-reason-react
+follows the same gate on `~env`:
 
 ```json
 ["$", "span", null, {"children":"a"}, null, null, 1]
@@ -134,9 +134,9 @@ development client can distinguish static positions from runtime collections:
 
 React 19.1.0's development Flight server changes unkeyed array members from
 `0` to `2` during serialization. The development client preserves these states.
-The production client ignores the extra fields. Production owner and stack
-slots stay `null`; error redaction and the `debug` option remain independent.
-The extension adds 12 uncompressed bytes per production element tuple.
+A 4-tuple leaves `validated` undefined, which the development client treats as
+`0`, so it warns about unkeyed static siblings: correct key warnings need a
+``~env:`Dev`` server, as with React's own servers.
 
 Static-ness is a property of the container, never of the element value. Children
 of a host element, the single child of a fragment, provider, consumer, or

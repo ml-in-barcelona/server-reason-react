@@ -14,11 +14,6 @@ module Key_validation = struct
     | Value, _ | Dynamic_item, Some _ -> Unvalidated
 
   let to_json : t -> Yojson.Basic.t = function Unvalidated -> `Int 0 | Validated -> `Int 1 | Missing_key -> `Int 2
-
-  let null_tail : t -> Yojson.Basic.t list = function
-    | Unvalidated -> [ `Null; `Null; `Int 0 ]
-    | Validated -> [ `Null; `Null; `Int 1 ]
-    | Missing_key -> [ `Null; `Null; `Int 2 ]
 end
 
 let create_stack_trace () =
@@ -598,9 +593,7 @@ module Model = struct
       | childrens -> ("children", `List childrens) :: props
     in
     let tail =
-      match (env, owner) with
-      | `Prod, _ | `Dev, None -> Key_validation.null_tail validation
-      | `Dev, Some idx -> [ `String (ref_value idx); `Null; Key_validation.to_json validation ]
+      match env with `Prod -> [] | `Dev -> [ chunk_ref_or_null owner; `Null; Key_validation.to_json validation ]
     in
     `List (`String "$" :: `String tag :: key :: `Assoc props :: tail)
 

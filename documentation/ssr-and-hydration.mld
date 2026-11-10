@@ -258,9 +258,9 @@ Again, we should use [%melange_only] even when using [ClientOnly] since the cont
 
 {1 Flight child keys}
 
-[ReactServerDOM] sends key-validation metadata in both [`Prod] and [`Dev].
-Explicit sibling positions do not require list keys. Runtime collections created
-with [React.list] or [React.array] require keys on their element members.
+With [~env:`Dev], [ReactServerDOM] sends key-validation metadata with each
+element. Explicit sibling positions do not require list keys. Runtime collections
+created with [React.list] or [React.array] require keys on their element members.
 
 {[
 let static = React.createElement "div" [] [first; second]
@@ -283,6 +283,7 @@ re-inserted into a runtime collection reports a missing key, where React does no
 [React.Children.map] and [mapWithIndex] return a [React.Static_list], so
 mapped children are static, as React's keyed [Children.map] results never warn.
 
-The default environment remains [`Prod]. Error details remain redacted. The
-validation fields add 12 uncompressed bytes per production element tuple and let
-a development client report missing keys without warning about static siblings.
+The default environment remains [`Prod], which sends React's four-field element
+tuples without this metadata. A development client then warns about unkeyed
+static siblings. Use [~env:`Dev] while developing with a development client, as
+React pairs its development server with its development client.

@@ -38,19 +38,12 @@ let cases = [
 ];
 
 let () = {
-  let env =
-    switch (Sys.argv[1]) {
-    | "default" => None
-    | "Prod" => Some(`Prod)
-    | "Dev" => Some(`Dev)
-    | _ => invalid_arg("expected default, Prod, or Dev")
-    };
   List.iter(
     ((label, element)) => {
       print_endline(label ++ ":");
       Lwt_main.run(
         ReactServerDOM.render_model(
-          ~env?,
+          ~env=`Dev,
           ~subscribe=
             row => {
               print_string(row);
