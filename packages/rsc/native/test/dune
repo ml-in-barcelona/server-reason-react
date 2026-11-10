@@ -1,0 +1,9 @@
+(test
+ (name test_rsc_deriving)
+ (libraries
+  alcotest
+  server-reason-react.react
+  server-reason-react.rsc-native
+  yojson)
+ (preprocess
+  (pps server-reason-react.rsc-native.ppx)))
