@@ -578,16 +578,7 @@ module Model = struct
     | Event _ -> None
     | Action _ -> None
 
-  let first_per_key pairs =
-    let seen = Hashtbl.create 8 in
-    List.filter
-      (fun (key, _) ->
-        let fresh = not (Hashtbl.mem seen key) in
-        Hashtbl.replace seen key ();
-        fresh)
-      pairs
-
-  let props_to_json props = List.filter_map prop_to_json props |> first_per_key
+  let props_to_json props = List.filter_map prop_to_json props
   let chunk_ref_or_null = function None -> `Null | Some idx -> `String (ref_value idx)
 
   let node ~env ~site ~tag ?(key = None) ~props ?(owner = None) children : json =
@@ -747,7 +738,6 @@ module Model = struct
                 | React.JSX.Action (_, key, f) -> Some (key, `String (outline_server_function ~context ~to_chunk f))
                 | _ -> prop_to_json prop)
               attributes
-            |> first_per_key
           in
           let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
           node ~env ~site ~key ~tag ~props ~owner
@@ -1664,7 +1654,6 @@ and process_attributes ~context ~nonce ?form_action_id attributes =
             Some (key, `String (Model.outline_server_function ~context ~to_chunk:(model_to_chunk ?nonce) f))
         | _ -> Model.prop_to_json prop)
       attributes
-    |> Model.first_per_key
   in
   (html_props, json_props)
 

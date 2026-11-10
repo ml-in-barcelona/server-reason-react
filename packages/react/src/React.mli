@@ -652,7 +652,11 @@ module StrictMode : module type of Fragment
 
 val createElement : string -> JSX.prop list -> element list -> element
 (** The child list contains explicit sibling positions. Wrap a runtime collection with [list] or [array] so its members
-    remain eligible for missing-key warnings. *)
+    remain eligible for missing-key warnings.
+
+    Props that render the same attribute name behave like keys repeated in a JavaScript object literal: the element
+    keeps one prop at the position of the first and with the value of the last. HTML and the Flight payload render that
+    one prop. *)
 
 val createElementWithKey : ?key:string -> string -> JSX.prop list -> element list -> element
 val component : 'props component -> 'props component
