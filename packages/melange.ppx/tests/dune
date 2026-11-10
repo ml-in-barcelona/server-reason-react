@@ -6,4 +6,5 @@
 
 (executable
  (name standalone)
+ (modules standalone)
  (libraries ppxlib melange_native_ppx))

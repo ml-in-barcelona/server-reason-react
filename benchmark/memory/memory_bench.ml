@@ -108,7 +108,7 @@ let print_summary_table results =
   Printf.printf "%s\n" (String.make 80 '=')
 
 let print_json results =
-  Printf.printf "\n{\n  \"results\": [\n";
+  Printf.printf "{\n  \"results\": [\n";
   let rec print_list = function
     | [] -> ()
     | [ r ] ->
@@ -130,10 +130,12 @@ let print_json results =
 
 let () =
   let iterations = 1000 in
+  let json = Array.length Sys.argv > 1 && Sys.argv.(1) = "--json" in
 
-  Printf.printf "Memory Benchmark for server-reason-react\n";
-  Printf.printf "Iterations per scenario: %d\n" iterations;
-  Printf.printf "OCaml version: %s\n" Sys.ocaml_version;
+  if not json then (
+    Printf.printf "Memory Benchmark for server-reason-react\n";
+    Printf.printf "Iterations per scenario: %d\n" iterations;
+    Printf.printf "OCaml version: %s\n" Sys.ocaml_version);
 
   let scenarios =
     let open Benchmark_scenarios in
@@ -157,12 +159,9 @@ let () =
     List.map
       (fun (name, render_fn) ->
         let result = measure_scenario ~name ~iterations render_fn in
-        print_result result;
+        if not json then print_result result;
         result)
       scenarios
   in
 
-  print_summary_table results;
-
-  (* Also output JSON for programmatic consumption *)
-  if Array.length Sys.argv > 1 && Sys.argv.(1) = "--json" then print_json results
+  if json then print_json results else print_summary_table results

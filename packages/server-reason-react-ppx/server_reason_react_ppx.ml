@@ -4,7 +4,6 @@ module List = ListLabels
 
 type target = Native | Js
 
-(* Since ppxlib doesn't provide a way to get the submodules, we need to keep track of them manually *)
 let mode = ref Native
 let shared_folder_prefix = ref None
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
@@ -61,14 +60,6 @@ let isReactServerFunctionBinding vb = hasAttrOnBinding vb react_dot_server_dot_f
 let isClientComponentBinding value_bindings =
   let first_binding = List.hd value_bindings in
   isReactClientComponentBinding first_binding
-
-let contains_client_component structure =
-  List.exists
-    ~f:(fun structure_item ->
-      match structure_item.pstr_desc with
-      | Pstr_value (_, value_bindings) -> List.exists ~f:isReactClientComponentBinding value_bindings
-      | _ -> false)
-    structure
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -209,7 +200,8 @@ let make_prop ~is_optional ~prop attribute_value =
       [%expr
         Some
           (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Selection ([%e attribute_value] : React.Event.Mouse.t -> unit)))]
+             ( [%e make_string ~loc jsxName],
+               React.JSX.Selection ([%e attribute_value] : React.Event.Selection.t -> unit) ))]
   | Event { type_ = Selection; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Selection.t -> unit) option) with
@@ -680,14 +672,6 @@ let remove_warning_16_optional_argument_cannot_be_erased ~loc =
     attr_loc = loc;
   }
 
-let remove_warning_27_unused_var_strict ~loc =
-  let open Ast_helper in
-  {
-    attr_name = { txt = "warning"; loc };
-    attr_payload = PStr [ Str.eval (Exp.constant (Const.string "-27")) ];
-    attr_loc = loc;
-  }
-
 (* Finds the name of the variable the binding is assigned to, otherwise raises *)
 let get_function_name binding =
   match binding with
@@ -757,29 +741,6 @@ let transform_fun_body_expression expr fn =
     | _ -> fn expr
   in
   find_innermost_body_and_transform expr
-
-let transform_fun_arguments expr fn =
-  match expr.pexp_desc with
-  | Pexp_function (params, constraint_, Pfunction_body expression) ->
-      let new_params =
-        List.map
-          ~f:(fun param ->
-            match param.pparam_desc with
-            | Pparam_val (label, def, patt) -> { param with pparam_desc = Pparam_val (label, def, fn patt) }
-            | Pparam_newtype _ -> param)
-          params
-      in
-      { expr with pexp_desc = Pexp_function (new_params, constraint_, Pfunction_body expression) }
-  | _ -> expr
-
-let transform_labelled_arguments_type (core_type : core_type) fn =
-  let rec inner core_type =
-    match core_type.ptyp_desc with
-    | Ptyp_arrow (label, core_type_1, core_type_2) ->
-        ptyp_arrow ~loc:core_type.ptyp_loc label (fn core_type_1) (inner core_type_2)
-    | _ -> core_type
-  in
-  inner core_type
 
 let get_label_or_empty = function Labelled str | Optional str -> str | Nolabel -> ""
 
@@ -876,7 +837,6 @@ type js_object_field = { method_name : string; js_name : string; present_expr : 
 
 type component_arg = {
   public_label : arg_label;
-  internal_label : arg_label;
   default_value : expression option;
   loc : Location.t;
   core_type : core_type option;
@@ -964,10 +924,8 @@ let component_arg_type_var arg =
   let loc = arg.loc in
   ptyp_var ~loc (safe_type_from_label arg.public_label)
 
-let component_arg_public_arg_type ~from_signature arg =
+let component_arg_public_arg_type arg =
   match (arg.public_label, arg.core_type, arg.default_value) with
-  | Optional _, Some core_type, _ when not from_signature -> (
-      match strip_option_type core_type with Some inner -> inner | None -> core_type)
   | Optional _, Some core_type, _ -> core_type
   | _, Some core_type, Some _ -> core_type
   | Labelled _, Some core_type, _ -> core_type
@@ -1045,13 +1003,7 @@ let extract_component_args expr =
             "~key cannot be accessed from the component props. Please set the key where the component is being used."
       | Pparam_val (((Labelled _ | Optional _) as arg_label), default_value, pattern) ->
           Some
-            {
-              public_label = arg_label;
-              internal_label = arg_label;
-              default_value;
-              loc = pattern.ppat_loc;
-              core_type = pattern_core_type pattern;
-            }
+            { public_label = arg_label; default_value; loc = pattern.ppat_loc; core_type = pattern_core_type pattern }
       | Pparam_val (Nolabel, _, pattern) ->
           raise_errorf ~loc:pattern.ppat_loc
             "props need to be labelled arguments. If your component doesn't have any props, use () or _ instead of a \
@@ -1097,7 +1049,7 @@ let build_public_component_binding ~loc ~fn_name args =
   let prop_args =
     List.map args ~f:(fun arg ->
         let value_expr = pexp_send ~loc props_expr { txt = component_arg_public_name arg; loc = arg.loc } in
-        (arg.internal_label, value_expr))
+        (arg.public_label, value_expr))
   in
   let call_expr = pexp_apply ~loc (ident ~loc fn_name) ((key_arg :: prop_args) @ [ (Nolabel, [%expr ()]) ]) in
   let props_pattern = ppat_constraint ~loc (ppat_var ~loc { txt = props_name; loc }) props_type in
@@ -1111,8 +1063,7 @@ let build_make_props_signature_item ~loc ~fn_name args =
   let make_props_type =
     List.fold_right args
       ~init:(ptyp_arrow ~loc Nolabel [%type: unit] props_type)
-      ~f:(fun arg acc ->
-        ptyp_arrow ~loc:arg.loc arg.public_label (component_arg_public_arg_type ~from_signature:true arg) acc)
+      ~f:(fun arg acc -> ptyp_arrow ~loc:arg.loc arg.public_label (component_arg_public_arg_type arg) acc)
   in
   psig_value ~loc
     {
@@ -1142,15 +1093,8 @@ let extract_component_signature_args pval_type =
     | Ptyp_arrow (((Labelled _ | Optional _) as arg_label), core_type, rest) ->
         go
           (args
-          @ [
-              {
-                public_label = arg_label;
-                internal_label = arg_label;
-                default_value = None;
-                loc = core_type.ptyp_loc;
-                core_type = Some core_type;
-              };
-            ])
+          @ [ { public_label = arg_label; default_value = None; loc = core_type.ptyp_loc; core_type = Some core_type } ]
+          )
           rest
     | Ptyp_arrow (Nolabel, _, rest) -> go args rest
     | _ -> (args, core_type)
@@ -1278,24 +1222,22 @@ let make_of_rsc ~loc (core_type : core_type) prop =
   | { ptyp_desc = Ptyp_arrow (_, _, _) } -> function_error core_type.ptyp_loc
   | type_ -> [%expr [%of_rsc: [%t type_]] [%e prop]]
 
-let props_of_model ~loc (props : (arg_label * expression option * pattern) list) :
-    value_binding list * (longident loc * expression) list =
+let props_of_model ~loc (props : (arg_label * expression option * pattern) list) : (longident loc * expression) list =
   List.fold_right
-    ~f:(fun (arg_label, default, pattern) (decoder_bindings, fields) ->
+    ~f:(fun (arg_label, default, pattern) fields ->
       match pattern.ppat_desc with
-      | Ppat_construct ({ txt = Lident "()"; _ }, None) -> (decoder_bindings, fields)
+      | Ppat_construct ({ txt = Lident "()"; _ }, None) -> fields
       | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
               (* This error is raised by reason-react-ppx as well *)
               let loc = pattern.ppat_loc in
-              ( decoder_bindings,
-                (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]]) :: fields )
+              (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]]) :: fields
           | Labelled label | Optional label ->
               let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
               let prop = [%expr props##[%e ident ~loc label]] in
               let value = make_of_rsc ~loc core_type prop in
-              (decoder_bindings, (longident ~loc label, value) :: fields))
+              (longident ~loc label, value) :: fields)
       | _ ->
           let loc = pattern.ppat_loc in
           let expr =
@@ -1309,8 +1251,8 @@ let props_of_model ~loc (props : (arg_label * expression option * pattern) list)
                 let msg_expr = estring ~loc msg in
                 [%expr [%ocaml.error [%e msg_expr]]]
           in
-          (decoder_bindings, (longident ~loc "error", expr) :: fields))
-    props ~init:([], [])
+          (longident ~loc "error", expr) :: fields)
+    props ~init:[]
 
 let react_component_attribute ~loc =
   { attr_name = { txt = "react.component"; loc }; attr_payload = PStr []; attr_loc = loc }
@@ -1328,30 +1270,13 @@ let expand_make_binding_to_client binding =
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let arguments = get_arguments binding.pvb_expr in
-  let promise_decoder_bindings, props_fields = props_of_model ~loc arguments in
+  let props_fields = props_of_model ~loc arguments in
   let props_as_object_with_decoders = mel_obj ~loc props_fields in
   let make_call = [%expr React.createElement make [%e props_as_object_with_decoders]] in
   let name = ppat_var ~loc:ghost_loc { txt = "make_client"; loc = ghost_loc } in
   let client_single_argument = ppat_var ~loc:ghost_loc { txt = "props"; loc } in
   let function_body = pexp_fun ~loc:ghost_loc Nolabel None client_single_argument make_call in
-  let function_body =
-    match promise_decoder_bindings with
-    | [] -> function_body
-    | _ -> pexp_let ~loc:ghost_loc Nonrecursive promise_decoder_bindings function_body
-  in
   value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
-
-let rec add_unit_at_the_last_argument_in_core_type core_type =
-  match core_type.ptyp_desc with
-  | Ptyp_arrow (arg_label, core_type_1, core_type_2) ->
-      {
-        core_type with
-        ptyp_desc = Ptyp_arrow (arg_label, core_type_1, add_unit_at_the_last_argument_in_core_type core_type_2);
-      }
-  | Ptyp_constr _ ->
-      let loc = core_type.ptyp_loc in
-      { core_type with ptyp_desc = Ptyp_arrow (Nolabel, [%type: unit], core_type) }
-  | _ -> core_type
 
 let rewrite_signature_item signature_item =
   match signature_item with
@@ -1372,8 +1297,7 @@ let rewrite_signature_item signature_item =
               [%%i make_sig]
             end]
       | _ ->
-          [%sigi:
-            [%%ocaml.error "server-reason-react: there's seems to be an error in the signature of the component."]])
+          [%sigi: [%%ocaml.error "server-reason-react: there seems to be an error in the signature of the component."]])
   | _ -> signature_item
 
 let make_to_model ~loc (core_type : core_type) prop =
@@ -1443,7 +1367,7 @@ module ServerFunction = struct
       | Some x ->
           if match_substring file_path x then x
           else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-      | None -> raise_errorf ~loc "Found a server.function without --shared-folder-prefix argument. Provide one."
+      | None -> raise_errorf ~loc "Found a server.function without -shared-folder-prefix argument. Provide one."
     in
     (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
     let file_path = Str.replace_first (Str.regexp replacement) "" file_path in
@@ -1551,8 +1475,7 @@ module ServerFunction = struct
     | [], _ -> [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
     | [ _ ], [] ->
         [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun _ formData -> [%e body_expr]))]
-    | _, [] ->
-        [%stri [%ocaml.error "server-reason-react: server functions with form data must have at only one argument"]]
+    | _, [] -> [%stri [%ocaml.error "server-reason-react: server functions with form data must have only one argument"]]
     | _ -> [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun args formData -> [%e body_expr]))]
 
   let create_server_function_record ~loc id expression =
@@ -1653,8 +1576,12 @@ let rewrite_structure_item ~nested_module_names structure_item =
       if List.length value_bindings > 1 then
         [%stri
           [%%ocaml.error
-          "server-reason-react: server functions don't support recursive bindings yet. If you need it, please open an \
-           issue on https://github.com/reasonml-community/server-reason-react/issues"]]
+          [%e
+            estring ~loc
+              (Printf.sprintf
+                 "server-reason-react: server functions don't support recursive bindings yet. If you need it, please \
+                  open an issue on %s"
+                 issues_url)]]]
       else ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
   | Pstr_value (rec_flag, value_bindings) -> (
       try
@@ -1676,7 +1603,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
                             "Prefix doesn't match the file path. Provide a prefix that matches the file path."
                     | None ->
                         raise_errorf ~loc
-                          "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+                          "Found a react.client.component without -shared-folder-prefix argument. Provide one."
                   in
                   let file = fileName |> Str.replace_first (Str.regexp replacement) "" |> estring ~loc in
                   let import_module =
@@ -1800,7 +1727,7 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
             if match_substring fileName prefix then prefix
             else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
         | None ->
-            raise_errorf ~loc "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+            raise_errorf ~loc "Found a react.client.component without -shared-folder-prefix argument. Provide one."
       in
       let fileName = Str.replace_first (Str.regexp replacement) "" fileName in
       let comment =
@@ -1819,7 +1746,7 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
 let validate_tag_children tag children attributes : (unit, string) result =
   match Html.is_self_closing_tag tag with
   | true when Option.fold ~none:false ~some:(fun children -> List.length children > 0) children ->
-      Error (Printf.sprintf {|"%s" is a self-closing tag and must not have "children".\n|} tag)
+      Error (Printf.sprintf {|server-reason-react: "%s" is a self-closing tag and must not have "children".|} tag)
   | true
     when List.exists
            ~f:(fun (arg_label, _) ->
@@ -1827,13 +1754,16 @@ let validate_tag_children tag children attributes : (unit, string) result =
              | Labelled "dangerouslySetInnerHTML" | Optional "dangerouslySetInnerHTML" -> true
              | _ -> false)
            attributes ->
-      Error (Printf.sprintf {|server-reason-react: "%s" is a self-closing tag and must not have "children".\n|} tag)
-  | false -> Ok ()
-  | true -> Ok ()
+      Error
+        (Printf.sprintf {|server-reason-react: "%s" is a self-closing tag and must not have "dangerouslySetInnerHTML".|}
+           tag)
+  | _ -> Ok ()
 
 let traverse =
   object (_)
     inherit [Expansion_context.Base.t] Ast_traverse.map_with_context as super
+
+    (* Since ppxlib doesn't provide a way to get the submodules, we need to keep track of them manually *)
     val mutable nested_module_names = []
 
     method! module_binding ctxt module_binding =
@@ -1846,9 +1776,12 @@ let traverse =
       mapped
 
     method! structure_item ctx structure_item =
-      match mode.contents with
-      | Native -> rewrite_structure_item ~nested_module_names (super#structure_item ctx structure_item)
-      | Js -> rewrite_structure_item_for_js ~nested_module_names ctx (super#structure_item ctx structure_item)
+      let structure_item = super#structure_item ctx structure_item in
+      try
+        match mode.contents with
+        | Native -> rewrite_structure_item ~nested_module_names structure_item
+        | Js -> rewrite_structure_item_for_js ~nested_module_names ctx structure_item
+      with Error err -> pstr_eval ~loc:structure_item.pstr_loc err []
 
     method! signature_item ctx signature_item =
       match mode.contents with
@@ -1866,9 +1799,9 @@ let traverse =
          [ReactDOM.Style.t] fails to type-check. *)
       let expr = match mode.contents with Native -> Style_rewrite.rewrite_expression expr | Js -> expr in
       match mode.contents with
-      | Js -> (
+      | Js ->
           (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
-          try Styles_attribute.expand expr with Error err -> [%expr [%e err]])
+          Styles_attribute.expand expr
       | Native -> (
           try
             match expr.pexp_desc with

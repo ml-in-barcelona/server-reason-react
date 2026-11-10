@@ -15,8 +15,6 @@
   melange.dom
   server-reason-react.url_js
   server-reason-react.rsc)
- (melange.runtime_deps
-  ../../../packages/react-server-dom-esbuild/ReactServerDOMEsbuild.js)
  (preprocess
   (pps
    ppx_platform

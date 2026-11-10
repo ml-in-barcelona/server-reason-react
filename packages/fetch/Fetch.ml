@@ -253,7 +253,6 @@ module Headers = struct
   (* external make : t = "Headers" [@@mel.new] *)
   let make () = Js.Dict.empty ()
 
-  (* external makeWithInit : headersInit -> t = "Headers" [@@mel.new] *)
   external makeWithInit : headersInit -> t = "Headers" [@@mel.new]
   external append : string -> string -> unit = "append" [@@mel.send.pipe: t]
   external delete : string -> unit = "delete" [@@mel.send.pipe: t]

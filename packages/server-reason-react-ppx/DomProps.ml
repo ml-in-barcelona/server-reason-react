@@ -707,7 +707,6 @@ let iframeHTMLAttributes =
     Attribute { name = "loading"; jsxName = "loading"; reasonJsxName = "loading"; type_ = String };
     Attribute { name = "sandbox"; jsxName = "sandbox"; reasonJsxName = "sandbox"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; reasonJsxName = "name"; type_ = String };
-    Attribute { name = "sandbox"; jsxName = "sandbox"; reasonJsxName = "sandbox"; type_ = String };
     Attribute { name = "seamless"; jsxName = "seamless"; reasonJsxName = "seamless"; type_ = Bool };
     Attribute { name = "src"; jsxName = "src"; reasonJsxName = "src"; type_ = String };
     Attribute { name = "srcdoc"; jsxName = "srcDoc"; reasonJsxName = "srcDoc"; type_ = String };
@@ -769,9 +768,9 @@ let inputHTMLAttributes =
     Attribute { name = "form"; jsxName = "form"; reasonJsxName = "form"; type_ = String };
     Attribute { name = "formaction"; jsxName = "formAction"; reasonJsxName = "formAction"; type_ = String };
     Attribute { name = "formenctype"; jsxName = "formEncType"; reasonJsxName = "formEncType"; type_ = String };
-    Attribute { name = "method"; jsxName = "formMethod"; reasonJsxName = "formMethod"; type_ = String };
-    Attribute { name = "novalidate"; jsxName = "formNoValidate"; reasonJsxName = "formNoValidate"; type_ = Bool };
-    Attribute { name = "target"; jsxName = "formTarget"; reasonJsxName = "formTarget"; type_ = String };
+    Attribute { name = "formmethod"; jsxName = "formMethod"; reasonJsxName = "formMethod"; type_ = String };
+    Attribute { name = "formnovalidate"; jsxName = "formNoValidate"; reasonJsxName = "formNoValidate"; type_ = Bool };
+    Attribute { name = "formtarget"; jsxName = "formTarget"; reasonJsxName = "formTarget"; type_ = String };
     Attribute { name = "height"; jsxName = "height"; reasonJsxName = "height"; type_ = String (* number | *) };
     Attribute { name = "list"; jsxName = "list"; reasonJsxName = "list"; type_ = String };
     Attribute { name = "max"; jsxName = "max"; reasonJsxName = "max"; type_ = String (* number | *) };
@@ -1248,7 +1247,7 @@ module SVG = struct
       (* Other HTML properties supported by SVG elements in browsers *)
       Attribute { name = "role"; jsxName = "role"; reasonJsxName = "role"; type_ = ariaRole };
       Attribute { name = "tabindex"; jsxName = "tabIndex"; reasonJsxName = "tabIndex"; type_ = Int (* number *) };
-      Attribute { name = "cross-origin"; jsxName = "crossOrigin"; reasonJsxName = "crossOrigin"; type_ = String (* "anonymous" | "use-credentials" | "" *) };
+      Attribute { name = "crossorigin"; jsxName = "crossOrigin"; reasonJsxName = "crossOrigin"; type_ = String (* "anonymous" | "use-credentials" | "" *) };
 
       (* SVG Specific attributes *)
       Attribute { name = "accent-height"; jsxName = "accentHeight"; reasonJsxName = "accentHeight"; type_ = String (* number | *) };
@@ -1390,7 +1389,7 @@ module SVG = struct
       Attribute { name = "xml:lang"; jsxName = "xmlLang"; reasonJsxName = "xmlLang"; type_ = String }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/xml:lang *)
       Attribute { name = "xmlns"; jsxName = "xmlns"; reasonJsxName = "xmlns"; type_ = String };
       Attribute { name = "xmlns:xlink"; jsxName = "xmlnsXlink"; reasonJsxName = "xmlnsXlink"; type_ = String };
-      Attribute { name = "xmlSpace"; jsxName = "xmlSpace"; reasonJsxName = "xmlSpace"; type_ = String };
+      Attribute { name = "xml:space"; jsxName = "xmlSpace"; reasonJsxName = "xmlSpace"; type_ = String };
       Attribute { name = "y1"; jsxName = "y1"; reasonJsxName = "y1"; type_ = String (* number | *) };
       Attribute { name = "y2"; jsxName = "y2"; reasonJsxName = "y2"; type_ = String (* number | *) };
       Attribute { name = "yChannelSelector"; jsxName = "yChannelSelector"; reasonJsxName = "yChannelSelector"; type_ = String }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/yChannelSelector *)
@@ -1403,7 +1402,7 @@ end
 
 let webViewHTMLAttributes =
   [
-    Attribute { name = "allowfullcreen"; jsxName = "allowFullScreen"; reasonJsxName = "allowFullScreen"; type_ = Bool };
+    Attribute { name = "allowfullscreen"; jsxName = "allowFullScreen"; reasonJsxName = "allowFullScreen"; type_ = Bool };
     Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "autoSize"; jsxName = "autoSize"; reasonJsxName = "autoSize"; type_ = Bool };
     Attribute { name = "blinkFeatures"; jsxName = "blinkFeatures"; reasonJsxName = "blinkFeatures"; type_ = String };

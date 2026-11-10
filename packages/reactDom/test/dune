@@ -4,12 +4,10 @@
  (libraries
   str
   unix
-  fmt
   lwt
   server-reason-react.react
   server-reason-react.reactDom
   server-reason-react.runtime
-  server-reason-react.html
   server-reason-react.js
   alcotest
   yojson

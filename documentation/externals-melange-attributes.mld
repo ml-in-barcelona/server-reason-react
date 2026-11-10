@@ -32,7 +32,7 @@ let name = john##name;
 ]}
 https://melange.re/v3.0.0/communicate-with-javascript.html#using-js-t-objects
 
-Object creation and object field access is designed to interact with JavaScript Objects, in native we reperesent those as OCaml Objects (which are very different) and [server-reason-react-ppx.melange_ppx] proviedes the implementation to make it work. (Experimental)
+Object creation and object field access is designed to interact with JavaScript Objects, in native we represent those as OCaml Objects (which are very different) and [server-reason-react.melange_ppx] provides the implementation to make it work. (Experimental)
 
 {2 Supports [\[@@deriving jsConverter\]]}
 

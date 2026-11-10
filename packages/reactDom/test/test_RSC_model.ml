@@ -1,10 +1,3 @@
-let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
-let check_json = Alcotest.check yojson "should be equal"
-let assert_json left right = Alcotest.check yojson "should be equal" right left
-
-let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a list) =
-  Alcotest.check (Alcotest.list ty) "should be equal" right left
-
 let assert_list_of_strings left right = Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
 let uuid_re =
@@ -42,11 +35,6 @@ let mk_context context ~value ~children () =
 let[@warning "-27"] skip title _fn =
   let test_case _switch () = Lwt.return () in
   (Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case ])
-
-let assert_stream (stream : string Lwt_stream.t) expected =
-  let%lwt content = Lwt_stream.to_list stream in
-  if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
-  else Lwt.return @@ assert_list_of_strings content expected
 
 let capture_stream () =
   let output = ref [] in
@@ -571,26 +559,6 @@ let suspense () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe main in
-  assert_list_of_strings !output
-    [
-      "1:\"$Sreact.suspense\"\n";
-      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
-      "2:\"DONE :)\"\n";
-    ];
-  Lwt.return ()
-
-let nested_suspense () =
-  let deffered_component =
-    React.Async_component
-      ( __FUNCTION__,
-        fun () ->
-          let%lwt value = delayed_value "DONE :)" in
-          Lwt.return (React.string value) )
-  in
-  let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:deffered_component () in
-  let main = React.Upper_case_component ("app", app) in
-  let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";

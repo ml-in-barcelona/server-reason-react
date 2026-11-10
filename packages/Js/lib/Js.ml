@@ -30,24 +30,13 @@ module Fn = struct
   type 'a arity22 = { i22 : 'a [@internal] }
 end
 
-(**/**)
-
-(* module MapperRt = Js_mapperRt *)
-module Internal = struct
-  (* open Fn *)
-
-  (* Use opaque instead of [._n] to prevent some optimizations happening *)
-end
-
-(**/**)
-
 type +'a null = 'a Js_internal.null
 type +'a undefined = 'a Js_internal.undefined
 type +'a nullable = 'a Js_internal.nullable
 
 external toOption : 'a null -> 'a option = "%identity"
 external nullToOption : 'a null -> 'a option = "%identity"
-external undefinedToOption : 'a null -> 'a option = "%identity"
+external undefinedToOption : 'a undefined -> 'a option = "%identity"
 external fromOpt : 'a option -> 'a undefined = "%identity"
 
 (** The same as [empty] {!Js.Undefined} will be compiled as [undefined]*)
@@ -60,37 +49,9 @@ let empty = None
 
 type (+'a, +'e) promise
 
-(* external eqNull : 'a -> 'a null -> bool = "%bs_equal_null" *)
-(* let eqNull : 'a -> 'a null -> bool = fun x -> x == None *)
-
-(* external eqUndefined : 'a -> 'a undefined -> bool = "%bs_equal_undefined" *)
-(* let eqUndefined : 'a -> 'a undefined -> bool = function
-   | Some _ -> false
-   | None -> true *)
-
-(* external eqNullable : 'a -> 'a nullable -> bool = "%bs_equal_nullable" *)
-(* let eqNullable : 'a -> 'a nullable -> bool = function
-   | Some _ -> false
-   | None -> true *)
-
 (** [typeof x] will be compiled as [typeof x] in JS Please consider functions in {!Types} for a type safe way of
     reflection *)
 let typeof _ = notImplemented "Js" "typeof"
-
-(** {4 operators}*)
-
-(* external unsafe_lt : 'a -> 'a -> bool = "#unsafe_lt" *)
-(** [unsafe_lt a b] will be compiled as [a < b]. It is marked as unsafe, since it is impossible to give a proper
-    semantics for comparision which applies to any type *)
-
-(* external unsafe_le : 'a -> 'a -> bool = "#unsafe_le" *)
-(** [unsafe_le a b] will be compiled as [a <= b]. See also {!unsafe_lt} *)
-
-(* external unsafe_gt : 'a -> 'a -> bool = "#unsafe_gt" *)
-(** [unsafe_gt a b] will be compiled as [a > b]. See also {!unsafe_lt} *)
-
-(* external unsafe_ge : 'a -> 'a -> bool = "#unsafe_ge" *)
-(** [unsafe_ge a b] will be compiled as [a >= b]. See also {!unsafe_lt} *)
 
 (** {12 nested modules}*)
 

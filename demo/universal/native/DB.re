@@ -192,19 +192,6 @@ let insertNote = (~title, ~content, notes) => {
   (note, [note, ...notes]);
 };
 
-let addNote = (~title, ~content) => {
-  let%lwt notes = readNotes();
-  let notes =
-    Result.map(
-      notes => {
-        let (note, notes) = insertNote(~title, ~content, notes);
-        (note, notes);
-      },
-      notes,
-    );
-  Lwt_result.lift(notes |> Result.map(((note, _)) => note));
-};
-
 let createNote = (~title, ~content) => {
   let%lwt notes = readNotes();
   switch (notes) {

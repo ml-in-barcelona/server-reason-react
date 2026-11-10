@@ -90,6 +90,7 @@ let tests =
         assert_true "-0" (r = 0. && Stdlib.Float.sign_bit r));
     test "Math.round(2.5) is 3 (node)" (fun () -> assert_float_exact (round 2.5) 3.);
     test "Math.round(-2.5) is -2 (node)" (fun () -> assert_float_exact (round (-2.5)) (-2.));
+    test "Math.round(0.49999999999999994) is 0 (node)" (fun () -> assert_float_exact (round 0.49999999999999994) 0.);
     test "Math.clz32(1) is 31 (node)" (fun () -> assert_int (clz32 1) 31);
     test "Math.clz32(0) is 32 (node)" (fun () -> assert_int (clz32 0) 32);
     test "Math.imul(-5, 12) is -60 (node)" (fun () -> assert_int (imul (-5) 12) (-60));

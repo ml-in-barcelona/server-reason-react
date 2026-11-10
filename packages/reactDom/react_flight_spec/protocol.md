@@ -74,9 +74,10 @@ suspended task streams right before that task's model row.
 server-reason-react exposes `ReactDOM.preload`/`preconnect`/`prefetchDNS`/
 `preinitScript` covering the `L`/`C`/`D`/`X` kinds without options. The calls
 dispatch to the current flight request (installed by
-`ReactServerDOM.render_model` and `create_action_response` via Lwt's implicit
-storage) and are safe no-ops when no flight render is active — including
-under `render_html`, where turning hints into head tags (react-dom's fizz
+`ReactServerDOM.render_model`, `create_action_response` and
+`ReactServerDOM.render_html` via Lwt's implicit storage) and are safe no-ops
+when no flight render is active. Under `render_html`, hints stream as payload
+rows like any other row; turning them into head tags (react-dom's fizz
 behavior) is out of scope for now.
 
 ## `$` string prefixes inside models

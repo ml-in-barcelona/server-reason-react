@@ -327,10 +327,6 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
   in
   render buf prev_text element
 
-let render_to_buffer ~mode buf element =
-  let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
-  ()
-
 let write_element_to_buffer_internal buf ~separators ~prev_text (element : React.element) : bool =
   match element with
   | Empty -> prev_text
@@ -377,7 +373,7 @@ let render_sync ~mode ?identifier_prefix element =
   (* TODO: try catch to avoid React.use usages *)
   React.reset_id_rendering ?prefix:identifier_prefix ();
   let buf = Buffer.create !last_render_size in
-  render_to_buffer ~mode buf element;
+  let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
   remember_render_size (Buffer.length buf);
   Buffer.contents buf
 
@@ -455,7 +451,7 @@ let write_suspense_fallback buf ~boundary_id fallback =
   Buffer.add_string buf "<!--/$-->"
 
 let write_suspense_fallback_error buf ~env ~exn fallback =
-  (* Error detail is dev-only, mirroring React: production must not leak exception messages or backtraces into HTML. *)
+  (* Error detail is dev-only: production must not leak exception messages or backtraces into HTML. *)
   (match env with
   | `Prod -> Buffer.add_string buf "<!--$!--><template></template>"
   | `Dev ->
@@ -615,7 +611,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
                         if stream_context.waiting = 0 then close_stream stream_context);
                       Lwt.return ()
                     with exn ->
-                      (* Mirrors react-dom: a boundary that fails after its fallback flushed is client-rendered via $RX. *)
+                      (* A boundary that fails after its fallback flushed is client-rendered via $RX. *)
                       stream_context.waiting <- stream_context.waiting - 1;
                       stream_context.pending_boundaries <-
                         List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;

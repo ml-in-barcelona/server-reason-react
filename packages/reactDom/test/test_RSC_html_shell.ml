@@ -1,13 +1,4 @@
-let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
-let check_json = Alcotest.check yojson "should be equal"
-
-let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a list) =
-  Alcotest.check (Alcotest.list ty) "should be equal" right left
-
 let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_list_of_strings (left : string list) (right : string list) =
-  Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
 let test title fn =
   ( Printf.sprintf "ReactServerDOM.render_html / %s" title,

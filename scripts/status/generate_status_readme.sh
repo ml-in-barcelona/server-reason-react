@@ -43,7 +43,6 @@ module_of_file() {
         weakset) m=WeakSet ;;
         formdata) m=FormData ;;
         typed_array) m=Typed_array ;;
-        typed_array2) m=TypedArray2 ;;
         *) m=$(echo "$m" | awk '{ print toupper(substr($0,1,1)) substr($0,2) }') ;;
       esac
       echo "Js.$m"
@@ -204,7 +203,7 @@ awk -F'\t' -v pkg="$pkg" -v version="$version" '
     print "| 🟢 | Implemented, verified by tests whose expectations cite a JS source (Melange test suite, test262, or documented JS output). |"
     print "| ⚪️ | Implemented, not yet verified against JS behavior. |"
     print "| 🟠 | Implemented with a known behavioral divergence (see note). |"
-    print "| 🔴 stub | Raises `Impossible_in_ssr` at runtime. Planned unless noted otherwise. |"
+    print "| 🔴 stub | Raises `Js.Not_implemented` at runtime. Planned unless noted otherwise. |"
     print "| 🔴 raises by design | Intentionally unsupported on the server (see note). |"
     print "| ➖ missing | Present in Melange, absent here. |"
     print ""

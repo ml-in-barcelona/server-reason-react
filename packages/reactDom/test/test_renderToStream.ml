@@ -116,7 +116,7 @@ let suspense_with_resolved_text_after_element_with_text_child () =
 
 let assert_raises exn fn =
   match%lwt fn () with
-  | exception exn -> Lwt.return (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
+  | exception raised -> Lwt.return (assert_string (Printexc.to_string raised) (Printexc.to_string exn))
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
 let always_throwing_component () =

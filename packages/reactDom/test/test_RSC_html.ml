@@ -1,17 +1,11 @@
-let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
-let check_json = Alcotest.check yojson "should be equal"
-let assert_json left right = Alcotest.check yojson "should be equal" right left
 let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_list (ty : 'a Alcotest.testable) (left : 'a list) (right : 'a list) =
-  Alcotest.check (Alcotest.list ty) "should be equal" right left
 
 let assert_list_of_strings (left : string list) (right : string list) =
   Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
 let assert_raises exn fn =
   match%lwt fn () with
-  | exception exn -> Lwt.return (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
+  | exception raised -> Lwt.return (assert_string (Printexc.to_string raised) (Printexc.to_string exn))
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
 let sleep ~ms =
@@ -40,13 +34,6 @@ let mk_suspense ?key ?fallback ?children () = React.Suspense.make ?key (React.Su
 
 let mk_context context ~value ~children () =
   React.Context.provider context (React.Context.makeProps ~value ~children ())
-
-let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
-  let%lwt content = Lwt_stream.to_list stream in
-  if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
-  else Lwt.return @@ assert_list_of_strings content expected
 
 let assert_html element ?(disable_backtrace = false) ?(env = `Dev) ?debug ?filter_stack_frame ?(shell = "")
     assertion_list =

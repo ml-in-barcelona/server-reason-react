@@ -65,16 +65,7 @@ registry of `conformance/reply_spec_conformance.ml` (reply direction) are **expe
 to mismatch; the conformance runners assert that they *do* mismatch, so they flip
 loudly when fixed.
 
-**There are currently no known divergences in either direction: every case
-matches the React fixtures byte-for-byte.** All divergences the spec caught
-(including the reply-side `$$`-unescape bug and the missing server-reference
-dedup) were fixed on
-this branch — see the git history for the alignment work: `$`-string escaping,
-numeric props as strings, `$` instead of `$L` client references, inlined
-suspense symbol, unconditional 7-tuple element rows, shared-thenable dedup
-(`writtenObjects`), async components at the task root resolving into the
-task's own row, sync throws at the root erroring the root row (`0:E`), and
-`E`-row flushing after the model rows of the same flush.
+There are currently no known divergences in either direction.
 
 ## Bumping React
 

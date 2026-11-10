@@ -51,7 +51,7 @@ format: ## Format the codebase with ocamlformat
 format-check: ## Checks if format is correct
 	@DUNE_CONFIG__GLOBAL_LOCK=disabled $(DUNE) build --root . @fmt
 
-.PHONY: init
+.PHONY: setup-githooks
 setup-githooks: ## Setup githooks
 	git config core.hooksPath .githooks
 
@@ -60,12 +60,11 @@ create-switch: ## Create opam switch
 	opam switch create . 5.4.0 --deps-only --with-test -y
 
 .PHONY: install
-install:
+install: ## Install opam dependencies
 	opam install . --deps-only --with-test --with-doc --with-dev-setup -y
 
 .PHONY: install-npm
-install-npm:
-	cd packages/esbuild-plugin && npm install;
+install-npm: ## Install npm dependencies
 	cd packages/react-server-dom-esbuild && npm install;
 	cd demo && npm install;
 	cd demo/client && npm install
@@ -76,7 +75,7 @@ pin: ## Pin dependencies
 	opam pin add quickjs.0.5.1 "git+https://github.com/ml-in-barcelona/quickjs.ml.git#0.5.1" -y
 
 .PHONY: init
-init: setup-githooks create-switch pin install install-npm ## Create a local dev enviroment
+init: setup-githooks create-switch pin install install-npm ## Create a local dev environment
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests
@@ -87,12 +86,8 @@ ppx-test-watch: ## Run ppx tests in watch mode
 	$(DUNE) runtest packages/server-reason-react-ppx --watch
 
 .PHONY: ppx-test-promote
-ppx-test-promote: ## Prommote ppx tests snapshots
+ppx-test-promote: ## Promote ppx tests snapshots
 	$(DUNE) runtest packages/server-reason-react-ppx --auto-promote
-
-.PHONY: lib-test
-lib-test: ## Run library tests
-	$(DUNE) exec test/test.exe
 
 .PHONY: demo-build
 demo-build: ## Build the project (client, server and universal)
@@ -102,7 +97,7 @@ demo-build: ## Build the project (client, server and universal)
 demo-build-watch: ## Watch demo (client, server and universal)
 	$(DUNE) build --profile=dev @demo --force --watch
 
-.PHONY: demo
+.PHONY: demo-serve
 demo-serve: demo-build ## Serve the demo executable
 	@opam exec -- _build/default/demo/server/server.exe
 
