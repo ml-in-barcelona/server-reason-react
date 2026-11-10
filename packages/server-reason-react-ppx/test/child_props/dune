@@ -1,0 +1,8 @@
+(test
+ (name generic_children)
+ (libraries
+  server-reason-react.js
+  server-reason-react.react
+  server-reason-react.reactDom)
+ (preprocess
+  (pps server-reason-react.ppx)))
