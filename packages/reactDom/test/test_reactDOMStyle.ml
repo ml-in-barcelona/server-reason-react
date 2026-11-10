@@ -12,11 +12,11 @@ let zero_styles () =
   let styles = ReactDOM.Style.make () in
   assert_styles styles ""
 
-let emtpy_value () =
+let empty_value () =
   let styles = ReactDOM.Style.make ~background:"" () in
   assert_styles styles ""
 
-let emtpy_value_with_more () =
+let empty_value_with_more () =
   let styles = ReactDOM.Style.make ~background:"" ~color:"transparent" () in
   assert_styles styles "color:transparent"
 
@@ -100,6 +100,8 @@ let tests =
     test "generate empty style" zero_styles;
     test "generate one style" one_styles;
     test "generate more than one style" two_styles;
+    test "empty value is skipped" empty_value;
+    test "empty value is skipped among others" empty_value_with_more;
     test "unsafeAddProp should be kebab-case" unsafe_add_prop;
     test "unsafeAddProp preserves CSS custom property keys verbatim" unsafe_add_prop_css_custom_property;
     test "unsafeAddProp preserves CSS custom property with var() value"

@@ -920,6 +920,8 @@ let tests =
     test "react_use_without_suspense" react_use_without_suspense;
     test "uppercase_component_always_throwing" uppercase_component_always_throwing;
     test "suspense_with_react_use" suspense_with_react_use;
+    test "with_custom_component" with_custom_component;
+    test "with_multiple_custom_components" with_multiple_custom_components;
     test "async component" async_component;
     test "async_component_without_suspense" async_component_without_suspense;
     test "suspense_without_promise" suspense_without_promise;

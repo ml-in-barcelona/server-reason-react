@@ -1745,6 +1745,11 @@ let sort_head_children children =
   let stylesheets = ref [] in
   let scripts = ref [] in
   let other = ref [] in
+  let push_resource bucket ~key_attr el =
+    let key_of = function Html.Node { attributes; _ } -> get_html_attr key_attr attributes | _ -> None in
+    let key = key_of el in
+    if Option.is_none key || not (List.exists (fun e -> key_of e = key) !bucket) then bucket := el :: !bucket
+  in
   let rec distribute = function
     | [] -> ()
     | Html.Null :: rest -> distribute rest
@@ -1755,8 +1760,8 @@ let sort_head_children children =
         (match classify_head_element el with
         | Charset -> charset := el :: !charset
         | Viewport -> viewport := el :: !viewport
-        | Stylesheet_resource -> stylesheets := el :: !stylesheets
-        | Async_script -> scripts := el :: !scripts
+        | Stylesheet_resource -> push_resource stylesheets ~key_attr:"href" el
+        | Async_script -> push_resource scripts ~key_attr:"src" el
         | Other -> other := el :: !other);
         distribute rest
   in

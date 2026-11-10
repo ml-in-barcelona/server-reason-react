@@ -8,6 +8,9 @@ let assert_raises exn fn =
   | exception raised -> Lwt.return (assert_string (Printexc.to_string raised) (Printexc.to_string exn))
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
+let contains_substring str sub =
+  match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
+
 let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
   Lwt.return ()
@@ -269,7 +272,7 @@ let async_component_with_promise () =
        '>window.srr_stream.push()</script>";
     ]
 
-let suspenasync_and_client () =
+let suspense_with_async_and_client_component () =
   let app () =
     mk_suspense ~fallback:(React.string "Loading...")
       ~children:
@@ -301,9 +304,9 @@ let suspenasync_and_client () =
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
       "<script data-payload='3:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
       "<div hidden id=\"S:2\"><span>Only the client<!-- -->Part of async component</span></div>\n\
-       <script>$RC('B:2', 'S:2')</script>";
-      "<script data-payload='2:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$L3\",null,{}],\"Part of async \
-       component\"]}]\n\
+       <script>$RC('B:2', 'S:2')</script><script \
+       data-payload='2:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$L3\",null,{},null,null,1],\"Part of async \
+       component\"]},null,null,1]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -809,8 +812,8 @@ let page_with_duplicate_resources () =
   in
   assert_html (app ())
     ~shell:
-      "<div>Page content</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"Page content\"}]\n\
-       '>window.srr_stream.push()</script>"
+      {|<!DOCTYPE html><html><head><link rel="stylesheet" href="/styles.css" precedence="default" /></head><body><div>Page content</div></body><script data-payload='0:[["$","html",null,{"children":[["$","head",null,{"children":[["$","link",null,{"rel":"stylesheet","href":"/styles.css","precedence":"default"},null,null,1],["$","link",null,{"rel":"stylesheet","href":"/styles.css","precedence":"default"},null,null,1]]},null,null,1],["$","body",null,{"children":["$","div",null,{"children":"Page content"},null,null,1]},null,null,1]]},null,null,1]]
+'>window.srr_stream.push()</script>|}
     []
 
 let client_component_with_bootstrap_scripts () =
@@ -836,8 +839,8 @@ let client_component_with_bootstrap_scripts () =
         Lwt.return ())
   in
   (* Check that bootstrap scripts are included in the HTML *)
-  let has_runtime_script = Str.string_match (Str.regexp ".*\\/runtime\\.js.*") html 0 in
-  let has_app_script = Str.string_match (Str.regexp ".*\\/app\\.js.*") html 0 in
+  let has_runtime_script = contains_substring html "<script src=\"/runtime.js\" async=\"\"></script>" in
+  let has_app_script = contains_substring html "<script src=\"/app.js\" async=\"\"></script>" in
   assert_string (string_of_bool has_runtime_script) "true";
   assert_string (string_of_bool has_app_script) "true";
   Lwt.return ()
@@ -865,8 +868,10 @@ let client_component_with_bootstrap_modules () =
         Lwt.return ())
   in
   (* Check that bootstrap modules are included with type="module" *)
-  let has_runtime_module = Str.string_match (Str.regexp ".*type=\"module\".*") html 0 in
-  let has_module_script = Str.string_match (Str.regexp ".*\\/runtime\\.mjs.*") html 0 in
+  let has_runtime_module =
+    contains_substring html "<script src=\"/runtime.mjs\" async=\"\" type=\"module\"></script>"
+  in
+  let has_module_script = contains_substring html "<script src=\"/app.mjs\" async=\"\" type=\"module\"></script>" in
   assert_string (string_of_bool has_runtime_module) "true";
   assert_string (string_of_bool has_module_script) "true";
   Lwt.return ()
@@ -1414,9 +1419,6 @@ let skip_root_omits_html_content () =
   Alcotest.(check bool) "should contain scripts" true has_script;
   Lwt.return ()
 
-let contains_substring str sub =
-  match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
-
 let count_occurrences hay needle = List.length (Str.split_delim (Str.regexp_string needle) hay) - 1
 
 let collect_chunks ?nonce ?bootstrapScriptContent app =
@@ -1633,6 +1635,7 @@ let tests =
     test "client_with_promise_failed_props" client_with_promise_failed_props;
     test "client_component_with_async_component" client_component_with_async_component;
     test "async_component_with_promise" async_component_with_promise;
+    test "suspense_with_async_and_client_component" suspense_with_async_and_client_component;
     test "suspense_with_error" suspense_with_error;
     test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
@@ -1647,6 +1650,8 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
+    test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;
+    test "client_component_with_bootstrap_modules" client_component_with_bootstrap_modules;
     test "nested_context" nested_context;
     test "context_preserved_across_async_suspense" context_preserved_across_async_suspense;
     test "context_nested_providers_across_async_suspense" context_nested_providers_across_async_suspense;
@@ -1666,6 +1671,7 @@ let tests =
     test "progressive_chunk_size_zero_does_not_raise" progressive_chunk_size_zero_does_not_raise;
     test "progressive_chunk_size_negative_does_not_raise" progressive_chunk_size_negative_does_not_raise;
     test "skip_root_omits_html_content" skip_root_omits_html_content;
+    test "page_with_duplicate_resources" page_with_duplicate_resources;
     test "nonce_is_added_to_generated_scripts" nonce_is_added_to_generated_scripts;
     test "late_boundary_link_stylesheet_is_streamed" late_boundary_link_stylesheet_is_streamed;
     test "late_boundary_title_is_streamed" late_boundary_title_is_streamed;
