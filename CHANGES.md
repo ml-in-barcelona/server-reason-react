@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Fix `ReactServerDOM.render_html` leaving a server Suspense boundary pending in the HTML when its content fails after the fallback flushed. It sent only the Flight error row; it now also sends the `$RX` client-render instruction for the boundary, as it already did inside client components and on timeout or abort by @davesnx
 * Fix `ReactDOM.renderToStream` leaving the markup of Suspense children in the shell when a child suspends or throws after earlier children were written. `<Suspense><div><Async /></div></Suspense>` gave an unclosed `<div>` before the fallback, and the same children were sent again in the resolved segment; the shell now holds only the fallback by @davesnx
 * Fix `ReactServerDOM.render_html` dropping rows when `?timeout` or `?abort` fires after the render completed, while the subscriber still reads queued rows. The trigger wrote the stream-end script and canceled the subscription, so a boundary whose completion row was queued kept its fallback. A trigger that fires after the render completed now does nothing by @davesnx
 * Fix `ReactServerDOM.decodeFormDataReply` decoding an outlined entry again for each reference to it. A reply where each entry refers twice to the next one took 2^n decodes for n entries; each entry is now decoded once per call by @davesnx
