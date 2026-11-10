@@ -25,6 +25,5 @@ type prop = Attribute of attribute | Event of event
 type errors = [ `ElementNotFound | `AttributeNotFound ]
 
 val getJSXName : prop -> string
-val isDataAttribute : string -> bool
 val findByJsxName : tag:string -> string -> (prop, errors) result
 val findClosestName : string -> string option

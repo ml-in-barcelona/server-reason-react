@@ -113,6 +113,25 @@ let element_with_dangerously_set_inner_html () =
        '>window.srr_stream.push()</script>"
     app []
 
+let repeated_prop_keeps_last_value () =
+  let app =
+    React.createElement "div"
+      [
+        React.JSX.string "id" "id" "a";
+        React.JSX.string "data-url" "data-url" "x";
+        React.JSX.string "title" "title" "t";
+        React.JSX.string "id" "id" "b";
+        React.JSX.string "data-url" "data-url" "y";
+      ]
+      []
+  in
+  assert_html ~env:`Prod
+    ~shell:
+      "<div id=\"b\" data-url=\"y\" title=\"t\"></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"id\":\"b\",\"data-url\":\"y\",\"title\":\"t\"}]\n\
+       '>window.srr_stream.push()</script>"
+    app []
+
 let static_element () =
   let original = React.createElement "div" [] [ React.string "Hello" ] in
   let app () = React.Static { prerendered = "<div>Hello</div>"; original } in
@@ -1636,6 +1655,7 @@ let tests =
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
     test "static_element" static_element;
     test "suppress_hydration_warning_in_model" suppress_hydration_warning_in_model;
+    test "repeated_prop_keeps_last_value" repeated_prop_keeps_last_value;
     test "input_element_with_value" input_element_with_value;
     test "upper_case_component" upper_case_component;
     test "async_component_without_promise" async_component_without_promise;

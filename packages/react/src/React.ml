@@ -490,7 +490,12 @@ let clone_attributes (attributes : JSX.prop list) (new_attributes : JSX.prop lis
   in
   base @ append_new [] new_attributes
 
+let rec has_repeated_key (attributes : JSX.prop list) =
+  let rec mem key = function [] -> false | prop :: rest -> String.equal (prop_key prop) key || mem key rest in
+  match attributes with [] -> false | prop :: rest -> mem (prop_key prop) rest || has_repeated_key rest
+
 let create_element_with_key ?key tag attributes children =
+  let attributes = if has_repeated_key attributes then clone_attributes [] attributes else attributes in
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
       raise (Invalid_children (Printf.sprintf {|"%s" is a self-closing tag and must not have "children".\n|} tag))

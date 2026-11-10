@@ -132,6 +132,23 @@ let numeric_props_serialize_as_json_numbers () =
     [ "0:[\"$\",\"div\",null,{\"tabIndex\":42,\"aria-valuemin\":0.5,\"aria-valuemax\":100},null,null,0]\n" ];
   Lwt.return ()
 
+let repeated_prop_keeps_last_value () =
+  let app =
+    React.createElement "div"
+      [
+        React.JSX.string "id" "id" "a";
+        React.JSX.string "data-url" "data-url" "x";
+        React.JSX.string "title" "title" "t";
+        React.JSX.string "id" "id" "b";
+        React.JSX.string "data-url" "data-url" "y";
+      ]
+      []
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output [ "0:[\"$\",\"div\",null,{\"id\":\"b\",\"data-url\":\"y\",\"title\":\"t\"}]\n" ];
+  Lwt.return ()
+
 let numeric_children_serialize_as_json_numbers () =
   (* React.int/React.float children cross the wire as raw JSON numbers,
      integral floats without the decimal part (100.0 -> 100). *)
@@ -2022,6 +2039,7 @@ let tests =
     test "dollar_prefixed_strings_are_escaped" dollar_prefixed_strings_are_escaped;
     test "dollar_prefixed_json_props_are_escaped" dollar_prefixed_json_props_are_escaped;
     test "numeric_props_serialize_as_json_numbers" numeric_props_serialize_as_json_numbers;
+    test "repeated_prop_keeps_last_value" repeated_prop_keeps_last_value;
     test "numeric_children_serialize_as_json_numbers" numeric_children_serialize_as_json_numbers;
     test "key_renders_outside_of_props" key_renders_outside_of_props;
     test "style_as_json" style_as_json;
