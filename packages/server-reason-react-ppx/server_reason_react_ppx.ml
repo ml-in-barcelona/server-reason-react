@@ -1143,7 +1143,7 @@ let get_arguments pvb_expr =
               | { pparam_desc = Pparam_val (label, default, patt); _ } -> Some (label, default, patt) | _ -> None)
             params
         in
-        go (args @ acc) expr.pexp_desc
+        go (List.rev args @ acc) expr.pexp_desc
     | _ -> acc
   in
   go [] pvb_expr.pexp_desc
@@ -1473,10 +1473,13 @@ module ServerFunction = struct
     in
     match (formData, args) with
     | [], _ -> [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
-    | [ _ ], [] ->
-        [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun _ formData -> [%e body_expr]))]
-    | _, [] -> [%stri [%ocaml.error "server-reason-react: server functions with form data must have only one argument"]]
-    | _ -> [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun args formData -> [%e body_expr]))]
+    | [ Ok (_, Some name, _) ], args ->
+        let form_data = ppat_var ~loc { txt = name; loc } in
+        let args_pat = match args with [] -> [%pat? _] | _ -> [%pat? args] in
+        [%stri
+          FunctionReferences.register [%e estring ~loc id]
+            (FormData (fun [%p args_pat] [%p form_data] -> [%e body_expr]))]
+    | _ -> [%stri [%ocaml.error "server-reason-react: server functions must have only one FormData argument"]]
 
   let create_server_function_record ~loc id expression =
     [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }]
