@@ -570,6 +570,58 @@ let data_props_flight_names = () => {
   Lwt.return();
 };
 
+module MapChildren = {
+  [@react.component]
+  let make = (~children) =>
+    <ul> {React.Children.map(children, Fun.id)} </ul>;
+};
+
+let render_dev_model_chunks = element => {
+  let output = ref([]);
+  let subscribe = chunk => {
+    output := Stdlib.List.append(output^, [chunk]);
+    Lwt.return();
+  };
+  let%lwt () = ReactServerDOM.render_model(~env=`Dev, ~subscribe, element);
+  Lwt.return(Stdlib.String.concat("", output^));
+};
+
+let children_map_flight_keys = () => {
+  let item = name => <li className="c"> {React.string(name)} </li>;
+  let keyed_item = name => <li key=name> {React.string(name)} </li>;
+  let fixed = <li> {React.string("b")} </li>;
+  switch (item("a"), keyed_item("a"), fixed) {
+  | (React.Writer(_), React.Writer(_), React.Static(_)) => ()
+  | _ => Alcotest.fail("expected PPX Writer and Static elements")
+  };
+  let%lwt runtime =
+    render_dev_model_chunks(
+      <MapChildren> {React.list([item("a"), item("b")])} </MapChildren>,
+    );
+  assert_string(
+    runtime,
+    {|0:["$","ul",null,{"children":[["$","li",".0",{"children":"a","className":"c"},null,null,1],["$","li",".1",{"children":"b","className":"c"},null,null,1]]},null,null,1]
+|},
+  );
+  let%lwt keyed =
+    render_dev_model_chunks(
+      <MapChildren> {React.list([keyed_item("a")])} </MapChildren>,
+    );
+  assert_string(
+    keyed,
+    {|0:["$","ul",null,{"children":[["$","li",".$a",{"children":"a"},null,null,1]]},null,null,1]
+|},
+  );
+  let%lwt siblings =
+    render_dev_model_chunks(<MapChildren> {item("a")} fixed </MapChildren>);
+  assert_string(
+    siblings,
+    {|0:["$","ul",null,{"children":[["$","li",".0",{"children":"a","className":"c"},null,null,1],["$","li",".1",{"children":"b"},null,null,1]]},null,null,1]
+|},
+  );
+  Lwt.return();
+};
+
 let data_props_flight_collision_first_wins = () => {
   let%lwt chunks =
     render_model_chunks(<div dataURL="first" dataUrl="second" />);
@@ -1328,6 +1380,7 @@ Alcotest_lwt.run(
     test("data_props", data_props),
     test("data_props_collision_html", data_props_collision_html),
     test_lwt("data_props_flight_names", data_props_flight_names),
+    test_lwt("children_map_flight_keys", children_map_flight_keys),
     test_lwt(
       "data_props_flight_collision_first_wins",
       data_props_flight_collision_first_wins,
