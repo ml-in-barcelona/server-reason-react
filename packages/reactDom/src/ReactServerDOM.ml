@@ -1508,7 +1508,15 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info (element : React.e
                 Lwt.return to_chunk
               with exn ->
                 let error = Model.exn_to_error exn in
-                let to_chunk index = model_to_chunk ?nonce:fiber.nonce (Error (fiber.env, error)) index in
+                let to_chunk index =
+                  Html.list
+                    [
+                      model_to_chunk ?nonce:fiber.nonce (Error (fiber.env, error)) index;
+                      client_render_boundary_to_chunk ?nonce:fiber.nonce ~env:fiber.env
+                        ~message:(client_render_error_message exn)
+                        ~include_definition:(Stream.take_rx_definition context) index;
+                    ]
+                in
                 Lwt.return to_chunk
             in
             let index = Stream.push_boundary_async ~context (fun () -> promise) in

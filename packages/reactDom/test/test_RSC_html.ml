@@ -729,6 +729,30 @@ let client_with_error_under_server_suspense () =
        <script>$RC('B:2', 'S:2')</script>";
     ]
 
+let server_suspense_with_async_error_after_flush () =
+  let failing =
+    React.Async_component
+      ( "failing",
+        fun () ->
+          let%lwt () = sleep ~ms:1 in
+          Lwt.fail (Failure "boom") )
+  in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:failing () in
+  assert_html app ~disable_backtrace:true
+    ~shell:
+      "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      Printf.sprintf
+        "<script \
+         data-payload='2:E{\"message\":\"Failure(\\\"boom\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
+         '>window.srr_stream.push()</script><script>%s;$RX(\"B:2\",\"\",\"Switched to client rendering because the \
+         server rendering errored:\\n\\nFailure(\\\"boom\\\")\")</script>"
+        rx_definition;
+    ]
+
 let await_tick ?(raise = false) ?(ms = 1) num =
   React.Async_component
     ( "await_tick",
@@ -782,8 +806,11 @@ let suspense_in_a_list_with_error () =
       "<div hidden id=\"S:2\">A</div>\n\
        <script>$RC('B:2', 'S:2')</script><script data-payload='2:\"A\"\n\
        '>window.srr_stream.push()</script>";
-      "<script data-payload='3:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
+      Printf.sprintf
+        "<script data-payload='3:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
+         '>window.srr_stream.push()</script><script>%s;$RX(\"B:3\",\"\",\"Switched to client rendering because the \
+         server rendering errored:\\n\\nFailure(\\\"lol\\\")\")</script>"
+        rx_definition;
       "<div hidden id=\"S:4\">C</div>\n\
        <script>$RC('B:4', 'S:4')</script><script data-payload='4:\"C\"\n\
        '>window.srr_stream.push()</script>";
@@ -1657,6 +1684,7 @@ let tests =
     test "writer_subtree_with_client_component" writer_subtree_with_client_component;
     test "client_with_error_without_suspense" client_with_error_without_suspense;
     test "client_with_error_under_server_suspense" client_with_error_under_server_suspense;
+    test "server_suspense_with_async_error_after_flush" server_suspense_with_async_error_after_flush;
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
