@@ -261,6 +261,9 @@ let isPrefix = (~prefix, pattern) => {
           String.equal(left.name, right.name)
           && String.equal(left.typeName, right.typeName) =>
       loop(prefix, pattern)
+    | ([CatchAll(left), ...prefix], [CatchAll(right), ...pattern])
+        when String.equal(left.name, right.name) =>
+      loop(prefix, pattern)
     | _ => false
     };
   loop(prefix, pattern);

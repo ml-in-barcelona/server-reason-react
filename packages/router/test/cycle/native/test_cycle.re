@@ -57,6 +57,41 @@ let testCatchAllHref = () => {
   );
 };
 
+let testCatchAllActiveRoute = () => {
+  let search =
+    switch (RouterServer.Search.parse("")) {
+    | Ok(search) => search
+    | Error(_) => Alcotest.fail("expected valid search")
+    };
+  switch (
+    RouterServer.EndpointRegistry.find(
+      RouterRegistry.registry,
+      ~pathname="/assets/a/b",
+    )
+  ) {
+  | Ok(Some(matched)) =>
+    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    | Error(_) => Alcotest.fail("expected catch-all decode")
+    | Ok(prepared) =>
+      Alcotest.check(
+        Alcotest.list(
+          Alcotest.pair(
+            Alcotest.string,
+            Alcotest.list(Alcotest.pair(Alcotest.string, Alcotest.string)),
+          ),
+        ),
+        "catch-all active route",
+        [("Asset", [("parts", "a/b")])],
+        RouterServer.EndpointRegistry.matches(matched, prepared)
+        |> List.map(({ RouterRuntime.Navigation.routeId, parameters }) =>
+             (routeId, parameters)
+           ),
+      )
+    }
+  | _ => Alcotest.fail("expected catch-all match")
+  };
+};
+
 let testCustomScalarHref = () => {
   let value = ScalarId.make("café+@");
   let href = Router.Scalar.href(~scalarId=value, ());
@@ -1149,6 +1184,11 @@ let () =
             testEncodeURIComponentParity,
           ),
           Alcotest.test_case("catch-all href", `Quick, testCatchAllHref),
+          Alcotest.test_case(
+            "catch-all active route",
+            `Quick,
+            testCatchAllActiveRoute,
+          ),
           Alcotest.test_case(
             "custom scalar href",
             `Quick,
