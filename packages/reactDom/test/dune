@@ -4,6 +4,7 @@
  (libraries
   str
   unix
+  fmt
   lwt
   server-reason-react.react
   server-reason-react.reactDom

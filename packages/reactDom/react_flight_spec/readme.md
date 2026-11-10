@@ -41,6 +41,7 @@ cases/js/         melange.emit target (copy_files from shared).
 fixtures/         committed golden output of the real React.
 conformance/      alcotest runners: flight_spec_conformance (server → client)
                   and reply_spec_conformance (client → server).
+key_validation/   native fixture exporter and development/production browser tests.
 reply/            reply-direction spec: cases.mjs (JS argument values),
                   generate-reply.mjs (encodeReply → fixtures), fixtures/.
 ```
@@ -57,6 +58,21 @@ make spec-generate-reply  # client → server .reply fixtures
 # Verify fixtures (both directions) are up to date without writing:
 make spec-check
 ```
+
+To test native rows through the shipped Flight client and React DOM in Chromium:
+
+```sh
+# In packages/reactDom/react_flight_spec:
+npm ci
+npx --no-install playwright install chromium
+
+# From the repository root:
+make test-flight-key-validation
+```
+
+The browser tests use React, React DOM, and the Flight client at 19.1.0. They cover
+key warnings, client props, async rows, document mounting, and streamed hydration.
+Results and native rows are written to `_build/flight-key-validation/`.
 
 ## Known divergences (xfail)
 

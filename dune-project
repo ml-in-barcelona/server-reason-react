@@ -24,7 +24,7 @@
  (synopsis "Rendering React components on the server natively")
  (depends
   ; General system dependencies
-  (ocaml (>= 4.14.1))
+  (ocaml (>= 5.3.0))
   (reason (>= 3.17.2))
   ; melange 7.0.0 inlines externals cross-module and breaks relative
   ; [@mel.module "./..."] paths (e.g. ReactServerDOMEsbuild.js); fixed in

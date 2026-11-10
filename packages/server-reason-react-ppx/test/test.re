@@ -379,6 +379,93 @@ module Component = {
   };
 };
 
+module ForwardChildren = {
+  let makeProps = (~children, ()) => children;
+  let make = children => children;
+};
+
+let static_children_groups = () => {
+  let calls = Stdlib.ref(0);
+  let child = () => {
+    Stdlib.incr(calls);
+    React.createElement("span", [], []);
+  };
+  let single = <ForwardChildren> {child()} </ForwardChildren>;
+  Alcotest.check(Alcotest.int, "scalar evaluated once", 1, calls^);
+  switch (single) {
+  | React.Lower_case_element(_) => ()
+  | _ => Alcotest.fail("expected the bare scalar child")
+  };
+  let siblings = <ForwardChildren> {child()} {child()} </ForwardChildren>;
+  Alcotest.check(Alcotest.int, "siblings evaluated once", 3, calls^);
+  switch (siblings) {
+  | React.Static_list([
+      React.Lower_case_element(_),
+      React.Lower_case_element(_),
+    ]) =>
+    ()
+  | _ => Alcotest.fail("expected a literal sibling group")
+  };
+  let bare = React.createElement("span", [], []);
+  let dynamic = React.list([bare]);
+  let forwarded = <ForwardChildren> dynamic </ForwardChildren>;
+  Alcotest.check(
+    Alcotest.bool,
+    "runtime collection is forwarded as is",
+    true,
+    Stdlib.(forwarded == dynamic),
+  );
+  let fragment = <> {child()} dynamic </>;
+  Alcotest.check(Alcotest.int, "fragment child evaluated once", 4, calls^);
+  switch (fragment) {
+  | React.Fragment(
+      React.Static_list([React.Lower_case_element(_), collection]),
+    ) =>
+    Alcotest.check(
+      Alcotest.bool,
+      "fragment keeps the runtime collection",
+      true,
+      Stdlib.(collection == dynamic),
+    )
+  | _ => Alcotest.fail("expected a fragment group")
+  };
+};
+
+let static_children_optimized_equivalence = () => {
+  let dynamic =
+    React.list([React.createElement("b", [], [React.string("dynamic")])]);
+  let optimized =
+    <ForwardChildren> <section> <span /> dynamic </section> </ForwardChildren>;
+  let plain =
+    React.createElement(
+      "section",
+      [],
+      [React.createElement("span", [], []), dynamic],
+    );
+  switch (optimized) {
+  | React.Writer({ original, _ }) =>
+    switch (original()) {
+    | React.Lower_case_element({ children: [_, collection], _ }) =>
+      Alcotest.check(
+        Alcotest.bool,
+        "writer original retains runtime collection",
+        true,
+        Stdlib.(collection == dynamic),
+      )
+    | _ => Alcotest.fail("expected static host child and runtime collection")
+    }
+  | _ => Alcotest.fail("expected an optimized writer")
+  };
+  assert_string(
+    ReactDOM.renderToString(optimized),
+    ReactDOM.renderToString(plain),
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(optimized),
+    ReactDOM.renderToStaticMarkup(plain),
+  );
+};
+
 let children_one_element = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(
@@ -992,6 +1079,19 @@ let text_separator_matches_unoptimized_tree = () => {
 module CSS = {
   let className = ((className, _)) => className;
   let styles = ((_, styles)) => styles;
+  let make = (className, vars) => (
+    className,
+    List.fold_left(
+      (style, (key, value)) =>
+        ReactDOM.Style.unsafeAddProp(style, key, value),
+      ReactDOM.Style.make(),
+      vars,
+    ),
+  );
+  let merge = ((className1, style1), (className2, style2)) => (
+    String.trim(className1 ++ " " ++ className2),
+    ReactDOM.Style.combine(style1, style2),
+  );
 };
 
 let styles_attribute = () => {
@@ -1034,7 +1134,7 @@ let styles_attribute_optional_some_with_class = () => {
   let div = <div className="lola" ?styles />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    {|<div class="some-class-name lola" style="background-color:gainsboro"></div>|},
+    {|<div class="lola some-class-name" style="background-color:gainsboro"></div>|},
   );
 };
 
@@ -1065,7 +1165,7 @@ let styles_attribute_optional_some_with_class_and_style = () => {
     />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    {|<div class="some-class-name lola" style="color:white;background-color:gainsboro"></div>|},
+    {|<div class="lola some-class-name" style="color:white;background-color:gainsboro"></div>|},
   );
 };
 
@@ -1226,6 +1326,11 @@ Alcotest_lwt.run(
     test("fragment", fragment),
     test("fragment_with_key", fragment_with_key),
     test("children_uppercase", children_uppercase),
+    test("static_children_groups", static_children_groups),
+    test(
+      "static_children_optimized_equivalence",
+      static_children_optimized_equivalence,
+    ),
     test("children_lowercase", children_lowercase),
     test("event_onClick", onClick_empty),
     test("event_onSelect", onSelect_non_optional),
