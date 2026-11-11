@@ -1241,23 +1241,67 @@ let map_children_with_tree_context_lwt f children =
         React.current_tree_context := saved_ctx;
         Lwt.reraise exn)
 
-(* For form elements with server actions, augment html_props with action="" and method="POST",
-   and produce a hidden <input> carrying the $ACTION_ID_<hash> name. *)
-let apply_form_action_attrs html_props action_id =
-  let has_method =
-    List.exists (function `Value (name, _) when String.equal name "method" -> true | _ -> false) html_props
+let action_id_prefix = "$ACTION_ID_"
+
+(* A server function [action] or [formAction] renders so that a submit before hydration posts multipart form data
+   to the current URL with the function id in the [$ACTION_ID_<id>] field name, which [decodeAction] reads (verified
+   against react-dom 19.1.0). *)
+let host_attributes_to_html ~tag attributes =
+  let server_action_id name =
+    List.find_map
+      (fun (prop : React.JSX.prop) ->
+        match prop with Action (prop_name, _, f) when String.equal prop_name name -> Some f.id | _ -> None)
+      attributes
   in
-  let extra_attrs = Html.attribute "action" "" :: (if has_method then [] else [ Html.attribute "method" "POST" ]) in
-  let hidden =
-    Html.node "input"
-      [
-        Html.attribute "type" "hidden";
-        Html.attribute "name" (Printf.sprintf "$ACTION_ID_%s" action_id);
-        Html.attribute "value" "";
-      ]
-      []
+  let attributes_to_html_without names extra =
+    let kept =
+      List.filter
+        (fun (prop : React.JSX.prop) ->
+          match prop with
+          | Bool (name, _, _)
+          | BooleanishString (name, _, _)
+          | String (name, _, _)
+          | Int (name, _, _)
+          | Float (name, _, _) ->
+              not (List.mem (String.lowercase_ascii name) names)
+          | _ -> true)
+        attributes
+    in
+    ReactDOM.attributes_to_html kept @ extra
   in
-  (html_props @ extra_attrs, hidden)
+  match tag with
+  | "form" -> (
+      match server_action_id "action" with
+      | None -> (ReactDOM.attributes_to_html attributes, None)
+      | Some id ->
+          ( attributes_to_html_without [ "method"; "enctype"; "target" ]
+              [
+                Html.attribute "action" "";
+                Html.attribute "encType" "multipart/form-data";
+                Html.attribute "method" "POST";
+              ],
+            Some
+              (Html.node "input"
+                 [
+                   Html.attribute "type" "hidden";
+                   Html.attribute "name" (action_id_prefix ^ id);
+                   Html.attribute "value" "";
+                 ]
+                 []) ))
+  | "button" | "input" -> (
+      match server_action_id "formaction" with
+      | None -> (ReactDOM.attributes_to_html attributes, None)
+      | Some id ->
+          ( attributes_to_html_without
+              [ "name"; "formmethod"; "formenctype"; "formtarget" ]
+              [
+                Html.attribute "name" (action_id_prefix ^ id);
+                Html.attribute "formAction" "";
+                Html.attribute "formEncType" "multipart/form-data";
+                Html.attribute "formMethod" "POST";
+              ],
+            None ))
+  | _ -> (ReactDOM.attributes_to_html attributes, None)
 
 let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
@@ -1275,15 +1319,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Array childrens ->
       let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) (Array.to_list childrens) in
       Lwt.return (Html.list html)
-  | Lower_case_element { key; tag; attributes; children } when String.equal tag "form" ->
-      let form_action_id =
-        List.find_map
-          (fun (prop : React.JSX.prop) -> match prop with Action (_, _, f) -> Some f.id | _ -> None)
-          attributes
-      in
-      render_lower_case ~fiber ~key ~tag ~attributes ~children ~form_action_id
-  | Lower_case_element { key; tag; attributes; children } ->
-      render_lower_case ~fiber ~key ~tag ~attributes ~children ~form_action_id:None
+  | Lower_case_element { tag; attributes; children; _ } -> render_lower_case ~fiber ~tag ~attributes ~children
   | Upper_case_component (_name, component) ->
       let saved_ctx = !React.current_tree_context in
       React.reset_component_id_state saved_ctx;
@@ -1351,17 +1387,14 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
       with_provider_value ~push ~async_key ~async_value (fun () -> client_to_html ~fiber children)
   | Consumer children -> client_to_html ~fiber children
 
-and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children ~form_action_id =
-  let html_props = ReactDOM.attributes_to_html attributes in
-  match (form_action_id, ReactDOM.getDangerouslyInnerHtml attributes) with
-  | _, Some inner_html -> Lwt.return (Html.node tag html_props [ Html.raw inner_html ])
-  | Some action_id, None ->
-      let html_props, hidden = apply_form_action_attrs html_props action_id in
+and render_lower_case ~fiber ~tag ~attributes ~children =
+  let html_props, action_input = host_attributes_to_html ~tag attributes in
+  let action_input = Option.to_list action_input in
+  match ReactDOM.getDangerouslyInnerHtml attributes with
+  | Some inner_html -> Lwt.return (Html.node tag html_props (action_input @ [ Html.raw inner_html ]))
+  | None ->
       let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) children in
-      Lwt.return (Html.node tag html_props (hidden :: html))
-  | None, None ->
-      let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) children in
-      Lwt.return (Html.node tag html_props html)
+      Lwt.return (Html.node tag html_props (action_input @ html))
 
 let is_async props =
   let open React.JSX in
@@ -1575,8 +1608,6 @@ and render_lower_case_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~ch
   (* Record the root tag on first lower-case element visit *)
   (match Fiber.root_tag ~fiber with Some _ -> () | None -> Fiber.set_root_tag ~fiber tag);
   match classify_element ~fiber ~tag ~attributes with
-  | Regular when String.equal tag "form" ->
-      render_form_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html ()
   | Regular -> render_regular_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html ()
   | Html_root ->
       (* Skip rendering the <html> wrapper since we reconstruct it in reconstruct_document *)
@@ -1632,71 +1663,32 @@ and handle_hoistable_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~chi
     on_push ~fiber html;
     Lwt.return (Html.null, create_model children_model))
 
-and process_attributes ~context ~nonce ?form_action_id attributes =
-  let html_props =
-    List.map
-      (fun (prop : React.JSX.prop) ->
-        match (form_action_id, prop) with
-        | Some _, Action (_, _, _) ->
-            (* Omit the original Action attribute; action="" and method="POST" are added by apply_form_action_attrs *)
-            Html.omitted ()
-        | _ -> ReactDOM.attribute_to_html prop)
-      attributes
-  in
-  let json_props =
-    List.filter_map
-      (fun (prop : React.JSX.prop) ->
-        match prop with
-        | Action (_, key, f) ->
-            Some (key, `String (Model.outline_server_function ~context ~to_chunk:(model_to_chunk ?nonce) f))
-        | _ -> Model.prop_to_json prop)
-      attributes
-  in
-  (html_props, json_props)
+and props_to_json ~context ~nonce attributes =
+  List.filter_map
+    (fun (prop : React.JSX.prop) ->
+      match prop with
+      | Action (_, key, f) ->
+          Some (key, `String (Model.outline_server_function ~context ~to_chunk:(model_to_chunk ?nonce) f))
+      | _ -> Model.prop_to_json prop)
+    attributes
 
 and render_regular_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html () =
-  let html_props, json_props = process_attributes ~context:fiber.context ~nonce:fiber.nonce attributes in
+  let html_props, action_input = host_attributes_to_html ~tag attributes in
+  let action_input = Option.to_list action_input in
+  let json_props = props_to_json ~context:fiber.context ~nonce:fiber.nonce attributes in
   let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
   match (Html.is_self_closing_tag tag, inner_html) with
   | true, _ ->
       Lwt.return (Html.node tag html_props [], Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner [])
   | false, Some inner_html ->
       Lwt.return
-        ( Html.node tag html_props [ Html.raw inner_html ],
+        ( Html.node tag html_props (action_input @ [ Html.raw inner_html ]),
           Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner [] )
   | false, None ->
       let%lwt html, model = elements_to_html ~fiber ~debug_info ~site:Static_slot children in
       let model_children = match model with `List l -> l | other -> [ other ] in
       Lwt.return
-        ( Html.node tag html_props [ html ],
-          Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner model_children )
-
-and render_form_element ~(fiber : Fiber.t) ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html () =
-  let context = fiber.context in
-  let action_id =
-    List.find_map
-      (fun (prop : React.JSX.prop) -> match prop with Action (_, _, f) -> Some f.id | _ -> None)
-      attributes
-  in
-  let html_props, json_props = process_attributes ~context ~nonce:fiber.nonce ?form_action_id:action_id attributes in
-  let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
-  match (inner_html, action_id) with
-  | Some inner_html, _ ->
-      Lwt.return
-        ( Html.node tag html_props [ Html.raw inner_html ],
-          Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner [] )
-  | None, Some action_id ->
-      let html_props, hidden = apply_form_action_attrs html_props action_id in
-      let%lwt html, model = elements_to_html ~fiber ~debug_info ~site:Static_slot children in
-      let model_children = match model with `List l -> l | other -> [ other ] in
-      Lwt.return
-        ( Html.node tag html_props [ Html.list [ hidden; html ] ],
-          Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner model_children )
-  | None, None ->
-      let%lwt html, model = elements_to_html ~fiber ~debug_info ~site:Static_slot children in
-      let model_children = match model with `List l -> l | other -> [ other ] in
-      Lwt.return
-        ( Html.node tag html_props [ html ],
+        ( Html.node tag html_props (action_input @ [ html ]),
           Model.node ~env:fiber.env ~site ~tag ~key ~props:json_props ~owner model_children )
 
 and elements_to_html ~fiber ~debug_info ~(site : Key_validation.site) elements =
@@ -2233,7 +2225,6 @@ let decodeFormDataReply ?temporaryReferences formData =
       let* arguments = decode_arguments context arguments in
       Ok (arguments, extract_user_form_data formData ~prefix))
 
-let action_id_prefix = "$ACTION_ID_"
 let action_prefix = "$ACTION_"
 
 let decodeAction formData =
