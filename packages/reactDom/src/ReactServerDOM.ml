@@ -594,14 +594,14 @@ module Model = struct
     in
     `List (`String "$" :: `String tag :: key :: `Assoc props :: tail)
 
-  (* React outlines the suspense symbol once per stream as its own row
+  (* React outlines the suspense and fragment symbols once per stream as their own row
      (e.g. 1:"$Sreact.suspense", pushed before any row that references it,
      deduplicated via written_symbols) and uses the row reference ("$1") as
-     the element type. [suspense_tag] pushes the row on first use and returns
+     the element type. [symbol_tag] pushes the row on first use and returns
      that reference. *)
-  let suspense_tag ~context ~to_chunk =
-    Stream.push_symbol ~context ~symbol:"react.suspense" ~reference_of_index:ref_value (fun () ->
-        to_chunk (Value (`String "$Sreact.suspense")))
+  let symbol_tag ~context ~to_chunk symbol =
+    Stream.push_symbol ~context ~symbol ~reference_of_index:ref_value (fun () ->
+        to_chunk (Value (`String ("$S" ^ symbol))))
 
   (* Not using `node` because we need to add fallback prop as json directly.
      React serializes suspense props as {children, fallback}: children first.
@@ -743,7 +743,12 @@ module Model = struct
           node ~env ~site ~key ~tag ~props ~owner
             (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info ~site:Static_slot) children)
       (* A single element passed as a wrapper's children prop is a static position in React (jsx marks it validated). *)
-      | Fragment children -> turn_element_into_payload ~context ~debug_info ~site:Static_slot children
+      | Fragment { key = None; children } -> turn_element_into_payload ~context ~debug_info ~site:Static_slot children
+      | Fragment { key; children } ->
+          let tag = symbol_tag ~context ~to_chunk "react.fragment" in
+          let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
+          node ~env ~site ~key ~tag ~props:[] ~owner
+            [ turn_element_into_payload ~context ~debug_info ~site:Static_slot children ]
       | List children -> items ~context ~debug_info ~site:Key_validation.Dynamic_item children
       | Array children -> items ~context ~debug_info ~site:Key_validation.Dynamic_item (Array.to_list children)
       | Upper_case_component (name, component) -> (
@@ -829,7 +834,7 @@ module Model = struct
               `String (lazy_value index))
       | Suspense { key; children; fallback } ->
           (* The outlined symbol row is pushed first, then rows produced by the children (props are serialized in {children, fallback} order), then rows produced by the fallback. *)
-          let tag = suspense_tag ~context ~to_chunk in
+          let tag = symbol_tag ~context ~to_chunk "react.suspense" in
           let children = turn_element_into_payload ~context ~debug_info ~site:Static_slot children in
           let fallback = Option.map (turn_element_into_payload ~context ~debug_info ~site:Static_slot) fallback in
           suspense_node ~env ~site ~tag ~key ~fallback [ children ]
@@ -932,7 +937,7 @@ module Model = struct
       match element with
       | React.Static { original; _ } -> go ~debug_info ~site original
       | Writer { original; _ } -> go ~debug_info ~site (original ())
-      | Fragment children -> go ~debug_info ~site:Static_slot children
+      | Fragment { key = None; children } -> go ~debug_info ~site:Static_slot children
       | Consumer children -> go ~debug_info ~site:Static_slot children
       | Provider { children; push; async_key; async_value } ->
           with_provider_value ~push ~async_key ~async_value (fun () -> go ~debug_info ~site:Static_slot children)
@@ -1273,7 +1278,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Text text -> Lwt.return (Html.string text)
   | Int i -> Lwt.return (Html.string (Int.to_string i))
   | Float f -> Lwt.return (Html.string (Js.Float.toString f))
-  | Fragment children -> client_to_html ~fiber children
+  | Fragment { children; _ } -> client_to_html ~fiber children
   | List childrens | Static_list childrens ->
       let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) childrens in
       Lwt.return (Html.list html)
@@ -1425,7 +1430,14 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
   | Float f ->
       (* HTML stringifies numbers the way JavaScript does while the model keeps the raw JSON number. *)
       Lwt.return (Html.string (Js.Float.toString f), Model.float_to_json f)
-  | Fragment children -> render_element_to_html ~fiber ~debug_info ~site:Static_slot children
+  | Fragment { key = None; children } -> render_element_to_html ~fiber ~debug_info ~site:Static_slot children
+  | Fragment { key; children } ->
+      let tag =
+        Model.symbol_tag ~context:fiber.context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) "react.fragment"
+      in
+      let%lwt html, model = render_element_to_html ~fiber ~debug_info ~site:Static_slot children in
+      let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
+      Lwt.return (html, Model.node ~env:fiber.env ~site ~tag ~key ~props:[] ~owner [ model ])
   | List list -> elements_to_html ~fiber ~debug_info ~site:Dynamic_item list
   | Array arr -> elements_to_html ~fiber ~debug_info ~site:Dynamic_item (Array.to_list arr)
   | Upper_case_component (name, component) ->
@@ -1484,8 +1496,8 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
             let%lwt html, model = render_element_to_html ~fiber ~debug_info ~site:Static_slot fallback in
             Lwt.return (html, Some model)
       in
-      (* The outlined suspense symbol row must be pushed before any row that references it (see Model.suspense_tag). *)
-      let tag = Model.suspense_tag ~context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) in
+      (* The outlined suspense symbol row must be pushed before any row that references it (see Model.symbol_tag). *)
+      let tag = Model.symbol_tag ~context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) "react.suspense" in
       try%lwt
         let promise = render_element_to_html ~fiber ~debug_info ~site:Static_slot children in
         match Lwt.state promise with

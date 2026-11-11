@@ -2,6 +2,7 @@ let span ?key text = React.createElementWithKey ?key "span" [] [ React.string te
 let pair () = [ span "a"; span "b" ]
 let keyed_pair () = [ span ~key:"a" "a"; span ~key:"b" "b" ]
 let host children = React.createElement "div" [] children
+let fragment ?key children = React.Fragment.make ?key (React.Fragment.makeProps ~children ())
 let no_release () = ()
 
 let client ?key ?(props = []) children =
@@ -107,6 +108,10 @@ let fixtures =
     case ~missing:true ~text:"a" "singleton-array" (sync (fun () -> host [ React.array [| span "a" |] ]));
     case "keyed-list" (sync (fun () -> host [ React.list (keyed_pair ()) ]));
     case "keyed-array" (sync (fun () -> host [ React.array (Array.of_list (keyed_pair ())) ]));
+    case "keyed-fragments"
+      (sync (fun () -> host [ React.list [ fragment ~key:"a" (span "a"); fragment ~key:"b" (span "b") ] ]));
+    case ~duplicate:true "duplicate-fragment-keys"
+      (sync (fun () -> host [ React.list [ fragment ~key:"same" (span "a"); fragment ~key:"same" (span "b") ] ]));
     case ~duplicate:true "duplicate-keys"
       (sync (fun () -> host [ React.list [ span ~key:"same" "a"; span ~key:"same" "b" ] ]));
     case ~missing:true ~text:"a" "extracted-static" (sync (fun () -> host [ React.list [ extracted () ] ]));
@@ -165,6 +170,8 @@ let fixtures =
       (hydration ~pending:false ~dynamic:true);
     case ~document:true ~hydration:true ~pending:true ~missing:true ~text:"abcount:0"
       "document-unkeyed-pending-hydration" (hydration ~pending:true ~dynamic:true);
+    case ~document:true ~hydration:true ~text:"abcount:0" "document-keyed-fragment-hydration"
+      (sync (fun () -> document (host [ React.list [ fragment ~key:"a" (client (host (pair ()))) ] ])));
     case ~error:true "server-error-redaction"
       (sync (fun () -> React.Upper_case_component ("Failure", fun () -> failwith "private-key-validation-error")));
   ]

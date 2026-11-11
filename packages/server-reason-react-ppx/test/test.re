@@ -418,9 +418,10 @@ let static_children_groups = () => {
   let fragment = <> {child()} dynamic </>;
   Alcotest.check(Alcotest.int, "fragment child evaluated once", 4, calls^);
   switch (fragment) {
-  | React.Fragment(
-      React.Static_list([React.Lower_case_element(_), collection]),
-    ) =>
+  | React.Fragment({
+      key: None,
+      children: React.Static_list([React.Lower_case_element(_), collection]),
+    }) =>
     Alcotest.check(
       Alcotest.bool,
       "fragment keeps the runtime collection",

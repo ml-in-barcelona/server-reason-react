@@ -230,7 +230,7 @@ let nested_upper_case_components () =
 
 let upper_case_with_list () =
   let app () =
-    React.Fragment
+    React.fragment
       (React.list
          [
            React.Upper_case_component ("Text", text ~children:[ React.string "hi" ]);
@@ -488,7 +488,7 @@ let await_tick ?(raise = false) ?(ms = 1) num =
 let suspense_in_a_list () =
   let fallback = React.string "Loading..." in
   let app () =
-    React.Fragment
+    React.fragment
       (React.list
          [
            mk_suspense ~fallback ~children:(await_tick ~ms:1 "A") ();
@@ -516,7 +516,7 @@ let suspense_in_a_list () =
 let suspense_in_a_list_with_error () =
   let fallback = React.string "Loading..." in
   let app () =
-    React.Fragment
+    React.fragment
       (React.list
          [
            mk_suspense ~fallback ~children:(await_tick ~ms:1 "A") ();
@@ -890,6 +890,20 @@ let key_renders_outside_of_props () =
     [
       "0:[\"$\",\"section\",\"important key\",{\"children\":[\"$\",\"strong\",null,{\"children\":\"React \
        Notes\"},null,null,1],\"className\":\"sidebar-header\"},null,null,0]\n";
+    ];
+  Lwt.return ()
+
+let keyed_fragment_in_list () =
+  let fragment ?key text =
+    React.Fragment.make ?key (React.Fragment.makeProps ~children:(React.createElement "li" [] [ React.string text ]) ())
+  in
+  let app = React.createElement "ul" [] [ React.list [ fragment ~key:"a" "alpha"; fragment "beta" ] ] in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "1:\"$Sreact.fragment\"\n";
+      "0:[\"$\",\"ul\",null,{\"children\":[[\"$\",\"$1\",\"a\",{\"children\":[\"$\",\"li\",null,{\"children\":\"alpha\"},null,null,1]},null,null,0],[\"$\",\"li\",null,{\"children\":\"beta\"},null,null,1]]},null,null,0]\n";
     ];
   Lwt.return ()
 
@@ -2010,6 +2024,7 @@ let tests =
     test "repeated_prop_keeps_last_value" repeated_prop_keeps_last_value;
     test "numeric_children_serialize_as_json_numbers" numeric_children_serialize_as_json_numbers;
     test "key_renders_outside_of_props" key_renders_outside_of_props;
+    test "keyed_fragment_in_list" keyed_fragment_in_list;
     test "style_as_json" style_as_json;
     test "lower_case_component" lower_case_component;
     test "lower_case_component_nested" lower_case_component_nested;

@@ -795,7 +795,7 @@ let server_function_as_action () =
 let suspense_in_a_list_with_error () =
   let fallback = React.string "Loading..." in
   let app () =
-    React.Fragment
+    React.fragment
       (React.list
          [
            mk_suspense ~fallback ~children:(await_tick ~ms:1 "A") ();

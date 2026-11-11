@@ -629,7 +629,7 @@ and element =
           [original] is a thunk that rebuilds the variant-tree form on-demand for [cloneElement] / RSC consumers. Same
           name as [Static.original] for symmetry; this variant's version is lazy. Emitted by the PPX for the
           [Needs_buffer] analysis tier. *)
-  | Fragment of element
+  | Fragment of { key : string option; children : element }
   | Empty
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
@@ -927,9 +927,9 @@ module Children : sig
       Every mapped element gets React's key: [.<index in base 36>] for an unkeyed child, [.$<key>] for a keyed child
       with [=] and [:] escaped as [=0] and [=2], [:] between the levels of nested collections, and a [<result key>/]
       prefix when the function returns an element with a different key. A server component result passes its key to the
-      element it renders, joined as [<key>,<rendered key>] as React's Flight server does. A [Fragment], [Provider] or
-      [Consumer] result has no key field and stays unkeyed, as does a fragment or collection that a server component
-      renders; React sends a keyed fragment there. *)
+      element it renders, joined as [<key>,<rendered key>] as React's Flight server does. Through an unkeyed fragment,
+      the key goes to its child; a collection or a fragment of siblings that the component renders is wrapped in a
+      fragment with that key. A [Provider] or [Consumer] result has no key field and stays unkeyed. *)
 
   val mapWithIndex : element -> (element -> int -> element) -> element
   (** Like [map]; the index counts the children passed to the function, after flattening. *)
