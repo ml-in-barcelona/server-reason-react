@@ -579,14 +579,19 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
           should_add_doctype := saved_should_add_doctype;
           previous_node_was_text := saved_previous_node_was_text
         in
-        try%lwt
+        let render_completed_boundary () =
+          Buffer.add_string buf "<!--$-->";
+          previous_node_was_text := false;
           let%lwt () = render_element children in
+          Buffer.add_string buf "<!--/$-->";
+          previous_node_was_text := false;
           Lwt.return ()
-        with
+        in
+        try%lwt render_completed_boundary () with
         | React.Suspend (Any_promise promise) -> (
             discard_partial_children ();
             match Lwt.state promise with
-            | Lwt.Return _ -> render_element children
+            | Lwt.Return _ -> render_completed_boundary ()
             | Lwt.Fail exn ->
                 let%lwt fallback_html = render_fallback_html () in
                 write_suspense_fallback_error buf ~env ~exn fallback_html;

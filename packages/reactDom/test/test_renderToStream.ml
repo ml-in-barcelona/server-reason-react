@@ -78,7 +78,28 @@ let suspense_without_promise () =
   in
   let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:hi () in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
-  assert_stream stream [ "<div><span>Hello</span></div>" ]
+  assert_stream stream [ "<!--$--><div><span>Hello</span></div><!--/$-->" ]
+
+let text_around_suspense_without_promise () =
+  let app () =
+    React.createElement "div" []
+      [
+        React.string "a";
+        mk_suspense ~fallback:(React.string "Loading...") ~children:(React.string "b") ();
+        React.string "c";
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<div>a<!--$-->b<!--/$-->c</div>" ]
+
+let nested_suspense_without_promise () =
+  let app () =
+    mk_suspense ~fallback:(React.string "outer")
+      ~children:(mk_suspense ~fallback:(React.string "inner") ~children:(React.createElement "i" [] []) ())
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<!--$--><!--$--><i></i><!--/$--><!--/$-->" ]
 
 let text_after_element_with_text_child () =
   let app () =
@@ -438,8 +459,8 @@ let suspense_with_nested_suspenses () =
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
-      "<div>Before<!--$?--><template id=\"B:0\"></template>Inner loading 1<!--/$--><!--$?--><template \
-       id=\"B:1\"></template>Inner loading 2<!--/$--></div>";
+      "<!--$--><div>Before<!--$?--><template id=\"B:0\"></template>Inner loading 1<!--/$--><!--$?--><template \
+       id=\"B:1\"></template>Inner loading 2<!--/$--></div><!--/$-->";
       "<div hidden id=\"S:0\"><div>Sleep 0.001 seconds<!-- -->, <!-- -->First</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
@@ -692,7 +713,7 @@ let context_with_suspense () =
       ()
   in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
-  assert_stream stream [ "<span>provided</span>" ]
+  assert_stream stream [ "<!--$--><span>provided</span><!--/$-->" ]
 
 let async_component_with_use_id () =
   let app =
@@ -979,7 +1000,7 @@ let boundary_resolves_while_shell_is_suspended () =
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
-      "<div>InnerOutside</div>";
+      "<div><!--$-->Inner<!--/$-->Outside</div>";
     ];
   Lwt.return ()
 
@@ -995,6 +1016,8 @@ let tests =
     test "async component" async_component;
     test "async_component_without_suspense" async_component_without_suspense;
     test "suspense_without_promise" suspense_without_promise;
+    test "text_around_suspense_without_promise" text_around_suspense_without_promise;
+    test "nested_suspense_without_promise" nested_suspense_without_promise;
     test "text_after_element_with_text_child" text_after_element_with_text_child;
     test "suspense_with_resolved_text_after_element_with_text_child"
       suspense_with_resolved_text_after_element_with_text_child;
