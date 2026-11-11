@@ -13,8 +13,8 @@ Js.typeof	wontfix	Requires JS runtime type tags.
 # --- Js.Array ---
 Js.Array.isArray	orange	Always returns true; there is no runtime type information (Js_array.ml:10).
 Js.Array.includes	orange	Uses OCaml structural equality; JS SameValueZero differs (NaN, object identity).
-Js.Array.indexOf	orange	Negative ~start handling diverges from JS (audit/areas/belt-js.md).
-Js.Array.lastIndexOfFrom	orange	Negative ~from handling diverges from JS (audit/areas/belt-js.md).
+Js.Array.indexOf	orange	Negative ~start handling diverges from JS.
+Js.Array.lastIndexOfFrom	orange	Negative ~start handling diverges from JS.
 Js.Array.from	wontfix	Requires JS iterables; array_like values cannot be constructed natively.
 Js.Array.fromMap	wontfix	Requires JS iterables; array_like values cannot be constructed natively.
 Js.Array.copyWithin	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
@@ -104,6 +104,18 @@ Js.Global.clearInterval	orange	Runs on the Lwt event loop: inert without a runni
 # --- Js.Nullable ---
 #
 # --- Js.Promise ---
+Js.Promise.make	green	Ported Melange suite + node-cited cases (settles once, executor raise rejects): packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.resolve	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.reject	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.all	green	Ported Melange suite + node-cited cases (fail fast, input order, empty array): packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.all2	green	Ported Melange suite + node-cited cases (fail fast, input order): packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.all3	green	node-cited fail-fast case (first rejection in time): packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.all4	green	node-cited fail-fast case: packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.all5	green	node-cited input-order case: packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.all6	green	node-cited input-order case: packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.race	green	Ported Melange suite + node-cited cases (empty race, array order, losers not canceled): packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.then_	orange	A raising callback rejects, as in JS; but callbacks run synchronously when the promise is already settled; JS always queues them as microtasks. Tested in packages/Js/test/melange_tests/js_promise.ml.
+Js.Promise.catch	orange	A raising handler rejects, as in JS; but callbacks run synchronously when the promise is already settled; JS always queues them as microtasks. Tested in packages/Js/test/melange_tests/js_promise.ml.
 #
 # --- Js.Re ---
 Js.Re.exec	green	test262-derived suite: packages/Js/test/regexp_tests.
@@ -287,9 +299,6 @@ Js.Array.some	green	Ported Melange suite: packages/Js/test/melange_tests/js_arra
 Js.Array.somei	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
 Js.Date.parseAsFloat	green	Ported Melange suite: packages/Js/test/melange_tests/js_date.ml.
 Js.Date.utc	green	Ported Melange suite: packages/Js/test/melange_tests/js_date.ml.
-Js.Promise.all2	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
-Js.Promise.resolve	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
-Js.Promise.then_	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
 Js.Re.captures	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
 Js.Re.index	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
 Js.Re.input	green	Ported Melange suite: packages/Js/test/melange_tests/js_re.ml.
@@ -328,7 +337,6 @@ Js.String.trim	green	Ported Melange suite: packages/Js/test/melange_tests/js_str
 #
 # --- Fixed divergences (now verified) ---
 Js.Global.parseInt	green	test262-derived suite: packages/Js/test/number_tests (parse_int.ml).
-Js.Promise.race	green	Ported Melange suite + node-cited empty-race case: packages/Js/test/melange_tests/js_promise.ml.
 Js.Bigint.of_string	green	test262-derived suite: packages/Js/test/bigint_tests (incl. hex e/E digits).
 Js.Bigint.of_string_exn	green	test262-derived suite: packages/Js/test/bigint_tests (incl. hex e/E digits).
 Js.Dict.fromList	green	Insertion-ordered; node-cited tests in packages/Js/test/test.ml and melange_tests/js_dict.ml.

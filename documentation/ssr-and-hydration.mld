@@ -4,7 +4,7 @@
 
 [server-reason-react] via [ReactDOM.renderToString], [ReactDOM.renderToStaticMarkup] or [ReactDOM.renderToStream] generate the HTML markup on the server. When the page loads in the browser, React.js performs a process called "hydration".
 
-Hydration attaches event handlers into the existing HTML elements, using reason-react's [ReactDOM.hydrateRoot]. In case of not having hydration and just using render (via [ReactDOM.renderRoot]), React will re-render the entire page from scratch, which may cause layout shifts and be slower than hydration.
+Hydration attaches event handlers into the existing HTML elements, using reason-react's [ReactDOM.Client.hydrateRoot]. In case of not having hydration and just using render (via [ReactDOM.Client.createRoot] and [ReactDOM.Client.render]), React will re-render the entire page from scratch, which may cause layout shifts and be slower than hydration.
 
 For hydration to work correctly, the initial markup from the server must match exactly what React loads on the client. React will throw a hydration error if there is a mismatch.
 
@@ -14,7 +14,7 @@ For example:
 
 With this mismatch, hydration will fail and React will re-render on the client. This will result in worse performance and user experience, like layout shifts and other annoyances.
 
-Read more about it in the [React documentation](https://react.dev/reference/react-dom/client/hydrateRoot).
+Read more about it in the {{:https://react.dev/reference/react-dom/client/hydrateRoot}React documentation}.
 
 {1 Hydrate error}
 
@@ -89,7 +89,7 @@ With a code like this one, the flow will be:
 
 ** As we can see, isClientMounted is false on III, IV and V and eventually true on VI. So there is no difference between III and IV, and React will be happy with it.
 
-In this case, we don't even need [switch%platform], as [useEffects] only runs on client and the value is provided on the client.
+In this case, we don't even need [switch%platform], as [useEffect] only runs on client and the value is provided on the client.
 
 {1 Some helpers that you can create}
 
@@ -148,7 +148,7 @@ let answer = isClientMounted ? [%melange_only () => getAnswer()]() : 0;
 
 {3 Combine [switch%platform] and [%melange_only] with [isClientMounted]}
 
-[switch%platform] and [melange_only] are extensions that help us discarting parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform README}).
+[switch%platform] and [melange_only] are extensions that help us discarding parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: {{:https://github.com/ml-in-barcelona/ppx_platform}ppx_platform README}).
 
 So we should use [switch%platform] when we don't have a single way to provide the same value. If there is a way to provide the same value, but not in a single way, you'll need [switch%platform] like following:
 
@@ -161,7 +161,7 @@ let foo = switch%platform () {
 
 Here, [foo] will have the same value on both targets. There's no need for [isClientMounted] because Hydrate will never throw an error.
 
-The usage of [isClientMounted] forces the execution of the code to behave proeprly, but it does not avoid compiler error because the code needs to compile on both targets. So, you will need [isClientMounted] and [melange_only] together:
+The usage of [isClientMounted] forces the execution of the code to behave properly, but it does not avoid compiler error because the code needs to compile on both targets. So, you will need [isClientMounted] and [melange_only] together:
 
 {@reasonml[
 let%melange_only foo_cant_compile_on_native = () => "Hey"
@@ -242,11 +242,11 @@ The [ClientOnly] component is built on top of [ServerOrClientRender]. It provide
 {[
 [@react.component]
 let make = (~children: unit => React.element) => {
-  <ServerOrClientRender client=children server={() => RR.null} />;
+  <ServerOrClientRender client=children server={() => React.null} />;
 };
 ]}
 
-Use [<ClientOnly/>] when the server JSX can be empty ([RR.null]) and only want to render JSX on the client side.
+Use [<ClientOnly/>] when the server JSX can be empty ([React.null]) and only want to render JSX on the client side.
 
 {@reasonml[
 <ClientOnly>
@@ -255,3 +255,38 @@ Use [<ClientOnly/>] when the server JSX can be empty ([RR.null]) and only want t
 ]}
 
 Again, we should use [%melange_only] even when using [ClientOnly] since the content {b MUST} compile on [native].
+
+{1 Flight child keys}
+
+With [~env:`Dev], [ReactServerDOM] sends key-validation metadata with each
+element. Explicit sibling positions do not require list keys. Runtime collections
+created with [React.list] or [React.array] require keys on their element members.
+
+{[
+let static = React.createElement "div" [] [first; second]
+let dynamic = React.createElement "div" [] [React.list items]
+]}
+
+Static-ness is a property of the container, not of the element. The native PPX
+builds [React.Static_list] for the literal children of a component or a
+fragment, [<Component> a b </Component>], in place of [React.list]. Its members are
+static; a [React.list] or [React.array] member inside it is still a runtime
+collection. Code that inspects [React.element] directly must handle this
+constructor.
+
+A single forwarded child carries no information of its own and takes the state of
+the slot it lands in: a host child list, the single child of a fragment, provider,
+consumer, or Suspense boundary, and the result of a server component give a static
+position; a runtime collection gives a missing-key state. A literal child extracted from a host and
+re-inserted into a runtime collection reports a missing key, where React does not.
+
+[React.Children.map] and [mapWithIndex] give each mapped element the key React
+gives it ([.0], [.1], [.$key]) and return a [React.Static_list], so mapped
+children are static. React instead passes a missing-key warning on to the mapped
+copy of an unkeyed member of a runtime collection; server-reason-react does not
+report that warning.
+
+The default environment remains [`Prod], which sends React's four-field element
+tuples without this metadata. A development client then warns about unkeyed
+static siblings. Use [~env:`Dev] while developing with a development client, as
+React pairs its development server with its development client.

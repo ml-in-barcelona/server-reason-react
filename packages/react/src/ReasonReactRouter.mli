@@ -20,8 +20,10 @@ val watchUrl : (url -> unit) -> watcherID
 (** start watching for URL changes. Returns a subscription token. Upon url change, calls the callback and passes it the
     url record *)
 
-(** stop watching for URL changes *)
 val unwatchUrl : watcherID -> unit
+(** stop watching for URL changes *)
+
+val dangerouslyGetInitialUrl : ?serverUrlString:string -> unit -> url
 (** this is marked as "dangerous" because you technically shouldn't be accessing the URL outside of watchUrl's callback
     you'd read a potentially stale url, instead of the fresh one inside watchUrl.
 
@@ -32,8 +34,6 @@ val unwatchUrl : watcherID -> unit
     So, the correct (and idiomatic) usage of this helper is to only use it in a component that's also subscribed to
     watchUrl. Please see https://github.com/reasonml-community/reason-react-example/blob/master/src/todomvc/TodoItem.re
     for an example. *)
-
-val dangerouslyGetInitialUrl : ?serverUrlString:string -> unit -> url
 
 val useUrl : ?serverUrl:url -> unit -> url
 (** hook for watching url changes. * serverUrl is used for ssr. it allows you to specify the url without relying on

@@ -1,9 +1,7 @@
 /* Nested key-less fragments with siblings around them: fragments are
    transparent in the Flight model, so only their children's grouping
-   survives in the children array. (A keyed fragment serializes as a
-   react.fragment symbol element in React, but server-reason-react's
-   React.Fragment cannot carry a key, so that variant is not expressible
-   single-source.) */
+   survives in the children array. Keyed fragments are covered by
+   Fragment_keyed. */
 let app = () =>
   <div>
     {React.string("before")}

@@ -380,7 +380,7 @@ let is_style_make_ident = function
    end). Signature order is also the JS object key order melange produces for
    reason-react's [ReactDOM.Style.make], which react-dom preserves in both
    inline style output and the Flight payload. *)
-let try_rewrite_call ~loc:_ args =
+let try_rewrite_call ~loc args =
   let rec collect acc = function
     | [] -> None (* missing the final unit *)
     | [ (Nolabel, { pexp_desc = Pexp_construct ({ txt = Lident "()"; _ }, None); _ }) ] -> Some acc
@@ -399,7 +399,6 @@ let try_rewrite_call ~loc:_ args =
       (* Sort by signature index ascending, matching the runtime [make]'s
          output order. *)
       let sorted = List.sort (fun (i, _, _, _) (j, _, _, _) -> Int.compare i j) entries in
-      let loc = Location.none in
       let list_expr =
         List.fold_right
           (fun (_, camel, kebab, expr) acc ->

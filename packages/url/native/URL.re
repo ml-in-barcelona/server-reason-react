@@ -24,8 +24,6 @@ module SearchParams = {
     Some(makeExn(str));
   };
 
-  /* let makeWithDict = _dict => assert(false); */
-
   let makeWithArray = (arr): t => {
     arr |> Array.map(((key, values)) => (key, [values])) |> Array.to_list;
   };

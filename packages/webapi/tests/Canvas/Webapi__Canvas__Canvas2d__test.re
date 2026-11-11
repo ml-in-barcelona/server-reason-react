@@ -1,3 +1,4 @@
+open TestHelpers;
 open Webapi.Canvas;
 open Webapi.Canvas.Canvas2d;
 open Webapi.Dom;

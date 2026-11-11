@@ -67,8 +67,6 @@ let main () =
   measure_alloc "Render React.array 10" (fun () -> loop 10000 (render_React_array ~num:10));
   measure_alloc "Render React.list 100" (fun () -> loop 10000 (render_React_list ~num:100));
   measure_alloc "Render React.array 100" (fun () -> loop 10000 (render_React_array ~num:100));
-  (* measure_alloc "Render React.list 1000" (fun () -> loop 10000 (render_React_list ~num:1000)); *)
-  (* measure_alloc "Render React.array 1000" (fun () -> loop 10000 (render_React_array ~num:1000)); *)
   Lwt.return ()
 
 let () = Lwt_main.run (main ())

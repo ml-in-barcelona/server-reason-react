@@ -17,12 +17,10 @@ let render_scenario = scenario_name => {
   | "table50" => Some(ReactDOM.renderToStaticMarkup(<Table.Table50 />))
   | "table100" => Some(ReactDOM.renderToStaticMarkup(<Table.Table100 />))
   | "table500" => Some(ReactDOM.renderToStaticMarkup(<Table.Table500 />))
-  | "props_small" =>
-    Some(ReactDOM.renderToStaticMarkup(<PropsHeavy.Small />))
-  | "props_medium" =>
+  | "propsSmall" => Some(ReactDOM.renderToStaticMarkup(<PropsHeavy.Small />))
+  | "propsMedium" =>
     Some(ReactDOM.renderToStaticMarkup(<PropsHeavy.Medium />))
-  | "props_large" =>
-    Some(ReactDOM.renderToStaticMarkup(<PropsHeavy.Large />))
+  | "propsLarge" => Some(ReactDOM.renderToStaticMarkup(<PropsHeavy.Large />))
   | "ecommerce24" =>
     Some(ReactDOM.renderToStaticMarkup(<Ecommerce.Products24 />))
   | "ecommerce48" =>
@@ -53,9 +51,9 @@ let scenario_list = [|
   ("table50", "Table 50", "50 row data table"),
   ("table100", "Table 100", "100 row data table"),
   ("table500", "Table 500", "500 row data table"),
-  ("props_small", "Props Small", "10 heavy components"),
-  ("props_medium", "Props Medium", "50 heavy components"),
-  ("props_large", "Props Large", "Large table with many attrs"),
+  ("propsSmall", "Props Small", "10 heavy components"),
+  ("propsMedium", "Props Medium", "50 heavy components"),
+  ("propsLarge", "Props Large", "Large table with many attrs"),
   ("ecommerce24", "E-commerce 24", "24 product cards"),
   ("ecommerce48", "E-commerce 48", "48 product cards"),
   ("ecommerce100", "E-commerce 100", "100 product cards"),

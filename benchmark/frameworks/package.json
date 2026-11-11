@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:shared": "esbuild shared/App.jsx --bundle --outfile=dist/App.js --format=cjs --platform=node --external:react --external:react-dom",
     "start:node-express": "NODE_ENV=production node node-express/server.mjs",
     "start:node-fastify": "NODE_ENV=production node node-fastify/server.mjs",
     "start:hono-node": "NODE_ENV=production node hono-node/server.mjs",

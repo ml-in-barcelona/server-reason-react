@@ -171,9 +171,6 @@ const ReactFlightClientConfigBundlerEsbuild = {
    * Called when the Flight client encounters a client module reference in the stream.
    * Allows the integration to initiate loading of scripts/stylesheets needed by the module.
    *
-   * In the esbuild integration this is a no-op because all client bundles are
-   * already loaded via script tags — there's no dynamic chunk loading.
-   *
    * @param moduleLoading - The `moduleLoading` config passed to `createResponse` (null for esbuild)
    * @param nonce - CSP nonce for script injection (undefined for esbuild)
    * @param metadata - The parsed module metadata from the RSC stream
@@ -230,11 +227,7 @@ const ReactFlightClientConfigBundlerEsbuild = {
    * a thenable/promise if async loading is needed, or a falsy value if the
    * module is already available synchronously.
    *
-   * In the esbuild integration this always returns undefined because all modules
-   * are pre-loaded via the global manifest maps.
-   *
    * @param metadata - The resolved reference from `resolveClientReference` or `resolveServerReference`
-   * @returns undefined (no preloading needed)
    */
   preloadModule(metadata) {
     debug("preloadModule", metadata);
@@ -392,7 +385,7 @@ function callCurrentServerCallback(callServer) {
   return function (id, args) {
     if (!callServer) {
       throw new Error(
-        "No server callback has been registered. Call setServerCallback to register one."
+        "No server callback has been registered. Pass callServer to createFromFetch or createFromReadableStream."
       );
     }
     return callServer(id, args);
@@ -449,7 +442,7 @@ export function createFromReadableStream(stream, options) {
  *   1. bundlerConfig — null: client references are pre-resolved at build time by esbuild
  *   2. serverReferenceConfig — {}: truthy but empty, forces the `resolveServerReference` code path
  *      (when null/falsy, server refs fall back to `createBoundServerReference` using only `callServer`)
- *   3. moduleLoading — null: no dynamic module loading config needed (scripts are pre-loaded)
+ *   3. moduleLoading — null: no dynamic module loading config needed
  *   4. callServer — callback invoked when a server action is called from the client
  *   5. encodeFormAction — undefined: no custom form action encoding (uses default)
  *   6. nonce — undefined: no CSP nonce needed for script injection

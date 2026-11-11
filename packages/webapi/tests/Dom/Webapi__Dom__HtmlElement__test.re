@@ -1,3 +1,4 @@
+open TestHelpers;
 open Webapi.Dom;
 open HtmlElement;
 
@@ -37,7 +38,6 @@ let _ = setItemId(el, "my-id");
 let _ = itemRef(el);
 let _ = itemProp(el);
 let _ = itemValue(el);
-let _ = setItemValue(el, [%bs.raw "{}"]);
 let _ = lang(el);
 let _ = setLang(el, "en");
 let _ = offsetHeight(el);

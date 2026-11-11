@@ -1,14 +1,7 @@
 type t = int
 
 let toExponential ?digits int = Js_float.toExponential ?digits (Stdlib.float_of_int int)
-
-let toPrecision ?digits int =
-  let f = Stdlib.float_of_int int in
-  match digits with
-  | None -> Quickjs.Number.Prototype.to_string f
-  | Some d ->
-      if d < 1 || d > 100 then raise (Invalid_argument "toPrecision() digits argument must be between 1 and 100")
-      else Quickjs.Number.Prototype.to_precision d f
+let toPrecision ?digits int = Js_float.toPrecision ?digits (Stdlib.float_of_int int)
 
 let toString ?radix int =
   match radix with

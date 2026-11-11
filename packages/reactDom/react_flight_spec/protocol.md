@@ -74,9 +74,10 @@ suspended task streams right before that task's model row.
 server-reason-react exposes `ReactDOM.preload`/`preconnect`/`prefetchDNS`/
 `preinitScript` covering the `L`/`C`/`D`/`X` kinds without options. The calls
 dispatch to the current flight request (installed by
-`ReactServerDOM.render_model` and `create_action_response` via Lwt's implicit
-storage) and are safe no-ops when no flight render is active — including
-under `render_html`, where turning hints into head tags (react-dom's fizz
+`ReactServerDOM.render_model`, `create_action_response` and
+`ReactServerDOM.render_html` via Lwt's implicit storage) and are safe no-ops
+when no flight render is active. Under `render_html`, hints stream as payload
+rows like any other row; turning them into head tags (react-dom's fizz
 behavior) is out of scope for now.
 
 ## `$` string prefixes inside models
@@ -120,7 +121,41 @@ React prod encodes an element as a 4-tuple:
 
 Prod emits the 4-tuple form. Dev appends the debug fields
 `[debugOwner, debugStack, validated]`, producing 7-tuples. server-reason-react
-follows the same gate on `~env`.
+follows the same gate on `~env`:
+
+```json
+["$", "span", null, {"children":"a"}, null, null, 1]
+```
+
+| `validated` | Meaning |
+| --- | --- |
+| `0` | Unvalidated element, including bare roots and keyed runtime items |
+| `1` | Static child position or a single server-component result |
+| `2` | Unvalidated, unkeyed member of a runtime collection |
+
+React 19.1.0's development Flight server changes unkeyed array members from
+`0` to `2` during serialization. The development client preserves these states.
+A 4-tuple leaves `validated` undefined, which the development client treats as
+`0`, so it warns about unkeyed static siblings: correct key warnings need a
+``~env:`Dev`` server, as with React's own servers.
+
+Static-ness is a property of the container, never of the element value. Children
+of a host element, the single child of a fragment, provider, consumer, or
+Suspense boundary (and its fallback), the result of a server component, and
+members of `React.Static_list`, the literal sibling group the PPX builds for
+`<Component> a b </Component>` and fragments, are static, as React's `jsx`
+marks a single `children` prop. Members of `React.list`, `React.array`, and `React.Model.List` are
+runtime collection members: `2` without a key, `0` with one. A single forwarded
+child takes the state of the slot it finally lands in. A literal child extracted
+from a host and re-inserted into a runtime collection therefore reports `2`,
+where React reports `1`. Model promise resolutions use their own structure,
+independent of the first reference's position. `React.Children.map` and
+`mapWithIndex` return a `React.Static_list`, so mapped children report `1`.
+
+Native server-component invocation keys and fragment keys are currently discarded.
+This validation support covers represented host, client, and Suspense elements.
+It does not restore diagnostics for those discarded identities or compose server
+key paths.
 
 A prop whose value is absent (e.g. a `<Suspense>` without `fallback`) is
 omitted from the props object entirely, not serialized as `null`

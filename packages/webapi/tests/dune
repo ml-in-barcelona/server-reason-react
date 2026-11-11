@@ -1,0 +1,20 @@
+(include_subdirs unqualified)
+
+(library
+ (name webapi_tests)
+ (libraries webapi js fetch dom)
+ (modules
+  :standard
+  \
+  Webapi__Canvas__Canvas2d__test
+  Webapi__Dom__Document__test
+  Webapi__Dom__DomStringMap__test
+  Webapi__Dom__DomTokenList__test
+  Webapi__Dom__Element__test
+  Webapi__Dom__GlobalEventHandlers__test
+  Webapi__Dom__HtmlElement__test
+  Webapi__Dom__Node__test
+  Webapi__Dom__Selection__test
+  Webapi__Dom__Window__test)
+ (preprocess
+  (pps melange_native_ppx)))

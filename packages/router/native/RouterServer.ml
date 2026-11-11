@@ -770,7 +770,7 @@ module ServerEngine = struct
     | Redirect of RouterRuntime.destination
     | PermanentRedirect of RouterRuntime.destination
 
-  let empty_search = match Search.parse "" with Ok search -> search | Error _ -> assert false
+  let empty_search : Search.t = []
 
   let required_headers ~kind ~response_kind ~protocol_version ~fingerprint =
     let values =

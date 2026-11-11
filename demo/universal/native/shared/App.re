@@ -1,17 +1,3 @@
-module Hr = {
-  [@react.component]
-  let make = () => {
-    <span
-      className={Cx.make([
-        "block",
-        "w-full",
-        "h-px",
-        Theme.background(Theme.Color.Gray4),
-      ])}
-    />;
-  };
-};
-
 module Title = {
   type item = {
     label: string,

@@ -13,12 +13,6 @@ type justify = [
   | `end_
 ];
 
-module Media = {
-  let onDesktop = rules => {
-    String.concat(" md:", rules);
-  };
-};
-
 module Color = {
   type t =
     | None
@@ -77,14 +71,7 @@ module Color = {
   let gray12 = "#EEEEEE";
   let gray13 = "#F5F5F5";
   let gray14 = "#FFFFFF";
-
-  let brokenWhite = gray10;
-  let white = gray12;
-  let black = gray1;
-  let fadedBlack = gray3;
 };
-
-let none = "none";
 
 type kind =
   | Text

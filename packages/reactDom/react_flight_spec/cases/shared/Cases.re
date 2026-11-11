@@ -31,6 +31,13 @@ let all: list(case) = [
   case("children_null", Children_null.app),
   case("children_numbers", Children_numbers.app),
   case("fragment_nested", Fragment_nested.app),
+  case("fragment_keyed", Fragment_keyed.app),
+  case("fragment_keyed_root", Fragment_keyed_root.app),
+  case("fragment_children_map", Fragment_children_map.app),
+  case(
+    "fragment_children_map_component",
+    Fragment_children_map_component.app,
+  ),
   case("props_primitives", Props_primitives.app),
   case("props_float", Props_float.app),
   case("props_float_extremes", Props_float_extremes.app),

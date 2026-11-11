@@ -30,9 +30,6 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
-
 *.annot
 *.cmo
 *.cma
@@ -66,11 +63,6 @@ _opam/
 .vscode
 
 *.dump
-_build
-_opam
-_esy
-.bsb.lock
-.merlin
 
 .direnv/
 demo/.running/*

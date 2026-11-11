@@ -105,9 +105,9 @@ val routes :
     @param diagnosticId produce a safe identifier for an internal exception
     @param revision produce the revision attached to a successful response
     @param ssr
-      decide whether to include the routed root markup in each document response (default: always true). The root markup
-      is wrapped in a [div#ssr-query-param] marker, so the bootstrap module can check the DOM for it: present means
-      mount with [ReactDOM.Client.hydrateRoot], absent means [ReactDOM.Client.createRoot]
+      decide whether to include the routed root markup in each document response (default: always true). An empty hidden
+      [div#ssr-query-param] marker renders next to the root markup, so the bootstrap module can check the DOM for it:
+      present means mount with [ReactDOM.Client.hydrateRoot], absent means [ReactDOM.Client.createRoot]
     @param bootstrapModules JavaScript modules loaded by document responses
     @param pageCacheCapacity maximum visited pages cached by the client router (default: disabled)
     @param document build the HTML document. [~head] is the resolved metadata, to place inside [<head>]. *)

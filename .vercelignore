@@ -5,7 +5,6 @@ _opam*
 .git
 benchmark/
 arch/
-compare/
 documentation/
 **/.merlin
 *.install
