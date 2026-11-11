@@ -1012,6 +1012,35 @@ let suspense_retries_suspend_with_resolved_promise () =
   Alcotest.(check int) "renders" 2 !renders;
   Lwt.return ()
 
+let suspense_reuses_the_promise_of_the_earlier_call () =
+  let calls = ref 0 in
+  let reads_new_promise =
+    React.Upper_case_component
+      ( "reads_new_promise",
+        fun () ->
+          incr calls;
+          let call = !calls in
+          let promise =
+            if call > 3 then Lwt.return call
+            else
+              let%lwt () = Lwt.pause () in
+              Lwt.return call
+          in
+          React.int (React.Experimental.usePromise promise) )
+  in
+  let app = mk_suspense ~fallback:(React.string "Loading") ~children:reads_new_promise () in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  let%lwt () =
+    assert_chunks stream
+      [
+        "<!--$?--><template id=\"B:0\"></template>Loading<!--/$-->";
+        "<div hidden id=\"S:0\">1<!-- --></div>";
+        "<script>$RC('B:0','S:0')</script>";
+      ]
+  in
+  Alcotest.(check int) "calls" 2 !calls;
+  Lwt.return ()
+
 let suspense_resumes_only_the_suspended_child () =
   let sibling_renders = ref 0 in
   let sibling =
@@ -1164,6 +1193,7 @@ let tests =
     test "suspense_with_throwing_child_after_sibling_in_prod" suspense_with_throwing_child_after_sibling_in_prod;
     test "boundary_resolves_while_shell_is_suspended" boundary_resolves_while_shell_is_suspended;
     test "suspense_retries_suspend_with_resolved_promise" suspense_retries_suspend_with_resolved_promise;
+    test "suspense_reuses_the_promise_of_the_earlier_call" suspense_reuses_the_promise_of_the_earlier_call;
     test "suspense_resumes_only_the_suspended_child" suspense_resumes_only_the_suspended_child;
     test "nested_suspense_that_completes_first_is_sent_with_its_parent"
       nested_suspense_that_completes_first_is_sent_with_its_parent;

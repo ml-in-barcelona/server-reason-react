@@ -626,42 +626,10 @@ let render_to_segment ~env ~stream_context =
         segment.previous_node_was_text <- true;
         segment.should_add_doctype <- false;
         write_text_node segment.buf text_node
-    | Upper_case_component (_, component) -> (
-        let saved_ctx = !React.current_tree_context in
-        React.reset_component_id_state saved_ctx;
-        match component () with
-        | exception React.Suspend (Any_promise promise) ->
-            React.current_tree_context := saved_ctx;
-            suspend ~stream_context context promise (fun context _ -> render context element)
-        | exception exn ->
-            React.current_tree_context := saved_ctx;
-            raise exn
-        | result -> (
-            if React.check_did_render_id_hook () then
-              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-            match render context result with
-            | () -> React.current_tree_context := saved_ctx
-            | exception exn ->
-                React.current_tree_context := saved_ctx;
-                raise exn))
-    | Async_component (_, component) -> (
-        let saved_ctx = !React.current_tree_context in
-        React.reset_component_id_state saved_ctx;
-        match component () with
-        | exception React.Suspend (Any_promise promise) ->
-            React.current_tree_context := saved_ctx;
-            suspend ~stream_context context promise (fun context _ -> render context element)
-        | exception exn ->
-            React.current_tree_context := saved_ctx;
-            raise exn
-        | promise -> (
-            if React.check_did_render_id_hook () then
-              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-            match suspend ~stream_context context promise render with
-            | () -> React.current_tree_context := saved_ctx
-            | exception exn ->
-                React.current_tree_context := saved_ctx;
-                raise exn))
+    | Upper_case_component (_, component) -> render_component context component ~replayed:[] render
+    | Async_component (_, component) ->
+        render_component context component ~replayed:[] (fun context promise ->
+            suspend ~stream_context context promise render)
     | Suspense { children; fallback; _ } -> (
         let boundary =
           {
@@ -708,6 +676,27 @@ let render_to_segment ~env ~stream_context =
             segment.slots <- (Buffer.length segment.buf, Boundary boundary) :: segment.slots;
             segment.previous_node_was_text <- false;
             segment.should_add_doctype <- false)
+  and render_component :
+      'a. render_context -> (unit -> 'a) -> replayed:React.any_promise list -> (render_context -> 'a -> unit) -> unit =
+   fun context component ~replayed render_result ->
+    let saved_ctx = !React.current_tree_context in
+    React.reset_component_id_state saved_ctx;
+    match React.call_with_promise_replay replayed component with
+    | exception exn ->
+        React.current_tree_context := saved_ctx;
+        raise exn
+    | Error (Any_promise promise, used) ->
+        React.current_tree_context := saved_ctx;
+        suspend ~stream_context context promise (fun context _ ->
+            render_component context component ~replayed:used render_result)
+    | Ok result -> (
+        if React.check_did_render_id_hook () then
+          React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+        match render_result context result with
+        | () -> React.current_tree_context := saved_ctx
+        | exception exn ->
+            React.current_tree_context := saved_ctx;
+            raise exn)
   and render_list context list =
     match list with
     | [] -> ()
