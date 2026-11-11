@@ -18,7 +18,16 @@ type updateHash =
   (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
   navigationResult;
 
-type contextValue = {committed: RouterRuntime.Navigation.committed};
+type contextValue = {
+  committed: RouterRuntime.Navigation.committed,
+  search: list((string, list(string))),
+};
+
+let parseSearch = search =>
+  switch (RouterQuery.parse(search)) {
+  | Ok(values) => values
+  | Error(_) => []
+  };
 
 let context: React.Context.t(option(contextValue)) =
   React.createContext(None);
@@ -42,7 +51,11 @@ module Provider = {
        equal to the client tree, which renders the metadata first. */
     provider(
       React.Context.makeProps(
-        ~value=Some({ committed: initial }),
+        ~value=
+          Some({
+            committed: initial,
+            search: parseSearch(initial.location.search),
+          }),
         ~children=React.array([|React.null, children|]),
         (),
       ),
@@ -59,35 +72,21 @@ let updateSearch: updateSearch =
 let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>
   unavailable();
 
+let useContextValue = () =>
+  switch (React.useContext(context)) {
+  | Some(value) => value
+  | None => invalid_arg("router hooks require an ancestor Router.Provider")
+  };
+
 let useNavigation = () => (navigate, RouterRuntime.Navigation.Idle);
 let useCurrentRoute = () =>
-  switch (React.useContext(context)) {
-  | Some(value) =>
-    switch (List.rev(value.committed.matches)) {
-    | [{ routeId, parameters }, ..._] => Some((routeId, parameters))
-    | [] => None
-    }
-  | None => invalid_arg("router hooks require an ancestor Router.Provider")
+  switch (List.rev(useContextValue().committed.matches)) {
+  | [{ routeId, parameters }, ..._] => Some((routeId, parameters))
+  | [] => None
   };
-let useSearch = () => {
-  let values =
-    switch (React.useContext(context)) {
-    | Some(value) =>
-      let search = value.committed.location.search;
-      let search =
-        String.length(search) > 0 && search.[0] == '?'
-          ? String.sub(search, 1, String.length(search) - 1) : search;
-      Uri.query_of_encoded(search);
-    | None => []
-    };
-  (values, updateSearch);
-};
+let useSearch = () => (useContextValue().search, updateSearch);
 let useUpdateHash = () => updateHash;
-let useLocation = () =>
-  switch (React.useContext(context)) {
-  | Some(value) => value.committed.location
-  | None => invalid_arg("router hooks require an ancestor Router.Provider")
-  };
+let useLocation = () => useContextValue().committed.location;
 
 let outlet = (~owner, ~children, ()) =>
   RouterOutlet.make(

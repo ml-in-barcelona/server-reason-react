@@ -965,7 +965,7 @@ let adapter_server () =
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ()
 
-let adapter_reply ?(registry = None) ~kind pathname =
+let adapter_reply ?(registry = None) ?(search = "") ~kind pathname =
   let server = adapter_server () in
   let navigation =
     match kind with
@@ -983,7 +983,7 @@ let adapter_reply ?(registry = None) ~kind pathname =
       (RouterServer.Server.run server
          ~diagnosticId:(fun _ -> "diagnostic")
          ~revision:(fun () -> "revision")
-         { pathname; search = ""; hash = ""; kind; navigation })
+         { pathname; search; hash = ""; kind; navigation })
   in
   RouterServer.Adapter.reply server ~target:pathname ~pageCacheCapacity:0
     ~document:(fun ~head children ->
@@ -1016,6 +1016,18 @@ let adapter_document_reply () =
       Alcotest.(check int) "one title" 1 (count_occurrences ~needle:"<title>" html);
       Alcotest.(check int) "one meta" 1 (count_occurrences ~needle:"<meta name=\"description\"" html)
   | Empty | Model _ -> Alcotest.fail "expected html"
+
+let adapter_document_invalid_search_reply () =
+  List.iter
+    (fun search ->
+      let reply = adapter_reply ~search ~kind:Document "/app/item" in
+      Alcotest.(check int) "status" 400 reply.status;
+      match reply.body with
+      | Html element ->
+          let html, _subscribe = Lwt_main.run (ReactServerDOM.render_html ~skipRoot:false element) in
+          Alcotest.(check bool) "document" true (contains ~needle:"<body>" html)
+      | Empty | Model _ -> Alcotest.fail "expected html")
+    [ "?q=%zz"; "?q=" ^ String.make 8190 'a' ]
 
 let adapter_rsc_reply () =
   let reply = adapter_reply ~kind:Rsc "/app/item" in
@@ -1208,6 +1220,7 @@ let () =
           test "default boundary renders text" default_boundary_renders_text;
           test "server base path validation" server_base_path_validation;
           test "adapter document reply" adapter_document_reply;
+          test "adapter document invalid search reply" adapter_document_invalid_search_reply;
           test "adapter rsc reply" adapter_rsc_reply;
           test "adapter reload required reply" adapter_reload_required_reply;
           test "adapter document redirect reply" adapter_document_redirect_reply;
