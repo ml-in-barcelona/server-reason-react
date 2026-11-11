@@ -1140,6 +1140,19 @@ let abort_skips_discarded_boundary () =
     ];
   Lwt.return ()
 
+let text_around_suspense_while_shell_is_suspended () =
+  let app =
+    React.createElement "div" []
+      [
+        React.string "a";
+        mk_suspense ~fallback:(React.string "Loading") ~children:(React.string "b") ();
+        React.string "c";
+        once_pausing_component ~name:"outside" ~children:(React.createElement "span" [] [ React.string "o" ]) ();
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div>a<!--$-->b<!--/$-->c<span>o</span></div>" ]
+
 let tests =
   [
     test "silly_stream" silly_stream;
@@ -1168,6 +1181,7 @@ let tests =
     test "nested_boundary_discarded_with_outer_children_is_not_completed"
       nested_boundary_discarded_with_outer_children_is_not_completed;
     test "abort_skips_discarded_boundary" abort_skips_discarded_boundary;
+    test "text_around_suspense_while_shell_is_suspended" text_around_suspense_while_shell_is_suspended;
     test "suspense_with_partial_children_in_shell" suspense_with_partial_children_in_shell;
     test "suspense_fallback_does_not_add_text_separator_after_boundary"
       suspense_fallback_does_not_add_text_separator_after_boundary;
