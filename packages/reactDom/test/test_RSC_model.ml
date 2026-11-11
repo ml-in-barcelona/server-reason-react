@@ -334,6 +334,56 @@ let suspense_with_use_promise () =
   Alcotest.(check int) "component renders again" 2 !renders;
   Lwt.return ()
 
+let use_promise_reuses_the_promise_of_the_earlier_call () =
+  let calls = ref 0 in
+  let reads_new_promise =
+    React.Upper_case_component
+      ( __FUNCTION__,
+        fun () ->
+          incr calls;
+          let call = !calls in
+          let promise =
+            if call > 3 then Lwt.return call
+            else
+              let%lwt () = Lwt.pause () in
+              Lwt.return call
+          in
+          React.int (React.Experimental.usePromise promise) )
+  in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:reads_new_promise () in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n";
+      "2:1\n";
+    ];
+  Alcotest.(check int) "calls" 2 !calls;
+  Lwt.return ()
+
+let root_use_promise_reuses_the_promise_of_the_earlier_call () =
+  let calls = ref 0 in
+  let app =
+    React.Upper_case_component
+      ( __FUNCTION__,
+        fun () ->
+          incr calls;
+          let call = !calls in
+          let promise =
+            if call > 3 then Lwt.return call
+            else
+              let%lwt () = Lwt.pause () in
+              Lwt.return call
+          in
+          React.int (React.Experimental.usePromise promise) )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
+  assert_list_of_strings !output [ "0:1\n" ];
+  Alcotest.(check int) "calls" 2 !calls;
+  Lwt.return ()
+
 let root_use_promise_retries_in_root_row () =
   let promise =
     let%lwt () = Lwt.pause () in
@@ -2037,6 +2087,9 @@ let tests =
     test "suspense_without_promise" suspense_without_promise;
     test "suspense_with_promise" suspense_with_promise;
     test "suspense_with_use_promise" suspense_with_use_promise;
+    test "use_promise_reuses_the_promise_of_the_earlier_call" use_promise_reuses_the_promise_of_the_earlier_call;
+    test "root_use_promise_reuses_the_promise_of_the_earlier_call"
+      root_use_promise_reuses_the_promise_of_the_earlier_call;
     test "root_use_promise_retries_in_root_row" root_use_promise_retries_in_root_row;
     test "root_use_promise_retry_restores_use_id_state" root_use_promise_retry_restores_use_id_state;
     test "root_use_promise_rejection_errors_root_row" root_use_promise_rejection_errors_root_row;
