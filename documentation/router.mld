@@ -91,11 +91,11 @@ Path parameter names, search parameter names, and loader result labels become
 labelled arguments of the generated helpers. Within one branch they must be
 unique. These labels belong to the generated API and cannot be used:
 [applicationStatus], [ariaCurrent], [basePath], [children], [className],
-[decodeError], [destination], [download], [error], [fallback], [href], [input],
-[item], [make], [options], [pattern], [registry], [search], [target],
-[updateSearch], [unsafeDestination], [useNavigation], [useRoute], [useSearch],
-[useUpdateHash], [value], and [values]. The generator reports a conflict at
-the route that uses the label.
+[decodeError], [destination], [download], [error], [fallback], [history],
+[href], [input], [item], [make], [pattern], [registry], [revalidate], [search],
+[target], [updateSearch], [unsafeDestination], [useNavigation], [useRoute],
+[useSearch], [useUpdateHash], [value], and [values]. The generator reports a
+conflict at the route that uses the label.
 
 {2 Path syntax}
 
