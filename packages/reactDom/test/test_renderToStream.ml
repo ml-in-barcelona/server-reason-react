@@ -993,14 +993,150 @@ let boundary_resolves_while_shell_is_suspended () =
         Lwt_stream.to_list stream)
   in
   assert_list Alcotest.string async_exceptions [];
+  assert_list Alcotest.string chunks [ "<div><!--$-->Inner<!--/$-->Outside</div>" ];
+  Lwt.return ()
+
+let assert_completions_follow_their_boundary chunks =
+  let complete_boundary_call = Str.regexp "\\$RC('B:\\([0-9]+\\)'" in
+  let rec check earlier chunk position =
+    match Str.search_forward complete_boundary_call chunk position with
+    | exception Not_found -> ()
+    | found ->
+        let id = Str.matched_group 1 chunk in
+        let template = Str.regexp_string (Printf.sprintf "id=\"B:%s\"" id) in
+        (match Str.search_forward template earlier 0 with
+        | exception Not_found -> Alcotest.failf "$RC for B:%s has no template in an earlier chunk" id
+        | _ -> ());
+        check earlier chunk (found + 1)
+  in
+  let (_ : string) =
+    List.fold_left
+      (fun earlier chunk ->
+        check earlier chunk 0;
+        earlier ^ chunk)
+      "" chunks
+  in
+  ()
+
+let pausing_component ~name ~pauses ~children () =
+  React.Async_component
+    ( name,
+      fun () ->
+        let rec pause n = if n = 0 then Lwt.return children else Lwt.bind (Lwt.pause ()) (fun () -> pause (n - 1)) in
+        pause pauses )
+
+let boundary_registered_before_shell_retry_is_not_completed () =
+  let app =
+    React.createElement "div" []
+      [
+        mk_suspense ~fallback:(React.string "Loading")
+          ~children:(pausing_component ~name:"inside" ~pauses:1 ~children:(React.string "Inner") ())
+          ();
+        once_pausing_component ~name:"outside" ~children:(React.string "Outside") ();
+      ]
+  in
+  let%lwt chunks, async_exceptions =
+    with_async_exception_hook (fun () ->
+        let%lwt stream, _abort = ReactDOM.renderToStream app in
+        Lwt_stream.to_list stream)
+  in
+  assert_list Alcotest.string async_exceptions [];
+  assert_completions_follow_their_boundary chunks;
   assert_list Alcotest.string chunks
     [
+      "<div><!--$?--><template id=\"B:1\"></template>Loading<!--/$-->Outside</div>";
+      "<div hidden id=\"S:1\">Inner</div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:1','S:1')</script>";
+    ];
+  Lwt.return ()
+
+let boundary_completed_before_shell_is_sent_after_shell () =
+  let app =
+    React.createElement "div" []
+      [
+        once_pausing_component ~name:"first" ~children:(React.createElement "b" [] [ React.string "First" ]) ();
+        mk_suspense ~fallback:(React.string "Loading")
+          ~children:(once_pausing_component ~name:"inside" ~children:(React.string "Inner") ())
+          ();
+        pausing_component ~name:"outside" ~pauses:2 ~children:(React.createElement "i" [] [ React.string "Outside" ]) ();
+      ]
+  in
+  let%lwt chunks, async_exceptions =
+    with_async_exception_hook (fun () ->
+        let%lwt stream, _abort = ReactDOM.renderToStream app in
+        Lwt_stream.to_list stream)
+  in
+  assert_list Alcotest.string async_exceptions [];
+  assert_completions_follow_their_boundary chunks;
+  assert_list Alcotest.string chunks
+    [
+      "<div><b>First</b><!--$?--><template id=\"B:0\"></template>Loading<!--/$--><i>Outside</i></div>";
       "<div hidden id=\"S:0\">Inner</div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
-      "<div><!--$-->Inner<!--/$-->Outside</div>";
+    ];
+  Lwt.return ()
+
+let nested_boundary_app () =
+  React.createElement "div" []
+    [
+      mk_suspense ~fallback:(React.string "Outer loading")
+        ~children:
+          (React.list
+             [
+               mk_suspense ~fallback:(React.string "Inner loading")
+                 ~children:(pausing_component ~name:"inner" ~pauses:1 ~children:(React.string "Inner") ())
+                 ();
+               once_pausing_component ~name:"mid" ~children:(React.string "Mid") ();
+             ])
+        ();
+    ]
+
+let nested_boundary_discarded_with_outer_children_is_not_completed () =
+  let%lwt chunks, async_exceptions =
+    with_async_exception_hook (fun () ->
+        let%lwt stream, _abort = ReactDOM.renderToStream (nested_boundary_app ()) in
+        Lwt_stream.to_list stream)
+  in
+  assert_list Alcotest.string async_exceptions [];
+  assert_completions_follow_their_boundary chunks;
+  assert_list Alcotest.string chunks
+    [
+      "<div><!--$?--><template id=\"B:1\"></template>Outer loading<!--/$--></div>";
+      "<div hidden id=\"S:1\"><!--$?--><template id=\"B:2\"></template>Inner loading<!--/$-->Mid</div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:1','S:1')</script>";
+      "<div hidden id=\"S:2\">Inner</div>";
+      "<script>$RC('B:2','S:2')</script>";
+    ];
+  Lwt.return ()
+
+let abort_skips_discarded_boundary () =
+  let%lwt (first_chunk, remaining), async_exceptions =
+    with_async_exception_hook (fun () ->
+        let%lwt stream, abort = ReactDOM.renderToStream ~env:`Prod (nested_boundary_app ()) in
+        let%lwt first_chunk = Lwt_stream.get stream in
+        abort ();
+        let%lwt remaining = Lwt_stream.to_list stream in
+        let%lwt () = Lwt_unix.sleep 0.005 in
+        Lwt.return (first_chunk, remaining))
+  in
+  assert_list Alcotest.string async_exceptions [];
+  Alcotest.(check (option string))
+    "shell"
+    (Some "<div><!--$?--><template id=\"B:1\"></template>Outer loading<!--/$--></div>")
+    first_chunk;
+  assert_list Alcotest.string remaining
+    [
+      "<script>$RX=function(b,c,d,e,f){var \
+       a=document.getElementById(b);a&&(b=a.previousSibling,b.data=\"$!\",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};;$RX(\"B:1\",\"\")</script>";
     ];
   Lwt.return ()
 
@@ -1039,6 +1175,12 @@ let tests =
     test "suspense_with_always_throwing_in_prod" suspense_with_always_throwing_in_prod;
     test "suspense_with_throwing_child_after_sibling_in_prod" suspense_with_throwing_child_after_sibling_in_prod;
     test "boundary_resolves_while_shell_is_suspended" boundary_resolves_while_shell_is_suspended;
+    test "boundary_registered_before_shell_retry_is_not_completed"
+      boundary_registered_before_shell_retry_is_not_completed;
+    test "boundary_completed_before_shell_is_sent_after_shell" boundary_completed_before_shell_is_sent_after_shell;
+    test "nested_boundary_discarded_with_outer_children_is_not_completed"
+      nested_boundary_discarded_with_outer_children_is_not_completed;
+    test "abort_skips_discarded_boundary" abort_skips_discarded_boundary;
     test "text_around_suspense_while_shell_is_suspended" text_around_suspense_while_shell_is_suspended;
     test "suspense_with_partial_children_in_shell" suspense_with_partial_children_in_shell;
     test "suspense_fallback_does_not_add_text_separator_after_boundary"

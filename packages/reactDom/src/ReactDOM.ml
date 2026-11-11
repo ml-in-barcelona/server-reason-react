@@ -399,6 +399,37 @@ let close_stream stream_context =
     stream_context.closed <- true;
     stream_context.close ())
 
+(* A [scope] is the output that goes out as one chunk: the shell, or the segment of one boundary. It is the nearest
+   thing here to a Segment in react-dom's server renderer (Fizz), without the buffer: [flushed] is the [parentFlushed]
+   flag of the boundaries registered in it, so a boundary sends its segment only after the chunk that holds its
+   template.
+
+   [cancelled] has no equivalent in Fizz. A suspended Fizz task keeps its segment and continues from the component
+   that suspended. This renderer discards the output and renders again, so the boundaries registered in the discarded
+   output must send nothing. *)
+type boundary = { id : int; mutable cancelled : bool }
+type scope = { mutable boundaries : boundary list; flushed : unit Lwt.t; flush : unit Lwt.u }
+
+let make_scope () =
+  let flushed, flush = Lwt.wait () in
+  { boundaries = []; flushed; flush }
+
+let remove_pending_boundary stream_context id =
+  stream_context.pending_boundaries <- List.filter (fun pending -> pending <> id) stream_context.pending_boundaries
+
+let cancel_boundaries_since stream_context scope mark =
+  let rec cancel boundaries =
+    if boundaries != mark then
+      match boundaries with
+      | [] -> ()
+      | boundary :: rest ->
+          boundary.cancelled <- true;
+          remove_pending_boundary stream_context boundary.id;
+          cancel rest
+  in
+  cancel scope.boundaries;
+  scope.boundaries <- mark
+
 let complete_boundary_script = Fizz_instructions.complete_boundary
 
 let write_inline_complete_boundary_script buf has_rc_script_been_injected boundary_id suspense_id =
@@ -462,7 +493,8 @@ let write_suspense_fallback_error buf ~env ~exn fallback =
   Buffer.add_string buf fallback;
   Buffer.add_string buf "<!--/$-->"
 
-let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element =
+let rec render_to_buffer ~env ~stream_context ~scope ?(add_doctype = false) buf element =
+  let boundaries_at_start = scope.boundaries in
   let should_add_doctype = ref add_doctype in
   let previous_node_was_text = ref false in
   (* When an async component suspends without a Suspense boundary, the exception
@@ -563,21 +595,25 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
     | Suspense _ when !await_unhandled_suspensions ->
         (* In retry mode, delegate Suspense to a fresh render_to_buffer call which
            starts with await_unhandled_suspensions=false, so Suspense streaming works *)
-        let%lwt () = render_to_buffer ~env ~stream_context buf element in
+        let%lwt () = render_to_buffer ~env ~stream_context ~scope buf element in
         previous_node_was_text := false;
         Lwt.return ()
     | Suspense { children; fallback; _ } -> (
         let render_fallback_html () =
           let fallback_buf = Buffer.create 128 in
-          let%lwt () = render_to_buffer ~env ~stream_context fallback_buf (Option.value fallback ~default:React.null) in
+          let%lwt () =
+            render_to_buffer ~env ~stream_context ~scope fallback_buf (Option.value fallback ~default:React.null)
+          in
           previous_node_was_text := false;
           Lwt.return (Buffer.contents fallback_buf)
         in
         let buffer_length = Buffer.length buf in
         let saved_should_add_doctype = !should_add_doctype in
         let saved_previous_node_was_text = !previous_node_was_text in
+        let saved_boundaries = scope.boundaries in
         let discard_partial_children () =
           Buffer.truncate buf buffer_length;
+          cancel_boundaries_since stream_context scope saved_boundaries;
           should_add_doctype := saved_should_add_doctype;
           previous_node_was_text := saved_previous_node_was_text
         in
@@ -606,41 +642,51 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
                 stream_context.suspense_id <- stream_context.suspense_id + 1;
                 stream_context.waiting <- stream_context.waiting + 1;
                 stream_context.pending_boundaries <- current_boundary_id :: stream_context.pending_boundaries;
+                let boundary = { id = current_boundary_id; cancelled = false } in
+                scope.boundaries <- boundary :: scope.boundaries;
 
                 Lwt.async (fun () ->
-                    try%lwt
-                      let%lwt _ = promise in
-                      let async_buf = Buffer.create 512 in
-                      let%lwt () = render_to_buffer ~env ~stream_context async_buf children in
-                      stream_context.waiting <- stream_context.waiting - 1;
-                      stream_context.pending_boundaries <-
-                        List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
-                      if not stream_context.closed then (
-                        let inner_html = Buffer.contents async_buf in
-                        Buffer.clear async_buf;
-                        write_suspense_resolved_element async_buf ~id:current_suspense_id inner_html;
-                        stream_context.push (Buffer.contents async_buf);
-                        Buffer.clear async_buf;
-                        write_inline_complete_boundary_script async_buf stream_context.has_rc_script_been_injected
-                          current_boundary_id current_suspense_id;
-                        stream_context.push (Buffer.contents async_buf);
-                        stream_context.has_rc_script_been_injected <- true;
-                        if stream_context.waiting = 0 then close_stream stream_context);
-                      Lwt.return ()
-                    with exn ->
-                      (* A boundary that fails after its fallback flushed is client-rendered via $RX. *)
-                      stream_context.waiting <- stream_context.waiting - 1;
-                      stream_context.pending_boundaries <-
-                        List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
-                      if not stream_context.closed then (
-                        let error_buf = Buffer.create 256 in
-                        write_inline_client_render_boundary_script error_buf ~env
-                          ~include_definition:(not stream_context.has_rx_script_been_injected)
-                          ~message:(render_error_message exn) current_boundary_id;
-                        stream_context.push (Buffer.contents error_buf);
-                        stream_context.has_rx_script_been_injected <- true;
-                        if stream_context.waiting = 0 then close_stream stream_context);
-                      Lwt.return ());
+                    let boundary_scope = make_scope () in
+                    let async_buf = Buffer.create 512 in
+                    let%lwt result =
+                      try%lwt
+                        let%lwt _ = promise in
+                        let%lwt () =
+                          if boundary.cancelled then Lwt.return ()
+                          else render_to_buffer ~env ~stream_context ~scope:boundary_scope async_buf children
+                        in
+                        Lwt.return (Ok ())
+                      with exn -> Lwt.return (Error exn)
+                    in
+                    let%lwt () = scope.flushed in
+                    stream_context.waiting <- stream_context.waiting - 1;
+                    remove_pending_boundary stream_context current_boundary_id;
+                    (match result with
+                    | _ when boundary.cancelled -> cancel_boundaries_since stream_context boundary_scope []
+                    | Ok () ->
+                        if not stream_context.closed then (
+                          let inner_html = Buffer.contents async_buf in
+                          Buffer.clear async_buf;
+                          write_suspense_resolved_element async_buf ~id:current_suspense_id inner_html;
+                          stream_context.push (Buffer.contents async_buf);
+                          Buffer.clear async_buf;
+                          write_inline_complete_boundary_script async_buf stream_context.has_rc_script_been_injected
+                            current_boundary_id current_suspense_id;
+                          stream_context.push (Buffer.contents async_buf);
+                          stream_context.has_rc_script_been_injected <- true)
+                    | Error exn ->
+                        (* A boundary that fails after its fallback flushed is client-rendered via $RX. *)
+                        cancel_boundaries_since stream_context boundary_scope [];
+                        if not stream_context.closed then (
+                          let error_buf = Buffer.create 256 in
+                          write_inline_client_render_boundary_script error_buf ~env
+                            ~include_definition:(not stream_context.has_rx_script_been_injected)
+                            ~message:(render_error_message exn) current_boundary_id;
+                          stream_context.push (Buffer.contents error_buf);
+                          stream_context.has_rx_script_been_injected <- true));
+                    Lwt.wakeup_later boundary_scope.flush ();
+                    if stream_context.waiting = 0 then close_stream stream_context;
+                    Lwt.return ());
 
                 write_suspense_fallback buf ~boundary_id:current_boundary_id fallback_html;
                 Lwt.return ())
@@ -687,6 +733,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
   with React.Suspend (Any_promise promise) ->
     let%lwt _ = promise in
     Buffer.clear buf;
+    cancel_boundaries_since stream_context scope boundaries_at_start;
     should_add_doctype := add_doctype;
     previous_node_was_text := false;
     await_unhandled_suspensions := true;
@@ -733,8 +780,10 @@ let renderToStream ?(env = `Prod) ?identifier_prefix element =
           close_stream stream_context)
       in
       let buf = Buffer.create 1024 in
-      let%lwt () = render_to_buffer ~env ~stream_context ~add_doctype:true buf element in
+      let scope = make_scope () in
+      let%lwt () = render_to_buffer ~env ~stream_context ~scope ~add_doctype:true buf element in
       if not stream_context.closed then push_to_stream (Buffer.contents buf);
+      Lwt.wakeup_later scope.flush ();
       stream_context.waiting <- stream_context.waiting - 1;
       if stream_context.waiting = 0 then close_stream stream_context;
       Lwt.return (stream, abort))
