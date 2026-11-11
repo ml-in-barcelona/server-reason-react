@@ -786,11 +786,103 @@ let server_function_as_action () =
   let main = React.Upper_case_component ("app", app) in
   assert_html main ~disable_backtrace:true
     ~shell:
-      "<form action=\"\" method=\"POST\"><input type=\"hidden\" name=\"$ACTION_ID_1234-4321\" value=\"\" />Server \
-       Content</form><script data-payload='0:[\"$\",\"form\",null,{\"children\":\"Server \
-       Content\",\"action\":\"$F1\"},null,null,1]\n\
+      "<form action=\"\" encType=\"multipart/form-data\" method=\"POST\"><input type=\"hidden\" \
+       name=\"$ACTION_ID_1234-4321\" value=\"\" />Server Content</form><script \
+       data-payload='0:[\"$\",\"form\",null,{\"children\":\"Server Content\",\"action\":\"$F1\"},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [ "<script data-payload='1:{\"id\":\"1234-4321\",\"bound\":null}\n'>window.srr_stream.push()</script>" ]
+
+let form_action = { Runtime.id = "abc"; call = (fun () -> Lwt.return (React.string "")) }
+let model_script model = "<script data-payload='0:" ^ model ^ "\n'>window.srr_stream.push()</script>"
+let action_row = "<script data-payload='1:{\"id\":\"abc\",\"bound\":null}\n'>window.srr_stream.push()</script>"
+let action_input = "<input type=\"hidden\" name=\"$ACTION_ID_abc\" value=\"\" />"
+let action_form_attributes = "action=\"\" encType=\"multipart/form-data\" method=\"POST\""
+
+let action_button_attributes =
+  "name=\"$ACTION_ID_abc\" formAction=\"\" formEncType=\"multipart/form-data\" formMethod=\"POST\""
+
+let assert_server_and_client_html element ~html ~server_model =
+  let%lwt () =
+    assert_html
+      (React.Upper_case_component ("app", fun () -> element))
+      ~shell:(html ^ model_script server_model)
+      [ action_row ]
+  in
+  let client =
+    React.Client_component
+      { key = None; props = []; client = element; import_module = "./form.js"; import_name = "Form" }
+  in
+  assert_html
+    (React.Upper_case_component ("app", fun () -> client))
+    ~shell:(html ^ model_script "[\"$\",\"$L1\",null,{},null,null,1]")
+    [ "<script data-payload='1:I[\"./form.js\",[],\"Form\"]\n'>window.srr_stream.push()</script>" ]
+
+let form_action_and_button_form_action () =
+  assert_server_and_client_html
+    (React.createElement "form"
+       [ React.JSX.Action ("action", "action", form_action) ]
+       [
+         React.createElement "button"
+           [ React.JSX.Action ("formaction", "formAction", form_action) ]
+           [ React.string "go" ];
+       ])
+    ~html:
+      ("<form " ^ action_form_attributes ^ ">" ^ action_input ^ "<button " ^ action_button_attributes
+     ^ ">go</button></form>")
+    ~server_model:
+      "[\"$\",\"form\",null,{\"children\":[\"$\",\"button\",null,{\"children\":\"go\",\"formAction\":\"$F1\"},null,null,1],\"action\":\"$F1\"},null,null,1]"
+
+let form_action_overrides_method_enc_type_and_target () =
+  assert_server_and_client_html
+    (React.createElement "form"
+       [
+         React.JSX.String ("id", "id", "f");
+         React.JSX.Action ("action", "action", form_action);
+         React.JSX.String ("method", "method", "get");
+         React.JSX.String ("enctype", "encType", "text/plain");
+         React.JSX.String ("target", "target", "_blank");
+       ]
+       [ React.string "x" ])
+    ~html:("<form id=\"f\" " ^ action_form_attributes ^ ">" ^ action_input ^ "x</form>")
+    ~server_model:
+      "[\"$\",\"form\",null,{\"children\":\"x\",\"id\":\"f\",\"action\":\"$F1\",\"method\":\"get\",\"encType\":\"text/plain\",\"target\":\"_blank\"},null,null,1]"
+
+let input_form_action () =
+  assert_server_and_client_html
+    (React.createElement "form" []
+       [
+         React.createElement "input"
+           [ React.JSX.String ("type", "type", "submit"); React.JSX.Action ("formaction", "formAction", form_action) ]
+           [];
+       ])
+    ~html:("<form><input type=\"submit\" " ^ action_button_attributes ^ " /></form>")
+    ~server_model:
+      "[\"$\",\"form\",null,{\"children\":[\"$\",\"input\",null,{\"type\":\"submit\",\"formAction\":\"$F1\"},null,null,1]},null,null,1]"
+
+let button_form_action_overrides_name_and_form_attributes () =
+  assert_server_and_client_html
+    (React.createElement "button"
+       [
+         React.JSX.Action ("formaction", "formAction", form_action);
+         React.JSX.String ("name", "name", "n");
+         React.JSX.String ("value", "value", "v");
+         React.JSX.String ("formmethod", "formMethod", "get");
+         React.JSX.String ("formenctype", "formEncType", "text/plain");
+         React.JSX.String ("formtarget", "formTarget", "_blank");
+       ]
+       [ React.string "go" ])
+    ~html:("<button value=\"v\" " ^ action_button_attributes ^ ">go</button>")
+    ~server_model:
+      "[\"$\",\"button\",null,{\"children\":\"go\",\"formAction\":\"$F1\",\"name\":\"n\",\"value\":\"v\",\"formMethod\":\"get\",\"formEncType\":\"text/plain\",\"formTarget\":\"_blank\"},null,null,1]"
+
+let form_action_with_dangerously_set_inner_html () =
+  assert_server_and_client_html
+    (React.createElement "form"
+       [ React.JSX.Action ("action", "action", form_action); React.JSX.DangerouslyInnerHtml "<b>x</b>" ]
+       [])
+    ~html:("<form " ^ action_form_attributes ^ ">" ^ action_input ^ "<b>x</b></form>")
+    ~server_model:
+      "[\"$\",\"form\",null,{\"action\":\"$F1\",\"dangerouslySetInnerHTML\":{\"__html\":\"<b>x</b>\"}},null,null,1]"
 
 let suspense_in_a_list_with_error () =
   let fallback = React.string "Loading..." in
@@ -1736,6 +1828,11 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
+    test "form_action_and_button_form_action" form_action_and_button_form_action;
+    test "form_action_overrides_method_enc_type_and_target" form_action_overrides_method_enc_type_and_target;
+    test "input_form_action" input_form_action;
+    test "button_form_action_overrides_name_and_form_attributes" button_form_action_overrides_name_and_form_attributes;
+    test "form_action_with_dangerously_set_inner_html" form_action_with_dangerously_set_inner_html;
     test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;
     test "client_component_with_bootstrap_modules" client_component_with_bootstrap_modules;
     test "nested_context" nested_context;
