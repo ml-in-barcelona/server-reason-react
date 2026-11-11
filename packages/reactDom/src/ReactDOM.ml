@@ -399,6 +399,14 @@ let close_stream stream_context =
     stream_context.closed <- true;
     stream_context.close ())
 
+(* A [scope] is the output that goes out as one chunk: the shell, or the segment of one boundary. It is the nearest
+   thing here to a Segment in react-dom's server renderer (Fizz), without the buffer: [flushed] is the [parentFlushed]
+   flag of the boundaries registered in it, so a boundary sends its segment only after the chunk that holds its
+   template.
+
+   [cancelled] has no equivalent in Fizz. A suspended Fizz task keeps its segment and continues from the component
+   that suspended. This renderer discards the output and renders again, so the boundaries registered in the discarded
+   output must send nothing. *)
 type boundary = { id : int; mutable cancelled : bool }
 type scope = { mutable boundaries : boundary list; flushed : unit Lwt.t; flush : unit Lwt.u }
 
