@@ -792,6 +792,41 @@ let server_function_as_action () =
        '>window.srr_stream.push()</script>"
     [ "<script data-payload='1:{\"id\":\"1234-4321\",\"bound\":null}\n'>window.srr_stream.push()</script>" ]
 
+let form_action = { Runtime.id = "abc"; call = (fun () -> Lwt.return (React.string "")) }
+
+let client_form_with_action ~form_props ~children =
+  React.Upper_case_component
+    ( "app",
+      fun () ->
+        React.Client_component
+          {
+            key = None;
+            props = [];
+            client = React.createElement "form" form_props children;
+            import_module = "./form.js";
+            import_name = "Form";
+          } )
+
+let client_form_import_row = "<script data-payload='1:I[\"./form.js\",[],\"Form\"]\n'>window.srr_stream.push()</script>"
+
+let client_component_with_form_action () =
+  let app =
+    client_form_with_action
+      ~form_props:[ React.JSX.Action ("action", "action", form_action) ]
+      ~children:
+        [
+          React.createElement "button"
+            [ React.JSX.Action ("formaction", "formAction", form_action) ]
+            [ React.string "go" ];
+        ]
+  in
+  assert_html app
+    ~shell:
+      "<form action=\"\" method=\"POST\"><input type=\"hidden\" name=\"$ACTION_ID_abc\" value=\"\" \
+       /><button>go</button></form><script data-payload='0:[\"$\",\"$L1\",null,{},null,null,1]\n\
+       '>window.srr_stream.push()</script>"
+    [ client_form_import_row ]
+
 let suspense_in_a_list_with_error () =
   let fallback = React.string "Loading..." in
   let app () =
@@ -1736,6 +1771,7 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
+    test "client_component_with_form_action" client_component_with_form_action;
     test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;
     test "client_component_with_bootstrap_modules" client_component_with_bootstrap_modules;
     test "nested_context" nested_context;

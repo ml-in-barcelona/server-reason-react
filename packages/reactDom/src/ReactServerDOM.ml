@@ -1259,16 +1259,6 @@ let apply_form_action_attrs html_props action_id =
   in
   (html_props @ extra_attrs, hidden)
 
-(* Rewrite Action props into String props containing $F<index> RSC references. *)
-let rewrite_action_props ~context ~nonce attributes =
-  List.map
-    (fun prop ->
-      match prop with
-      | React.JSX.Action (_, key, f) ->
-          React.JSX.String (key, key, Model.outline_server_function ~context ~to_chunk:(model_to_chunk ?nonce) f)
-      | _ -> prop)
-    attributes
-
 let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
@@ -1286,17 +1276,13 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
       let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) (Array.to_list childrens) in
       Lwt.return (Html.list html)
   | Lower_case_element { key; tag; attributes; children } when String.equal tag "form" ->
-      let context = fiber.context in
       let form_action_id =
         List.find_map
           (fun (prop : React.JSX.prop) -> match prop with Action (_, _, f) -> Some f.id | _ -> None)
           attributes
       in
-      let attributes = rewrite_action_props ~context ~nonce:fiber.nonce attributes in
       render_lower_case ~fiber ~key ~tag ~attributes ~children ~form_action_id
   | Lower_case_element { key; tag; attributes; children } ->
-      let context = fiber.context in
-      let attributes = rewrite_action_props ~context ~nonce:fiber.nonce attributes in
       render_lower_case ~fiber ~key ~tag ~attributes ~children ~form_action_id:None
   | Upper_case_component (_name, component) ->
       let saved_ctx = !React.current_tree_context in
