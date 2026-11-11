@@ -1004,6 +1004,19 @@ let boundary_resolves_while_shell_is_suspended () =
     ];
   Lwt.return ()
 
+let text_around_suspense_while_shell_is_suspended () =
+  let app =
+    React.createElement "div" []
+      [
+        React.string "a";
+        mk_suspense ~fallback:(React.string "Loading") ~children:(React.string "b") ();
+        React.string "c";
+        once_pausing_component ~name:"outside" ~children:(React.createElement "span" [] [ React.string "o" ]) ();
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div>a<!--$-->b<!--/$-->c<span>o</span></div>" ]
+
 let tests =
   [
     test "silly_stream" silly_stream;
@@ -1026,6 +1039,7 @@ let tests =
     test "suspense_with_always_throwing_in_prod" suspense_with_always_throwing_in_prod;
     test "suspense_with_throwing_child_after_sibling_in_prod" suspense_with_throwing_child_after_sibling_in_prod;
     test "boundary_resolves_while_shell_is_suspended" boundary_resolves_while_shell_is_suspended;
+    test "text_around_suspense_while_shell_is_suspended" text_around_suspense_while_shell_is_suspended;
     test "suspense_with_partial_children_in_shell" suspense_with_partial_children_in_shell;
     test "suspense_fallback_does_not_add_text_separator_after_boundary"
       suspense_fallback_does_not_add_text_separator_after_boundary;

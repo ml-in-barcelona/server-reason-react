@@ -563,7 +563,9 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
     | Suspense _ when !await_unhandled_suspensions ->
         (* In retry mode, delegate Suspense to a fresh render_to_buffer call which
            starts with await_unhandled_suspensions=false, so Suspense streaming works *)
-        render_to_buffer ~env ~stream_context buf element
+        let%lwt () = render_to_buffer ~env ~stream_context buf element in
+        previous_node_was_text := false;
+        Lwt.return ()
     | Suspense { children; fallback; _ } -> (
         let render_fallback_html () =
           let fallback_buf = Buffer.create 128 in
