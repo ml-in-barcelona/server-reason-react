@@ -1,3 +1,4 @@
+open TestHelpers;
 open Webapi.Dom;
 open History;
 

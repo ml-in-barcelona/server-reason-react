@@ -1,18 +1,15 @@
-let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
-let check_json = Alcotest.check yojson "should be equal"
-let assert_json left right = Alcotest.check yojson "should be equal" right left
 let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_list (ty : 'a Alcotest.testable) (left : 'a list) (right : 'a list) =
-  Alcotest.check (Alcotest.list ty) "should be equal" right left
 
 let assert_list_of_strings (left : string list) (right : string list) =
   Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
 let assert_raises exn fn =
   match%lwt fn () with
-  | exception exn -> Lwt.return (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
+  | exception raised -> Lwt.return (assert_string (Printexc.to_string raised) (Printexc.to_string exn))
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
+
+let contains_substring str sub =
+  match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
 
 let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
@@ -40,13 +37,6 @@ let mk_suspense ?key ?fallback ?children () = React.Suspense.make ?key (React.Su
 
 let mk_context context ~value ~children () =
   React.Context.provider context (React.Context.makeProps ~value ~children ())
-
-let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
-  let%lwt content = Lwt_stream.to_list stream in
-  if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
-  else Lwt.return @@ assert_list_of_strings content expected
 
 let assert_html element ?(disable_backtrace = false) ?(env = `Dev) ?debug ?filter_stack_frame ?(shell = "")
     assertion_list =
@@ -109,7 +99,26 @@ let element_with_dangerously_set_inner_html () =
   assert_html
     ~shell:
       "<div><h1>Hello</h1></div><script \
-       data-payload='0:[\"$\",\"div\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"<h1>Hello</h1>\"}},null,null,1]\n\
+       data-payload='0:[\"$\",\"div\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"<h1>Hello</h1>\"}},null,null,0]\n\
+       '>window.srr_stream.push()</script>"
+    app []
+
+let repeated_prop_keeps_last_value () =
+  let app =
+    React.createElement "div"
+      [
+        React.JSX.string "id" "id" "a";
+        React.JSX.string "data-url" "data-url" "x";
+        React.JSX.string "title" "title" "t";
+        React.JSX.string "id" "id" "b";
+        React.JSX.string "data-url" "data-url" "y";
+      ]
+      []
+  in
+  assert_html ~env:`Prod
+    ~shell:
+      "<div id=\"b\" data-url=\"y\" title=\"t\"></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"id\":\"b\",\"data-url\":\"y\",\"title\":\"t\"}]\n\
        '>window.srr_stream.push()</script>"
     app []
 
@@ -118,7 +127,7 @@ let static_element () =
   let app () = React.Static { prerendered = "<div>Hello</div>"; original } in
   assert_html (app ())
     ~shell:
-      "<div>Hello</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1]\n\
+      "<div>Hello</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     []
 
@@ -131,7 +140,7 @@ let suppress_hydration_warning_in_model () =
   assert_html
     ~shell:
       "<div>Hello</div><script \
-       data-payload='0:[\"$\",\"div\",null,{\"children\":\"Hello\",\"suppressHydrationWarning\":true},null,null,1]\n\
+       data-payload='0:[\"$\",\"div\",null,{\"children\":\"Hello\",\"suppressHydrationWarning\":true},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     app []
 
@@ -215,7 +224,7 @@ let input_element_with_value () =
   assert_html
     ~shell:
       "<input value=\"application\" /><script \
-       data-payload='0:[\"$\",\"input\",null,{\"value\":\"application\"},null,null,1]\n\
+       data-payload='0:[\"$\",\"input\",null,{\"value\":\"application\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     app []
 
@@ -272,7 +281,7 @@ let async_component_with_promise () =
   assert_html (app ())
     ~shell:
       "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
-       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
@@ -282,7 +291,7 @@ let async_component_with_promise () =
        '>window.srr_stream.push()</script>";
     ]
 
-let suspenasync_and_client () =
+let suspense_with_async_and_client_component () =
   let app () =
     mk_suspense ~fallback:(React.string "Loading...")
       ~children:
@@ -308,15 +317,15 @@ let suspenasync_and_client () =
   assert_html (app ())
     ~shell:
       "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
-       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
       "<script data-payload='3:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
       "<div hidden id=\"S:2\"><span>Only the client<!-- -->Part of async component</span></div>\n\
-       <script>$RC('B:2', 'S:2')</script>";
-      "<script data-payload='2:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$L3\",null,{}],\"Part of async \
-       component\"]}]\n\
+       <script>$RC('B:2', 'S:2')</script><script \
+       data-payload='2:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$L3\",null,{},null,null,1],\"Part of async \
+       component\"]},null,null,1]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -325,7 +334,7 @@ let suspense_without_promise () =
   assert_html
     ~shell:
       "<!--$-->Resolved<!--/$--><script \
-       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"Resolved\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"Resolved\",\"fallback\":\"Loading...\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     (app ())
     [ "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>" ]
@@ -348,7 +357,7 @@ let with_sleepy_promise () =
   assert_html (app ())
     ~shell:
       "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
-       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
@@ -426,7 +435,7 @@ let client_with_promise_props () =
   assert_html (app ())
     ~shell:
       "<div>Server Content</div>Client with Props<script data-payload='0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$L2\",null,{\"promise\":\"$@1\"},null,null,1]]\n\
+       Content\"},null,null,2],[\"$\",\"$L2\",null,{\"promise\":\"$@1\"},null,null,2]]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
@@ -492,7 +501,7 @@ let client_with_element_props () =
   assert_html (app ())
     ~shell:
       "Client with elment prop<script \
-       data-payload='0:[\"$\",\"$L1\",null,{\"element\":[\"$\",\"span\",null,{\"children\":\"server-component-as-props-to-client-component\"},null,null,1]},null,null,1]\n\
+       data-payload='0:[\"$\",\"$L1\",null,{\"element\":[\"$\",\"span\",null,{\"children\":\"server-component-as-props-to-client-component\"},null,null,0]},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
@@ -617,7 +626,7 @@ let client_with_sync_error_under_client_suspense () =
   assert_html app ~disable_backtrace:true
     ~shell:
       "<!--$!--><template data-msg=\"Failure(&quot;boom&quot;)\n\
-       \"></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{},null,null,1]\n\
+       \"></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
 
@@ -644,7 +653,7 @@ let client_with_async_error_under_client_suspense () =
   assert_html app ~disable_backtrace:true
     ~shell:
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
-       data-payload='0:[\"$\",\"$L2\",null,{},null,null,1]\n\
+       data-payload='0:[\"$\",\"$L2\",null,{},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
@@ -698,7 +707,7 @@ let writer_subtree_with_client_component () =
   assert_html app
     ~shell:
       "<div>Client Counter</div><script \
-       data-payload='0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$L1\",null,{},null,null,1]},null,null,1]\n\
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$L1\",null,{},null,null,1]},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [ "<script data-payload='1:I[\"./counter.js\",[],\"Counter\"]\n'>window.srr_stream.push()</script>" ]
 
@@ -720,13 +729,37 @@ let client_with_error_under_server_suspense () =
   assert_html app ~disable_backtrace:true
     ~shell:
       "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
-       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
       "<script data-payload='2:E{\"message\":\"Failure(\\\"boom\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script><div hidden id=\"S:2\"></div>\n\
        <script>$RC('B:2', 'S:2')</script>";
+    ]
+
+let server_suspense_with_async_error_after_flush () =
+  let failing =
+    React.Async_component
+      ( "failing",
+        fun () ->
+          let%lwt () = sleep ~ms:1 in
+          Lwt.fail (Failure "boom") )
+  in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:failing () in
+  assert_html app ~disable_backtrace:true
+    ~shell:
+      "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      Printf.sprintf
+        "<script \
+         data-payload='2:E{\"message\":\"Failure(\\\"boom\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
+         '>window.srr_stream.push()</script><script>%s;$RX(\"B:2\",\"\",\"Switched to client rendering because the \
+         server rendering errored:\\n\\nFailure(\\\"boom\\\")\")</script>"
+        rx_definition;
     ]
 
 let await_tick ?(raise = false) ?(ms = 1) num =
@@ -775,15 +808,18 @@ let suspense_in_a_list_with_error () =
     ~shell:
       "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><!--$?--><template \
        id=\"B:3\"></template>Loading...<!--/$--><!--$?--><template id=\"B:4\"></template>Loading...<!--/$--><script \
-       data-payload='0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,1]]\n\
+       data-payload='0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,2],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,2]]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
       "<div hidden id=\"S:2\">A</div>\n\
        <script>$RC('B:2', 'S:2')</script><script data-payload='2:\"A\"\n\
        '>window.srr_stream.push()</script>";
-      "<script data-payload='3:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
+      Printf.sprintf
+        "<script data-payload='3:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
+         '>window.srr_stream.push()</script><script>%s;$RX(\"B:3\",\"\",\"Switched to client rendering because the \
+         server rendering errored:\\n\\nFailure(\\\"lol\\\")\")</script>"
+        rx_definition;
       "<div hidden id=\"S:4\">C</div>\n\
        <script>$RC('B:4', 'S:4')</script><script data-payload='4:\"C\"\n\
        '>window.srr_stream.push()</script>";
@@ -822,8 +858,8 @@ let page_with_duplicate_resources () =
   in
   assert_html (app ())
     ~shell:
-      "<div>Page content</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"Page content\"}]\n\
-       '>window.srr_stream.push()</script>"
+      {|<!DOCTYPE html><html><head><link rel="stylesheet" href="/styles.css" precedence="default" /></head><body><div>Page content</div></body><script data-payload='0:[["$","html",null,{"children":[["$","head",null,{"children":[["$","link",null,{"rel":"stylesheet","href":"/styles.css","precedence":"default"},null,null,1],["$","link",null,{"rel":"stylesheet","href":"/styles.css","precedence":"default"},null,null,1]]},null,null,1],["$","body",null,{"children":["$","div",null,{"children":"Page content"},null,null,1]},null,null,1]]},null,null,2]]
+'>window.srr_stream.push()</script>|}
     []
 
 let client_component_with_bootstrap_scripts () =
@@ -849,8 +885,8 @@ let client_component_with_bootstrap_scripts () =
         Lwt.return ())
   in
   (* Check that bootstrap scripts are included in the HTML *)
-  let has_runtime_script = Str.string_match (Str.regexp ".*\\/runtime\\.js.*") html 0 in
-  let has_app_script = Str.string_match (Str.regexp ".*\\/app\\.js.*") html 0 in
+  let has_runtime_script = contains_substring html "<script src=\"/runtime.js\" async=\"\"></script>" in
+  let has_app_script = contains_substring html "<script src=\"/app.js\" async=\"\"></script>" in
   assert_string (string_of_bool has_runtime_script) "true";
   assert_string (string_of_bool has_app_script) "true";
   Lwt.return ()
@@ -878,8 +914,10 @@ let client_component_with_bootstrap_modules () =
         Lwt.return ())
   in
   (* Check that bootstrap modules are included with type="module" *)
-  let has_runtime_module = Str.string_match (Str.regexp ".*type=\"module\".*") html 0 in
-  let has_module_script = Str.string_match (Str.regexp ".*\\/runtime\\.mjs.*") html 0 in
+  let has_runtime_module =
+    contains_substring html "<script src=\"/runtime.mjs\" async=\"\" type=\"module\"></script>"
+  in
+  let has_module_script = contains_substring html "<script src=\"/app.mjs\" async=\"\" type=\"module\"></script>" in
   assert_string (string_of_bool has_runtime_module) "true";
   assert_string (string_of_bool has_module_script) "true";
   Lwt.return ()
@@ -924,7 +962,7 @@ let nested_context () =
     ~shell:
       "/root<!-- -->/about<!-- -->About page<script \
        data-payload='0:[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":\"About \
-       page\",\"children\":[\"/about\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1]\n\
+       page\",\"children\":[\"/about\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
@@ -1064,7 +1102,7 @@ let suspense_with_sync_client_component () =
   in
   assert_html (app ())
     ~shell:
-      "<!--$--><div>Sync content</div><!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{},null,null,1]\n\
+      "<!--$--><div>Sync content</div><!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
 
@@ -1073,7 +1111,7 @@ let text_with_ampersand () =
   assert_html
     ~shell:
       "<div>Tom &amp; Jerry</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"Tom &amp; \
-       Jerry\"},null,null,1]\n\
+       Jerry\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     app []
 
@@ -1082,7 +1120,7 @@ let text_with_html_entity () =
   assert_html
     ~shell:
       "<div>Tom &amp;amp; Jerry</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"Tom &amp;amp; \
-       Jerry\"},null,null,1]\n\
+       Jerry\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     app []
 
@@ -1090,7 +1128,7 @@ let text_with_single_quote () =
   let app = React.createElement "div" [] [ React.string "it's" ] in
   assert_html
     ~shell:
-      "<div>it&apos;s</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"it&#x27;s\"},null,null,1]\n\
+      "<div>it&apos;s</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"it&#x27;s\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     app []
 
@@ -1099,7 +1137,7 @@ let text_with_script_tag () =
   assert_html
     ~shell:
       "<div>&lt;/script&gt;&lt;script&gt;alert(&apos;xss&apos;)&lt;/script&gt;</div><script \
-       data-payload='0:[\"$\",\"div\",null,{\"children\":\"</script><script>alert(&#x27;xss&#x27;)</script>\"},null,null,1]\n\
+       data-payload='0:[\"$\",\"div\",null,{\"children\":\"</script><script>alert(&#x27;xss&#x27;)</script>\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     app []
 
@@ -1338,6 +1376,44 @@ let external_abort_settles_pending_boundary () =
     ];
   Lwt.return ()
 
+let abort_after_completed_render_delivers_queued_rows () =
+  let content, resolve_content = Lwt.wait () in
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "Content",
+             fun () ->
+               let%lwt () = content in
+               Lwt.return (React.string "Done") ))
+      ()
+  in
+  let abort, resolve_abort = Lwt.wait () in
+  let gate, release_gate = Lwt.task () in
+  let subscribed_elements = ref [] in
+  let%lwt _html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~abort app in
+  let subscription =
+    subscribe (fun element ->
+        let first = !subscribed_elements = [] in
+        subscribed_elements := !subscribed_elements @ [ element ];
+        if first then gate else Lwt.return ())
+  in
+  Lwt.wakeup resolve_content ();
+  let%lwt () = Lwt.pause () in
+  Lwt.wakeup resolve_abort ();
+  let%lwt () = Lwt.pause () in
+  Lwt.wakeup release_gate ();
+  let%lwt () = subscription in
+  assert_list_of_strings !subscribed_elements
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      "<div hidden id=\"S:2\">Done</div>\n\
+       <script>$RC('B:2', 'S:2')</script><script data-payload='2:\"Done\"\n\
+       '>window.srr_stream.push()</script>";
+      "<script>window.srr_stream.close()</script>";
+    ];
+  Lwt.return ()
+
 let progressive_chunk_size_batches_small_chunks () =
   let app =
     mk_suspense ~fallback:(React.string "Loading...")
@@ -1426,9 +1502,6 @@ let skip_root_omits_html_content () =
   let has_script = Str.string_match (Str.regexp ".*<script.*") html 0 in
   Alcotest.(check bool) "should contain scripts" true has_script;
   Lwt.return ()
-
-let contains_substring str sub =
-  match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
 
 let count_occurrences hay needle = List.length (Str.split_delim (Str.regexp_string needle) hay) - 1
 
@@ -1588,7 +1661,7 @@ let flight_hints_inside_suspense_boundary () =
   assert_html app
     ~shell:
       "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
-       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n\
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
@@ -1636,6 +1709,7 @@ let tests =
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
     test "static_element" static_element;
     test "suppress_hydration_warning_in_model" suppress_hydration_warning_in_model;
+    test "repeated_prop_keeps_last_value" repeated_prop_keeps_last_value;
     test "input_element_with_value" input_element_with_value;
     test "upper_case_component" upper_case_component;
     test "async_component_without_promise" async_component_without_promise;
@@ -1646,6 +1720,7 @@ let tests =
     test "client_with_promise_failed_props" client_with_promise_failed_props;
     test "client_component_with_async_component" client_component_with_async_component;
     test "async_component_with_promise" async_component_with_promise;
+    test "suspense_with_async_and_client_component" suspense_with_async_and_client_component;
     test "suspense_with_error" suspense_with_error;
     test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
@@ -1657,9 +1732,12 @@ let tests =
     test "writer_subtree_with_client_component" writer_subtree_with_client_component;
     test "client_with_error_without_suspense" client_with_error_without_suspense;
     test "client_with_error_under_server_suspense" client_with_error_under_server_suspense;
+    test "server_suspense_with_async_error_after_flush" server_suspense_with_async_error_after_flush;
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
+    test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;
+    test "client_component_with_bootstrap_modules" client_component_with_bootstrap_modules;
     test "nested_context" nested_context;
     test "context_preserved_across_async_suspense" context_preserved_across_async_suspense;
     test "context_nested_providers_across_async_suspense" context_nested_providers_across_async_suspense;
@@ -1673,12 +1751,15 @@ let tests =
     test ~timeout:500 "timeout_with_late_resolving_boundary_does_not_crash"
       timeout_with_late_resolving_boundary_does_not_crash;
     test ~timeout:500 "external_abort_settles_pending_boundary" external_abort_settles_pending_boundary;
+    test ~timeout:500 "abort_after_completed_render_delivers_queued_rows"
+      abort_after_completed_render_delivers_queued_rows;
     test ~timeout:500 "timeout_does_not_affect_fast_renders" timeout_does_not_affect_fast_renders;
     test ~timeout:500 "progressive_chunk_size_batches_small_chunks" progressive_chunk_size_batches_small_chunks;
     test ~timeout:500 "timeout_end_script_appears_exactly_once" timeout_end_script_appears_exactly_once;
     test "progressive_chunk_size_zero_does_not_raise" progressive_chunk_size_zero_does_not_raise;
     test "progressive_chunk_size_negative_does_not_raise" progressive_chunk_size_negative_does_not_raise;
     test "skip_root_omits_html_content" skip_root_omits_html_content;
+    test "page_with_duplicate_resources" page_with_duplicate_resources;
     test "nonce_is_added_to_generated_scripts" nonce_is_added_to_generated_scripts;
     test "late_boundary_link_stylesheet_is_streamed" late_boundary_link_stylesheet_is_streamed;
     test "late_boundary_title_is_streamed" late_boundary_title_is_streamed;

@@ -44,6 +44,17 @@ let to_utc_string_negative_year () =
   let s = Date.toUTCString d in
   assert_true "contains something" (String.length s > 0)
 
+let to_utc_string_padded_year () =
+  assert_string_equal
+    (Date.toUTCString (Date.fromFloat (Date.utc ~year:999. ~month:0. ~date:1. ())))
+    "Tue, 01 Jan 0999 00:00:00 GMT";
+  assert_string_equal
+    (Date.toUTCString (Date.fromFloat (Date.utc ~year:(-1.) ~month:0. ~date:1. ())))
+    "Fri, 01 Jan -0001 00:00:00 GMT"
+
+let to_date_string_padded_year () =
+  assert_string_equal (Date.toDateString (Date.make ~year:999. ~month:0. ~date:1. ())) "Tue Jan 01 0999"
+
 let to_utc_string_months () =
   (* Test all month abbreviations *)
   let months = [ "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" ] in
@@ -254,12 +265,14 @@ let tests =
     test "toUTCString format" to_utc_string_format;
     test "toUTCString NaN" to_utc_string_nan;
     test "toUTCString negative year" to_utc_string_negative_year;
+    test "toUTCString padded year" to_utc_string_padded_year;
     test "toUTCString all months" to_utc_string_months;
     test "toUTCString day names" to_utc_string_day_names;
     (* toDateString *)
     test "toDateString basic" to_date_string_basic;
     test "toDateString epoch" to_date_string_epoch;
     test "toDateString NaN" to_date_string_nan;
+    test "toDateString padded year" to_date_string_padded_year;
     test "toDateString no time" to_date_string_no_time;
     (* toTimeString *)
     test "toTimeString basic" to_time_string_basic;

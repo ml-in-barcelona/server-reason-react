@@ -15,7 +15,7 @@ let test_async title fn = Alcotest_lwt.test_case title `Quick fn
 let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
 let assert_string_equal left right = Alcotest.check Alcotest.string "should be equal" right left
 let assert_int left right = Alcotest.check Alcotest.int "should be equal" right left
-let assert_float left right = Alcotest.check (Alcotest.float 2.) "should be equal" right left
+let assert_float left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
 let assert_float_exact left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
 
 (* assert_bool for comparing boolean values - compatible with existing tests *)

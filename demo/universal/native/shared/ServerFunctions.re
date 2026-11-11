@@ -39,7 +39,7 @@ let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
 
 [@react.server.function]
 let error = (): Js.Promise.t(string) => {
-  Lwt.fail(failwith("Error from server"));
+  Lwt.fail_with("Error from server");
 };
 
 [@react.server.function]

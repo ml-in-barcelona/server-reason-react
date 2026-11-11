@@ -27,9 +27,7 @@
  (alias client)
  (deps
   (source_tree ./)
-  (source_tree ./../server)
-  (:config tailwind.config.js)
   (:input styles.css))
  (action
   (progn
-   (run tailwind --config=%{config} --input=%{input} --output=%{target}))))
+   (run tailwind --input=%{input} --output=%{target}))))

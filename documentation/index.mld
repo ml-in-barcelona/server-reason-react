@@ -1,4 +1,4 @@
-@children_order get-started router universal-code how-to-organise-universal-code externals-melange-attributes
+@children_order get-started router universal-code how-to-organise-universal-code externals-melange-attributes ssr-and-hydration
 
 {0 server-reason-react}
 
@@ -50,11 +50,11 @@ Aside from the core ([React], [ReactDOM] and [ReactServerDOM]), server-reason-re
  {tr {td {{:https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/externals-melange-attributes.html}[server-reason-react.melange_ppx]}}
      {td A ppx to add the melange attributes to native code}
      {td {{:https://melange.re/v4.0.0/}melange.ppx}}}
- {tr {td [server-reason-react.promise]}
+ {tr {td [server-reason-react.promise-native] and [server-reason-react.promise-js]}
      {td Vendored version of {{:https://github.com/aantron/promise}aantron/promise} with melange support {{:https://github.com/aantron/promise/pull/80}PR#80}}
      {td {{:https://github.com/aantron/promise}promise}}}
  {tr {td [server-reason-react.belt]}
-     {td Implementation of Belt for native {{:https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.belt_native/Belt/index.html}API reference}}
+     {td Implementation of Belt for native {{:https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.belt/Belt/index.html}API reference}}
      {td {{:https://melange.re/v4.0.0/api/ml/melange/Belt}melange.belt}}}
  {tr {td [server-reason-react.js]}
      {td Implementation of [Js] library for native (unsafe/incomplete). Check the issue {{:https://github.com/ml-in-barcelona/server-reason-react/issues/110}#110} for more details}

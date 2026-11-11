@@ -11,9 +11,3 @@
  (flags
   (:standard -open Test_Belt_Support))
  (libraries alcotest fmt belt js test_belt_support))
-
-; (executable
-; (name benchmark)
-; (modules benchmark)
-; (public_name belt_benchmark)
-; (libraries belt bechamel-notty bechamel unix notty.unix))

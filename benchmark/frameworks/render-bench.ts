@@ -10,7 +10,7 @@ if (process.env.NODE_ENV !== "production") {
     ").\n" +
     "React's development build is slower than production. Re-run with:\n" +
     "  NODE_ENV=production bun render-bench.ts\n" +
-    "  NODE_ENV=production node render-bench-node.mjs\n"
+    "  make bench-render-node\n"
   );
   process.exit(1);
 }
@@ -72,7 +72,7 @@ const runtime =
 console.log(`Pure Render Benchmark (${runtime} + React, NODE_ENV=production)`);
 console.log(`Iterations per scenario: ${ITERATIONS}\n`);
 
-// Keep this list in sync with benchmark/streaming/streaming_bench.ml so each
+// Keep this list in sync with benchmark/streaming/streaming_bench.ml.
 const testScenarios = [
   "trivial",
   "shallow",

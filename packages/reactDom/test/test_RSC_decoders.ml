@@ -394,6 +394,19 @@ let decode_valid_outlined_map_still_works () =
       assert_string role "admin"
   | _ -> Alcotest.fail "expected valid $Q Map to still decode after hardening"
 
+let decode_shared_outlined_entry_once () =
+  let args, _ =
+    decode_outlined
+      ~entries:[ ("1", "[\"$2\",\"$02\"]"); ("2", "[\"$W3\",\"$3\"]"); ("3", "[\"leaf\"]") ]
+      ~root_json:"[\"$1\"]"
+  in
+  match args with
+  | [| `List [ (`List [ a; b ] as left); right ] |] ->
+      assert_bool (left == right) true;
+      assert_bool (a == b) true;
+      assert_bool (a = `List [ `String "leaf" ]) true
+  | _ -> Alcotest.fail "expected shared outlined entries to decode"
+
 (* Recursive resolution of nested JSON objects *)
 
 let decodeReply_nested_special_values_in_object () =
@@ -583,6 +596,7 @@ let tests =
     test "decodeFormDataReply: rejects malformed outlined entry" decode_rejects_malformed_outlined_entry;
     test "decodeReply: deeply nested body does not raise" decode_rejects_deeply_nested_body;
     test "decodeFormDataReply: valid outlined map still works" decode_valid_outlined_map_still_works;
+    test "decodeFormDataReply: shared outlined entry decodes once" decode_shared_outlined_entry_once;
     (* Outlined models without FormData context *)
     test "decodeReply: $Q Map without FormData raises" (assert_decodeReply_errors "[\"$Q1\"]" "decodeReply: Map");
     test "decodeReply: $W Set without FormData raises" (assert_decodeReply_errors "[\"$W1\"]" "decodeReply: Set");

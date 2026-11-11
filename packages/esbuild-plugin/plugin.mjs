@@ -2,9 +2,9 @@ import Fs from "node:fs/promises";
 import Path from "node:path";
 import { execSync } from "node:child_process";
 
-async function writeFile(path, contents, cb) {
-	await Fs.mkdir(Path.dirname(path), { recursive: true })
-	Fs.writeFile(path, contents, cb);
+async function writeFile(path, contents) {
+	await Fs.mkdir(Path.dirname(path), { recursive: true });
+	await Fs.writeFile(path, contents);
 }
 
 async function generateBootstrapFile(output, content) {
@@ -18,7 +18,7 @@ async function generateBootstrapFile(output, content) {
 	}
 	const contentHasChanged = previousContent !== content;
 	if (contentHasChanged) {
-		await writeFile(output, content, "utf8");
+		await writeFile(output, content);
 	}
 }
 

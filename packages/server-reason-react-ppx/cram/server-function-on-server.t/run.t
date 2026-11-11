@@ -1446,3 +1446,89 @@
               ),
             );
           };
+  
+  include {
+            let withFormDataNamedFd = {
+              Runtime.id: "780970608",
+              call: (fd: Js.FormData.t) => (
+                {
+                  let name =
+                    Js.FormData.get(fd, "name")
+                    |> (
+                      fun
+                      | `String(name) => name
+                    );
+                  Lwt.return(name);
+                }:
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "780970608",
+              FormData(
+                (_, fd) =>
+                  try(
+                    withFormDataNamedFd.call(fd)
+                    |> Lwt.map(response =>
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  },
+              ),
+            );
+          };
+  
+  include {
+            let withFormDataNamedFdAndArgs = {
+              Runtime.id: "297264227",
+              call: (country: string, fd: Js.FormData.t) => (
+                {
+                  let name =
+                    Js.FormData.get(fd, "name")
+                    |> (
+                      fun
+                      | `String(name) => name
+                    );
+                  Lwt.return(
+                    Printf.sprintf("Hello %s, you are from %s", name, country),
+                  );
+                }:
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "297264227",
+              FormData(
+                (args, fd) => {
+                  let country =
+                    try(
+                      Melange_json.Primitives.string_of_json(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
+                    | _ =>
+                      Stdlib.raise(
+                        Invalid_argument(
+                          Stdlib.Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "country",
+                            "string",
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
+                          ),
+                        ),
+                      )
+                    };
+                  try(
+                    withFormDataNamedFdAndArgs.call(country, fd)
+                    |> Lwt.map(response =>
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  };
+                },
+              ),
+            );
+          };

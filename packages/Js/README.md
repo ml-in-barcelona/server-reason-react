@@ -9,7 +9,7 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | 🟢 | Implemented, verified by tests whose expectations cite a JS source (Melange test suite, test262, or documented JS output). |
 | ⚪️ | Implemented, not yet verified against JS behavior. |
 | 🟠 | Implemented with a known behavioral divergence (see note). |
-| 🔴 stub | Raises `Impossible_in_ssr` at runtime. Planned unless noted otherwise. |
+| 🔴 stub | Raises `Js.Not_implemented` at runtime. Planned unless noted otherwise. |
 | 🔴 raises by design | Intentionally unsupported on the server (see note). |
 | ➖ missing | Present in Melange, absent here. |
 
@@ -103,12 +103,12 @@ Per-function status of the native `Js` implementation against Melange 6.0.1-54.
 | `from` | 🔴 raises by design | Requires JS iterables; array_like values cannot be constructed natively. |
 | `fromMap` | 🔴 raises by design | Requires JS iterables; array_like values cannot be constructed natively. |
 | `includes` | 🟠 | Uses OCaml structural equality; JS SameValueZero differs (NaN, object identity). |
-| `indexOf` | 🟠 | Negative ~start handling diverges from JS (audit/areas/belt-js.md). |
+| `indexOf` | 🟠 | Negative ~start handling diverges from JS. |
 | `isArray` | 🟠 | Always returns true; there is no runtime type information (Js_array.ml:10). |
 | `join` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `keys` | 🟢 | Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml. |
 | `lastIndexOf` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
-| `lastIndexOfFrom` | 🟠 | Negative ~from handling diverges from JS (audit/areas/belt-js.md). |
+| `lastIndexOfFrom` | 🟠 | Negative ~start handling diverges from JS. |
 | `length` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `map` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |
 | `mapi` | 🟢 | Ported Melange suite: packages/Js/test/melange_tests/js_array.ml. |

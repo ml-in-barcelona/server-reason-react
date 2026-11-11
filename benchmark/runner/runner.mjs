@@ -40,17 +40,17 @@ const CONFIG = {
   frameworkDelay: 2000,
 
   // Output directory
-  outputDir: "./results",
+  outputDir: "../results",
 };
 
 const FRAMEWORKS = [
   { name: "dream-native", port: 3000, cmd: null }, // Manual start
-  { name: "node-express", port: 3001, cmd: "npm run start:node-express", cwd: "./frameworks" },
-  { name: "node-fastify", port: 3002, cmd: "npm run start:node-fastify", cwd: "./frameworks" },
-  { name: "hono-node", port: 3003, cmd: "npm run start:hono-node", cwd: "./frameworks" },
-  { name: "hono-bun", port: 3004, cmd: "bun run hono-bun/server.ts", cwd: "./frameworks" },
-  { name: "bun-native", port: 3005, cmd: "bun run bun-native/server.tsx", cwd: "./frameworks" },
-  { name: "preact", port: 3006, cmd: "npm run start:preact", cwd: "./frameworks" },
+  { name: "node-express", port: 3001, cmd: "npm run start:node-express", cwd: "../frameworks" },
+  { name: "node-fastify", port: 3002, cmd: "npm run start:node-fastify", cwd: "../frameworks" },
+  { name: "hono-node", port: 3003, cmd: "npm run start:hono-node", cwd: "../frameworks" },
+  { name: "hono-bun", port: 3004, cmd: "npm run start:hono-bun", cwd: "../frameworks" },
+  { name: "bun-native", port: 3005, cmd: "npm run start:bun", cwd: "../frameworks" },
+  { name: "preact", port: 3006, cmd: "npm run start:preact", cwd: "../frameworks" },
 ];
 
 const SCENARIOS = [

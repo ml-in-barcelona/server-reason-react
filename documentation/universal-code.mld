@@ -12,7 +12,7 @@ This is what we call universal code, but let me explain each point a bit better
 
 {2 Compiles correctly for both platforms}
 
-One of the first challenges of sharing code is that both platforms have different APIs available. You can't use browser's APIs on the server, for example [document.querySelectorAll]. Also, you can't use server related APIs on the client such as any filsystem operations, for example [Unix.getpid].
+One of the first challenges of sharing code is that both platforms have different APIs available. You can't use browser's APIs on the server, for example [document.querySelectorAll]. Also, you can't use server related APIs on the client such as any filesystem operations, for example [Unix.getpid].
 
 In this aspect server-reason-react is not much different than Node.js. For example, Node.js doesn't provide the global window/document objects in Node and enforces the user to handle those cases manually. [if typeof window !== "undefined" { ... }]
 
@@ -38,7 +38,7 @@ module Math_native: Math_interface = {
 };
 
 // a "Math_js" module that implements the interface for the client
-// Asuming that Math_native.async is only used in native code, we don't need to implement "async"
+// Assuming that Math_native.async is only used in native code, we don't need to implement "async"
 module Math_js: Math_interface = {
   let sum = (a, b) => a + b;
 };
@@ -74,7 +74,7 @@ module ServerReasonReact = {
       | Fragment(array(element));
 
     // createElement is a function that returns a React.element
-    let createElement = name => React.Model.Element(string);
+    let createElement = name => Element(name);
   };
 };
 ]}
@@ -132,7 +132,7 @@ let isLoading =
   | _ => false;
 ]}
 
-This library can be used in both "native" and "melagne" stanzas interchangeably.
+This library can be used in both "native" and "melange" stanzas interchangeably.
 
 {2:same-api Same API, different implementations}
 
@@ -169,4 +169,4 @@ As explained before, [server-reason-react] exposes a few modules that aren't Rea
 
 - {!Belt} is an implementation of [Belt] that would work on both server and client. [server-reason-react.belt] (Unstable)
 - {!Js} is an half-implementation of the [Js] module from melange.js, and many parts aren't implemented and some other parts aren't possible to implement on the server (Unstable, it raises "NOT IMPLEMENTED" for missing functions). [server-reason-react.js]
-- {!Webapi} is a shimmed version of [melange-webapi] that works  crash at runtime if you call those APIs on the server. [server-reason-react.webapi]
+- {!Webapi} is a shimmed version of [melange-webapi] that compiles on native but crashes at runtime if you call those APIs on the server. [server-reason-react.webapi]

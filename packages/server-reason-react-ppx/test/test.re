@@ -71,6 +71,15 @@ let bool_attributes = () => {
   );
 };
 
+let input_form_attributes = () => {
+  let input =
+    <input formMethod="post" formNoValidate=true formTarget="_blank" />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(input),
+    {|<input formmethod="post" formnovalidate formtarget="_blank" />|},
+  );
+};
+
 let innerhtml = () => {
   let p = <p> {React.string("text")} </p>;
   assert_string(ReactDOM.renderToStaticMarkup(p), "<p>text</p>");
@@ -260,6 +269,12 @@ let onClick_empty = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
+let onSelect_non_optional = () => {
+  let onSelect = (_: React.Event.Selection.t) => ();
+  let input = <input onSelect />;
+  assert_string(ReactDOM.renderToStaticMarkup(input), {|<input />|});
+};
+
 let svg_1 = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(
@@ -364,6 +379,93 @@ module Component = {
   };
 };
 
+module ForwardChildren = {
+  let makeProps = (~children, ()) => children;
+  let make = children => children;
+};
+
+let static_children_groups = () => {
+  let calls = Stdlib.ref(0);
+  let child = () => {
+    Stdlib.incr(calls);
+    React.createElement("span", [], []);
+  };
+  let single = <ForwardChildren> {child()} </ForwardChildren>;
+  Alcotest.check(Alcotest.int, "scalar evaluated once", 1, calls^);
+  switch (single) {
+  | React.Lower_case_element(_) => ()
+  | _ => Alcotest.fail("expected the bare scalar child")
+  };
+  let siblings = <ForwardChildren> {child()} {child()} </ForwardChildren>;
+  Alcotest.check(Alcotest.int, "siblings evaluated once", 3, calls^);
+  switch (siblings) {
+  | React.Static_list([
+      React.Lower_case_element(_),
+      React.Lower_case_element(_),
+    ]) =>
+    ()
+  | _ => Alcotest.fail("expected a literal sibling group")
+  };
+  let bare = React.createElement("span", [], []);
+  let dynamic = React.list([bare]);
+  let forwarded = <ForwardChildren> dynamic </ForwardChildren>;
+  Alcotest.check(
+    Alcotest.bool,
+    "runtime collection is forwarded as is",
+    true,
+    Stdlib.(forwarded == dynamic),
+  );
+  let fragment = <> {child()} dynamic </>;
+  Alcotest.check(Alcotest.int, "fragment child evaluated once", 4, calls^);
+  switch (fragment) {
+  | React.Fragment(
+      React.Static_list([React.Lower_case_element(_), collection]),
+    ) =>
+    Alcotest.check(
+      Alcotest.bool,
+      "fragment keeps the runtime collection",
+      true,
+      Stdlib.(collection == dynamic),
+    )
+  | _ => Alcotest.fail("expected a fragment group")
+  };
+};
+
+let static_children_optimized_equivalence = () => {
+  let dynamic =
+    React.list([React.createElement("b", [], [React.string("dynamic")])]);
+  let optimized =
+    <ForwardChildren> <section> <span /> dynamic </section> </ForwardChildren>;
+  let plain =
+    React.createElement(
+      "section",
+      [],
+      [React.createElement("span", [], []), dynamic],
+    );
+  switch (optimized) {
+  | React.Writer({ original, _ }) =>
+    switch (original()) {
+    | React.Lower_case_element({ children: [_, collection], _ }) =>
+      Alcotest.check(
+        Alcotest.bool,
+        "writer original retains runtime collection",
+        true,
+        Stdlib.(collection == dynamic),
+      )
+    | _ => Alcotest.fail("expected static host child and runtime collection")
+    }
+  | _ => Alcotest.fail("expected an optimized writer")
+  };
+  assert_string(
+    ReactDOM.renderToString(optimized),
+    ReactDOM.renderToString(plain),
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(optimized),
+    ReactDOM.renderToStaticMarkup(plain),
+  );
+};
+
 let children_one_element = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(
@@ -434,7 +536,6 @@ let data_props = () => {
       dataFoo_bar="single"
       dataURL="acronym"
       dataURLPath="acronym then word"
-      dataFoo_Bar="underscore then uppercase"
       dataVersion2="digit"
       dataVersion20="digits"
       data2="leading digit"
@@ -443,7 +544,16 @@ let data_props = () => {
     />;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    {|<div data-foo="plain" data-foo__bar="double" data-foo___="trailing" data-foo_bar="single" data-url="acronym" data-url-path="acronym then word" data-foo_bar="underscore then uppercase" data-version2="digit" data-version20="digits" data2="leading digit" data_foo="leading underscore" datafoo="lowercase"></div>|},
+    {|<div data-foo="plain" data-foo__bar="double" data-foo___="trailing" data-foo_bar="single" data-url="acronym" data-url-path="acronym then word" data-version2="digit" data-version20="digits" data2="leading digit" data_foo="leading underscore" datafoo="lowercase"></div>|},
+  );
+};
+
+let data_props_underscore_then_uppercase = () => {
+  assert_string(
+    ReactDOM.renderToStaticMarkup(
+      <div dataFoo_Bar="underscore then uppercase" />,
+    ),
+    {|<div data-foo_bar="underscore then uppercase"></div>|},
   );
 };
 
@@ -467,7 +577,6 @@ let data_props_flight_names = () => {
         dataFoo_bar="single"
         dataURL="acronym"
         dataURLPath="acronym then word"
-        dataFoo_Bar="underscore then uppercase"
         dataVersion2="digit"
         dataVersion20="digits"
         data2="leading digit"
@@ -483,45 +592,56 @@ let data_props_flight_names = () => {
   Lwt.return();
 };
 
-let data_props_flight_collision_first_wins = () => {
-  let%lwt chunks =
-    render_model_chunks(<div dataURL="first" dataUrl="second" />);
-  assert_string(chunks, {|0:["$","div",null,{"data-url":"first"}]
-|});
-  Lwt.return();
+module MapChildren = {
+  [@react.component]
+  let make = (~children) =>
+    <ul> {React.Children.map(children, Fun.id)} </ul>;
 };
 
-let data_props_flight_collision_optional_both_some = () => {
-  let a = Some("first");
-  let b = Some("second");
-  let%lwt chunks = render_model_chunks(<div dataURL=?a dataUrl=?b />);
-  assert_string(chunks, {|0:["$","div",null,{"data-url":"first"}]
-|});
-  Lwt.return();
+let render_dev_model_chunks = element => {
+  let output = ref([]);
+  let subscribe = chunk => {
+    output := Stdlib.List.append(output^, [chunk]);
+    Lwt.return();
+  };
+  let%lwt () = ReactServerDOM.render_model(~env=`Dev, ~subscribe, element);
+  Lwt.return(Stdlib.String.concat("", output^));
 };
 
-let data_props_flight_collision_optional_second_some = () => {
-  let a = None;
-  let b = Some("second");
-  let%lwt chunks = render_model_chunks(<div dataURL=?a dataUrl=?b />);
-  assert_string(chunks, {|0:["$","div",null,{"data-url":"second"}]
-|});
-  Lwt.return();
-};
-
-let data_props_flight_collision_first_none = () => {
-  let a = None;
-  let%lwt chunks = render_model_chunks(<div dataURL=?a dataUrl="fallback" />);
-  assert_string(chunks, {|0:["$","div",null,{"data-url":"fallback"}]
-|});
-  Lwt.return();
-};
-
-let data_props_collision_html = () => {
+let children_map_flight_keys = () => {
+  let item = name => <li className="c"> {React.string(name)} </li>;
+  let keyed_item = name => <li key=name> {React.string(name)} </li>;
+  let fixed = <li> {React.string("b")} </li>;
+  switch (item("a"), keyed_item("a"), fixed) {
+  | (React.Writer(_), React.Writer(_), React.Static(_)) => ()
+  | _ => Alcotest.fail("expected PPX Writer and Static elements")
+  };
+  let%lwt runtime =
+    render_dev_model_chunks(
+      <MapChildren> {React.list([item("a"), item("b")])} </MapChildren>,
+    );
   assert_string(
-    ReactDOM.renderToStaticMarkup(<div dataURL="first" dataUrl="second" />),
-    {|<div data-url="first" data-url="second"></div>|},
+    runtime,
+    {|0:["$","ul",null,{"children":[["$","li",".0",{"children":"a","className":"c"},null,null,1],["$","li",".1",{"children":"b","className":"c"},null,null,1]]},null,null,1]
+|},
   );
+  let%lwt keyed =
+    render_dev_model_chunks(
+      <MapChildren> {React.list([keyed_item("a")])} </MapChildren>,
+    );
+  assert_string(
+    keyed,
+    {|0:["$","ul",null,{"children":[["$","li",".$a",{"children":"a"},null,null,1]]},null,null,1]
+|},
+  );
+  let%lwt siblings =
+    render_dev_model_chunks(<MapChildren> {item("a")} fixed </MapChildren>);
+  assert_string(
+    siblings,
+    {|0:["$","ul",null,{"children":[["$","li",".0",{"children":"a","className":"c"},null,null,1],["$","li",".1",{"children":"b"},null,null,1]]},null,null,1]
+|},
+  );
+  Lwt.return();
 };
 
 module Optional_prop = {
@@ -668,26 +788,22 @@ let server_function_reference = () => {
 };
 
 let server_function_reference_args_error = () => {
-  (
-    try(
-      FunctionReferences.get(ServerFunction.simpleResponse.id)
-      |> (
-        fun
-        | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
-        | _ => assert(false)
-      )
-      |> Stdlib.ignore
-    ) {
-    | Failure(error) =>
-      assert_string(
-        error,
-        "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
-      )
-      |> Stdlib.ignore
-    }
-  )
-  |> Stdlib.ignore;
-  Lwt.return_unit;
+  switch (
+    FunctionReferences.get(ServerFunction.simpleResponse.id)
+    |> (
+      fun
+      | Some(Body(handler)) => handler([|`String("John"), `String("30")|])
+      | _ => assert(false)
+    )
+  ) {
+  | _ => Alcotest.fail("Expected Invalid_argument")
+  | exception (Invalid_argument(error)) =>
+    assert_string(
+      error,
+      "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
+    );
+    Lwt.return_unit;
+  };
 };
 
 let server_function_reference_form_data = () => {
@@ -981,6 +1097,19 @@ let text_separator_matches_unoptimized_tree = () => {
 module CSS = {
   let className = ((className, _)) => className;
   let styles = ((_, styles)) => styles;
+  let make = (className, vars) => (
+    className,
+    List.fold_left(
+      (style, (key, value)) =>
+        ReactDOM.Style.unsafeAddProp(style, key, value),
+      ReactDOM.Style.make(),
+      vars,
+    ),
+  );
+  let merge = ((className1, style1), (className2, style2)) => (
+    String.trim(className1 ++ " " ++ className2),
+    ReactDOM.Style.combine(style1, style2),
+  );
 };
 
 let styles_attribute = () => {
@@ -1023,7 +1152,7 @@ let styles_attribute_optional_some_with_class = () => {
   let div = <div className="lola" ?styles />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    {|<div class="some-class-name lola" style="background-color:gainsboro"></div>|},
+    {|<div class="lola some-class-name" style="background-color:gainsboro"></div>|},
   );
 };
 
@@ -1054,7 +1183,7 @@ let styles_attribute_optional_some_with_class_and_style = () => {
     />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    {|<div class="some-class-name lola" style="color:white;background-color:gainsboro"></div>|},
+    {|<div class="lola some-class-name" style="color:white;background-color:gainsboro"></div>|},
   );
 };
 
@@ -1185,6 +1314,7 @@ Alcotest_lwt.run(
     test("empty_attribute", empty_attribute),
     test("bool_attribute", bool_attribute),
     test("bool_attributes", bool_attributes),
+    test("input_form_attributes", input_form_attributes),
     test("innerhtml", innerhtml),
     test("int_attribute", int_attribute),
     test("svg_1", svg_1),
@@ -1214,31 +1344,25 @@ Alcotest_lwt.run(
     test("fragment", fragment),
     test("fragment_with_key", fragment_with_key),
     test("children_uppercase", children_uppercase),
+    test("static_children_groups", static_children_groups),
+    test(
+      "static_children_optimized_equivalence",
+      static_children_optimized_equivalence,
+    ),
     test("children_lowercase", children_lowercase),
     test("event_onClick", onClick_empty),
+    test("event_onSelect", onSelect_non_optional),
     test("children_one_element", children_one_element),
     test("children_multiple_elements", children_multiple_elements),
     test("create_element_variadic", create_element_variadic),
     test("aria_props", aria_props),
     test("data_props", data_props),
-    test("data_props_collision_html", data_props_collision_html),
+    test(
+      "data_props_underscore_then_uppercase",
+      data_props_underscore_then_uppercase,
+    ),
     test_lwt("data_props_flight_names", data_props_flight_names),
-    test_lwt(
-      "data_props_flight_collision_first_wins",
-      data_props_flight_collision_first_wins,
-    ),
-    test_lwt(
-      "data_props_flight_collision_optional_both_some",
-      data_props_flight_collision_optional_both_some,
-    ),
-    test_lwt(
-      "data_props_flight_collision_optional_second_some",
-      data_props_flight_collision_optional_second_some,
-    ),
-    test_lwt(
-      "data_props_flight_collision_first_none",
-      data_props_flight_collision_first_none,
-    ),
+    test_lwt("children_map_flight_keys", children_map_flight_keys),
     test("optional_prop", optional_prop),
     test("context", context),
     test("context_2", context_2),

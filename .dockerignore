@@ -2,15 +2,13 @@
 **/_opam
 **/_opam_*
 _opam*
-node_modules/
 **/node_modules/
-compare/
 **/.merlin
 *.install
 .git/
 
 README.md
-CHANGELOG.md
+CHANGES.md
 benchmark/
 arch/
 .github/

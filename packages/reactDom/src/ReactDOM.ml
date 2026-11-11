@@ -215,7 +215,7 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
         Fun.protect ~finally:pop (fun () -> render buf prev_text children)
     | Consumer children -> render buf prev_text children
     | Fragment children -> render buf prev_text children
-    | List list -> render_children_list buf prev_text list
+    | List list | Static_list list -> render_children_list buf prev_text list
     | Array arr -> render_children_array buf prev_text arr
     | Upper_case_component (_, component) -> render_upper_case_component buf prev_text component
     | Async_component (_name, _component) -> unsupported_sync async_component_sync_error
@@ -327,10 +327,6 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
   in
   render buf prev_text element
 
-let render_to_buffer ~mode buf element =
-  let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
-  ()
-
 let write_element_to_buffer_internal buf ~separators ~prev_text (element : React.element) : bool =
   match element with
   | Empty -> prev_text
@@ -377,7 +373,7 @@ let render_sync ~mode ?identifier_prefix element =
   (* TODO: try catch to avoid React.use usages *)
   React.reset_id_rendering ?prefix:identifier_prefix ();
   let buf = Buffer.create !last_render_size in
-  render_to_buffer ~mode buf element;
+  let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
   remember_render_size (Buffer.length buf);
   Buffer.contents buf
 
@@ -455,7 +451,7 @@ let write_suspense_fallback buf ~boundary_id fallback =
   Buffer.add_string buf "<!--/$-->"
 
 let write_suspense_fallback_error buf ~env ~exn fallback =
-  (* Error detail is dev-only, mirroring React: production must not leak exception messages or backtraces into HTML. *)
+  (* Error detail is dev-only: production must not leak exception messages or backtraces into HTML. *)
   (match env with
   | `Prod -> Buffer.add_string buf "<!--$!--><template></template>"
   | `Dev ->
@@ -515,7 +511,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
           Lwt.reraise exn)
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List list -> render_children_list_lwt render_element list
+    | List list | Static_list list -> render_children_list_lwt render_element list
     | Array arr -> render_children_array_lwt render_element arr
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | (Text _ | Int _ | Float _) as text_node ->
@@ -572,13 +568,23 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
         let render_fallback_html () =
           let fallback_buf = Buffer.create 128 in
           let%lwt () = render_to_buffer ~env ~stream_context fallback_buf (Option.value fallback ~default:React.null) in
+          previous_node_was_text := false;
           Lwt.return (Buffer.contents fallback_buf)
+        in
+        let buffer_length = Buffer.length buf in
+        let saved_should_add_doctype = !should_add_doctype in
+        let saved_previous_node_was_text = !previous_node_was_text in
+        let discard_partial_children () =
+          Buffer.truncate buf buffer_length;
+          should_add_doctype := saved_should_add_doctype;
+          previous_node_was_text := saved_previous_node_was_text
         in
         try%lwt
           let%lwt () = render_element children in
           Lwt.return ()
         with
         | React.Suspend (Any_promise promise) -> (
+            discard_partial_children ();
             match Lwt.state promise with
             | Lwt.Return _ -> render_element children
             | Lwt.Fail exn ->
@@ -615,7 +621,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
                         if stream_context.waiting = 0 then close_stream stream_context);
                       Lwt.return ()
                     with exn ->
-                      (* Mirrors react-dom: a boundary that fails after its fallback flushed is client-rendered via $RX. *)
+                      (* A boundary that fails after its fallback flushed is client-rendered via $RX. *)
                       stream_context.waiting <- stream_context.waiting - 1;
                       stream_context.pending_boundaries <-
                         List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
@@ -632,6 +638,7 @@ let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element
                 write_suspense_fallback buf ~boundary_id:current_boundary_id fallback_html;
                 Lwt.return ())
         | exn ->
+            discard_partial_children ();
             let%lwt fallback_html = render_fallback_html () in
             write_suspense_fallback_error buf ~env ~exn fallback_html;
             Lwt.return ())

@@ -275,6 +275,8 @@ let format_tz_offset offset_ms =
   let mins = abs_offset mod 60 in
   Printf.sprintf "GMT%s%s%s" sign (pad 2 hours) (pad 2 mins)
 
+let format_display_year year = (if year < 0 then "-" else "") ^ pad 4 year
+
 let toUTCString t =
   let time = t.time in
   if Float.is_nan time then "Invalid Date"
@@ -286,8 +288,8 @@ let toUTCString t =
     let hours = int_of_float (hour_from_time time) in
     let minutes = int_of_float (min_from_time time) in
     let seconds = int_of_float (sec_from_time time) in
-    Printf.sprintf "%s, %s %s %d %s:%s:%s GMT" day_name (pad 2 day) month_name year (pad 2 hours) (pad 2 minutes)
-      (pad 2 seconds)
+    Printf.sprintf "%s, %s %s %s %s:%s:%s GMT" day_name (pad 2 day) month_name (format_display_year year) (pad 2 hours)
+      (pad 2 minutes) (pad 2 seconds)
 
 let toDateString t =
   let time = t.time in
@@ -298,7 +300,7 @@ let toDateString t =
     let month_name = month_names.(int_of_float (month_from_time local)) in
     let day = int_of_float (date_from_time local) in
     let year = int_of_float (year_from_time local) in
-    Printf.sprintf "%s %s %s %d" day_name month_name (pad 2 day) year
+    Printf.sprintf "%s %s %s %s" day_name month_name (pad 2 day) (format_display_year year)
 
 let toTimeString t =
   let time = t.time in

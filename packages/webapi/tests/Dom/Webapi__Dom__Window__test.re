@@ -1,3 +1,4 @@
+open TestHelpers;
 open Webapi.Dom;
 
 let el = document |> Document.createElement("strong");

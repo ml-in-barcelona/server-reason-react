@@ -2,7 +2,7 @@ import Esbuild from "esbuild";
 import Path from "path";
 import extractClientComponents from "../../packages/esbuild-plugin/plugin.mjs";
 
-async function build(entryPoints, { env, output, extract, mockWebpackRequire }) {
+async function build(entryPoints, { env, output, extract }) {
 	const outdir = output;
 	const splitting = true;
 
@@ -13,7 +13,6 @@ async function build(entryPoints, { env, output, extract, mockWebpackRequire }) 
 		plugins.push(
 			extractClientComponents({
 				target: "app",
-				mockWebpackRequire,
 				bootstrapOutput,
 				entrypoints: ["SinglePageRSC.re.js", "RouterDemo.re.js"],
 			}),
@@ -38,7 +37,6 @@ async function build(entryPoints, { env, output, extract, mockWebpackRequire }) 
 			minify: isDev ? false : true,
 			define: {
 				"process.env.NODE_ENV": `"${env}"`,
-				"__DEV__": `"${isDev}"`, /* __DEV__ is used by react-client code */
 			},
 		});
 

@@ -421,21 +421,12 @@ and element =
     }
   | List of element list
   | Array of element array
+  | Static_list of element list
   | Text of string
   | Int of int
   | Float of float
   | Static of { prerendered : string; original : element }
   | Writer of { emit : Buffer.t -> separators:bool -> unit; original : unit -> element }
-      (** Like [Static] but writes directly into the caller's buffer. Used by the PPX for subtrees with static skeleton
-          \+ dynamic string/int/float holes (the [Needs_buffer] tier).
-
-          [separators] tells the emit function whether adjacent text nodes must be delimited with an [<!-- -->] comment,
-          matching react-dom: [renderToString] needs the delimiters so hydration can split merged text nodes,
-          [renderToStaticMarkup] must not emit them.
-
-          [original] is a thunk that rebuilds the variant-tree form on-demand for [cloneElement] and RSC consumers. Same
-          name as [Static.original] for symmetry; [Writer]'s version is lazy so the render-to-string fast path pays no
-          allocation for the fallback. *)
   | Fragment of element
   | Empty
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
@@ -489,7 +480,12 @@ let clone_attributes (attributes : JSX.prop list) (new_attributes : JSX.prop lis
   in
   base @ append_new [] new_attributes
 
+let rec has_repeated_key (attributes : JSX.prop list) =
+  let rec mem key = function [] -> false | prop :: rest -> String.equal (prop_key prop) key || mem key rest in
+  match attributes with [] -> false | prop :: rest -> mem (prop_key prop) rest || has_repeated_key rest
+
 let create_element_with_key ?key tag attributes children =
+  let attributes = if has_repeated_key attributes then clone_attributes [] attributes else attributes in
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
       raise (Invalid_children (Printf.sprintf {|"%s" is a self-closing tag and must not have "children".\n|} tag))
@@ -505,7 +501,7 @@ let createElementWithKey = create_element_with_key
 let component component = component
 
 let isValidElement = function
-  | Text _ | Int _ | Float _ | List _ | Array _ | Empty -> false
+  | Text _ | Int _ | Float _ | List _ | Array _ | Static_list _ | Empty -> false
   | Lower_case_element _ | Upper_case_component _ | Async_component _ | Client_component _ | Static _ | Writer _
   | Fragment _ | Provider _ | Consumer _ | Suspense _ ->
       true
@@ -536,6 +532,7 @@ let rec cloneElement element new_attributes =
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
   | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
   | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
+  | Static_list _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Static_list")
   | Provider _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Provider")
   | Consumer _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Consumer")
   | Suspense _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Suspense")
@@ -905,21 +902,88 @@ module Uncurried = struct
 end
 
 module Children = struct
-  let map element fn =
-    match element with
-    | List children -> List.map fn children |> list
-    | Array children -> Array.map fn children |> array
-    | _ -> fn element
+  let escape_key key =
+    let buf = Buffer.create (String.length key + 4) in
+    String.iter
+      (function '=' -> Buffer.add_string buf "=0" | ':' -> Buffer.add_string buf "=2" | c -> Buffer.add_char buf c)
+      key;
+    Buffer.contents buf
+
+  let escape_user_key key =
+    let buf = Buffer.create (String.length key + 2) in
+    let last = String.length key - 1 in
+    String.iteri
+      (fun i c ->
+        Buffer.add_char buf c;
+        if c = '/' && (i = last || key.[i + 1] <> '/') then Buffer.add_char buf '/')
+      key;
+    Buffer.contents buf
+
+  let rec base36 n =
+    let digit d = String.make 1 (Char.chr (if d < 10 then 48 + d else 87 + d)) in
+    if n < 36 then digit n else base36 (n / 36) ^ digit (n mod 36)
+
+  let rec key_of = function
+    | Lower_case_element { key; _ } | Client_component { key; _ } | Suspense { key; _ } -> key
+    | Static { original; _ } -> key_of original
+    | Writer { original; _ } -> key_of (original ())
+    | _ -> None
+
+  let rec with_key key = function
+    | Lower_case_element element -> Lower_case_element { element with key = Some key }
+    | Client_component component -> Client_component { component with key = Some key }
+    | Suspense suspense -> Suspense { suspense with key = Some key }
+    | Static static -> Static { static with original = with_key key static.original }
+    | Writer writer -> Writer { writer with original = (fun () -> with_key key (writer.original ())) }
+    | Upper_case_component (name, render) -> Upper_case_component (name, fun () -> with_key_path key (render ()))
+    | Async_component (name, render) -> Async_component (name, fun () -> Lwt.map (with_key_path key) (render ()))
+    | element -> element
+
+  and with_key_path path element =
+    match key_of element with Some key -> with_key (path ^ "," ^ key) element | None -> with_key path element
+
+  let element_key index element = match key_of element with Some key -> "$" ^ escape_key key | None -> base36 index
+
+  let map_into element fn =
+    let mapped = ref [] in
+    let rec visit ~prefix ~name fn = function
+      | List members | Static_list members -> visit_members ~prefix ~name fn members
+      | Array members -> visit_members ~prefix ~name fn (Array.to_list members)
+      | child -> (
+          let child_key = if name = "" then "." ^ element_key 0 child else name in
+          match fn child with
+          | (List _ | Array _ | Static_list _) as result ->
+              visit ~prefix:(escape_user_key child_key ^ "/") ~name:"" Fun.id result
+          | Empty -> ()
+          | result ->
+              let key =
+                match key_of result with
+                | Some key when key_of child <> Some key -> prefix ^ escape_user_key key ^ "/" ^ child_key
+                | Some _ | None -> prefix ^ child_key
+              in
+              mapped := with_key key result :: !mapped)
+    and visit_members ~prefix ~name fn members =
+      let separator = if name = "" then "." else name ^ ":" in
+      List.iteri (fun index member -> visit ~prefix ~name:(separator ^ element_key index member) fn member) members
+    in
+    visit ~prefix:"" ~name:"" fn element;
+    Static_list (List.rev !mapped)
 
   let mapWithIndex element fn =
     match element with
-    | List children -> List.mapi (fun index element -> fn element index) children |> list
-    | Array children -> Array.mapi (fun index element -> fn element index) children |> array
-    | _ -> fn element 0
+    | Empty -> Empty
+    | element ->
+        let count = ref 0 in
+        map_into element (fun child ->
+            let index = !count in
+            incr count;
+            fn child index)
+
+  let map element fn = mapWithIndex element (fun child _ -> fn child)
 
   let forEach element fn =
     match element with
-    | List children -> List.iter fn children
+    | List children | Static_list children -> List.iter fn children
     | Array children -> Array.iter fn children
     | _ ->
         let _ = fn element in
@@ -927,7 +991,7 @@ module Children = struct
 
   let forEachWithIndex element fn =
     match element with
-    | List children -> List.iteri (fun index element -> fn element index) children
+    | List children | Static_list children -> List.iteri (fun index element -> fn element index) children
     | Array children -> Array.iteri (fun index element -> fn element index) children
     | _ ->
         let _ = fn element 0 in
@@ -935,15 +999,15 @@ module Children = struct
 
   let count element =
     match element with
-    | List children -> List.length children
+    | List children | Static_list children -> List.length children
     | Array children -> Array.length children
     | Empty -> 0
     | _ -> 1
 
   let only element =
     match element with
-    | List (child :: _) -> child
-    | List [] -> raise (Invalid_argument "Expected at least one child")
+    | List (child :: _) | Static_list (child :: _) -> child
+    | List [] | Static_list [] -> raise (Invalid_argument "Expected at least one child")
     | Array children ->
         if Array.length children >= 1 then Array.get children 0
         else raise (Invalid_argument "Expected at least one child")

@@ -11,18 +11,10 @@ let assert_dict_entries type_ left right =
 let assert_int_dict_entries = assert_dict_entries Alcotest.int
 let assert_string_dict_entries = assert_dict_entries Alcotest.string
 let assert_option_int = assert_option Alcotest.int
-(* let assert_option_string = assert_option Alcotest.string *)
-
 let assert_int left right = Alcotest.check Alcotest.int "should be equal" right left
-let assert_float left right = Alcotest.check (Alcotest.float 2.) "should be equal" right left
+let assert_float left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
 let assert_float_exact left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
 let assert_bool left right = Alcotest.check Alcotest.bool "should be equal" right left
-
-let assert_raises fn exn =
-  match fn () with
-  | exception exn -> assert_string (Printexc.to_string exn) (Printexc.to_string exn)
-  | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
-
 let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let test_async title fn = Alcotest_lwt.test_case title `Quick fn
 
@@ -104,10 +96,6 @@ let re_tests =
 
 let string_tests =
   [
-    test "make" (fun () ->
-        (* assert_string (make 3.5) "3.5"; *)
-        (* assert_string (make [| 1; 2; 3 |]) "1,2,3"); *)
-        ());
     test "length" (fun () ->
         assert_int (Js.String.length "abcd") 4;
         assert_int (Js.String.length {js|é|js}) 1;
@@ -196,13 +184,6 @@ let string_tests =
         assert_int (Js.String.lastIndexOf "beekeeper" ~search:"ee" ~start:3) 1;
         assert_int (Js.String.lastIndexOf "abcdefg" ~search:"xyz" ~start:4) (-1);
         assert_int (Js.String.lastIndexOf {js|a😀b😀b|js} ~search:"b") 6);
-    (* test "localeCompare" (fun () ->
-         localeCompare "ant" "zebra" > 0.0
-           localeCompare "zebra" "ant" < 0.0
-           localeCompare "cat" "cat" = 0.0
-           localeCompare "cat" "CAT" > 0.0
-        ());
-    *)
     test "match" (fun () ->
         let unsafe_match s r = Js.String.match_ ~regexp:r s |> Stdlib.Option.get in
         assert_string_option_array (unsafe_match "The better bats" (Js.Re.fromString "b[aeiou]t")) [| Some "bet" |]);
@@ -504,16 +485,6 @@ let string_tests =
         assert_string
           (Js.String.link ~href:"https://x.com?a=1&b=2" "click")
           "<a href=\"https://x.com?a=1&b=2\">click</a>");
-    test "anchor" (fun () ->
-        (* assert_string
-           (anchor "page1" "Page One")
-           "<a name=\"page1\">Page One</a>" *)
-        ());
-    test "link" (fun () ->
-        (* assert_string
-           (link "page2.html" "Go to page two")
-           "<a href=\"page2.html\">Go to page two</a>" *)
-        ());
   ]
 
 let global_tests =
@@ -557,11 +528,16 @@ let global_tests =
         assert_string (Js.Global.decodeURI "%0D") "\r";
         assert_string (Js.Global.decodeURI "%3C%3E%22%5C") "<>\"\\");
     test "decodeURI - beyond U+10FFFF" (fun () ->
-        assert_raises (fun () -> Js.Global.decodeURI "%F4%90%80%80") (Failure "decodeURI: malformed URI sequence"));
+        Alcotest.check_raises "should raise" (Invalid_argument "Malformed UTF-8") (fun () ->
+            ignore (Js.Global.decodeURI "%F4%90%80%80")));
     test "decodeURI - partial sequences" (fun () ->
-        (* Incomplete or malformed sequences *)
-        assert_raises (fun () -> Js.Global.decodeURI "%E4") (Failure "decodeURI: malformed URI sequence");
-        assert_raises (fun () -> Js.Global.decodeURI "%E4%A") (Failure "decodeURI: malformed URI sequence"));
+        Alcotest.check_raises "should raise" (Invalid_argument "Invalid hex encoding") (fun () ->
+            ignore (Js.Global.decodeURI "%E4"));
+        Alcotest.check_raises "should raise" (Invalid_argument "Invalid hex encoding") (fun () ->
+            ignore (Js.Global.decodeURI "%E4%A")));
+    test "decodeURIComponent - continuation byte without percent" (fun () ->
+        Alcotest.check_raises "should raise" (Invalid_argument "Invalid hex encoding") (fun () ->
+            ignore (Js.Global.decodeURIComponent "%C3xA9")));
     test "encodeURI - ascii and spaces" (fun () ->
         assert_string (Js.Global.encodeURI "Hello World") "Hello%20World";
         assert_string (Js.Global.encodeURI "Hello   World") "Hello%20%20%20World";
@@ -775,18 +751,12 @@ let promise_tests =
 
 let float_tests =
   [
-    test "string_of_float" (fun () ->
-        assert_string (string_of_float 0.5) "0.5";
-        assert_string (string_of_float 80.0) "80.";
-        assert_string (string_of_float 80.) "80.";
-        assert_string (string_of_float 80.0001) "80.0001";
-        assert_string (string_of_float 80.00000000001) "80.");
     test "toString" (fun () ->
         assert_string (Js.Float.toString 0.5) "0.5";
         assert_string (Js.Float.toString 80.0) "80";
         assert_string (Js.Float.toString 80.) "80";
         assert_string (Js.Float.toString 80.0001) "80.0001";
-        (* assert_string (Js.Float.toString 80.00000000001) "80.00000000001"; JS/Melange outputs "80.00000000001" but ocaml outputs "80." *)
+        assert_string (Js.Float.toString 80.00000000001) "80.00000000001";
         assert_string (Js.Float.toString Stdlib.Float.nan) "NaN";
         assert_string (Js.Float.toString Stdlib.Float.infinity) "Infinity";
         assert_string (Js.Float.toString Stdlib.Float.neg_infinity) "-Infinity");
@@ -794,7 +764,7 @@ let float_tests =
         assert_float (Js.Float.fromString "0.5") 0.5;
         assert_float (Js.Float.fromString "80") 80.;
         assert_float (Js.Float.fromString "80.0001") 80.0001;
-        (* assert_float (Js.Float.fromString "80.00000000001") 80.00000000001; JS/Melange outputs 80.00000000001 but ocaml outputs 80. *)
+        assert_float (Js.Float.fromString "80.00000000001") 80.00000000001;
         assert_float (Js.Float.fromString "NaN") Stdlib.Float.nan;
         assert_float (Js.Float.fromString "Infinity") Stdlib.Float.infinity;
         assert_float (Js.Float.fromString "-Infinity") Stdlib.Float.neg_infinity);
@@ -841,7 +811,7 @@ let float_tests =
         assert_string (Js.Float.toFixed ~digits:5 Float.neg_infinity) "-Infinity";
         assert_string (Js.Float.toFixed ~digits:2 (-12.3456)) "-12.35";
         assert_string (Js.Float.toFixed ~digits:4 0.) "0.0000";
-        (* assert_string (Js.Float.toFixed ~digits:0 1.2e34) "1.2e+34"; JS/Melange outputs "1.2e+34" but ocaml outputs "11999999999999999346902771844513792" *)
+        assert_string (Js.Float.toFixed ~digits:0 1.2e34) "1.2e+34";
         Alcotest.check_raises "Expected failure for negative digits"
           (Failure "toFixed() digits argument must be between 0 and 100") (fun () ->
             ignore (Js.Float.toFixed ~digits:(-1) 12.34));
@@ -896,7 +866,6 @@ let () =
          ("Js.Re", re_tests);
          ("Js.Obj", obj_tests);
          ("Js.Dict", dict_tests);
-         ("Js.Array", []);
          ("Js.Undefined", Undefined_tests.Undefined.tests);
          (* Test262 - BigInt *)
          ("BigInt.Arithmetic", Bigint_tests.Arithmetic.tests);

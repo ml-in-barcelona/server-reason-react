@@ -77,7 +77,7 @@ window.__server_functions_manifest_map = window.__server_functions_manifest_map 
 (* TODO: Add parameter to allow users to configure the extension of the files *)
 let is_js_file path =
   let ext = Filename.extension path in
-  ext = ".js" || ext = ".bs.js" || ext = ".jsx"
+  ext = ".js" || ext = ".jsx"
 
 (* TODO: refactor path to be a Filepath, not a string *)
 let capture_all_client_modules_files_in_target path =
@@ -102,7 +102,6 @@ let capture_all_client_modules_files_in_target path =
           else Ok []
     with
     | Sys_error msg -> Error (Printf.sprintf "System error: %s" msg)
-    | Unix.Unix_error (err, _, _) -> Error (Printf.sprintf "Unix error: %s" (Unix.error_message err))
     | e -> Error (Printf.sprintf "Unexpected error: %s" (Printexc.to_string e))
   in
   traverse_fs path

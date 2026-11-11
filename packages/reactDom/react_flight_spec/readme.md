@@ -41,6 +41,7 @@ cases/js/         melange.emit target (copy_files from shared).
 fixtures/         committed golden output of the real React.
 conformance/      alcotest runners: flight_spec_conformance (server → client)
                   and reply_spec_conformance (client → server).
+key_validation/   native fixture exporter and development/production browser tests.
 reply/            reply-direction spec: cases.mjs (JS argument values),
                   generate-reply.mjs (encodeReply → fixtures), fixtures/.
 ```
@@ -58,6 +59,21 @@ make spec-generate-reply  # client → server .reply fixtures
 make spec-check
 ```
 
+To test native rows through the shipped Flight client and React DOM in Chromium:
+
+```sh
+# In packages/reactDom/react_flight_spec:
+npm ci
+npx --no-install playwright install chromium
+
+# From the repository root:
+make test-flight-key-validation
+```
+
+The browser tests use React, React DOM, and the Flight client at 19.1.0. They cover
+key warnings, client props, async rows, document mounting, and streamed hydration.
+Results and native rows are written to `_build/flight-key-validation/`.
+
 ## Known divergences (xfail)
 
 Cases annotated with `~xfail` in `cases/shared/Cases.re` (model direction) or in the
@@ -65,16 +81,7 @@ registry of `conformance/reply_spec_conformance.ml` (reply direction) are **expe
 to mismatch; the conformance runners assert that they *do* mismatch, so they flip
 loudly when fixed.
 
-**There are currently no known divergences in either direction: every case
-matches the React fixtures byte-for-byte.** All divergences the spec caught
-(including the reply-side `$$`-unescape bug and the missing server-reference
-dedup) were fixed on
-this branch — see the git history for the alignment work: `$`-string escaping,
-numeric props as strings, `$` instead of `$L` client references, inlined
-suspense symbol, unconditional 7-tuple element rows, shared-thenable dedup
-(`writtenObjects`), async components at the task root resolving into the
-task's own row, sync throws at the root erroring the root row (`0:E`), and
-`E`-row flushing after the model rows of the same flush.
+There are currently no known divergences in either direction.
 
 ## Bumping React
 

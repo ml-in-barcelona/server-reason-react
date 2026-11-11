@@ -43,7 +43,7 @@ Single argument (Ptyp_constr)
   > external arrayBuffer : arrayBuffer Js.Promise.t = "arrayBuffer" [@@mel.send.pipe: T.t]
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let arrayBuffer : arrayBuffer Js.Promise.t -> T.t =
+  let arrayBuffer : T.t -> arrayBuffer Js.Promise.t =
    fun _ -> Runtime.fail_impossible_action_in_ssr "arrayBuffer"
 
 Labelled arguments

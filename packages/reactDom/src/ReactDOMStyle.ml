@@ -346,18 +346,8 @@ let make
   ?(rubyMerge : string option)
   ?(rubyPosition : string option)
   () =
-  (*
-     The order of addition matters since it will need to be the same order as
-  the JS object defined in https://github.com/reasonml/reason-react/blob/3327dc214905c4b2863b19807aaac375633645cf/src/dOMStyle.re
-
-  The following shell script can be run from the reason-react repository to generate the calls to "add" below:
-
-  for style in $(cat src/dOMStyle.re | grep "~" | sed 's/.*\~\([^:]*\):.*/\1/'); do
-    dashed=$(echo "$style" | sed 's/\([A-Z]\)/-\L\1/g')
-    echo "|> add \"$dashed\" $style"
-  done
-  *)
-
+  (* The order of addition matters since it will need to be the same order as the JS object defined in
+     https://github.com/reasonml/reason-react/blob/3327dc214905c4b2863b19807aaac375633645cf/src/dOMStyle.re *)
   let acc = [] in
   let acc = match azimuth with Some v -> ("azimuth", "azimuth", v) :: acc | None -> acc in
   let acc = match background with Some v -> ("background", "background", v) :: acc | None -> acc in
@@ -391,7 +381,6 @@ let make
   let acc = match bottom with Some v -> ("bottom", "bottom", v) :: acc | None -> acc in
   let acc = match captionSide with Some v -> ("caption-side", "captionSide", v) :: acc | None -> acc in
   let acc = match clear with Some v -> ("clear", "clear", v) :: acc | None -> acc in
-  let acc = match clip with Some v -> ("clip", "clip", v) :: acc | None -> acc in
   let acc = match color with Some v -> ("color", "color", v) :: acc | None -> acc in
   let acc = match content with Some v -> ("content", "content", v) :: acc | None -> acc in
   let acc = match counterIncrement with Some v -> ("counter-increment", "counterIncrement", v) :: acc | None -> acc in
@@ -559,15 +548,12 @@ let make
   let acc = match fontVariantNumeric with Some v -> ("font-variant-numeric", "fontVariantNumeric", v) :: acc | None -> acc in
   let acc = match fontVariantPosition with Some v -> ("font-variant-position", "fontVariantPosition", v) :: acc | None -> acc in
   let acc = match all with Some v -> ("all", "all", v) :: acc | None -> acc in
-  let acc = match glyphOrientationVertical with Some v -> ("glyph-orientation-vertical", "glyphOrientationVertical", v) :: acc | None -> acc in
   let acc = match textCombineUpright with Some v -> ("text-combine-upright", "textCombineUpright", v) :: acc | None -> acc in
   let acc = match textOrientation with Some v -> ("text-orientation", "textOrientation", v) :: acc | None -> acc in
   let acc = match writingMode with Some v -> ("writing-mode", "writingMode", v) :: acc | None -> acc in
   let acc = match shapeImageThreshold with Some v -> ("shape-image-threshold", "shapeImageThreshold", v) :: acc | None -> acc in
   let acc = match shapeMargin with Some v -> ("shape-margin", "shapeMargin", v) :: acc | None -> acc in
   let acc = match shapeOutside with Some v -> ("shape-outside", "shapeOutside", v) :: acc | None -> acc in
-  let acc = match clipPath with Some v -> ("clip-path", "clipPath", v) :: acc | None -> acc in
-  let acc = match clipRule with Some v -> ("clip-rule", "clipRule", v) :: acc | None -> acc in
   let acc = match mask with Some v -> ("mask", "mask", v) :: acc | None -> acc in
   let acc = match maskBorder with Some v -> ("mask-border", "maskBorder", v) :: acc | None -> acc in
   let acc = match maskBorderMode with Some v -> ("mask-border-mode", "maskBorderMode", v) :: acc | None -> acc in
@@ -673,7 +659,6 @@ let make
   let acc = match colorInterpolationFilters with Some v -> ("color-interpolation-filters", "colorInterpolationFilters", v) :: acc | None -> acc in
   let acc = match colorProfile with Some v -> ("color-profile", "colorProfile", v) :: acc | None -> acc in
   let acc = match colorRendering with Some v -> ("color-rendering", "colorRendering", v) :: acc | None -> acc in
-  let acc = match cursor with Some v -> ("cursor", "cursor", v) :: acc | None -> acc in
   let acc = match dominantBaseline with Some v -> ("dominant-baseline", "dominantBaseline", v) :: acc | None -> acc in
   let acc = match fill with Some v -> ("fill", "fill", v) :: acc | None -> acc in
   let acc = match fillOpacity with Some v -> ("fill-opacity", "fillOpacity", v) :: acc | None -> acc in
@@ -762,8 +747,3 @@ let unsafeAddProp styles key value : t =
   let prop = (camelcaseToKebabcase key, key, value) in
   if mem key styles then List.map (fun ((_, k, _) as p) -> if String.equal key k then prop else p) styles
   else styles @ [ prop ]
-
-(* Since we don't have a proper representation of `< .. > Js.t` yet,
-   we can't make the unsafeAddStyle
-   external unsafeAddStyle :
-      ((_)[@mel.as {json|{}|json}]) -> t -> < .. > Js.t -> t = "Object.assign" *)
