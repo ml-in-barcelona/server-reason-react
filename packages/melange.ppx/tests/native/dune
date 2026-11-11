@@ -1,0 +1,4 @@
+(test
+ (name mel_as)
+ (preprocess
+  (pps melange_native_ppx)))

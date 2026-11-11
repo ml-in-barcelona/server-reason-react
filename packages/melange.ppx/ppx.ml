@@ -611,11 +611,14 @@ let is_mel_as core_type =
   | { ptyp_desc = Ptyp_any; ptyp_attributes; _ } -> has_ptyp_attribute ptyp_attributes "mel.as"
   | _ -> false
 
+let rec remove_mel_as_args = function
+  | { ptyp_desc = Ptyp_arrow (_label, t1, t2); _ } when is_mel_as t1 -> remove_mel_as_args t2
+  | { ptyp_desc = Ptyp_arrow (label, t1, t2); _ } as core_type ->
+      { core_type with ptyp_desc = Ptyp_arrow (label, t1, remove_mel_as_args t2) }
+  | core_type -> core_type
+
 let extract_args_labels_types acc pval_type =
   let rec go acc = function
-    (* In case of being mel.as, ignore those *)
-    | { ptyp_desc = Ptyp_arrow (_label, t1, _t2); _ } when is_mel_as t1 -> acc
-    | { ptyp_desc = Ptyp_arrow (_label, _t1, t2); _ } when is_mel_as t2 -> acc
     | { ptyp_desc = Ptyp_arrow (label, t1, t2); _ } ->
         let pattern = Builder.ppat_var ~loc:t1.ptyp_loc { loc = t1.ptyp_loc; txt = "_" } in
         go ((label, pattern, t1) :: acc) t2
@@ -685,16 +688,7 @@ let expression_has_mel_raw expr =
   go expr
 
 let raise_failure ~loc name =
-  [%expr
-    let () =
-      Printf.printf
-        {|
-There is a Melange's external (for example: [@mel.get]) call from native code.
-
-Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with melange_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
-|}
-    in
-    raise (Runtime.fail_impossible_action_in_ssr [%e Builder.pexp_constant ~loc (Pconst_string (name, loc, None))])]
+  [%expr Runtime.fail_impossible_action_in_ssr [%e Builder.pexp_constant ~loc (Pconst_string (name, loc, None))]]
 
 let validate_mel_obj_primitive ~loc pval_prim =
   match pval_prim with
@@ -793,26 +787,30 @@ let transform_external_arrow ~loc pval_name pval_attributes pval_type =
         Some (Nolabel, pattern, core_type)
     | None -> None
   in
+  let pval_type = remove_mel_as_args pval_type in
   let args_labels_types = extract_args_labels_types [] pval_type in
-  let function_core_type = Builder.ppat_var ~loc:pval_name.loc { loc = pval_name.loc; txt = pval_name.txt } in
-  let pval_type_piped =
-    match pipe_type with
-    | None -> pval_type
-    | Some (_, _, pipe_type) -> construct_pval_with_send_pipe pipe_type pval_type
-  in
-  let pat =
-    Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
-      (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type_piped)
-  in
-  let arg_labels = inject_send_pipe_as_last_argument pipe_type args_labels_types in
-  let function_expression =
-    List.fold_left
-      (fun acc (label, arg_pat, arg_type) -> Builder.pexp_fun ~loc:arg_type.ptyp_loc label None arg_pat acc)
-      (raise_failure ~loc:pval_type.ptyp_loc pval_name.txt)
-      arg_labels
-  in
-  let vb = Builder.value_binding ~loc ~pat ~expr:function_expression in
-  Ast_helper.Str.value Nonrecursive [ vb ]
+  if args_labels_types = [] && Option.is_none pipe_type then
+    [%stri [%%ocaml.error [%e external_found_in_native_message ~loc]]]
+  else
+    let function_core_type = Builder.ppat_var ~loc:pval_name.loc { loc = pval_name.loc; txt = pval_name.txt } in
+    let pval_type_piped =
+      match pipe_type with
+      | None -> pval_type
+      | Some (_, _, pipe_type) -> construct_pval_with_send_pipe pipe_type pval_type
+    in
+    let pat =
+      Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
+        (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type_piped)
+    in
+    let arg_labels = inject_send_pipe_as_last_argument pipe_type args_labels_types in
+    let function_expression =
+      List.fold_left
+        (fun acc (label, arg_pat, arg_type) -> Builder.pexp_fun ~loc:arg_type.ptyp_loc label None arg_pat acc)
+        (raise_failure ~loc:pval_type.ptyp_loc pval_name.txt)
+        arg_labels
+    in
+    let vb = Builder.value_binding ~loc ~pat ~expr:function_expression in
+    Ast_helper.Str.value Nonrecursive [ vb ]
 
 let ptyp_humanize = function
   | Ptyp_tuple _ -> "Tuples"
