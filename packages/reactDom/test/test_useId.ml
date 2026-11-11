@@ -101,7 +101,7 @@ let complex_siblings_with_nested () =
   let el =
     React.createElement "div" []
       [
-        parent_with_id (React.Fragment (React.List [ div_with_id (); div_with_id () ])); parent_with_id (div_with_id ());
+        parent_with_id (React.fragment (React.List [ div_with_id (); div_with_id () ])); parent_with_id (div_with_id ());
       ]
   in
   let html = ReactDOM.renderToString el in
@@ -155,17 +155,17 @@ let use_id_suspense_and_sibling () =
     "<div><!--$--><div id=\"\xc2\xabR1\xc2\xbb\"></div><!--/$--><div id=\"\xc2\xabR2\xc2\xbb\"></div></div>"
 
 let fragment_single_child () =
-  let el = React.createElement "div" [] [ React.Fragment (div_with_id ()) ] in
+  let el = React.createElement "div" [] [ React.fragment (div_with_id ()) ] in
   let html = ReactDOM.renderToString el in
   assert_string html "<div><div id=\"\xc2\xabR0\xc2\xbb\"></div></div>"
 
 let fragment_multiple_children () =
-  let el = React.createElement "div" [] [ React.Fragment (React.List [ div_with_id (); div_with_id () ]) ] in
+  let el = React.createElement "div" [] [ React.fragment (React.List [ div_with_id (); div_with_id () ]) ] in
   let html = ReactDOM.renderToString el in
   assert_string html "<div><div id=\"\xc2\xabR1\xc2\xbb\"></div><div id=\"\xc2\xabR2\xc2\xbb\"></div></div>"
 
 let nested_fragments () =
-  let el = React.createElement "div" [] [ React.Fragment (React.Fragment (div_with_id ())) ] in
+  let el = React.createElement "div" [] [ React.fragment (React.fragment (div_with_id ())) ] in
   let html = ReactDOM.renderToString el in
   assert_string html "<div><div id=\"\xc2\xabR0\xc2\xbb\"></div></div>"
 
@@ -197,7 +197,7 @@ let kitchen_sink () =
       [
         mk_provider ctx ~value:"a"
           ~children:
-            (React.Fragment
+            (React.fragment
                (React.List
                   [
                     div_with_id ();

@@ -869,7 +869,7 @@ let suspense_with_failed_promise_default_env_is_prod () =
 
 let fragment_in_stream () =
   let app () =
-    React.Fragment
+    React.fragment
       (React.createElement "div" []
          [ React.createElement "span" [] [ React.string "a" ]; React.createElement "span" [] [ React.string "b" ] ])
   in

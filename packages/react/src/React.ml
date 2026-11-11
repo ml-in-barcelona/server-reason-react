@@ -427,7 +427,7 @@ and element =
   | Float of float
   | Static of { prerendered : string; original : element }
   | Writer of { emit : Buffer.t -> separators:bool -> unit; original : unit -> element }
-  | Fragment of element
+  | Fragment of { key : string option; children : element }
   | Empty
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
@@ -543,7 +543,7 @@ module Fragment = struct
       method children = children
     end
 
-  let make ?key:_ props = Fragment props#children
+  let make ?key props = Fragment { key; children = props#children }
 end
 
 module StrictMode = Fragment
@@ -924,7 +924,7 @@ module Children = struct
     if n < 36 then digit n else base36 (n / 36) ^ digit (n mod 36)
 
   let rec key_of = function
-    | Lower_case_element { key; _ } | Client_component { key; _ } | Suspense { key; _ } -> key
+    | Lower_case_element { key; _ } | Client_component { key; _ } | Suspense { key; _ } | Fragment { key; _ } -> key
     | Static { original; _ } -> key_of original
     | Writer { original; _ } -> key_of (original ())
     | _ -> None
@@ -933,6 +933,7 @@ module Children = struct
     | Lower_case_element element -> Lower_case_element { element with key = Some key }
     | Client_component component -> Client_component { component with key = Some key }
     | Suspense suspense -> Suspense { suspense with key = Some key }
+    | Fragment fragment -> Fragment { fragment with key = Some key }
     | Static static -> Static { static with original = with_key key static.original }
     | Writer writer -> Writer { writer with original = (fun () -> with_key key (writer.original ())) }
     | Upper_case_component (name, render) -> Upper_case_component (name, fun () -> with_key_path key (render ()))
@@ -940,7 +941,11 @@ module Children = struct
     | element -> element
 
   and with_key_path path element =
-    match key_of element with Some key -> with_key (path ^ "," ^ key) element | None -> with_key path element
+    match element with
+    | Fragment { key = None; children } -> with_key_path path children
+    | List _ | Array _ | Static_list _ -> Fragment { key = Some path; children = element }
+    | element -> (
+        match key_of element with Some key -> with_key (path ^ "," ^ key) element | None -> with_key path element)
 
   let element_key index element = match key_of element with Some key -> "$" ^ escape_key key | None -> base36 index
 

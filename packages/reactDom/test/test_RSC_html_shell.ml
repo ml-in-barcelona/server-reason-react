@@ -128,7 +128,7 @@ let html_inside_a_div () =
        '>window.srr_stream.push()</script>"
 
 let html_inside_a_fragment () =
-  let app = React.Fragment (React.list [ html [ React.createElement "div" [] [] ] ]) in
+  let app = React.fragment (React.list [ html [ React.createElement "div" [] [] ] ]) in
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><div></div><script \

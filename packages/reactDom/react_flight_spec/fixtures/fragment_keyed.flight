@@ -1,0 +1,2 @@
+1:"$Sreact.fragment"
+0:["$","ul",null,{"children":[["$","$1","a",{"children":[["$","li",null,{"children":"alpha"}],["$","li",null,{"children":"beta"}]]}],["$","$1","b",{"children":["$","li",null,{"children":"gamma"}]}]]}]

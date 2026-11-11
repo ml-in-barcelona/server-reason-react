@@ -115,7 +115,7 @@ let rec describe = function
   | React.Writer { original; _ } -> "writer " ^ describe (original ())
   | React.Upper_case_component (name, render) -> name ^ " -> " ^ describe (render ())
   | React.Text text -> "text " ^ text
-  | React.Fragment _ -> "fragment"
+  | React.Fragment { key; _ } -> "fragment " ^ Option.value key ~default:"null"
   | React.Empty -> "null"
   | _ -> "other"
 
@@ -235,6 +235,29 @@ let children_map_component_results () =
     (React.Children.map
        (React.list [ span ~key:"a" () ])
        (fun _ -> React.Upper_case_component ("Outer", fun () -> component "C")))
+
+let children_map_fragment_results () =
+  let fragment ?key () = React.Fragment.make ?key (React.Fragment.makeProps ~children:(span ()) ()) in
+  check_map "fragment result takes the member key" [ "fragment .0"; "fragment .$a" ]
+    (React.Children.map (React.list [ span (); span ~key:"a" () ]) (fun _ -> fragment ()));
+  check_map "keyed fragment result is prefixed" [ "fragment x/.0" ]
+    (React.Children.map (React.list [ span () ]) (fun _ -> fragment ~key:"x" ()));
+  check_map "keyed fragment member keeps its key" [ "fragment .$f" ]
+    (React.Children.map (React.list [ fragment ~key:"f" () ]) Fun.id)
+
+let children_map_component_fragment_results () =
+  let component render = React.Upper_case_component ("C", render) in
+  let fragment ?key children = React.Fragment.make ?key (React.Fragment.makeProps ~children ()) in
+  check_map "unkeyed fragment passes the key to its child" [ "C -> span .0" ]
+    (React.Children.map (React.list [ span () ]) (fun _ -> component (fun () -> fragment (span ()))));
+  check_map "fragment of siblings is keyed" [ "C -> fragment .0" ]
+    (React.Children.map
+       (React.list [ span () ])
+       (fun _ -> component (fun () -> fragment (React.Static_list [ span (); span () ]))));
+  check_map "collection is wrapped in a keyed fragment" [ "C -> fragment .0" ]
+    (React.Children.map (React.list [ span () ]) (fun _ -> component (fun () -> React.list [ span (); span () ])));
+  check_map "keyed fragment joins the keys" [ "C -> fragment .0,k" ]
+    (React.Children.map (React.list [ span () ]) (fun _ -> component (fun () -> fragment ~key:"k" (span ()))))
 
 let use_ref_works () =
   let app =
@@ -579,6 +602,8 @@ let tests =
       test "Children.map flattens like React" children_map_flattens;
       test "Children.map single child" children_map_single_child;
       test "Children.map component results" children_map_component_results;
+      test "Children.map fragment results" children_map_fragment_results;
+      test "Children.map component fragment results" children_map_component_fragment_results;
       test "useRef" use_ref_works;
       test "invalid_children" invalid_children;
       test "invalid_dangerouslySetInnerHtml" invalid_dangerouslySetInnerHtml;
