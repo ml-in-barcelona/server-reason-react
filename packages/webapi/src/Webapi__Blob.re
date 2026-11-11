@@ -14,7 +14,7 @@ module Impl = (T: {
   [@mel.send]
   external stream: T.t => Webapi__ReadableStream.t = "stream";
 
-  /* [@mel.send] external text: T.t => Js.Promise.t(string) = "text"; */
+  [@mel.send] external text: T.t => Js.Promise.t(string) = "text";
 
   [@mel.get] external type_: T.t => string = "type";
 

@@ -122,13 +122,14 @@ let random () = Stdlib.Random.State.float (Stdlib.Lazy.force random_state) 1.0
 (* Ported from melange js_math.ml: floor(random() * (max - min)) + min *)
 let random_int min max = floor_int (random () *. Stdlib.float_of_int (max - min)) + min
 
-(* Math.round: rounds half towards +infinity (floor(x + 0.5)), preserving
+(* Math.round: rounds half towards +infinity, preserving
    NaN/infinities, values already >= 2^52 (integral by construction), and the
    sign of zero for -0.5 <= x < 0. *)
 let round (x : float) =
   if Float.is_nan x || Float.is_integer x || Float.abs x = Float.infinity then x
   else begin
-    let r = Stdlib.floor (x +. 0.5) in
+    let f = Stdlib.floor x in
+    let r = if x -. f >= 0.5 then f +. 1. else f in
     if r = 0. && Float.sign_bit x then -0. else r
   end
 

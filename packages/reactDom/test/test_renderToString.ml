@@ -161,6 +161,20 @@ let xlink_and_xmlns_props_render_with_colon_names () =
   assert_string (ReactDOM.renderToString use)
     {|<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:arcrole="arc" xlink:actuate="onLoad"></use>|}
 
+let repeated_attribute_keeps_last_value () =
+  let div =
+    React.createElement "div"
+      [
+        React.JSX.string "id" "id" "a";
+        React.JSX.string "data-url" "data-url" "x";
+        React.JSX.string "title" "title" "t";
+        React.JSX.string "id" "id" "b";
+        React.JSX.string "data-url" "data-url" "y";
+      ]
+      []
+  in
+  assert_string (ReactDOM.renderToString div) {|<div id="b" data-url="y" title="t"></div>|}
+
 let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
@@ -181,4 +195,5 @@ let tests =
     test "inline style empty value skipped" inline_style_empty_value_skipped;
     test "defaultChecked/defaultValue render as checked/value" default_checked_and_value_render_as_checked_and_value;
     test "xlink/xmlns props render with colon names" xlink_and_xmlns_props_render_with_colon_names;
+    test "repeated attribute keeps the last value" repeated_attribute_keeps_last_value;
   ]

@@ -1,6 +1,6 @@
 (library
  (name styles_attribute)
  (public_name server-reason-react.styles-attribute)
- (libraries ppxlib ppxlib.astlib)
+ (libraries ppxlib)
  (preprocess
   (pps ppxlib.metaquot)))

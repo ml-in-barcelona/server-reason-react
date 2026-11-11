@@ -3,9 +3,6 @@
 # See packages/Js/status.tsv for the legend. The generator hard-fails if an
 # entry contradicts the code.
 #
-# All Belt *Exn accessors raise Js.Exn.Error where Melange raises
-# Not_found/Assert_failure, so exception catch sites diverge (audit/areas/belt-js.md).
-#
 Belt.Array.push	wontfix	OCaml arrays are fixed-length; raises (previously a silent no-op sentinel). Melange mutates the array.
 #
 # --- Verified by the ported Melange test suites ---

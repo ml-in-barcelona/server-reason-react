@@ -21,8 +21,9 @@ module rec BYOBReader: {
 type t = Fetch.readableStream;
 
 [@mel.get] external locked: t => bool = "locked";
-/* [@mel.send] external cancel: t => Js.Promise.t(unit) = "cancel"; */
-/* [@mel.send.pipe: t] external cancelWith: string => Js.Promise.t(string) = "cancel"; */
+[@mel.send] external cancel: t => Js.Promise.t(unit) = "cancel";
+[@mel.send.pipe: t]
+external cancelWith: string => Js.Promise.t(string) = "cancel";
 [@mel.send] external getReader: t => DefaultReader.t = "getReader";
 [@mel.send]
 external getReaderBYOB:

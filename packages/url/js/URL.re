@@ -20,14 +20,14 @@ module SearchParams = {
   [@mel.send] external appendInPlace: (t, string, string) => unit = "append";
   let append = (searchParams, key, value) => {
     let newSearchParams = makeExn(toString(searchParams));
-    let _ = appendInPlace(searchParams, key, value);
+    let _ = appendInPlace(newSearchParams, key, value);
     newSearchParams;
   };
 
   [@mel.send] external deleteInPlace: (t, string) => unit = "delete";
   let delete = (searchParams, key) => {
     let newSearchParams = makeExn(toString(searchParams));
-    let _ = deleteInPlace(searchParams, key);
+    let _ = deleteInPlace(newSearchParams, key);
     newSearchParams;
   };
   [@mel.send] external entries: t => array((string, string)) = "entries";
@@ -48,7 +48,7 @@ module SearchParams = {
   [@mel.send] external setInPlace: (t, string, string) => unit = "set";
   let set = (searchParams, key, value) => {
     let newSearchParams = makeExn(toString(searchParams));
-    let _ = setInPlace(searchParams, key, value);
+    let _ = setInPlace(newSearchParams, key, value);
     newSearchParams;
   };
 

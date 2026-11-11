@@ -100,7 +100,8 @@ let digit_to_char d = if d < 10 then Char.chr (d + Char.code '0') else Char.chr 
 (* Convert BigInt to string with given radix *)
 let to_string ?(radix = 10) n =
   if radix < 2 || radix > 36 then invalid_arg "to_string: radix must be between 2 and 36";
-  if Z.equal n Z.zero then "0"
+  if radix = 10 then Z.to_string n
+  else if Z.equal n Z.zero then "0"
   else
     let negative = Z.sign n < 0 in
     let n = Z.abs n in

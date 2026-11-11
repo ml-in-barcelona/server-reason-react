@@ -207,3 +207,26 @@ let withNestedResultListArg = (~data: result(list(int), string)): Js.Promise.t(s
   let _ = data;
   Js.Promise.resolve("ok");
 };
+
+[@react.server.function]
+let withFormDataNamedFd = (fd: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(fd, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  Lwt.return(name);
+};
+
+[@react.server.function]
+let withFormDataNamedFdAndArgs =
+    (country: string, fd: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(fd, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
+};

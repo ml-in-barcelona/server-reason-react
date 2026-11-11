@@ -4,7 +4,7 @@ This page explains the different modules available in [server-reason-react] and 
 
 It assumes a minimum understanding of:
 - {{:https://reasonml.github.io/docs/en/what-and-why}Reason}
-- {{:reasonml.github.io/reason-react/}reason-react} (the react.js bindings)
+- {{:https://reasonml.github.io/reason-react/}reason-react} (the react.js bindings)
 - {{:https://melange.re/v3.0.0/what-is-melange.html}Melange} (the JavaScript compiler)
 - {{:https://dune.readthedocs.io/en/stable}dune} (the build system)
 
@@ -27,7 +27,7 @@ opam pin server-reason-react.dev "https://github.com/ml-in-barcelona/server-reas
 
 Add to your dune file:
 {[
-(libraries (server-reason-react.react server-reason-react.reactDom))
+(libraries server-reason-react.react server-reason-react.reactDom)
 (preprocess (pps server-reason-react.ppx))
 ]}
 
@@ -47,7 +47,7 @@ Add [ppx_platform] to the [pps] field of both builds. Pass [-js] on the client. 
 (melange.emit
  (target app)
  (preprocess
-  (pps ppx_platform -js server-reason-react.ppx -melange)))
+  (pps ppx_platform -js server-reason-react.ppx -melange melange.ppx reason-react-ppx)))
 ]}
 
 Without [ppx_platform], the compiler fails with [Uninterpreted extension 'melange_only'] on any [[%melange_only]].

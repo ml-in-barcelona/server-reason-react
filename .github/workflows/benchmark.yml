@@ -1,9 +1,6 @@
 name: Framework Comparison
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       frameworks:
@@ -26,8 +23,9 @@ jobs:
       - name: Setup OCaml
         uses: ml-in-barcelona/gh-ci-action@v1.2.0
         with:
-          ocaml-compiler: 5.2.x
+          ocaml-compiler: 5.4.0
           with-test: false
+          with-dev-setup: true
 
       - uses: ml-in-barcelona/gh-ci-action/dune-cache/load@v1.2.0
 
@@ -80,14 +78,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: framework-comparison-${{ github.sha }}
-          path: benchmark/runner/results/
+          path: benchmark/results/
           retention-days: 90
 
       - name: Add results to summary
         run: |
           echo "## Framework Comparison Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          LATEST=$(ls -t benchmark/runner/results/*.md 2>/dev/null | head -1)
+          LATEST=$(ls -t benchmark/results/*.md 2>/dev/null | head -1)
           if [ -n "$LATEST" ]; then
             cat "$LATEST" >> $GITHUB_STEP_SUMMARY
           else

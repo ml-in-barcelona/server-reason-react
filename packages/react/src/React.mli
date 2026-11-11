@@ -609,6 +609,10 @@ and element =
     }
   | List of element list
   | Array of element array
+  | Static_list of element list
+      (** A literal sibling group written in JSX under a component or a fragment. Only the PPX builds it. Its members
+          are static child positions for key validation, while a [List] or [Array] member is still a runtime collection.
+          Transparent for rendering. *)
   | Text of string
   | Int of int
   | Float of float
@@ -618,14 +622,14 @@ and element =
           caller's buffer, avoiding the intermediate buffer + Buffer.contents allocation that a [Static] wrapping would
           require.
 
-          [separators] tells the emit function whether adjacent text nodes must be delimited with an [<!-- -->] comment,
-          matching react-dom: [renderToString] needs the delimiters so hydration can split merged text nodes,
-          [renderToStaticMarkup] must not emit them.
+          [separators] tells the emit function whether adjacent text nodes must be delimited with an [<!-- -->] comment:
+          [renderToString] needs the delimiters so hydration can split merged text nodes, [renderToStaticMarkup] must
+          not emit them.
 
           [original] is a thunk that rebuilds the variant-tree form on-demand for [cloneElement] / RSC consumers. Same
           name as [Static.original] for symmetry; this variant's version is lazy. Emitted by the PPX for the
           [Needs_buffer] analysis tier. *)
-  | Fragment of element
+  | Fragment of { key : string option; children : element }
   | Empty
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
@@ -647,6 +651,13 @@ end
 module StrictMode : module type of Fragment
 
 val createElement : string -> JSX.prop list -> element list -> element
+(** The child list contains explicit sibling positions. Wrap a runtime collection with [list] or [array] so its members
+    remain eligible for missing-key warnings.
+
+    Props that render the same attribute name behave like keys repeated in a JavaScript object literal: the element
+    keeps one prop at the position of the first and with the value of the last. HTML and the Flight payload render that
+    one prop. *)
+
 val createElementWithKey : ?key:string -> string -> JSX.prop list -> element list -> element
 val component : 'props component -> 'props component
 val isValidElement : element -> bool
@@ -909,7 +920,20 @@ val setDisplayName : 'component -> string -> unit
 
 module Children : sig
   val map : element -> (element -> element) -> element
+  (** Maps children like React's [Children.map] and returns a [Static_list]. A [List], [Array] or [Static_list] is
+      flattened, nested collections included; any other element, a single one included, is one child. [null] gives
+      [null] without calling the function. A [null] result is dropped, and a collection result is flattened.
+
+      Every mapped element gets React's key: [.<index in base 36>] for an unkeyed child, [.$<key>] for a keyed child
+      with [=] and [:] escaped as [=0] and [=2], [:] between the levels of nested collections, and a [<result key>/]
+      prefix when the function returns an element with a different key. A server component result passes its key to the
+      element it renders, joined as [<key>,<rendered key>] as React's Flight server does. Through an unkeyed fragment,
+      the key goes to its child; a collection or a fragment of siblings that the component renders is wrapped in a
+      fragment with that key. A [Provider] or [Consumer] result has no key field and stays unkeyed. *)
+
   val mapWithIndex : element -> (element -> int -> element) -> element
+  (** Like [map]; the index counts the children passed to the function, after flattening. *)
+
   val forEach : element -> (element -> unit) -> unit
   val forEachWithIndex : element -> (element -> int -> unit) -> unit
   val count : element -> int
@@ -918,6 +942,12 @@ module Children : sig
 end
 
 val suspend : 'a Lwt.t -> unit
+
+val call_with_promise_replay : any_promise list -> (unit -> 'a) -> ('a, any_promise * any_promise list) result
+(** Used by the renderers. [call_with_promise_replay replayed component] calls [component]. Each
+    [Experimental.usePromise] call in it reads the promise at its call position in [replayed], when there is one, in
+    place of its argument. When [component] raises [Suspend promise], the result is [Error (promise, used)]: [used]
+    holds the promises that the [usePromise] calls read, in call order, to pass as [replayed] to the next call. *)
 
 module Experimental : sig
   type formAction

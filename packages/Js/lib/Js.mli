@@ -32,7 +32,7 @@ end
 
 external toOption : 'a null -> 'a option = "%identity"
 external nullToOption : 'a null -> 'a option = "%identity"
-external undefinedToOption : 'a null -> 'a option = "%identity"
+external undefinedToOption : 'a undefined -> 'a option = "%identity"
 external fromOpt : 'a option -> 'a undefined = "%identity"
 val undefined : 'a option
 val null : 'a option

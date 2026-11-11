@@ -94,74 +94,6 @@ let attributes_to_html attrs = List.map attribute_to_html attrs
 let getDangerouslyInnerHtml attributes =
   List.find_map (function React.JSX.DangerouslyInnerHtml str -> Some str | _ -> None) attributes
 
-let render_upper_case_component_lwt render_element component =
-  let saved_ctx = !React.current_tree_context in
-  React.reset_component_id_state saved_ctx;
-  let result =
-    try component ()
-    with exn ->
-      React.current_tree_context := saved_ctx;
-      raise_notrace exn
-  in
-  let did_use_id = React.check_did_render_id_hook () in
-  if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-  try%lwt
-    let%lwt () = render_element result in
-    React.current_tree_context := saved_ctx;
-    Lwt.return ()
-  with exn ->
-    React.current_tree_context := saved_ctx;
-    raise exn
-
-let render_children_list_lwt render_element list =
-  match list with
-  | [] -> Lwt.return ()
-  | [ single ] -> render_element single
-  | _ -> (
-      let saved_ctx = !React.current_tree_context in
-      let total = List.length list in
-      let rec loop i = function
-        | [] ->
-            React.current_tree_context := saved_ctx;
-            Lwt.return ()
-        | el :: rest -> (
-            React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-            let promise = render_element el in
-            match Lwt.state promise with
-            | Return () -> loop (i + 1) rest
-            | Sleep | Fail _ ->
-                let%lwt () = promise in
-                loop (i + 1) rest)
-      in
-      try%lwt loop 0 list
-      with exn ->
-        React.current_tree_context := saved_ctx;
-        raise exn)
-
-let render_children_array_lwt render_element arr =
-  let total = Array.length arr in
-  if total = 0 then Lwt.return ()
-  else if total = 1 then render_element (Array.unsafe_get arr 0)
-  else
-    let saved_ctx = !React.current_tree_context in
-    let rec loop i =
-      if i >= total then (
-        React.current_tree_context := saved_ctx;
-        Lwt.return ())
-      else (
-        React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-        let promise = render_element (Array.unsafe_get arr i) in
-        match Lwt.state promise with
-        | Return () -> loop (i + 1)
-        | Sleep | Fail _ ->
-            let%lwt () = promise in
-            loop (i + 1))
-    in
-    try%lwt loop 0
-    with exn ->
-      React.current_tree_context := saved_ctx;
-      raise exn
-
 type mode = String | Markup
 
 (* Text-like elements (Text, Int, Float) render as text nodes: user strings are HTML-escaped, numbers are stringified
@@ -214,8 +146,8 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
         let pop = push () in
         Fun.protect ~finally:pop (fun () -> render buf prev_text children)
     | Consumer children -> render buf prev_text children
-    | Fragment children -> render buf prev_text children
-    | List list -> render_children_list buf prev_text list
+    | Fragment { children; _ } -> render buf prev_text children
+    | List list | Static_list list -> render_children_list buf prev_text list
     | Array arr -> render_children_array buf prev_text arr
     | Upper_case_component (_, component) -> render_upper_case_component buf prev_text component
     | Async_component (_name, _component) -> unsupported_sync async_component_sync_error
@@ -327,10 +259,6 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
   in
   render buf prev_text element
 
-let render_to_buffer ~mode buf element =
-  let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
-  ()
-
 let write_element_to_buffer_internal buf ~separators ~prev_text (element : React.element) : bool =
   match element with
   | Empty -> prev_text
@@ -377,7 +305,7 @@ let render_sync ~mode ?identifier_prefix element =
   (* TODO: try catch to avoid React.use usages *)
   React.reset_id_rendering ?prefix:identifier_prefix ();
   let buf = Buffer.create !last_render_size in
-  render_to_buffer ~mode buf element;
+  let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
   remember_render_size (Buffer.length buf);
   Buffer.contents buf
 
@@ -391,7 +319,6 @@ type stream_context = {
   mutable has_rc_script_been_injected : bool;
   mutable has_rx_script_been_injected : bool;
   mutable boundary_id : int;
-  mutable suspense_id : int;
   mutable waiting : int;
   (* Suspense boundaries whose async content is still rendering, in registration order (most recent first). Used by
      [abort] to emit a $RX client-render instruction per still-pending boundary. *)
@@ -454,229 +381,376 @@ let write_suspense_fallback buf ~boundary_id fallback =
   Buffer.add_string buf fallback;
   Buffer.add_string buf "<!--/$-->"
 
-let write_suspense_fallback_error buf ~env ~exn fallback =
-  (* Error detail is dev-only, mirroring React: production must not leak exception messages or backtraces into HTML. *)
+let write_suspense_fallback_error buf ~env ~detail fallback =
+  (* Error detail is dev-only: production must not leak exception messages or backtraces into HTML. *)
   (match env with
   | `Prod -> Buffer.add_string buf "<!--$!--><template></template>"
   | `Dev ->
-      let backtrace = Printexc.get_backtrace () in
       Buffer.add_string buf "<!--$!--><template data-msg=\"";
-      Html.escape buf (Printexc.to_string exn ^ "\n" ^ backtrace);
+      Html.escape buf detail;
       Buffer.add_string buf "\"></template>");
   Buffer.add_string buf fallback;
   Buffer.add_string buf "<!--/$-->"
 
-let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element =
-  let should_add_doctype = ref add_doctype in
-  let previous_node_was_text = ref false in
-  (* When an async component suspends without a Suspense boundary, the exception
-     escapes to the top-level catch below. On retry, this flag is set so that
-     subsequent sleeping async components are awaited inline rather than raising
-     again (which would loop forever since component() creates fresh promises).
-     Suspense boundaries encountered during retry delegate to a fresh render_to_buffer
-     call, which starts with this flag false — preserving streaming for nested Suspense. *)
-  let await_unhandled_suspensions = ref false in
+(* Output is a tree of segments, as in Fizz. A node that suspends leaves a slot in its segment and is
+   rendered later into a segment of its own, so the siblings that already rendered are kept and each Suspense
+   boundary is rendered once. *)
+type segment = {
+  buf : Buffer.t;
+  mutable slots : (int * slot) list;
+  mutable previous_node_was_text : bool;
+  mutable should_add_doctype : bool;
+  mutable starts_with_text : bool;
+}
 
-  let rec render_element element =
-    match (element : React.element) with
-    | Empty -> Lwt.return ()
+and slot = Resumed of segment | Boundary of boundary
+
+and boundary = {
+  content : segment;
+  fallback : segment;
+  content_tasks : task_group;
+  fallback_tasks : task_group;
+  mutable status : boundary_status;
+  mutable id : int;
+  mutable flushed : bool;
+}
+
+and boundary_status = Pending | Completed | Failed of string | Abandoned
+
+and task_group = {
+  mutable pending : int;
+  mutable cancelled : bool;
+  mutable on_idle : unit -> unit;
+  mutable on_error : exn -> unit;
+}
+
+type render_context = { segment : segment; tasks : task_group; providers : (unit -> unit -> unit) list }
+
+let make_segment ~previous_node_was_text ~should_add_doctype =
+  { buf = Buffer.create 128; slots = []; previous_node_was_text; should_add_doctype; starts_with_text = false }
+
+let make_task_group () = { pending = 0; cancelled = false; on_idle = ignore; on_error = ignore }
+let boundary_error_detail exn = Printexc.to_string exn ^ "\n" ^ Printexc.get_backtrace ()
+
+let rec flush_segment ~env ~stream_context out segment =
+  match segment.slots with
+  | [] -> Buffer.add_buffer out segment.buf
+  | slots ->
+      let position =
+        List.fold_left
+          (fun position (offset, slot) ->
+            Buffer.add_string out (Buffer.sub segment.buf position (offset - position));
+            (match slot with
+            | Resumed resumed -> flush_segment ~env ~stream_context out resumed
+            | Boundary boundary -> flush_boundary ~env ~stream_context out boundary);
+            offset)
+          0 (List.rev slots)
+      in
+      Buffer.add_string out (Buffer.sub segment.buf position (Buffer.length segment.buf - position))
+
+and flush_boundary ~env ~stream_context out boundary =
+  let fallback () =
+    let buf = Buffer.create 128 in
+    flush_segment ~env ~stream_context buf boundary.fallback;
+    Buffer.contents buf
+  in
+  match boundary.status with
+  | Completed ->
+      Buffer.add_string out "<!--$-->";
+      flush_segment ~env ~stream_context out boundary.content;
+      Buffer.add_string out "<!--/$-->"
+  | Pending ->
+      boundary.flushed <- true;
+      stream_context.pending_boundaries <- boundary.id :: stream_context.pending_boundaries;
+      write_suspense_fallback out ~boundary_id:boundary.id (fallback ())
+  | Failed detail -> write_suspense_fallback_error out ~env ~detail (fallback ())
+  | Abandoned -> ()
+
+let rec abandon_segment ~stream_context segment =
+  List.iter
+    (fun (_, slot) ->
+      match slot with
+      | Resumed resumed -> abandon_segment ~stream_context resumed
+      | Boundary boundary ->
+          (match boundary.status with
+          | Pending ->
+              boundary.status <- Abandoned;
+              boundary.content_tasks.cancelled <- true;
+              stream_context.waiting <- stream_context.waiting - 1;
+              stream_context.pending_boundaries <-
+                List.filter (fun id -> id <> boundary.id) stream_context.pending_boundaries
+          | Completed | Failed _ | Abandoned -> ());
+          abandon_segment ~stream_context boundary.content;
+          abandon_segment ~stream_context boundary.fallback)
+    segment.slots
+
+let settle_boundary ~env ~stream_context boundary error =
+  stream_context.waiting <- stream_context.waiting - 1;
+  stream_context.pending_boundaries <- List.filter (fun id -> id <> boundary.id) stream_context.pending_boundaries;
+  (if boundary.flushed && not stream_context.closed then
+     let buf = Buffer.create 512 in
+     match error with
+     | None ->
+         flush_segment ~env ~stream_context buf boundary.content;
+         let inner_html = Buffer.contents buf in
+         Buffer.clear buf;
+         write_suspense_resolved_element buf ~id:boundary.id inner_html;
+         stream_context.push (Buffer.contents buf);
+         Buffer.clear buf;
+         write_inline_complete_boundary_script buf stream_context.has_rc_script_been_injected boundary.id boundary.id;
+         stream_context.push (Buffer.contents buf);
+         stream_context.has_rc_script_been_injected <- true
+     | Some exn ->
+         (* A boundary that fails after its fallback flushed is client-rendered via $RX. *)
+         write_inline_client_render_boundary_script buf ~env
+           ~include_definition:(not stream_context.has_rx_script_been_injected)
+           ~message:(render_error_message exn) boundary.id;
+         stream_context.push (Buffer.contents buf);
+         stream_context.has_rx_script_been_injected <- true);
+  if stream_context.waiting = 0 then close_stream stream_context
+
+let discard_fallback ~stream_context boundary =
+  abandon_segment ~stream_context boundary.fallback;
+  let tasks = boundary.fallback_tasks in
+  tasks.cancelled <- true;
+  if tasks.pending > 0 then (
+    let release_parent = tasks.on_idle in
+    tasks.on_idle <- ignore;
+    tasks.on_error <- ignore;
+    release_parent ())
+
+let register_boundary ~env ~stream_context boundary =
+  boundary.id <- stream_context.boundary_id;
+  stream_context.boundary_id <- stream_context.boundary_id + 1;
+  stream_context.waiting <- stream_context.waiting + 1;
+  let tasks = boundary.content_tasks in
+  tasks.on_idle <-
+    (fun () ->
+      match boundary.status with
+      | Pending ->
+          boundary.status <- Completed;
+          discard_fallback ~stream_context boundary;
+          settle_boundary ~env ~stream_context boundary None
+      | Completed | Failed _ | Abandoned -> ());
+  tasks.on_error <-
+    (fun exn ->
+      match boundary.status with
+      | Pending ->
+          boundary.status <- Failed (boundary_error_detail exn);
+          abandon_segment ~stream_context boundary.content;
+          tasks.cancelled <- true;
+          settle_boundary ~env ~stream_context boundary (Some exn)
+      | Completed | Failed _ | Abandoned -> ())
+
+let finish_task tasks result =
+  tasks.pending <- tasks.pending - 1;
+  (match result with Ok () -> () | Error exn -> tasks.on_error exn);
+  if tasks.pending = 0 then tasks.on_idle ()
+
+let suspend ~stream_context context promise render_resolved =
+  match Lwt.state promise with
+  | Lwt.Return value -> render_resolved context value
+  | Lwt.Fail exn -> raise exn
+  | Lwt.Sleep ->
+      let parent = context.segment in
+      let segment =
+        make_segment ~previous_node_was_text:parent.previous_node_was_text ~should_add_doctype:parent.should_add_doctype
+      in
+      parent.slots <- (Buffer.length parent.buf, Resumed segment) :: parent.slots;
+      parent.previous_node_was_text <- false;
+      parent.should_add_doctype <- false;
+      let tree_context = !React.current_tree_context in
+      let tasks = context.tasks in
+      tasks.pending <- tasks.pending + 1;
+      let resume value =
+        if tasks.cancelled || stream_context.closed then Ok ()
+        else
+          let previous_tree_context = !React.current_tree_context in
+          let pops = List.rev_map (fun push -> push ()) (List.rev context.providers) in
+          React.current_tree_context := tree_context;
+          let result =
+            match render_resolved { context with segment } value with
+            | () ->
+                if segment.previous_node_was_text then Buffer.add_string segment.buf "<!-- -->";
+                Ok ()
+            | exception exn -> Error exn
+          in
+          React.current_tree_context := previous_tree_context;
+          List.iter (fun pop -> pop ()) pops;
+          result
+      in
+      Lwt.on_any promise (fun value -> finish_task tasks (resume value)) (fun exn -> finish_task tasks (Error exn))
+
+let render_to_segment ~env ~stream_context =
+  let rec render context (element : React.element) =
+    let segment = context.segment in
+    match element with
+    | Empty -> ()
     | Static { prerendered; _ } ->
-        should_add_doctype := false;
-        previous_node_was_text := false;
-        Buffer.add_string buf prerendered;
-        Lwt.return ()
+        segment.should_add_doctype <- false;
+        segment.previous_node_was_text <- false;
+        Buffer.add_string segment.buf prerendered
     | Writer { emit; original } -> (
-        let buffer_length = Buffer.length buf in
-        let saved_should_add_doctype = !should_add_doctype in
-        let saved_previous_node_was_text = !previous_node_was_text in
-        should_add_doctype := false;
-        previous_node_was_text := false;
+        let buffer_length = Buffer.length segment.buf in
+        let saved_should_add_doctype = segment.should_add_doctype in
+        let saved_previous_node_was_text = segment.previous_node_was_text in
+        segment.should_add_doctype <- false;
+        segment.previous_node_was_text <- false;
+        let render_original () =
+          Buffer.truncate segment.buf buffer_length;
+          segment.should_add_doctype <- saved_should_add_doctype;
+          segment.previous_node_was_text <- saved_previous_node_was_text;
+          render context (original ())
+        in
         (* [renderToString] hydration relies on the [<!-- -->] text separators *)
-        match emit buf ~separators:true with
-        | () -> Lwt.return ()
-        | exception Invalid_argument message when is_unsupported_sync_message message ->
-            Buffer.truncate buf buffer_length;
-            should_add_doctype := saved_should_add_doctype;
-            previous_node_was_text := saved_previous_node_was_text;
-            render_element (original ()))
+        match emit segment.buf ~separators:true with
+        | () -> ()
+        | exception Invalid_argument message when is_unsupported_sync_message message -> render_original ()
+        | exception React.Suspend _ -> render_original ())
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider { children; push; _ } -> (
+    | Provider { children; push; _ } ->
         let pop = push () in
-        try%lwt
-          let%lwt () = render_element children in
-          pop ();
-          Lwt.return ()
-        with exn ->
-          pop ();
-          Lwt.reraise exn)
-    | Consumer children -> render_element children
-    | Fragment children -> render_element children
-    | List list -> render_children_list_lwt render_element list
-    | Array arr -> render_children_array_lwt render_element arr
-    | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
+        Fun.protect ~finally:pop (fun () -> render { context with providers = push :: context.providers } children)
+    | Consumer children -> render context children
+    | Fragment { children; _ } -> render context children
+    | List list | Static_list list -> render_list context list
+    | Array arr -> render_array context arr
+    | Lower_case_element { key = _; tag; attributes; children } -> render_lower_case context tag attributes children
     | (Text _ | Int _ | Float _) as text_node ->
-        let is_previous_text_node = !previous_node_was_text in
-        previous_node_was_text := true;
-        if is_previous_text_node then Buffer.add_string buf "<!-- -->";
-        should_add_doctype := false;
-        write_text_node buf text_node;
-        Lwt.return ()
-    | Upper_case_component (_, component) -> render_upper_case_component_lwt render_element component
-    | Async_component (_, component) -> (
-        let saved_ctx = !React.current_tree_context in
-        React.reset_component_id_state saved_ctx;
-        let promise =
-          try component ()
-          with exn ->
-            React.current_tree_context := saved_ctx;
-            raise_notrace exn
-        in
-        let did_use_id = React.check_did_render_id_hook () in
-        if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-        match Lwt.state promise with
-        | Lwt.Return element -> (
-            try%lwt
-              let%lwt () = render_element element in
-              React.current_tree_context := saved_ctx;
-              Lwt.return ()
-            with exn ->
-              React.current_tree_context := saved_ctx;
-              raise exn)
-        | Lwt.Fail exn ->
-            React.current_tree_context := saved_ctx;
-            raise_notrace exn
-        | Lwt.Sleep ->
-            if !await_unhandled_suspensions then (
-              (* Retry after unhandled suspension — await the promise inline *)
-              try%lwt
-                let%lwt resolved = promise in
-                let%lwt () = render_element resolved in
-                React.current_tree_context := saved_ctx;
-                Lwt.return ()
-              with exn ->
-                React.current_tree_context := saved_ctx;
-                raise exn)
-            else (
-              (* Normal path — raise to let the nearest Suspense boundary handle it *)
-              React.current_tree_context := saved_ctx;
-              raise_notrace (React.Suspend (Any_promise promise))))
-    | Suspense _ when !await_unhandled_suspensions ->
-        (* In retry mode, delegate Suspense to a fresh render_to_buffer call which
-           starts with await_unhandled_suspensions=false, so Suspense streaming works *)
-        render_to_buffer ~env ~stream_context buf element
+        if segment.previous_node_was_text then Buffer.add_string segment.buf "<!-- -->"
+        else if Buffer.length segment.buf = 0 && segment.slots = [] then segment.starts_with_text <- true;
+        segment.previous_node_was_text <- true;
+        segment.should_add_doctype <- false;
+        write_text_node segment.buf text_node
+    | Upper_case_component (_, component) -> render_component context component ~replayed:[] render
+    | Async_component (_, component) ->
+        render_component context component ~replayed:[] (fun context promise ->
+            suspend ~stream_context context promise render)
     | Suspense { children; fallback; _ } -> (
-        let render_fallback_html () =
-          let fallback_buf = Buffer.create 128 in
-          let%lwt () = render_to_buffer ~env ~stream_context fallback_buf (Option.value fallback ~default:React.null) in
-          Lwt.return (Buffer.contents fallback_buf)
+        let boundary =
+          {
+            content = make_segment ~previous_node_was_text:false ~should_add_doctype:segment.should_add_doctype;
+            fallback = make_segment ~previous_node_was_text:false ~should_add_doctype:false;
+            content_tasks = make_task_group ();
+            fallback_tasks = make_task_group ();
+            status = Pending;
+            id = -1;
+            flushed = false;
+          }
         in
-        try%lwt
-          let%lwt () = render_element children in
-          Lwt.return ()
-        with
-        | React.Suspend (Any_promise promise) -> (
-            match Lwt.state promise with
-            | Lwt.Return _ -> render_element children
-            | Lwt.Fail exn ->
-                let%lwt fallback_html = render_fallback_html () in
-                write_suspense_fallback_error buf ~env ~exn fallback_html;
-                Lwt.return ()
-            | Lwt.Sleep ->
-                let%lwt fallback_html = render_fallback_html () in
-                let current_boundary_id = stream_context.boundary_id in
-                let current_suspense_id = stream_context.suspense_id in
-                stream_context.boundary_id <- stream_context.boundary_id + 1;
-                stream_context.suspense_id <- stream_context.suspense_id + 1;
-                stream_context.waiting <- stream_context.waiting + 1;
-                stream_context.pending_boundaries <- current_boundary_id :: stream_context.pending_boundaries;
-
-                Lwt.async (fun () ->
-                    try%lwt
-                      let%lwt _ = promise in
-                      let async_buf = Buffer.create 512 in
-                      let%lwt () = render_to_buffer ~env ~stream_context async_buf children in
-                      stream_context.waiting <- stream_context.waiting - 1;
-                      stream_context.pending_boundaries <-
-                        List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
-                      if not stream_context.closed then (
-                        let inner_html = Buffer.contents async_buf in
-                        Buffer.clear async_buf;
-                        write_suspense_resolved_element async_buf ~id:current_suspense_id inner_html;
-                        stream_context.push (Buffer.contents async_buf);
-                        Buffer.clear async_buf;
-                        write_inline_complete_boundary_script async_buf stream_context.has_rc_script_been_injected
-                          current_boundary_id current_suspense_id;
-                        stream_context.push (Buffer.contents async_buf);
-                        stream_context.has_rc_script_been_injected <- true;
-                        if stream_context.waiting = 0 then close_stream stream_context);
-                      Lwt.return ()
-                    with exn ->
-                      (* Mirrors react-dom: a boundary that fails after its fallback flushed is client-rendered via $RX. *)
-                      stream_context.waiting <- stream_context.waiting - 1;
-                      stream_context.pending_boundaries <-
-                        List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
-                      if not stream_context.closed then (
-                        let error_buf = Buffer.create 256 in
-                        write_inline_client_render_boundary_script error_buf ~env
-                          ~include_definition:(not stream_context.has_rx_script_been_injected)
-                          ~message:(render_error_message exn) current_boundary_id;
-                        stream_context.push (Buffer.contents error_buf);
-                        stream_context.has_rx_script_been_injected <- true;
-                        if stream_context.waiting = 0 then close_stream stream_context);
-                      Lwt.return ());
-
-                write_suspense_fallback buf ~boundary_id:current_boundary_id fallback_html;
-                Lwt.return ())
-        | exn ->
-            let%lwt fallback_html = render_fallback_html () in
-            write_suspense_fallback_error buf ~env ~exn fallback_html;
-            Lwt.return ())
-  and render_lower_case ~key:_ tag attributes children =
+        let content = boundary.content in
+        (match render { context with segment = content; tasks = boundary.content_tasks } children with
+        | () -> if boundary.content_tasks.pending = 0 then boundary.status <- Completed
+        | exception exn ->
+            boundary.status <- Failed (boundary_error_detail exn);
+            abandon_segment ~stream_context content;
+            boundary.content_tasks.cancelled <- true);
+        match boundary.status with
+        | Completed ->
+            if segment.previous_node_was_text && content.starts_with_text then Buffer.add_string segment.buf "<!-- -->"
+            else if Buffer.length segment.buf = 0 && segment.slots = [] then
+              segment.starts_with_text <- content.starts_with_text;
+            let offset = Buffer.length segment.buf in
+            Buffer.add_buffer segment.buf content.buf;
+            segment.slots <- List.map (fun (position, slot) -> (offset + position, slot)) content.slots @ segment.slots;
+            if Buffer.length content.buf > 0 || content.slots <> [] then (
+              segment.previous_node_was_text <- content.previous_node_was_text;
+              segment.should_add_doctype <- content.should_add_doctype)
+        | Pending | Failed _ | Abandoned ->
+            let parent_tasks = context.tasks in
+            let fallback_tasks = boundary.fallback_tasks in
+            render
+              { context with segment = boundary.fallback; tasks = fallback_tasks }
+              (Option.value fallback ~default:React.null);
+            if fallback_tasks.pending > 0 then (
+              parent_tasks.pending <- parent_tasks.pending + 1;
+              fallback_tasks.on_idle <- (fun () -> finish_task parent_tasks (Ok ()));
+              fallback_tasks.on_error <- parent_tasks.on_error);
+            (match boundary.status with
+            | Pending -> register_boundary ~env ~stream_context boundary
+            | Completed | Failed _ | Abandoned -> ());
+            segment.slots <- (Buffer.length segment.buf, Boundary boundary) :: segment.slots;
+            segment.previous_node_was_text <- false;
+            segment.should_add_doctype <- false)
+  and render_component :
+      'a. render_context -> (unit -> 'a) -> replayed:React.any_promise list -> (render_context -> 'a -> unit) -> unit =
+   fun context component ~replayed render_result ->
+    let saved_ctx = !React.current_tree_context in
+    React.reset_component_id_state saved_ctx;
+    match React.call_with_promise_replay replayed component with
+    | exception exn ->
+        React.current_tree_context := saved_ctx;
+        raise exn
+    | Error (Any_promise promise, used) ->
+        React.current_tree_context := saved_ctx;
+        suspend ~stream_context context promise (fun context _ ->
+            render_component context component ~replayed:used render_result)
+    | Ok result -> (
+        if React.check_did_render_id_hook () then
+          React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+        match render_result context result with
+        | () -> React.current_tree_context := saved_ctx
+        | exception exn ->
+            React.current_tree_context := saved_ctx;
+            raise exn)
+  and render_list context list =
+    match list with
+    | [] -> ()
+    | [ single ] -> render context single
+    | _ -> (
+        let saved_ctx = !React.current_tree_context in
+        let total = List.length list in
+        let render_child index element =
+          React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index;
+          render context element
+        in
+        match List.iteri render_child list with
+        | () -> React.current_tree_context := saved_ctx
+        | exception exn ->
+            React.current_tree_context := saved_ctx;
+            raise exn)
+  and render_array context arr =
+    let total = Array.length arr in
+    if total = 1 then render context (Array.unsafe_get arr 0)
+    else if total > 1 then
+      let saved_ctx = !React.current_tree_context in
+      let render_child index element =
+        React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index;
+        render context element
+      in
+      match Array.iteri render_child arr with
+      | () -> React.current_tree_context := saved_ctx
+      | exception exn ->
+          React.current_tree_context := saved_ctx;
+          raise exn
+  and render_lower_case context tag attributes children =
+    let segment = context.segment in
+    let buf = segment.buf in
+    let doctype = segment.should_add_doctype in
+    segment.should_add_doctype <- false;
+    segment.previous_node_was_text <- false;
     if Html.is_self_closing_tag tag then (
-      should_add_doctype := false;
-      previous_node_was_text := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
       let _ = write_attributes_and_extract_inner_html buf attributes in
-      Buffer.add_string buf " />";
-      Lwt.return ())
-    else
-      let doctype = !should_add_doctype in
-      should_add_doctype := false;
-      previous_node_was_text := false;
+      Buffer.add_string buf " />")
+    else (
       if tag = "html" && doctype then Buffer.add_string buf "<!DOCTYPE html>";
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
       let inner_html = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_char buf '>';
-      let%lwt () =
-        match inner_html with
-        | Some html ->
-            Buffer.add_string buf html;
-            Lwt.return ()
-        | None -> render_children_list_lwt render_element children
-      in
+      (match inner_html with Some html -> Buffer.add_string buf html | None -> render_list context children);
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
-      previous_node_was_text := false;
-      Lwt.return ()
+      segment.previous_node_was_text <- false)
   in
-
-  (* If Suspend escapes all Suspense boundaries, await the promise and re-render
-     with await_unhandled_suspensions enabled so sleeping promises are awaited inline. *)
-  try%lwt render_element element
-  with React.Suspend (Any_promise promise) ->
-    let%lwt _ = promise in
-    Buffer.clear buf;
-    should_add_doctype := add_doctype;
-    previous_node_was_text := false;
-    await_unhandled_suspensions := true;
-    render_element element
+  render
 
 let renderToStream ?(env = `Prod) ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
@@ -692,7 +766,6 @@ let renderToStream ?(env = `Prod) ?identifier_prefix element =
              the stream before the shell is pushed. *)
           waiting = 1;
           boundary_id = 0;
-          suspense_id = 0;
           has_rc_script_been_injected = false;
           has_rx_script_been_injected = false;
           pending_boundaries = [];
@@ -718,8 +791,18 @@ let renderToStream ?(env = `Prod) ?identifier_prefix element =
                 pending_boundaries);
           close_stream stream_context)
       in
+      let root = make_segment ~previous_node_was_text:false ~should_add_doctype:true in
+      let tasks = make_task_group () in
+      let shell_ready, resolve_shell = Lwt.wait () in
+      tasks.on_idle <- (fun () -> if Lwt.is_sleeping shell_ready then Lwt.wakeup_later resolve_shell ());
+      tasks.on_error <- (fun exn -> if Lwt.is_sleeping shell_ready then Lwt.wakeup_later_exn resolve_shell exn);
+      let%lwt () =
+        match render_to_segment ~env ~stream_context { segment = root; tasks; providers = [] } element with
+        | () -> if tasks.pending = 0 then Lwt.return () else shell_ready
+        | exception exn -> Lwt.fail exn
+      in
       let buf = Buffer.create 1024 in
-      let%lwt () = render_to_buffer ~env ~stream_context ~add_doctype:true buf element in
+      flush_segment ~env ~stream_context buf root;
       if not stream_context.closed then push_to_stream (Buffer.contents buf);
       stream_context.waiting <- stream_context.waiting - 1;
       if stream_context.waiting = 0 then close_stream stream_context;

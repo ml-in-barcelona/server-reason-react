@@ -31,7 +31,7 @@ callback sites among the top allocation sources.
 Against a fresh `main` benchmark run, the best of two treatment runs had
 seven RSC/streaming rows improve by at least 3% and none regress by more than
 3%. Notable results: `rsc/render_html/wide100` +11.3%, `rsc/width/100`
-+11.2%, `streaming/renderToStream/suspense` +3.4%, and
++11.2%, `streaming/renderToStream/suspense-drained` +3.4%, and
 `rsc/render_html/suspense` +6.7%. `renderToStream/wide100` was effectively
 flat (-1.5%) because Writer already bypasses the Lwt child walker.
 

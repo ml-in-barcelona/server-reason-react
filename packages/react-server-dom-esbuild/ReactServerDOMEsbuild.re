@@ -34,7 +34,6 @@ external createServerReferenceImpl:
 [@mel.module "./ReactServerDOMEsbuild.js"]
 external encodeReply: list('arg) => Js.Promise.t(string) = "encodeReply";
 
-/* let callServerRef: ref(option(callServer('arg, 'result))) = ref(None); */
 let callServerRef: ref(option(callServer)) = ref(None);
 let setCallServer = callServer => {
   callServerRef := Some(callServer);

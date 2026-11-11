@@ -1,4 +1,4 @@
-let el = Webapi.Dom.document |> Webapi.Dom.Document.createElement("strong");
+let el = TestHelpers.document |> Webapi.Dom.Document.createElement("strong");
 
 let handler = entries => {
   let entry = entries[0];

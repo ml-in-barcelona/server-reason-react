@@ -132,20 +132,20 @@ let encodeStaticSegment = value => {
       | _ => false
       }
     );
-  value
-  |> String.to_seq
-  |> Seq.map(character =>
-       if (unescaped(character)) {
-         String.make(1, character);
-       } else {
-         let code = Char.code(character);
-         "%"
-         ++ String.make(1, hex.[code lsr 4])
-         ++ String.make(1, hex.[code land 0x0f]);
-       }
-     )
-  |> List.of_seq
-  |> String.concat("");
+  let buffer = Buffer.create(String.length(value));
+  String.iter(
+    character =>
+      if (unescaped(character)) {
+        Buffer.add_char(buffer, character);
+      } else {
+        let code = Char.code(character);
+        Buffer.add_char(buffer, '%');
+        Buffer.add_char(buffer, hex.[code lsr 4]);
+        Buffer.add_char(buffer, hex.[code land 0x0f]);
+      },
+    value,
+  );
+  Buffer.contents(buffer);
 };
 
 let parseParameter = (path, segment) =>

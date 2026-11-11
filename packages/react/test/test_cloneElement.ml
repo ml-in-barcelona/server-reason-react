@@ -19,7 +19,7 @@ let equal_elements (c1 : React.element) (c2 : React.element) =
     | List cl1, List cl2 -> List.for_all2 equal_rec cl1 cl2
     | Array cl1, Array cl2 -> Array.for_all2 equal_rec cl1 cl2
     | Text t1, Text t2 -> t1 == t2
-    | Fragment fl1, Fragment fl2 -> equal_rec fl1 fl2
+    | Fragment { key = k1; children = fl1 }, Fragment { key = k2; children = fl2 } -> k1 = k2 && equal_rec fl1 fl2
     | Empty, Empty -> true
     | Static { original = original1; prerendered = _ }, Static { original = original2; prerendered = _ } ->
         equal_rec original1 original2

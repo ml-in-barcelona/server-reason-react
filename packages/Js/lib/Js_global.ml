@@ -60,6 +60,7 @@ module URI = struct
     let decode_utf8 pos char n c_min =
       let rec loop pos char n =
         if n <= 0 then Some (pos, char)
+        else if pos >= String.length s || s.[pos] <> '%' then raise (Invalid_argument "Invalid hex encoding")
         else
           match hex_decode s pos with
           | Ok c1 when c1 land 0xc0 = 0x80 -> loop (pos + 3) ((char lsl 6) lor (c1 land 0x3f)) (n - 1)
@@ -100,7 +101,7 @@ module URI = struct
             Buffer.add_char buf c;
             loop (pos + 1)
     in
-    try loop 0 with error -> raise error
+    loop 0
 
   let is_uri_unescaped c is_component =
     c < 0x100
@@ -110,55 +111,14 @@ module URI = struct
        || Stdlib.String.contains "-_.!~*'()" (Char.chr c)
        || ((not is_component) && is_uri_reserved (Char.chr c)))
 
-  let hex_of_int_opt c =
-    let char_code = if c < 10 then Char.code '0' + c else Char.code 'A' + (c - 10) in
-    try Some (Char.chr char_code) with _ -> None
-
-  let encode_hex value =
-    let first_digit = hex_of_int_opt (value lsr 4) in
-    let second_digit = hex_of_int_opt (value land 0x0F) in
-    match (first_digit, second_digit) with
-    | Some first_digit, Some second_digit -> Ok (Printf.sprintf "%%%c%c" first_digit second_digit)
-    | _ -> Error (Printf.sprintf "Invalid hex encoding: %d" value)
-
-  let uri_char_escaped c =
-    match c with
-    | '\'' -> "'" (* treat single quote as a regular character *)
-    | c ->
-        (* use Char.escaped for other special characters that need escaping *)
-        let escaped = Char.escaped c in
-        if c = '\\' then Stdlib.String.sub escaped 1 (String.length escaped - 1) else escaped
-
   let encode_uri ~component s =
     let buf = Buffer.create (String.length s * 3) in
-    let rec loop pos =
-      if pos >= String.length s then Buffer.contents buf
-      else
-        let new_pos, encoded_char =
-          let c = Char.code (Stdlib.String.get s pos) in
-          let new_pos = pos + 1 in
-          if is_uri_unescaped c component then
-            let encoded_char =
-              try Ok (Char.chr c |> uri_char_escaped) with _ -> raise (Invalid_argument "invalid character")
-            in
-            (new_pos, encoded_char)
-          else if c >= 0xdc00 && c <= 0xdfff then raise (Invalid_argument "invalid character")
-          else if c >= 0xd800 && c <= 0xdbff then (
-            if new_pos >= String.length s then raise (Invalid_argument "expecting surrogate pair");
-            let c1 = Char.code (Stdlib.String.get s new_pos) in
-            if c1 < 0xdc00 || c1 > 0xdfff then raise (Invalid_argument "expecting surrogate pair");
-            let c = (((c land 0x3ff) lsl 10) lor (c1 land 0x3ff)) + 0x10000 in
-            (new_pos + 1, encode_hex c))
-          else (new_pos, encode_hex c)
-        in
-
-        match encoded_char with
-        | Ok encoded_char ->
-            Buffer.add_string buf encoded_char;
-            loop new_pos
-        | Error msg -> raise (Invalid_argument msg)
-    in
-    loop 0
+    String.iter
+      (fun ch ->
+        let c = Char.code ch in
+        if is_uri_unescaped c component then Buffer.add_char buf ch else Printf.bprintf buf "%%%02X" c)
+      s;
+    Buffer.contents buf
 end
 
 let encodeURI = URI.encode_uri ~component:false
