@@ -155,6 +155,9 @@
   $ server-reason-react.router-gen --mode handles --source options-label.ml < options-label.ml > Router.ml
   $ ocamlc -c Router.ml
 
+  $ server-reason-react.router-gen --mode handles --source stdlib-shadow.ml < stdlib-shadow.ml > Stdlib_shadow.ml
+  $ ocamlc -c Stdlib_shadow.ml
+
   $ server-reason-react.router-gen --mode handles --source reserved-pattern.ml < reserved-pattern.ml
   File "reserved-pattern.ml", line 1, characters 28-82:
   Error: router: branch input label pattern conflicts with a generated router argument

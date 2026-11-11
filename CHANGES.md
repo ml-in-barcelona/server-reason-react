@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Router: generated code prints `int` and `bool` route inputs with `Stdlib.string_of_int` and `Stdlib.string_of_bool`. A path or search parameter named `string_of_int` or `string_of_bool` hid the function, and the generated code failed to type-check by @davesnx
 * Router: reserve the labels `history` and `revalidate`, which the generated `make` and `updateSearch` take as arguments. A path parameter, search parameter or loader result with one of these names now gives a router error at the route, instead of a type error in the generated code. `options` is no longer reserved, because no generated helper takes it by @davesnx
 * Write `Text`, `Int`, `Float`, `Empty`, `Static` and `Writer` children of PPX-generated elements directly instead of starting a tree walk for each one. A walk allocated a ref and a closure block per child: allocation per render drops by 37% on Wide500 and 48% on Table100, and the release bench gains 8-18% on the realworld and table scenarios. The output does not change by @davesnx
 * Write ints as digits into the render buffer instead of allocating a string with `string_of_int`, in PPX-generated code, in `ReactDOM` for `React.int` children and int attributes, and in `Html.to_string`. Add `Html.write_int`, re-exported as `ReactDOM.write_int_to_buffer` by @davesnx
