@@ -975,9 +975,8 @@ let once_pausing_component ~name ~children () =
           Lwt.return children) )
 
 let boundary_resolves_while_shell_is_suspended () =
-  (* A Suspense boundary that fully completes while the main walk is parked awaiting a top-level (unwrapped) async
-     component. The root walk counts as a pending unit: the boundary hitting [waiting = 0] must not close the stream
-     before the shell push (which used to reject the render with Lwt_stream.Closed). *)
+  (* A Suspense boundary that completes while the shell waits for a top-level (unwrapped) async component is written
+     into the shell. The boundary hitting [waiting = 0] must not close the stream before the shell push. *)
   let app =
     React.createElement "div" []
       [
@@ -993,15 +992,7 @@ let boundary_resolves_while_shell_is_suspended () =
         Lwt_stream.to_list stream)
   in
   assert_list Alcotest.string async_exceptions [];
-  assert_list Alcotest.string chunks
-    [
-      "<div hidden id=\"S:0\">Inner</div>";
-      "<script>function \
-       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
-       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
-       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
-      "<div><!--$-->Inner<!--/$-->Outside</div>";
-    ];
+  assert_list Alcotest.string chunks [ "<div><!--$-->Inner<!-- --><!--/$-->Outside<!-- --></div>" ];
   Lwt.return ()
 
 let text_around_suspense_while_shell_is_suspended () =
@@ -1016,6 +1007,204 @@ let text_around_suspense_while_shell_is_suspended () =
   in
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div>a<!--$-->b<!--/$-->c<span>o</span></div>" ]
+
+let rc_call chunk =
+  let definition = "<script>function $RC(" in
+  if String.starts_with ~prefix:definition chunk then
+    "<script>" ^ String.sub chunk (String.rindex chunk '$') (String.length chunk - String.rindex chunk '$')
+  else chunk
+
+let assert_chunks stream expected =
+  let%lwt chunks = Lwt_stream.to_list stream in
+  Lwt.return (assert_list Alcotest.string (List.map rc_call chunks) expected)
+
+let controlled_component ~name content =
+  let promise, resolver = Lwt.wait () in
+  ( React.Async_component
+      ( name,
+        fun () ->
+          let%lwt () = promise in
+          Lwt.return (React.createElement "p" [] [ React.string content ]) ),
+    fun () -> Lwt.wakeup_later resolver () )
+
+let suspense_retries_suspend_with_resolved_promise () =
+  let renders = ref 0 in
+  let suspends_once =
+    React.Upper_case_component
+      ( "suspends_once",
+        fun () ->
+          incr renders;
+          if !renders = 1 then raise (React.Suspend (Any_promise (Lwt.return ()))) else React.string "ready" )
+  in
+  let app =
+    mk_suspense ~fallback:(React.string "Loading")
+      ~children:(React.createElement "div" [] [ React.string "a"; suspends_once ])
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  let%lwt () = assert_chunks stream [ "<!--$--><div>a<!-- -->ready</div><!--/$-->" ] in
+  Alcotest.(check int) "renders" 2 !renders;
+  Lwt.return ()
+
+let suspense_reuses_the_promise_of_the_earlier_call () =
+  let calls = ref 0 in
+  let reads_new_promise =
+    React.Upper_case_component
+      ( "reads_new_promise",
+        fun () ->
+          incr calls;
+          let call = !calls in
+          let promise =
+            if call > 3 then Lwt.return call
+            else
+              let%lwt () = Lwt.pause () in
+              Lwt.return call
+          in
+          React.int (React.Experimental.usePromise promise) )
+  in
+  let app = mk_suspense ~fallback:(React.string "Loading") ~children:reads_new_promise () in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  let%lwt () =
+    assert_chunks stream
+      [
+        "<!--$?--><template id=\"B:0\"></template>Loading<!--/$-->";
+        "<div hidden id=\"S:0\">1<!-- --></div>";
+        "<script>$RC('B:0','S:0')</script>";
+      ]
+  in
+  Alcotest.(check int) "calls" 2 !calls;
+  Lwt.return ()
+
+let suspense_resumes_only_the_suspended_child () =
+  let sibling_renders = ref 0 in
+  let sibling =
+    React.Upper_case_component
+      ( "sibling",
+        fun () ->
+          incr sibling_renders;
+          React.createElement "span" [] [ React.string "Before" ] )
+  in
+  let pending, resolve = controlled_component ~name:"pending" "Later" in
+  let app =
+    mk_suspense ~fallback:(React.string "Loading")
+      ~children:(React.createElement "div" [] [ sibling; pending; React.createElement "i" [] [] ])
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  resolve ();
+  let%lwt () =
+    assert_chunks stream
+      [
+        "<!--$?--><template id=\"B:0\"></template>Loading<!--/$-->";
+        "<div hidden id=\"S:0\"><div><span>Before</span><p>Later</p><i></i></div></div>";
+        "<script>$RC('B:0','S:0')</script>";
+      ]
+  in
+  Alcotest.(check int) "sibling renders" 1 !sibling_renders;
+  Lwt.return ()
+
+let nested_suspense_app () =
+  let inner, resolve_inner = controlled_component ~name:"inner" "Inner" in
+  let outer, resolve_outer = controlled_component ~name:"outer" "Outer" in
+  let app =
+    mk_suspense ~fallback:(React.string "Loading outer")
+      ~children:(React.list [ mk_suspense ~fallback:(React.string "Loading inner") ~children:inner (); outer ])
+      ()
+  in
+  (app, resolve_inner, resolve_outer)
+
+let nested_suspense_that_completes_first_is_sent_with_its_parent () =
+  let app, resolve_inner, resolve_outer = nested_suspense_app () in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  resolve_inner ();
+  resolve_outer ();
+  assert_chunks stream
+    [
+      "<!--$?--><template id=\"B:1\"></template>Loading outer<!--/$-->";
+      "<div hidden id=\"S:1\"><!--$--><p>Inner</p><!--/$--><p>Outer</p></div>";
+      "<script>$RC('B:1','S:1')</script>";
+    ]
+
+let nested_suspense_that_completes_last_is_sent_once () =
+  let app, resolve_inner, resolve_outer = nested_suspense_app () in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  resolve_outer ();
+  resolve_inner ();
+  assert_chunks stream
+    [
+      "<!--$?--><template id=\"B:1\"></template>Loading outer<!--/$-->";
+      "<div hidden id=\"S:1\"><!--$?--><template id=\"B:0\"></template>Loading inner<!--/$--><p>Outer</p></div>";
+      "<script>$RC('B:1','S:1')</script>";
+      "<div hidden id=\"S:0\"><p>Inner</p></div>";
+      "<script>$RC('B:0','S:0')</script>";
+    ]
+
+let suspense_sibling_of_unwrapped_async_component_is_rendered_once () =
+  let inside, resolve_inside = controlled_component ~name:"inside" "Inside" in
+  let outside, resolve_outside = controlled_component ~name:"outside" "Outside" in
+  let app =
+    React.createElement "div" [] [ mk_suspense ~fallback:(React.string "Loading") ~children:inside (); outside ]
+  in
+  let rendering = ReactDOM.renderToStream app in
+  resolve_outside ();
+  let%lwt stream, _abort = rendering in
+  resolve_inside ();
+  assert_chunks stream
+    [
+      "<div><!--$?--><template id=\"B:0\"></template>Loading<!--/$--><p>Outside</p></div>";
+      "<div hidden id=\"S:0\"><p>Inside</p></div>";
+      "<script>$RC('B:0','S:0')</script>";
+    ]
+
+let context_above_suspense_reaches_resumed_child () =
+  let context = React.createContext "default" in
+  let consumer = React.Upper_case_component ("consumer", fun () -> React.string (React.useContext context)) in
+  let pending = React.Async_component ("pending", fun () -> Sleep.delay consumer) in
+  Sleep.destroy ();
+  let app =
+    mk_context context ~value:"provided"
+      ~children:(mk_suspense ~fallback:(React.string "Loading") ~children:(React.createElement "p" [] [ pending ]) ())
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_chunks stream
+    [
+      "<!--$?--><template id=\"B:0\"></template>Loading<!--/$-->";
+      "<div hidden id=\"S:0\"><p>provided<!-- --></p></div>";
+      "<script>$RC('B:0','S:0')</script>";
+    ]
+
+let failed_suspense_does_not_wait_for_nested_suspense () =
+  let never_resolved, _resolve = controlled_component ~name:"never_resolved" "Never" in
+  let app =
+    mk_suspense ~fallback:(React.string "Loading outer")
+      ~children:
+        (React.list
+           [
+             mk_suspense ~fallback:(React.string "Loading inner") ~children:never_resolved ();
+             always_throwing_component ();
+           ])
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_chunks stream [ "<!--$!--><template></template>Loading outer<!--/$-->" ]
+
+let text_before_nested_completed_suspense_keeps_separator () =
+  let app =
+    React.createElement "p" []
+      [ React.string "a"; mk_suspense ~children:(mk_suspense ~children:(React.string "b") ()) () ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_chunks stream [ "<p>a<!--$--><!--$-->b<!--/$--><!--/$--></p>" ]
+
+let completed_suspense_does_not_wait_for_its_fallback () =
+  let content, resolve_content = controlled_component ~name:"content" "Content" in
+  let never_resolved, _resolve = controlled_component ~name:"never_resolved" "Never" in
+  let app = mk_suspense ~fallback:never_resolved ~children:content () in
+  let rendering = ReactDOM.renderToStream app in
+  resolve_content ();
+  let%lwt stream, _abort = rendering in
+  assert_chunks stream [ "<!--$--><p>Content</p><!--/$-->" ]
 
 let tests =
   [
@@ -1040,6 +1229,18 @@ let tests =
     test "suspense_with_throwing_child_after_sibling_in_prod" suspense_with_throwing_child_after_sibling_in_prod;
     test "boundary_resolves_while_shell_is_suspended" boundary_resolves_while_shell_is_suspended;
     test "text_around_suspense_while_shell_is_suspended" text_around_suspense_while_shell_is_suspended;
+    test "suspense_retries_suspend_with_resolved_promise" suspense_retries_suspend_with_resolved_promise;
+    test "suspense_reuses_the_promise_of_the_earlier_call" suspense_reuses_the_promise_of_the_earlier_call;
+    test "suspense_resumes_only_the_suspended_child" suspense_resumes_only_the_suspended_child;
+    test "nested_suspense_that_completes_first_is_sent_with_its_parent"
+      nested_suspense_that_completes_first_is_sent_with_its_parent;
+    test "nested_suspense_that_completes_last_is_sent_once" nested_suspense_that_completes_last_is_sent_once;
+    test "suspense_sibling_of_unwrapped_async_component_is_rendered_once"
+      suspense_sibling_of_unwrapped_async_component_is_rendered_once;
+    test "context_above_suspense_reaches_resumed_child" context_above_suspense_reaches_resumed_child;
+    test "failed_suspense_does_not_wait_for_nested_suspense" failed_suspense_does_not_wait_for_nested_suspense;
+    test "text_before_nested_completed_suspense_keeps_separator" text_before_nested_completed_suspense_keeps_separator;
+    test "completed_suspense_does_not_wait_for_its_fallback" completed_suspense_does_not_wait_for_its_fallback;
     test "suspense_with_partial_children_in_shell" suspense_with_partial_children_in_shell;
     test "suspense_fallback_does_not_add_text_separator_after_boundary"
       suspense_fallback_does_not_add_text_separator_after_boundary;

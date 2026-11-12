@@ -1693,6 +1693,54 @@ let component_suspended_by_use_promise_is_retried () =
   Alcotest.(check bool) "tree context restored" true (!React.current_tree_context = React.Tree_context.empty);
   Lwt.return ()
 
+let use_promise_reuses_the_promise_of_the_earlier_call () =
+  let calls = ref 0 in
+  let app =
+    React.Upper_case_component
+      ( "ReadsNewPromise",
+        fun () ->
+          incr calls;
+          let call = !calls in
+          let promise =
+            if call > 3 then Lwt.return call
+            else
+              let%lwt () = Lwt.pause () in
+              Lwt.return call
+          in
+          React.createElement "span" [] [ React.int (React.Experimental.usePromise promise) ] )
+  in
+  let%lwt html, _subscribe = ReactServerDOM.render_html ~env:`Prod app in
+  let expected = "<span>1</span>" in
+  assert_string (String.sub html 0 (String.length expected)) expected;
+  Alcotest.(check int) "calls" 2 !calls;
+  Lwt.return ()
+
+let client_use_promise_reuses_the_promise_of_the_earlier_call () =
+  let calls = ref 0 in
+  let reads_new_promise =
+    React.Upper_case_component
+      ( "ReadsNewPromise",
+        fun () ->
+          incr calls;
+          let call = !calls in
+          let promise =
+            if call > 3 then Lwt.return call
+            else
+              let%lwt () = Lwt.pause () in
+              Lwt.return call
+          in
+          React.createElement "span" [] [ React.int (React.Experimental.usePromise promise) ] )
+  in
+  let app =
+    React.Client_component
+      { key = None; props = []; client = reads_new_promise; import_module = "./client.js"; import_name = "Client" }
+  in
+  let%lwt html, _subscribe = ReactServerDOM.render_html ~env:`Prod app in
+  let expected = "<span>1</span>" in
+  assert_string (String.sub html 0 (String.length expected)) expected;
+  Alcotest.(check int) "calls" 2 !calls;
+  Lwt.return ()
+
 let tests =
   [
     test "debug_adds_debug_info" debug_adds_debug_info;
@@ -1766,5 +1814,8 @@ let tests =
     test "immediate_boundary_title_is_hoisted_to_head" immediate_boundary_title_is_hoisted_to_head;
     test "flight_hints_emit_hint_rows" flight_hints_emit_hint_rows;
     test "flight_hints_inside_suspense_boundary" flight_hints_inside_suspense_boundary;
+    test "use_promise_reuses_the_promise_of_the_earlier_call" use_promise_reuses_the_promise_of_the_earlier_call;
+    test "client_use_promise_reuses_the_promise_of_the_earlier_call"
+      client_use_promise_reuses_the_promise_of_the_earlier_call;
     test "component_suspended_by_use_promise_is_retried" component_suspended_by_use_promise_is_retried;
   ]

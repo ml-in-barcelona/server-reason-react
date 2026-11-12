@@ -766,25 +766,25 @@ module Model = struct
             React.current_tree_context := saved_ctx;
             to_chunk (Error (env, exn_to_error exn))
           in
-          let rec retry () =
+          let rec retry replayed =
             React.reset_component_id_state saved_ctx;
-            match component () with
-            | element -> Lwt.return (to_chunk (Value (render element)))
-            | exception React.Suspend any_promise ->
+            match React.call_with_promise_replay replayed component with
+            | Ok element -> Lwt.return (to_chunk (Value (render element)))
+            | Error (any_promise, used) ->
                 React.current_tree_context := saved_ctx;
-                retry_after any_promise
+                retry_after any_promise used
             | exception exn -> Lwt.return (render_error exn)
-          and retry_after (React.Any_promise promise) =
+          and retry_after (React.Any_promise promise) used =
             try%lwt
               let%lwt _ = promise in
-              retry ()
+              retry used
             with exn -> Lwt.return (render_error exn)
           in
-          match component () with
-          | element -> render element
-          | exception React.Suspend any_promise ->
+          match React.call_with_promise_replay [] component with
+          | Ok element -> render element
+          | Error (any_promise, used) ->
               React.current_tree_context := saved_ctx;
-              let index = Stream.push_async (fun () -> retry_after any_promise) ~context in
+              let index = Stream.push_async (fun () -> retry_after any_promise used) ~context in
               `String (lazy_value index)
           | exception exn ->
               React.current_tree_context := saved_ctx;
@@ -948,21 +948,21 @@ module Model = struct
           Lwt.return (element_to_payload ~debug ~filter_stack_frame ?debug_info ~context ~to_chunk ~env ~site element)
       | Upper_case_component (name, component) ->
           let saved_ctx = !React.current_tree_context in
-          let rec render () =
+          let rec render replayed =
             React.reset_component_id_state saved_ctx;
-            match component () with
-            | element ->
+            match React.call_with_promise_replay replayed component with
+            | Ok element ->
                 let did_use_id = React.check_did_render_id_hook () in
                 if did_use_id then
                   React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
                 let%lwt payload = continue_with_debug ~name ~debug_info element in
                 React.current_tree_context := saved_ctx;
                 Lwt.return payload
-            | exception React.Suspend (Any_promise promise) -> (
+            | Error (Any_promise promise, used) -> (
                 React.current_tree_context := saved_ctx;
                 try%lwt
                   let%lwt _ = promise in
-                  render ()
+                  render used
                 with exn ->
                   React.current_tree_context := saved_ctx;
                   Lwt.reraise exn)
@@ -970,7 +970,7 @@ module Model = struct
                 React.current_tree_context := saved_ctx;
                 raise exn
           in
-          render ()
+          render []
       | Async_component (name, component) -> (
           let saved_ctx = !React.current_tree_context in
           React.reset_component_id_state saved_ctx;
@@ -1301,17 +1301,17 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Upper_case_component (_name, component) ->
       let saved_ctx = !React.current_tree_context in
       React.reset_component_id_state saved_ctx;
-      let rec wait_for_suspense_to_resolve () =
-        match component () with
-        | exception React.Suspend (Any_promise promise) ->
+      let rec wait_for_suspense_to_resolve replayed =
+        match React.call_with_promise_replay replayed component with
+        | Error (Any_promise promise, used) ->
             let%lwt _ = promise in
-            wait_for_suspense_to_resolve ()
+            wait_for_suspense_to_resolve used
         | exception exn ->
             (* Propagate like the Async_component branch below: a Suspense boundary above turns the error into a
                client-rendered boundary; without one the render fails. *)
             React.current_tree_context := saved_ctx;
             raise exn
-        | output ->
+        | Ok output ->
             let did_use_id = React.check_did_render_id_hook () in
             if did_use_id then
               React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
@@ -1319,7 +1319,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
             React.current_tree_context := saved_ctx;
             Lwt.return result
       in
-      wait_for_suspense_to_resolve ()
+      wait_for_suspense_to_resolve []
   | Async_component (_, component) -> (
       let saved_ctx = !React.current_tree_context in
       React.reset_component_id_state saved_ctx;
@@ -1442,20 +1442,22 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
   | Array arr -> elements_to_html ~fiber ~debug_info ~site:Dynamic_item (Array.to_list arr)
   | Upper_case_component (name, component) ->
       let saved_ctx = !React.current_tree_context in
-      let rec render () =
+      let rec render replayed =
         React.reset_component_id_state saved_ctx;
-        match component () with
-        | element ->
+        match React.call_with_promise_replay replayed component with
+        | Ok element ->
             let did_use_id = React.check_did_render_id_hook () in
             if did_use_id then
               React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
             continue_with_debug_html ~fiber ~name ~debug_info element
-        | exception React.Suspend (Any_promise promise) ->
+        | Error (Any_promise promise, used) ->
             React.current_tree_context := saved_ctx;
             let%lwt _ = promise in
-            render ()
+            render used
       in
-      Lwt.finalize render (fun () ->
+      Lwt.finalize
+        (fun () -> render [])
+        (fun () ->
           React.current_tree_context := saved_ctx;
           Lwt.return_unit)
   | Async_component (name, component) -> (
