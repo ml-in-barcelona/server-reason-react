@@ -400,7 +400,6 @@ type segment = {
   mutable slots : (int * slot) list;
   mutable previous_node_was_text : bool;
   mutable should_add_doctype : bool;
-  mutable starts_with_text : bool;
 }
 
 and slot = Resumed of segment | Boundary of boundary
@@ -427,7 +426,7 @@ and task_group = {
 type render_context = { segment : segment; tasks : task_group; providers : (unit -> unit -> unit) list }
 
 let make_segment ~previous_node_was_text ~should_add_doctype =
-  { buf = Buffer.create 128; slots = []; previous_node_was_text; should_add_doctype; starts_with_text = false }
+  { buf = Buffer.create 128; slots = []; previous_node_was_text; should_add_doctype }
 
 let make_task_group () = { pending = 0; cancelled = false; on_idle = ignore; on_error = ignore }
 let boundary_error_detail exn = Printexc.to_string exn ^ "\n" ^ Printexc.get_backtrace ()
@@ -621,8 +620,7 @@ let render_to_segment ~env ~stream_context =
     | Array arr -> render_array context arr
     | Lower_case_element { key = _; tag; attributes; children } -> render_lower_case context tag attributes children
     | (Text _ | Int _ | Float _) as text_node ->
-        if segment.previous_node_was_text then Buffer.add_string segment.buf "<!-- -->"
-        else if Buffer.length segment.buf = 0 && segment.slots = [] then segment.starts_with_text <- true;
+        if segment.previous_node_was_text then Buffer.add_string segment.buf "<!-- -->";
         segment.previous_node_was_text <- true;
         segment.should_add_doctype <- false;
         write_text_node segment.buf text_node
@@ -651,15 +649,13 @@ let render_to_segment ~env ~stream_context =
             boundary.content_tasks.cancelled <- true);
         match boundary.status with
         | Completed ->
-            if segment.previous_node_was_text && content.starts_with_text then Buffer.add_string segment.buf "<!-- -->"
-            else if Buffer.length segment.buf = 0 && segment.slots = [] then
-              segment.starts_with_text <- content.starts_with_text;
+            Buffer.add_string segment.buf "<!--$-->";
             let offset = Buffer.length segment.buf in
             Buffer.add_buffer segment.buf content.buf;
             segment.slots <- List.map (fun (position, slot) -> (offset + position, slot)) content.slots @ segment.slots;
-            if Buffer.length content.buf > 0 || content.slots <> [] then (
-              segment.previous_node_was_text <- content.previous_node_was_text;
-              segment.should_add_doctype <- content.should_add_doctype)
+            Buffer.add_string segment.buf "<!--/$-->";
+            segment.previous_node_was_text <- false;
+            segment.should_add_doctype <- content.should_add_doctype
         | Pending | Failed _ | Abandoned ->
             let parent_tasks = context.tasks in
             let fallback_tasks = boundary.fallback_tasks in
