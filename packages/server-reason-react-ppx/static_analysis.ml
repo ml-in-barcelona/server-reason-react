@@ -94,16 +94,13 @@ let extract_literal_bool expr =
 
 let extract_react_string_arg expr =
   match expr.pexp_desc with
-  | Pexp_apply
-      ({ pexp_desc = Pexp_ident { txt = Ldot (Lident "React", ("string" | "text")); _ }; _ }, [ (Nolabel, arg) ]) ->
+  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Ldot (Lident "React", "string"); _ }; _ }, [ (Nolabel, arg) ]) ->
       Some arg
-  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Lident ("string" | "text"); _ }; _ }, [ (Nolabel, arg) ]) -> Some arg
   | _ -> None
 
 let extract_react_int_arg expr =
   match expr.pexp_desc with
   | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Ldot (Lident "React", "int"); _ }; _ }, [ (Nolabel, arg) ]) -> Some arg
-  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Lident "int"; _ }; _ }, [ (Nolabel, arg) ]) -> Some arg
   | _ -> None
 
 let extract_react_text_literal expr =
