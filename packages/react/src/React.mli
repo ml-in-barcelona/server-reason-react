@@ -943,6 +943,12 @@ end
 
 val suspend : 'a Lwt.t -> unit
 
+val call_with_promise_replay : any_promise list -> (unit -> 'a) -> ('a, any_promise * any_promise list) result
+(** Used by the renderers. [call_with_promise_replay replayed component] calls [component]. Each
+    [Experimental.usePromise] call in it reads the promise at its call position in [replayed], when there is one, in
+    place of its argument. When [component] raises [Suspend promise], the result is [Error (promise, used)]: [used]
+    holds the promises that the [usePromise] calls read, in call order, to pass as [replayed] to the next call. *)
+
 module Experimental : sig
   type formAction
 

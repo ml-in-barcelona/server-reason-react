@@ -13,35 +13,35 @@ help: ## Print this help message
 
 .PHONY: build
 build: ## Build the project, including non installable libraries and executables
-	$(DUNE) build --profile=dev
+	$(DUNE) build --root . --profile=dev
 
 .PHONY: build-prod
 build-prod: ## Build for production (--profile=prod)
-	$(DUNE) build --profile=prod
+	$(DUNE) build --root . --profile=prod
 
 .PHONY: dev
 dev: ## Build in watch mode
-	$(DUNE) build -w --profile=dev
+	$(DUNE) build --root . -w --profile=dev
 
 .PHONY: clean
 clean: ## Clean artifacts
-	$(DUNE) clean
+	$(DUNE) clean --root .
 
 .PHONY: test
 test: ## Run the unit tests
-	$(DUNE) build @runtest
+	$(DUNE) build --root . @runtest
 
 .PHONY: check-react-compat
 check-react-compat: ## Check the native React interface against reason-react
-	$(DUNE) build --profile=react-compat packages/react/compat/react_compat.cma
+	$(DUNE) build --root . --profile=react-compat packages/react/compat/react_compat.cma
 
 .PHONY: test-watch
 test-watch: ## Run the unit tests in watch mode
-	$(DUNE) build @runtest -w
+	$(DUNE) build --root . @runtest -w
 
 .PHONY: test-promote
 test-promote: ## Updates snapshots and promotes it to correct
-	$(DUNE) build @runtest --auto-promote
+	$(DUNE) build --root . @runtest --auto-promote
 
 .PHONY: format
 format: ## Format the codebase with ocamlformat
@@ -74,23 +74,23 @@ init: setup-githooks create-switch install install-npm ## Create a local dev env
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests
-	$(DUNE) runtest packages/server-reason-react-ppx
+	$(DUNE) runtest --root . packages/server-reason-react-ppx
 
 .PHONY: ppx-test-watch
 ppx-test-watch: ## Run ppx tests in watch mode
-	$(DUNE) runtest packages/server-reason-react-ppx --watch
+	$(DUNE) runtest --root . packages/server-reason-react-ppx --watch
 
 .PHONY: ppx-test-promote
 ppx-test-promote: ## Promote ppx tests snapshots
-	$(DUNE) runtest packages/server-reason-react-ppx --auto-promote
+	$(DUNE) runtest --root . packages/server-reason-react-ppx --auto-promote
 
 .PHONY: demo-build
 demo-build: ## Build the project (client, server and universal)
-	$(DUNE) build --profile=dev @demo
+	$(DUNE) build --root . --profile=dev @demo
 
 .PHONY: demo-build-watch
 demo-build-watch: ## Watch demo (client, server and universal)
-	$(DUNE) build --profile=dev @demo --force --watch
+	$(DUNE) build --root . --profile=dev @demo --force --watch
 
 .PHONY: demo-serve
 demo-serve: demo-build ## Serve the demo executable
@@ -106,8 +106,8 @@ subst: ## Run dune substitute
 
 .PHONY: docs
 docs: ## Generate odoc documentation
-	$(DUNE) build @install
-	$(DUNE) exec -- odoc_driver server-reason-react --remap
+	$(DUNE) build --root . @install
+	$(DUNE) exec --root . -- odoc_driver server-reason-react --remap
 
 # Because if the hack above, we can't have watch mode
 .PHONY: docs-watch
@@ -124,50 +124,50 @@ docs-serve: docs docs-open ## Open odoc docs with default web browser
 
 .PHONY: build-bench
 build-bench: ## Build benchmark executables
-	$(DUNE) build --profile=release benchmark/bench.exe
+	$(DUNE) build --root . --profile=release benchmark/bench.exe
 
 .PHONY: bench
 bench: build-bench build-bench-router ## Run benchmarks
-	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory
-	@$(DUNE) exec benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory
+	@$(DUNE) exec --root . benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory
+	@$(DUNE) exec --root . benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory
 
 .PHONY: bench-json
 bench-json: build-bench build-bench-router ## Run benchmarks with JSON output for CI
-	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory -- --json > bench_results.core.json
-	@$(DUNE) exec benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory -- --json > bench_results.router.json
+	@$(DUNE) exec --root . benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory -- --json > bench_results.core.json
+	@$(DUNE) exec --root . benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory -- --json > bench_results.router.json
 	@node -e 'const fs = require("node:fs"); const results = process.argv.slice(1).flatMap(path => JSON.parse(fs.readFileSync(path))); process.stdout.write(JSON.stringify(results, null, 2) + "\n")' bench_results.core.json bench_results.router.json > bench_results.json
 	@rm bench_results.core.json bench_results.router.json
 
 .PHONY: bench-watch
 bench-watch: build-bench ## Run benchmark in watch mode
-	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory --watch
+	@$(DUNE) exec --root . benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory --watch
 
 .PHONY: build-bench-router
 build-bench-router: ## Build the router benchmark executable
-	$(DUNE) build --profile=release benchmark/router_bench.exe
+	$(DUNE) build --root . --profile=release benchmark/router_bench.exe
 
 .PHONY: bench-router
 bench-router: build-bench-router ## Run router matching and parsing benchmarks
-	@$(DUNE) exec benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory
+	@$(DUNE) exec --root . benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory
 
 .PHONY: bench-router-json
 bench-router-json: build-bench-router ## Run router benchmarks with JSON output
-	@$(DUNE) exec benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory -- --json
+	@$(DUNE) exec --root . benchmark/router_bench.exe --profile=release --display-separate-messages --no-print-directory -- --json
 
 .PHONY: bench-allocation
 bench-allocation: ## Run allocation analysis
-	@$(DUNE) exec benchmark/allocation.exe --profile=release
+	@$(DUNE) exec --root . benchmark/allocation.exe --profile=release
 
 flight_spec_dir = packages/reactDom/react_flight_spec
 
 .PHONY: test-flight-key-validation
 test-flight-key-validation: ## Test native Flight output in development and production Chromium (requires flight spec npm deps and Chromium)
-	$(DUNE) build $(flight_spec_dir)/key_validation/export_fixtures.exe
+	$(DUNE) build --root . $(flight_spec_dir)/key_validation/export_fixtures.exe
 	node $(flight_spec_dir)/key_validation/run.mjs
 
 .PHONY: spec-generate
 spec-generate: ## Regenerate React Flight fixtures from react-server-dom-webpack (requires `npm ci` in $(flight_spec_dir))
-	$(DUNE) build --profile=dev @$(flight_spec_dir)/melange
+	$(DUNE) build --root . --profile=dev @$(flight_spec_dir)/melange
 	cd $(flight_spec_dir) && NODE_ENV=production node --conditions react-server generate.mjs
 
 .PHONY: spec-generate-reply
@@ -176,7 +176,7 @@ spec-generate-reply: ## Regenerate React Flight reply fixtures from encodeReply 
 
 .PHONY: spec-check
 spec-check: ## Verify the committed React Flight fixtures (both directions) are up to date
-	$(DUNE) build --profile=dev @$(flight_spec_dir)/melange
+	$(DUNE) build --root . --profile=dev @$(flight_spec_dir)/melange
 	cd $(flight_spec_dir) && NODE_ENV=production node --conditions react-server generate.mjs --check
 	cd $(flight_spec_dir) && NODE_ENV=production node reply/generate-reply.mjs --check
 
