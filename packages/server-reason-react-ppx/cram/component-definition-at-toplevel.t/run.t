@@ -77,42 +77,44 @@
                          unsafeWhenNotZero "m" all;
                        ])
                 in
-                React.Writer
-                  {
-                    emit =
-                      (fun __buf ~separators:__separators ->
-                        Buffer.add_string __buf "<div";
-                        Buffer.add_char __buf ' ';
-                        Buffer.add_string __buf "class";
-                        Buffer.add_string __buf "=\"";
-                        ReactDOM.escape_to_buffer __buf (className : string);
-                        Buffer.add_char __buf '"';
-                        Buffer.add_string __buf ">";
-                        (let (_ : bool) =
-                           ReactDOM.write_element_to_buffer_internal __buf
-                             ~separators:__separators ~prev_text:false
-                             (match children with
-                             | None -> React.null
-                             | ((Some c) [@explicit_arity]) -> c)
-                         in
-                         ());
-                        Buffer.add_string __buf "</div>";
-                        ());
-                    original =
-                      (fun () ->
-                        React.createElement "div"
-                          (Stdlib.List.filter_map Stdlib.Fun.id
-                             [
-                               Some
-                                 (React.JSX.String
-                                    ("class", "className", (className : string)));
-                             ])
-                          [
-                            (match children with
-                            | None -> React.null
-                            | ((Some c) [@explicit_arity]) -> c);
-                          ]);
-                  } ))
+                (fun __jsx_value__001_ __jsx_value__002_ ->
+                  React.Writer
+                    {
+                      emit =
+                        (fun __buf ~separators:__separators ->
+                          Buffer.add_string __buf "<div";
+                          Buffer.add_char __buf ' ';
+                          Buffer.add_string __buf "class";
+                          Buffer.add_string __buf "=\"";
+                          ReactDOM.escape_to_buffer __buf
+                            (__jsx_value__001_ : string);
+                          Buffer.add_char __buf '"';
+                          Buffer.add_string __buf ">";
+                          (let (_ : bool) =
+                             ReactDOM.write_element_to_buffer_internal __buf
+                               ~separators:__separators ~prev_text:false
+                               __jsx_value__002_
+                           in
+                           ());
+                          Buffer.add_string __buf "</div>";
+                          ());
+                      original =
+                        (fun () ->
+                          React.createElement "div"
+                            (Stdlib.List.filter_map Stdlib.Fun.id
+                               [
+                                 Some
+                                   (React.JSX.String
+                                      ( "class",
+                                        "className",
+                                        (__jsx_value__001_ : string) ));
+                               ])
+                            [ __jsx_value__002_ ]);
+                    })
+                  className
+                  (match children with
+                  | None -> React.null
+                  | ((Some c) [@explicit_arity]) -> c) ))
           [@warning "-16"]
   
     let make ?(key : string option)
