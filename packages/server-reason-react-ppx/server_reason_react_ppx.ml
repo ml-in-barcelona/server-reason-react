@@ -605,7 +605,11 @@ let reject_repeated_props ~tag_name args =
       let jsx_name = get_label label in
       let name =
         match DomProps.findByJsxName ~tag:tag_name jsx_name with
-        | Ok (DomProps.Attribute { name; _ }) -> name
+        | Ok (DomProps.Attribute { name; _ }) ->
+            if String.contains name '\'' then
+              raise_errorf ~loc:expr.pexp_loc "server-reason-react: %s renders as the invalid DOM attribute name %S"
+                jsx_name name;
+            name
         | Ok (DomProps.Event { jsxName; _ }) -> jsxName
         | Error _ -> jsx_name
       in
