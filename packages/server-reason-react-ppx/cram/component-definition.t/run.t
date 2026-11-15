@@ -552,29 +552,32 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         React.Upper_case_component
           ( Stdlib.__FUNCTION__,
             fun () ->
-              React.Writer
-                {
-                  emit =
-                    (fun __buf ~separators:__separators ->
-                      Buffer.add_string __buf "<form method=\"GET\">";
-                      (let (_ : bool) =
-                         ReactDOM.write_element_to_buffer_internal __buf
-                           ~separators:__separators ~prev_text:false children
-                       in
-                       ());
-                      Buffer.add_string __buf "</form>";
-                      ());
-                  original =
-                    (fun () ->
-                      React.createElement "form"
-                        (Stdlib.List.filter_map Stdlib.Fun.id
-                           [
-                             Some
-                               (React.JSX.String
-                                  ("method", "method", ("GET" : string)));
-                           ])
-                        [ children ]);
-                } )
+              (fun __jsx_value__018_ ->
+                React.Writer
+                  {
+                    emit =
+                      (fun __buf ~separators:__separators ->
+                        Buffer.add_string __buf "<form method=\"GET\">";
+                        (let (_ : bool) =
+                           ReactDOM.write_element_to_buffer_internal __buf
+                             ~separators:__separators ~prev_text:false
+                             __jsx_value__018_
+                         in
+                         ());
+                        Buffer.add_string __buf "</form>";
+                        ());
+                    original =
+                      (fun () ->
+                        React.createElement "form"
+                          (Stdlib.List.filter_map Stdlib.Fun.id
+                             [
+                               Some
+                                 (React.JSX.String
+                                    ("method", "method", ("GET" : string)));
+                             ])
+                          [ __jsx_value__018_ ]);
+                  })
+                children )
   
       let make ?(key : string option) (Props : < children : 'children > Js.t) =
         make ?key ~children:Props#children ()
@@ -847,7 +850,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         React.Async_component
           ( Stdlib.__FUNCTION__,
             fun () ->
-              (fun __jsx_value__018_ ->
+              (fun __jsx_value__019_ ->
                 React.Writer
                   {
                     emit =
@@ -856,7 +859,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                         (let (_ : bool) =
                            ReactDOM.write_element_to_buffer_internal __buf
                              ~separators:__separators ~prev_text:false
-                             __jsx_value__018_
+                             __jsx_value__019_
                          in
                          ());
                         Buffer.add_string __buf "</div>";
@@ -872,7 +875,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                                       "className",
                                       ("async-component" : string) ));
                              ])
-                          [ __jsx_value__018_ ]);
+                          [ __jsx_value__019_ ]);
                   })
                 children )
   
@@ -916,19 +919,19 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               React.useEffect (fun () ->
                   setState lola;
                   None);
-              (fun __jsx_value__019_ ->
+              (fun __jsx_value__020_ ->
                 React.Writer
                   {
                     emit =
                       (fun __buf ~separators:_ ->
                         Buffer.add_string __buf "<div>";
-                        ReactDOM.escape_to_buffer __buf __jsx_value__019_;
+                        ReactDOM.escape_to_buffer __buf __jsx_value__020_;
                         Buffer.add_string __buf "</div>";
                         ());
                     original =
                       (fun () ->
                         React.createElement "div" []
-                          [ React.string __jsx_value__019_ ]);
+                          [ React.string __jsx_value__020_ ]);
                   })
                 state )
   
@@ -949,19 +952,19 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ( Stdlib.__FUNCTION__,
             fun () ->
               let captured = React.useContext Context.value in
-              (fun __jsx_value__020_ ->
+              (fun __jsx_value__021_ ->
                 React.Writer
                   {
                     emit =
                       (fun __buf ~separators:_ ->
                         Buffer.add_string __buf "<div>";
-                        ReactDOM.escape_to_buffer __buf __jsx_value__020_;
+                        ReactDOM.escape_to_buffer __buf __jsx_value__021_;
                         Buffer.add_string __buf "</div>";
                         ());
                     original =
                       (fun () ->
                         React.createElement "div" []
-                          [ React.string __jsx_value__020_ ]);
+                          [ React.string __jsx_value__021_ ]);
                   })
                 captured )
   
