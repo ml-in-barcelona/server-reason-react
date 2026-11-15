@@ -1,588 +1,442 @@
 Since we generate invalid syntax for the argument of the make fn `(Props : <>)`
 We need to output ML syntax here, otherwise refmt could not parse it.
   $ ../ppx.sh --output ml input.re
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          Buffer.add_char __buf ' ';
-          Buffer.add_string __buf "class";
-          Buffer.add_string __buf "=\"";
-          ReactDOM.escape_to_buffer __buf (CSS.className x : string);
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf " style=\"";
-          ReactDOM.escape_to_buffer __buf
-            (ReactDOM.Style.to_string (CSS.styles x : ReactDOM.Style.t));
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 Some
-                   (React.JSX.String
-                      ("class", "className", (CSS.className x : string)));
-                 Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
-               ])
-            []);
-    }
+  (fun __jsx_value__001_ __jsx_value__002_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            Buffer.add_char __buf ' ';
+            Buffer.add_string __buf "class";
+            Buffer.add_string __buf "=\"";
+            ReactDOM.escape_to_buffer __buf (__jsx_value__001_ : string);
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf " style=\"";
+            ReactDOM.escape_to_buffer __buf
+              (ReactDOM.Style.to_string (__jsx_value__002_ : ReactDOM.Style.t));
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   Some
+                     (React.JSX.String
+                        ("class", "className", (__jsx_value__001_ : string)));
+                   Some (React.JSX.Style (__jsx_value__002_ : ReactDOM.Style.t));
+                 ])
+              []);
+      })
+    (CSS.className x) (CSS.styles x)
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          (match
-             (match x with None -> None | Some x -> Some (CSS.className x)
-               : string option)
-           with
-          | None -> ()
-          | Some v ->
-              Buffer.add_char __buf ' ';
-              Buffer.add_string __buf "class";
-              Buffer.add_string __buf "=\"";
-              ReactDOM.escape_to_buffer __buf (v : string);
-              Buffer.add_char __buf '"');
-          (match
-             (match x with None -> None | Some x -> Some (CSS.styles x)
-               : ReactDOM.Style.t option)
-           with
-          | None -> ()
-          | Some v ->
-              Buffer.add_string __buf " style=\"";
-              ReactDOM.escape_to_buffer __buf
-                (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
-              Buffer.add_char __buf '"');
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 (match
-                    (match x with
-                     | None -> None
-                     | Some x -> Some (CSS.className x)
-                      : string option)
-                  with
-                 | None -> None
-                 | Some v -> Some (React.JSX.String ("class", "className", v)));
-                 (match
-                    (match x with None -> None | Some x -> Some (CSS.styles x)
-                      : ReactDOM.Style.t option)
-                  with
-                 | None -> None
-                 | Some v -> Some (React.JSX.Style v));
-               ])
-            []);
-    }
+  (fun __jsx_value__003_ __jsx_value__004_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            (match (__jsx_value__003_ : string option) with
+            | None -> ()
+            | Some v ->
+                Buffer.add_char __buf ' ';
+                Buffer.add_string __buf "class";
+                Buffer.add_string __buf "=\"";
+                ReactDOM.escape_to_buffer __buf (v : string);
+                Buffer.add_char __buf '"');
+            (match (__jsx_value__004_ : ReactDOM.Style.t option) with
+            | None -> ()
+            | Some v ->
+                Buffer.add_string __buf " style=\"";
+                ReactDOM.escape_to_buffer __buf
+                  (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
+                Buffer.add_char __buf '"');
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   (match (__jsx_value__003_ : string option) with
+                   | None -> None
+                   | Some v -> Some (React.JSX.String ("class", "className", v)));
+                   (match (__jsx_value__004_ : ReactDOM.Style.t option) with
+                   | None -> None
+                   | Some v -> Some (React.JSX.Style v));
+                 ])
+              []);
+      })
+    (match x with None -> None | Some x -> Some (CSS.className x))
+    (match x with None -> None | Some x -> Some (CSS.styles x))
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          Buffer.add_char __buf ' ';
-          Buffer.add_string __buf "class";
-          Buffer.add_string __buf "=\"";
-          ReactDOM.escape_to_buffer __buf
-            (CSS.className
-               (CSS.merge (CSS.make "lola" []) (CSS.make (CSS.className x) []))
-              : string);
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf " style=\"";
-          ReactDOM.escape_to_buffer __buf
-            (ReactDOM.Style.to_string (CSS.styles x : ReactDOM.Style.t));
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 Some
-                   (React.JSX.String
-                      ( "class",
-                        "className",
-                        (CSS.className
-                           (CSS.merge (CSS.make "lola" [])
-                              (CSS.make (CSS.className x) []))
-                          : string) ));
-                 Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
-               ])
-            []);
-    }
+  (fun __jsx_value__005_ __jsx_value__006_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            Buffer.add_char __buf ' ';
+            Buffer.add_string __buf "class";
+            Buffer.add_string __buf "=\"";
+            ReactDOM.escape_to_buffer __buf (__jsx_value__005_ : string);
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf " style=\"";
+            ReactDOM.escape_to_buffer __buf
+              (ReactDOM.Style.to_string (__jsx_value__006_ : ReactDOM.Style.t));
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   Some
+                     (React.JSX.String
+                        ("class", "className", (__jsx_value__005_ : string)));
+                   Some (React.JSX.Style (__jsx_value__006_ : ReactDOM.Style.t));
+                 ])
+              []);
+      })
+    (CSS.className
+       (CSS.merge (CSS.make "lola" []) (CSS.make (CSS.className x) [])))
+    (CSS.styles x)
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          Buffer.add_char __buf ' ';
-          Buffer.add_string __buf "class";
-          Buffer.add_string __buf "=\"";
-          ReactDOM.escape_to_buffer __buf (CSS.className x : string);
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf " style=\"";
-          ReactDOM.escape_to_buffer __buf
-            (ReactDOM.Style.to_string
-               (ReactDOM.Style.combine
-                  (("background-color", "backgroundColor", "gainsboro")
-                   :: ([] : (string * string * string) list)
-                    : ReactDOM.Style.t)
-                  (CSS.styles x)
-                 : ReactDOM.Style.t));
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 Some
-                   (React.JSX.String
-                      ("class", "className", (CSS.className x : string)));
-                 Some
-                   (React.JSX.Style
-                      (ReactDOM.Style.combine
-                         (("background-color", "backgroundColor", "gainsboro")
-                          :: ([] : (string * string * string) list)
-                           : ReactDOM.Style.t)
-                         (CSS.styles x)
-                        : ReactDOM.Style.t));
-               ])
-            []);
-    }
+  (fun __jsx_value__007_ __jsx_value__008_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            Buffer.add_char __buf ' ';
+            Buffer.add_string __buf "class";
+            Buffer.add_string __buf "=\"";
+            ReactDOM.escape_to_buffer __buf (__jsx_value__007_ : string);
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf " style=\"";
+            ReactDOM.escape_to_buffer __buf
+              (ReactDOM.Style.to_string (__jsx_value__008_ : ReactDOM.Style.t));
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   Some
+                     (React.JSX.String
+                        ("class", "className", (__jsx_value__007_ : string)));
+                   Some (React.JSX.Style (__jsx_value__008_ : ReactDOM.Style.t));
+                 ])
+              []);
+      })
+    (CSS.className x)
+    (ReactDOM.Style.combine
+       (("background-color", "backgroundColor", "gainsboro")
+        :: ([] : (string * string * string) list)
+         : ReactDOM.Style.t)
+       (CSS.styles x))
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          Buffer.add_char __buf ' ';
-          Buffer.add_string __buf "class";
-          Buffer.add_string __buf "=\"";
-          ReactDOM.escape_to_buffer __buf
-            (CSS.className
-               (CSS.merge (CSS.make "lola" []) (CSS.make (CSS.className x) []))
-              : string);
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf " style=\"";
-          ReactDOM.escape_to_buffer __buf
-            (ReactDOM.Style.to_string
-               (ReactDOM.Style.combine
-                  (("background-color", "backgroundColor", "gainsboro")
-                   :: ([] : (string * string * string) list)
-                    : ReactDOM.Style.t)
-                  (CSS.styles x)
-                 : ReactDOM.Style.t));
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 Some
-                   (React.JSX.String
-                      ( "class",
-                        "className",
-                        (CSS.className
-                           (CSS.merge (CSS.make "lola" [])
-                              (CSS.make (CSS.className x) []))
-                          : string) ));
-                 Some
-                   (React.JSX.Style
-                      (ReactDOM.Style.combine
-                         (("background-color", "backgroundColor", "gainsboro")
-                          :: ([] : (string * string * string) list)
-                           : ReactDOM.Style.t)
-                         (CSS.styles x)
-                        : ReactDOM.Style.t));
-               ])
-            []);
-    }
+  (fun __jsx_value__009_ __jsx_value__010_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            Buffer.add_char __buf ' ';
+            Buffer.add_string __buf "class";
+            Buffer.add_string __buf "=\"";
+            ReactDOM.escape_to_buffer __buf (__jsx_value__009_ : string);
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf " style=\"";
+            ReactDOM.escape_to_buffer __buf
+              (ReactDOM.Style.to_string (__jsx_value__010_ : ReactDOM.Style.t));
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   Some
+                     (React.JSX.String
+                        ("class", "className", (__jsx_value__009_ : string)));
+                   Some (React.JSX.Style (__jsx_value__010_ : ReactDOM.Style.t));
+                 ])
+              []);
+      })
+    (CSS.className
+       (CSS.merge (CSS.make "lola" []) (CSS.make (CSS.className x) [])))
+    (ReactDOM.Style.combine
+       (("background-color", "backgroundColor", "gainsboro")
+        :: ([] : (string * string * string) list)
+         : ReactDOM.Style.t)
+       (CSS.styles x))
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          Buffer.add_char __buf ' ';
-          Buffer.add_string __buf "class";
-          Buffer.add_string __buf "=\"";
-          ReactDOM.escape_to_buffer __buf
-            (let __existing = "lola" in
-             match
-               match x with None -> None | Some x -> Some (CSS.className x)
-             with
-             | None -> __existing
-             | Some __incoming ->
-                 CSS.className
-                   (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))
-              : string);
-          Buffer.add_char __buf '"';
-          (match
-             (match x with None -> None | Some x -> Some (CSS.styles x)
-               : ReactDOM.Style.t option)
-           with
-          | None -> ()
-          | Some v ->
-              Buffer.add_string __buf " style=\"";
-              ReactDOM.escape_to_buffer __buf
-                (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
-              Buffer.add_char __buf '"');
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 Some
-                   (React.JSX.String
-                      ( "class",
-                        "className",
-                        (let __existing = "lola" in
-                         match
-                           match x with
-                           | None -> None
-                           | Some x -> Some (CSS.className x)
-                         with
-                         | None -> __existing
-                         | Some __incoming ->
-                             CSS.className
-                               (CSS.merge (CSS.make __existing [])
-                                  (CSS.make __incoming []))
-                          : string) ));
-                 (match
-                    (match x with None -> None | Some x -> Some (CSS.styles x)
-                      : ReactDOM.Style.t option)
-                  with
-                 | None -> None
-                 | Some v -> Some (React.JSX.Style v));
-               ])
-            []);
-    }
+  (fun __jsx_value__011_ __jsx_value__012_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            Buffer.add_char __buf ' ';
+            Buffer.add_string __buf "class";
+            Buffer.add_string __buf "=\"";
+            ReactDOM.escape_to_buffer __buf (__jsx_value__011_ : string);
+            Buffer.add_char __buf '"';
+            (match (__jsx_value__012_ : ReactDOM.Style.t option) with
+            | None -> ()
+            | Some v ->
+                Buffer.add_string __buf " style=\"";
+                ReactDOM.escape_to_buffer __buf
+                  (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
+                Buffer.add_char __buf '"');
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   Some
+                     (React.JSX.String
+                        ("class", "className", (__jsx_value__011_ : string)));
+                   (match (__jsx_value__012_ : ReactDOM.Style.t option) with
+                   | None -> None
+                   | Some v -> Some (React.JSX.Style v));
+                 ])
+              []);
+      })
+    (let __existing = "lola" in
+     match match x with None -> None | Some x -> Some (CSS.className x) with
+     | None -> __existing
+     | Some __incoming ->
+         CSS.className
+           (CSS.merge (CSS.make __existing []) (CSS.make __incoming [])))
+    (match x with None -> None | Some x -> Some (CSS.styles x))
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          (match
-             (match x with None -> None | Some x -> Some (CSS.className x)
-               : string option)
-           with
-          | None -> ()
-          | Some v ->
-              Buffer.add_char __buf ' ';
-              Buffer.add_string __buf "class";
-              Buffer.add_string __buf "=\"";
-              ReactDOM.escape_to_buffer __buf (v : string);
-              Buffer.add_char __buf '"');
-          Buffer.add_string __buf " style=\"";
-          ReactDOM.escape_to_buffer __buf
-            (ReactDOM.Style.to_string
-               (let __existing =
-                  (("background-color", "backgroundColor", "gainsboro")
-                   :: ([] : (string * string * string) list)
-                    : ReactDOM.Style.t)
-                in
-                match
-                  match x with None -> None | Some x -> Some (CSS.styles x)
-                with
-                | None -> __existing
-                | Some __incoming -> ReactDOM.Style.combine __existing __incoming
-                 : ReactDOM.Style.t));
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 (match
-                    (match x with
-                     | None -> None
-                     | Some x -> Some (CSS.className x)
-                      : string option)
-                  with
-                 | None -> None
-                 | Some v -> Some (React.JSX.String ("class", "className", v)));
-                 Some
-                   (React.JSX.Style
-                      (let __existing =
-                         (("background-color", "backgroundColor", "gainsboro")
-                          :: ([] : (string * string * string) list)
-                           : ReactDOM.Style.t)
-                       in
-                       match
-                         match x with
-                         | None -> None
-                         | Some x -> Some (CSS.styles x)
-                       with
-                       | None -> __existing
-                       | Some __incoming ->
-                           ReactDOM.Style.combine __existing __incoming
-                        : ReactDOM.Style.t));
-               ])
-            []);
-    }
+  (fun __jsx_value__013_ __jsx_value__014_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            (match (__jsx_value__013_ : string option) with
+            | None -> ()
+            | Some v ->
+                Buffer.add_char __buf ' ';
+                Buffer.add_string __buf "class";
+                Buffer.add_string __buf "=\"";
+                ReactDOM.escape_to_buffer __buf (v : string);
+                Buffer.add_char __buf '"');
+            Buffer.add_string __buf " style=\"";
+            ReactDOM.escape_to_buffer __buf
+              (ReactDOM.Style.to_string (__jsx_value__014_ : ReactDOM.Style.t));
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   (match (__jsx_value__013_ : string option) with
+                   | None -> None
+                   | Some v -> Some (React.JSX.String ("class", "className", v)));
+                   Some (React.JSX.Style (__jsx_value__014_ : ReactDOM.Style.t));
+                 ])
+              []);
+      })
+    (match x with None -> None | Some x -> Some (CSS.className x))
+    (let __existing =
+       (("background-color", "backgroundColor", "gainsboro")
+        :: ([] : (string * string * string) list)
+         : ReactDOM.Style.t)
+     in
+     match match x with None -> None | Some x -> Some (CSS.styles x) with
+     | None -> __existing
+     | Some __incoming -> ReactDOM.Style.combine __existing __incoming)
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          Buffer.add_char __buf ' ';
-          Buffer.add_string __buf "class";
-          Buffer.add_string __buf "=\"";
-          ReactDOM.escape_to_buffer __buf
-            (let __existing = "lola" in
-             match
-               match x with None -> None | Some x -> Some (CSS.className x)
-             with
-             | None -> __existing
-             | Some __incoming ->
-                 CSS.className
-                   (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))
-              : string);
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf " style=\"";
-          ReactDOM.escape_to_buffer __buf
-            (ReactDOM.Style.to_string
-               (let __existing =
-                  (("background-color", "backgroundColor", "gainsboro")
-                   :: ([] : (string * string * string) list)
-                    : ReactDOM.Style.t)
-                in
-                match
-                  match x with None -> None | Some x -> Some (CSS.styles x)
-                with
-                | None -> __existing
-                | Some __incoming -> ReactDOM.Style.combine __existing __incoming
-                 : ReactDOM.Style.t));
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 Some
-                   (React.JSX.String
-                      ( "class",
-                        "className",
-                        (let __existing = "lola" in
-                         match
-                           match x with
-                           | None -> None
-                           | Some x -> Some (CSS.className x)
-                         with
-                         | None -> __existing
-                         | Some __incoming ->
-                             CSS.className
-                               (CSS.merge (CSS.make __existing [])
-                                  (CSS.make __incoming []))
-                          : string) ));
-                 Some
-                   (React.JSX.Style
-                      (let __existing =
-                         (("background-color", "backgroundColor", "gainsboro")
-                          :: ([] : (string * string * string) list)
-                           : ReactDOM.Style.t)
-                       in
-                       match
-                         match x with
-                         | None -> None
-                         | Some x -> Some (CSS.styles x)
-                       with
-                       | None -> __existing
-                       | Some __incoming ->
-                           ReactDOM.Style.combine __existing __incoming
-                        : ReactDOM.Style.t));
-               ])
-            []);
-    }
+  (fun __jsx_value__015_ __jsx_value__016_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            Buffer.add_char __buf ' ';
+            Buffer.add_string __buf "class";
+            Buffer.add_string __buf "=\"";
+            ReactDOM.escape_to_buffer __buf (__jsx_value__015_ : string);
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf " style=\"";
+            ReactDOM.escape_to_buffer __buf
+              (ReactDOM.Style.to_string (__jsx_value__016_ : ReactDOM.Style.t));
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   Some
+                     (React.JSX.String
+                        ("class", "className", (__jsx_value__015_ : string)));
+                   Some (React.JSX.Style (__jsx_value__016_ : ReactDOM.Style.t));
+                 ])
+              []);
+      })
+    (let __existing = "lola" in
+     match match x with None -> None | Some x -> Some (CSS.className x) with
+     | None -> __existing
+     | Some __incoming ->
+         CSS.className
+           (CSS.merge (CSS.make __existing []) (CSS.make __incoming [])))
+    (let __existing =
+       (("background-color", "backgroundColor", "gainsboro")
+        :: ([] : (string * string * string) list)
+         : ReactDOM.Style.t)
+     in
+     match match x with None -> None | Some x -> Some (CSS.styles x) with
+     | None -> __existing
+     | Some __incoming -> ReactDOM.Style.combine __existing __incoming)
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          Buffer.add_char __buf ' ';
-          Buffer.add_string __buf "class";
-          Buffer.add_string __buf "=\"";
-          ReactDOM.escape_to_buffer __buf
-            (let __incoming = CSS.className x in
-             match className with
-             | None -> __incoming
-             | Some __existing ->
-                 CSS.className
-                   (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))
-              : string);
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf " style=\"";
-          ReactDOM.escape_to_buffer __buf
-            (ReactDOM.Style.to_string (CSS.styles x : ReactDOM.Style.t));
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 Some
-                   (React.JSX.String
-                      ( "class",
-                        "className",
-                        (let __incoming = CSS.className x in
-                         match className with
-                         | None -> __incoming
-                         | Some __existing ->
-                             CSS.className
-                               (CSS.merge (CSS.make __existing [])
-                                  (CSS.make __incoming []))
-                          : string) ));
-                 Some (React.JSX.Style (CSS.styles x : ReactDOM.Style.t));
-               ])
-            []);
-    }
+  (fun __jsx_value__017_ __jsx_value__018_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            Buffer.add_char __buf ' ';
+            Buffer.add_string __buf "class";
+            Buffer.add_string __buf "=\"";
+            ReactDOM.escape_to_buffer __buf (__jsx_value__017_ : string);
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf " style=\"";
+            ReactDOM.escape_to_buffer __buf
+              (ReactDOM.Style.to_string (__jsx_value__018_ : ReactDOM.Style.t));
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   Some
+                     (React.JSX.String
+                        ("class", "className", (__jsx_value__017_ : string)));
+                   Some (React.JSX.Style (__jsx_value__018_ : ReactDOM.Style.t));
+                 ])
+              []);
+      })
+    (let __incoming = CSS.className x in
+     match className with
+     | None -> __incoming
+     | Some __existing ->
+         CSS.className
+           (CSS.merge (CSS.make __existing []) (CSS.make __incoming [])))
+    (CSS.styles x)
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          Buffer.add_char __buf ' ';
-          Buffer.add_string __buf "class";
-          Buffer.add_string __buf "=\"";
-          ReactDOM.escape_to_buffer __buf (CSS.className x : string);
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf " style=\"";
-          ReactDOM.escape_to_buffer __buf
-            (ReactDOM.Style.to_string
-               (let __incoming = CSS.styles x in
-                match style with
-                | None -> __incoming
-                | Some __existing -> ReactDOM.Style.combine __existing __incoming
-                 : ReactDOM.Style.t));
-          Buffer.add_char __buf '"';
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 Some
-                   (React.JSX.String
-                      ("class", "className", (CSS.className x : string)));
-                 Some
-                   (React.JSX.Style
-                      (let __incoming = CSS.styles x in
-                       match style with
-                       | None -> __incoming
-                       | Some __existing ->
-                           ReactDOM.Style.combine __existing __incoming
-                        : ReactDOM.Style.t));
-               ])
-            []);
-    }
+  (fun __jsx_value__019_ __jsx_value__020_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            Buffer.add_char __buf ' ';
+            Buffer.add_string __buf "class";
+            Buffer.add_string __buf "=\"";
+            ReactDOM.escape_to_buffer __buf (__jsx_value__019_ : string);
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf " style=\"";
+            ReactDOM.escape_to_buffer __buf
+              (ReactDOM.Style.to_string (__jsx_value__020_ : ReactDOM.Style.t));
+            Buffer.add_char __buf '"';
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   Some
+                     (React.JSX.String
+                        ("class", "className", (__jsx_value__019_ : string)));
+                   Some (React.JSX.Style (__jsx_value__020_ : ReactDOM.Style.t));
+                 ])
+              []);
+      })
+    (CSS.className x)
+    (let __incoming = CSS.styles x in
+     match style with
+     | None -> __incoming
+     | Some __existing -> ReactDOM.Style.combine __existing __incoming)
   ;;
   
-  React.Writer
-    {
-      emit =
-        (fun __buf ~separators:_ ->
-          Buffer.add_string __buf "<div";
-          (match
-             (match
-                ( (match x with None -> None | Some x -> Some (CSS.className x)),
-                  className )
-              with
-              | None, None -> None
-              | Some __incoming, None -> Some __incoming
-              | None, Some __existing -> Some __existing
-              | Some __incoming, Some __existing ->
-                  Some
-                    (CSS.className
-                       (CSS.merge (CSS.make __existing [])
-                          (CSS.make __incoming [])))
-               : string option)
-           with
-          | None -> ()
-          | Some v ->
-              Buffer.add_char __buf ' ';
-              Buffer.add_string __buf "class";
-              Buffer.add_string __buf "=\"";
-              ReactDOM.escape_to_buffer __buf (v : string);
-              Buffer.add_char __buf '"');
-          (match
-             (match x with None -> None | Some x -> Some (CSS.styles x)
-               : ReactDOM.Style.t option)
-           with
-          | None -> ()
-          | Some v ->
-              Buffer.add_string __buf " style=\"";
-              ReactDOM.escape_to_buffer __buf
-                (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
-              Buffer.add_char __buf '"');
-          Buffer.add_string __buf "></div>";
-          ());
-      original =
-        (fun () ->
-          React.createElement "div"
-            (Stdlib.List.filter_map Stdlib.Fun.id
-               [
-                 (match
-                    (match
-                       ( (match x with
-                         | None -> None
-                         | Some x -> Some (CSS.className x)),
-                         className )
-                     with
-                     | None, None -> None
-                     | Some __incoming, None -> Some __incoming
-                     | None, Some __existing -> Some __existing
-                     | Some __incoming, Some __existing ->
-                         Some
-                           (CSS.className
-                              (CSS.merge (CSS.make __existing [])
-                                 (CSS.make __incoming [])))
-                      : string option)
-                  with
-                 | None -> None
-                 | Some v -> Some (React.JSX.String ("class", "className", v)));
-                 (match
-                    (match x with None -> None | Some x -> Some (CSS.styles x)
-                      : ReactDOM.Style.t option)
-                  with
-                 | None -> None
-                 | Some v -> Some (React.JSX.Style v));
-               ])
-            []);
-    }
+  (fun __jsx_value__021_ __jsx_value__022_ ->
+    React.Writer
+      {
+        emit =
+          (fun __buf ~separators:_ ->
+            Buffer.add_string __buf "<div";
+            (match (__jsx_value__021_ : string option) with
+            | None -> ()
+            | Some v ->
+                Buffer.add_char __buf ' ';
+                Buffer.add_string __buf "class";
+                Buffer.add_string __buf "=\"";
+                ReactDOM.escape_to_buffer __buf (v : string);
+                Buffer.add_char __buf '"');
+            (match (__jsx_value__022_ : ReactDOM.Style.t option) with
+            | None -> ()
+            | Some v ->
+                Buffer.add_string __buf " style=\"";
+                ReactDOM.escape_to_buffer __buf
+                  (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
+                Buffer.add_char __buf '"');
+            Buffer.add_string __buf "></div>";
+            ());
+        original =
+          (fun () ->
+            React.createElement "div"
+              (Stdlib.List.filter_map Stdlib.Fun.id
+                 [
+                   (match (__jsx_value__021_ : string option) with
+                   | None -> None
+                   | Some v -> Some (React.JSX.String ("class", "className", v)));
+                   (match (__jsx_value__022_ : ReactDOM.Style.t option) with
+                   | None -> None
+                   | Some v -> Some (React.JSX.Style v));
+                 ])
+              []);
+      })
+    (match
+       ( (match x with None -> None | Some x -> Some (CSS.className x)),
+         className )
+     with
+    | None, None -> None
+    | Some __incoming, None -> Some __incoming
+    | None, Some __existing -> Some __existing
+    | Some __incoming, Some __existing ->
+        Some
+          (CSS.className
+             (CSS.merge (CSS.make __existing []) (CSS.make __incoming []))))
+    (match x with None -> None | Some x -> Some (CSS.styles x))
   ;;
   
   Foo.Bar.make (Foo.Bar.makeProps ~styles:x ());;

@@ -27,6 +27,8 @@
   Router.Note.destination
   RouterServer.Execution.redirect
   activeRoutes:[]
+  $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -A2 'id:"Asset"' | tr -d ' ~\n' | grep -Eo 'activeRoutes:\[(\("[A-Za-z]+",\[[^]]*\]\);?)*\]'
+  activeRoutes:[("Asset",["parts"])]
   $ ocamlc -c RouterRuntime.ml
   $ ocamlc -c Js.ml
   $ ocamlc -c React.ml
