@@ -30,6 +30,9 @@ module Search = struct
 
   let parseString value = Ok value
 
+  let parseInt value =
+    match int_of_string_opt value with Some value -> Ok value | None -> Error "expected an integer"
+
   let parseBool value =
     match bool_of_string_opt value with Some value -> Ok value | None -> Error "expected true or false"
 end
