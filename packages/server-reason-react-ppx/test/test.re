@@ -127,6 +127,103 @@ let style_attribute_escaping_dynamic = () => {
   );
 };
 
+let writer_captures_props = () => {
+  let value = ref("before");
+  let optional = ref(Some("optional"));
+  let absent = ref(None);
+  let count = ref(1);
+  let hidden = ref(true);
+  let style = ref(ReactDOM.Style.make(~color="red", ()));
+  let element =
+    <div
+      dataState=value^
+      title=?optional^
+      id=?absent^
+      tabIndex=count^
+      hidden=hidden^
+      contentEditable=hidden^
+      style=style^
+    />;
+  value := "after";
+  optional := None;
+  absent := Some("late");
+  count := 2;
+  hidden := false;
+  style := ReactDOM.Style.make(~color="blue", ());
+  let expected = {|<div style="color:red" data-state="before" title="optional" tabindex="1" hidden contenteditable="true"></div>|};
+  assert_string(ReactDOM.renderToStaticMarkup(element), expected);
+  assert_string(ReactDOM.renderToString(element), expected);
+  assert_string(
+    ReactDOM.renderToStaticMarkup(React.cloneElement(element, [])),
+    expected,
+  );
+  switch (element) {
+  | React.Writer({ original, _ }) =>
+    assert_string(ReactDOM.renderToStaticMarkup(original()), expected);
+    assert_string(ReactDOM.renderToStaticMarkup(original()), expected);
+  | _ => Alcotest.fail("expected a Writer")
+  };
+};
+
+let writer_evaluates_inputs_once = () => {
+  let calls = ref(0);
+  let capture = value => {
+    incr(calls);
+    value;
+  };
+  let element =
+    <div
+      key={capture("key")}
+      dataState=(capture("value"): string)
+      onClick={capture(_event => ())}
+      suppressHydrationWarning={capture(true)}>
+      {React.string(capture("text"): string)}
+      {React.int(capture(1): int)}
+      {capture(<span />)}
+    </div>;
+  let check_calls = () =>
+    Alcotest.check(Alcotest.int, "inputs evaluated once", 7, calls^);
+  check_calls();
+  let expected = {|<div data-state="value">text1<span></span></div>|};
+  assert_string(ReactDOM.renderToStaticMarkup(element), expected);
+  assert_string(ReactDOM.renderToStaticMarkup(element), expected);
+  assert_string(
+    ReactDOM.renderToStaticMarkup(React.cloneElement(element, [])),
+    expected,
+  );
+  switch (element) {
+  | React.Writer({ original, _ }) =>
+    assert_string(ReactDOM.renderToStaticMarkup(original()), expected);
+    assert_string(ReactDOM.renderToStaticMarkup(original()), expected);
+  | _ => Alcotest.fail("expected a Writer")
+  };
+  check_calls();
+};
+
+let writer_raises_when_constructed = () => {
+  Alcotest.check_raises("prop exception", Failure("prop"), () =>
+    ignore(<div dataState={failwith("prop")} />)
+  );
+  Alcotest.check_raises("child exception", Failure("child"), () =>
+    ignore(<div> {React.string(failwith("child"))} </div>)
+  );
+};
+
+let writer_capture_avoids_generated_names = () => {
+  let __buf = "value";
+  let __separators = true;
+  let __prev_text = "text";
+  let element =
+    <div dataState=__buf hidden=__separators>
+      React.null
+      {React.string(__prev_text)}
+    </div>;
+  assert_string(
+    ReactDOM.renderToString(element),
+    {|<div data-state="value" hidden>text</div>|},
+  );
+};
+
 let ref_attribute = () => {
   let div = <div />;
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
@@ -1327,6 +1424,13 @@ Alcotest_lwt.run(
     test(
       "style_attribute_escaping_dynamic",
       style_attribute_escaping_dynamic,
+    ),
+    test("writer_captures_props", writer_captures_props),
+    test("writer_evaluates_inputs_once", writer_evaluates_inputs_once),
+    test("writer_raises_when_constructed", writer_raises_when_constructed),
+    test(
+      "writer_capture_avoids_generated_names",
+      writer_capture_avoids_generated_names,
     ),
     test("ref_attribute", ref_attribute),
     test("link_as_attribute", link_as_attribute),
