@@ -105,8 +105,8 @@ let type_of_name ~loc name = Ast_builder.Default.ptyp_constr ~loc { txt = Longid
 
 let to_string_of_type ~loc name =
   match String.split_on_char '.' name with
-  | [ "bool" ] -> Longident.Lident "string_of_bool"
-  | [ "int" ] -> Longident.Lident "string_of_int"
+  | [ "bool" ] -> Longident.Ldot (Lident "Stdlib", "string_of_bool")
+  | [ "int" ] -> Longident.Ldot (Lident "Stdlib", "string_of_int")
   | [ "string" ] -> Longident.parse "Fun.id"
   | parts -> (
       match List.rev parts with
@@ -399,13 +399,14 @@ let generated_labels =
     "download";
     "error";
     "fallback";
+    "history";
     "href";
     "input";
     "item";
     "make";
-    "options";
     "pattern";
     "registry";
+    "revalidate";
     "search";
     "target";
     "updateSearch";

@@ -605,7 +605,11 @@ let reject_repeated_props ~tag_name args =
       let jsx_name = get_label label in
       let name =
         match DomProps.findByJsxName ~tag:tag_name jsx_name with
-        | Ok (DomProps.Attribute { name; _ }) -> name
+        | Ok (DomProps.Attribute { name; _ }) ->
+            if String.contains name '\'' then
+              raise_errorf ~loc:expr.pexp_loc "server-reason-react: %s renders as the invalid DOM attribute name %S"
+                jsx_name name;
+            name
         | Ok (DomProps.Event { jsxName; _ }) -> jsxName
         | Error _ -> jsx_name
       in
@@ -618,33 +622,91 @@ let reject_repeated_props ~tag_name args =
           raise_errorf ~loc:expr.pexp_loc "server-reason-react: %s and %s both render as the attribute %s" jsx_name
             first name)
 
+let capture_writer_values ~loc args children parts =
+  let captures = ref [] in
+  let capture expr =
+    match (Static_analysis.strip_constraint expr).pexp_desc with
+    | Pexp_constant _ | Pexp_construct (_, None) -> expr
+    | _ ->
+        let name = gen_symbol ~prefix:"__jsx_value" () in
+        let value = evar ~loc:expr.pexp_loc name in
+        captures := (expr, name, value) :: !captures;
+        value
+  in
+  let args = List.map args ~f:(fun (label, expr) -> (label, capture expr)) in
+  let children =
+    Option.map
+      (List.map ~f:(fun child ->
+           match Static_analysis.analyze_child child with
+           | Static_analysis.Static_str _ -> child
+           | Dynamic_string expr | Dynamic_int expr -> (
+               let value = capture expr in
+               match child.pexp_desc with
+               | Pexp_apply (fn, _) -> { child with pexp_desc = Pexp_apply (fn, [ (Nolabel, value) ]) }
+               | _ -> assert false)
+           | Dynamic_element expr -> capture expr
+           | Dynamic_attr_slot _ -> assert false))
+      children
+  in
+  let captured expr =
+    match List.find_opt !captures ~f:(fun (original, _, _) -> original == expr) with
+    | Some (_, _, value) -> value
+    | None -> expr
+  in
+  let parts =
+    List.map parts ~f:(function
+      | Static_analysis.Static_str _ as part -> part
+      | Dynamic_string expr -> Dynamic_string (captured expr)
+      | Dynamic_int expr -> Dynamic_int (captured expr)
+      | Dynamic_element expr -> Dynamic_element (captured expr)
+      | Dynamic_attr_slot slot -> Dynamic_attr_slot { slot with expr = captured slot.expr })
+  in
+  let bind body =
+    let captures = List.rev !captures in
+    match captures with
+    | [] -> body
+    | _ ->
+        (* Function parameters preserve the expected types of prop expressions,
+           including option constructors shadowed in the caller's scope. *)
+        let fn =
+          List.fold_right captures ~init:body ~f:(fun (_, name, _) body ->
+              pexp_fun ~loc Nolabel None (pvar ~loc name) body)
+        in
+        pexp_apply ~loc fn (List.map captures ~f:(fun (expr, _, _) -> (Nolabel, expr)))
+  in
+  (args, children, parts, bind)
+
 let rewrite_lowercase ~loc tag_name args children =
   reject_repeated_props ~tag_name args;
-  let key =
-    args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
+  let original args children =
+    let key =
+      args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
+    in
+    let props = transform_lowercase_props ~loc ~tag_name args in
+    generate_create_element ~loc ~tag_name ~key ~props ~children
   in
-  let props = transform_lowercase_props ~loc ~tag_name args in
   match Static_analysis.analyze_element ~tag_name ~attrs:args ~children with
   | Static_analysis.Fully_static html ->
       let html_with_doctype = Static_analysis.maybe_add_doctype tag_name html in
       let html_expr = estring ~loc html_with_doctype in
-      let original = generate_create_element ~loc ~tag_name ~key ~props ~children in
+      let original = original args children in
       [%expr React.Static { prerendered = [%e html_expr]; original = [%e original] }]
   | Static_analysis.Needs_buffer parts ->
       (* Emit a [Buffer.t -> separators:bool -> unit] that writes directly into the caller's
          buffer. Avoids the N-per-subtree [Buffer.create] + [Buffer.contents]
          that a [Static] wrapping would cost.
 
-         [original] is a thunk that rebuilds the variant-tree on demand for
-         [cloneElement] / RSC; zero-alloc unless called. *)
+         [original] rebuilds the variant-tree on demand for [cloneElement] / RSC,
+         sharing the values captured when the Writer was constructed. *)
+      let args, children, parts, bind = capture_writer_values ~loc args children parts in
       let parts_with_doctype =
         match tag_name with "html" -> Static_analysis.static_markup "<!DOCTYPE html>" :: parts | _ -> parts
       in
       let emit_fn = emit_parts_emit_fn ~loc parts_with_doctype in
-      let original_tree = generate_create_element ~loc ~tag_name ~key ~props ~children in
+      let original_tree = original args children in
       let original_thunk = [%expr fun () -> [%e original_tree]] in
-      [%expr React.Writer { emit = [%e emit_fn]; original = [%e original_thunk] }]
-  | Static_analysis.Cannot_optimize -> generate_create_element ~loc ~tag_name ~key ~props ~children
+      bind [%expr React.Writer { emit = [%e emit_fn]; original = [%e original_thunk] }]
+  | Static_analysis.Cannot_optimize -> original args children
 
 let split_args args =
   let children = ref (Location.none, []) in

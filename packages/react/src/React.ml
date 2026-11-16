@@ -1046,10 +1046,45 @@ exception Suspend of any_promise
 
 let suspend promise = raise (Suspend (Any_promise promise))
 
+type promise_replay = { mutable replayed : any_promise list; mutable used : any_promise list }
+
+let promise_replay : promise_replay option Stdlib.ref = Stdlib.ref None
+
+let call_with_promise_replay replayed component =
+  let previous = !promise_replay in
+  let state = { replayed; used = [] } in
+  promise_replay := Some state;
+  match component () with
+  | value ->
+      promise_replay := previous;
+      Ok value
+  | exception Suspend promise ->
+      promise_replay := previous;
+      Error (promise, List.rev state.used)
+  | exception exn ->
+      promise_replay := previous;
+      raise exn
+
 module Experimental = struct
   type formAction = unit
 
-  let usePromise promise =
+  let usePromise (type a) (promise : a Lwt.t) : a =
+    let promise =
+      match !promise_replay with
+      | None -> promise
+      | Some state ->
+          let promise =
+            match state.replayed with
+            | [] -> promise
+            | Any_promise earlier :: rest ->
+                state.replayed <- rest;
+                (* Safe when the component calls [usePromise] in the same order on each call: the earlier promise comes
+                   from this call position, so it has the same type *)
+                (Obj.magic earlier : a Lwt.t)
+          in
+          state.used <- Any_promise promise :: state.used;
+          promise
+    in
     match Lwt.state promise with
     | Sleep -> suspend promise
     (* TODO: Fail should raise a FailedSupense and catch at renderTo*? *)

@@ -9,24 +9,30 @@
   let nested_fragment_with_lower = foo =>
     React.fragment(
       React.Static_list([
-        React.Writer({
-          emit: (__buf, ~separators as __separators) => {
-            Buffer.add_string(__buf, "<div>");
-            {
-              let (_: bool) =
-                ReactDOM.write_element_to_buffer_internal(
-                  __buf,
-                  ~separators=__separators,
-                  ~prev_text=false,
-                  foo,
-                );
-              ();
-            };
-            Buffer.add_string(__buf, "</div>");
-            ();
-          },
-          original: () => React.createElement("div", [], [foo]),
-        }),
+        (
+          __jsx_value__001_ =>
+            React.Writer({
+              emit: (__buf, ~separators as __separators) => {
+                Buffer.add_string(__buf, "<div>");
+                {
+                  let (_: bool) =
+                    ReactDOM.write_element_to_buffer_internal(
+                      __buf,
+                      ~separators=__separators,
+                      ~prev_text=false,
+                      __jsx_value__001_,
+                    );
+                  ();
+                };
+                Buffer.add_string(__buf, "</div>");
+                ();
+              },
+              original: () =>
+                React.createElement("div", [], [__jsx_value__001_]),
+            })
+        )(
+          foo,
+        ),
       ]),
     );
   module Fragment = {
@@ -62,20 +68,28 @@
                   () =>
                     React.fragment(
                       React.Static_list([
-                        React.Writer({
-                          emit: (__buf, ~separators as _) => {
-                            Buffer.add_string(__buf, "<div>");
-                            ReactDOM.escape_to_buffer(__buf, "First " ++ name);
-                            Buffer.add_string(__buf, "</div>");
-                            ();
-                          },
-                          original: () =>
-                            React.createElement(
-                              "div",
-                              [],
-                              [React.string("First " ++ name)],
-                            ),
-                        }),
+                        (
+                          __jsx_value__002_ =>
+                            React.Writer({
+                              emit: (__buf, ~separators as _) => {
+                                Buffer.add_string(__buf, "<div>");
+                                ReactDOM.escape_to_buffer(
+                                  __buf,
+                                  __jsx_value__002_,
+                                );
+                                Buffer.add_string(__buf, "</div>");
+                                ();
+                              },
+                              original: () =>
+                                React.createElement(
+                                  "div",
+                                  [],
+                                  [React.string(__jsx_value__002_)],
+                                ),
+                            })
+                        )(
+                          "First " ++ name,
+                        ),
                         Hello.make(
                           Hello.makeProps(
                             ~children=React.string("2nd " ++ name),

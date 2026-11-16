@@ -461,7 +461,7 @@ module Conv = struct
                    in
                    derive_of_variant_case self#derive_of_core_type (make n) t :: next)
          in
-         pexp_match ~loc x cases
+         pexp_match ~loc [%expr RSC.to_model [%e x]] cases
 
        method! derive_of_polyvariant t (cs : row_field list) x =
          let loc = t.ptyp_loc in
@@ -483,7 +483,7 @@ module Conv = struct
                | `Rinherit (n, ts) -> Right (n, ts))
          in
          let catch_all =
-           [%pat? x]
+           [%pat? _]
            --> List.fold_left (List.rev inherits)
                  ~init:
                    (let error_message =
@@ -504,7 +504,7 @@ module Conv = struct
                let make arg = pexp_variant ~loc:n.loc n.txt arg in
                derive_of_variant_case self#derive_of_core_type make t :: next)
          in
-         pexp_match ~loc x cases
+         pexp_match ~loc [%expr RSC.to_model [%e x]] cases
      end
       :> deriving)
 
