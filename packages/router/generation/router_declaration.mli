@@ -1,6 +1,17 @@
 open Ppxlib
 
-type parameter = { name : string; typ : core_type; parser : Longident.t; to_string : Longident.t; loc : Location.t }
+type parameter_kind = Segment | OptionalSegment | OptionalRest
+
+type parameter = {
+  name : string;
+  presence : parameter_kind;
+  typ : core_type;
+  argument : core_type;
+  parser : Longident.t;
+  to_string : Longident.t;
+  loc : Location.t;
+}
+
 type search_kind = Required | Optional | Default of expression | Many
 
 type search = {
@@ -24,12 +35,15 @@ type attachments = {
   headers : expression option;
 }
 
+type prefetch = Off | Intent | Viewport | Idle
+
 type scope = {
   id : string;
   path : string;
   parameters : parameter list;
   search : search list;
   attachments : attachments;
+  prefetch : prefetch option;
   loc : Location.t;
 }
 
@@ -46,6 +60,7 @@ type route = {
   parameters : parameter list;
   search : search list;
   scopes : scope list;
+  prefetch : prefetch;
   loc : Location.t;
 }
 
@@ -65,6 +80,8 @@ type trailing_slash = Redirect | Reject
 type t = {
   base_path : string;
   trailing_slash : trailing_slash;
+  intercept_links : bool option;
+  view_transitions : bool option;
   application_error : Longident.t option;
   invalid_search : expression option;
   root : group;
@@ -75,3 +92,4 @@ val find : structure -> t option
 val root_search : t -> search list
 val endpoints : t -> endpoint list
 val routes : t -> route list
+val shapes : string -> RouterPattern.t list

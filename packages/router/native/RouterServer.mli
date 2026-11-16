@@ -15,7 +15,12 @@ module Path : sig
   type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
 
   val decodePathname : string -> (string list, error) result
+
   val stripBasePath : basePath:string -> string -> string option
+  (** Returns the part of [pathname] below [basePath], or [None] when [pathname] is outside it. Segments are compared
+      after decoding, as route segments are, so [/app] matches [/app] and [/app/x] but not [/apple], and escapes match
+      in either letter case. *)
+
   val splitLocation : string -> string * string
 
   val stripTrailingSlashes : string -> string option
@@ -192,6 +197,11 @@ module Plan : sig
 
   val success : scopes:'view Scope.t list -> page:'view -> ('view, 'error) t
 
+  val withFailure : ('view, 'error) t -> ('error RouterRuntime.Error.t -> ('view, 'error) t) -> ('view, 'error) t
+  (** Gives a successful plan the plan to render when the page itself fails after its loaders ran, for example when a
+      form's server function fails. Generated routes pass a failure plan with the route's nearest boundaries. A plan
+      without one renders the failure in its layouts with the built-in text. *)
+
   val failure :
     scopes:'view Scope.t list ->
     error:'error RouterRuntime.Error.t ->
@@ -212,7 +222,8 @@ module Plan : sig
     applicationStatus:('error -> RouterRuntime.Status.t) ->
     ('view, 'error) resolved Lwt.t
   (** Resolves metadata and headers from every scope, then renders either the whole layout chain or only its changed
-      suffix. Omitting layouts for a patch does not omit their response metadata or headers. *)
+      suffix. Every scope starts at once; the results merge from the root down, whatever order they resolve in. Omitting
+      layouts for a patch does not omit their response metadata or headers. *)
 
   val resolvedElement : (React.element, 'error) resolved -> React.element
   (** The element to render: [resolved.element], or a built-in plain paragraph when the app declares no boundary for the
@@ -246,6 +257,10 @@ module Endpoint : sig
     ('result, 'error) prepared
   (** Builds a decode-failure preparation whose response exposes only the listed successfully decoded active routes. *)
 
+  val withPrefetch : ('result, 'error) t -> RouterRuntime.PrefetchLevel.t -> ('result, 'error) t
+  (** Sets the route's prefetch level. {!make} gives [Intent]. *)
+
+  val prefetch : ('result, 'error) t -> RouterRuntime.PrefetchLevel.t
   val branch : ('result, 'error) prepared -> Branch.t
   val execution : ('result, 'error) prepared -> ('result, 'error) Execution.t
   val route : ('result, 'error) t -> Route.t
@@ -266,6 +281,7 @@ module EndpointRegistry : sig
 
   val route : ('result, 'error) matched -> Route.t
   val parameters : ('result, 'error) matched -> (string * string) list
+  val prefetch : ('result, 'error) matched -> RouterRuntime.PrefetchLevel.t
 
   val matches :
     ('result, 'error) matched -> ('result, 'error) Endpoint.prepared -> RouterRuntime.Navigation.matched list
@@ -326,6 +342,9 @@ module ServerEngine : sig
         (** A permanent redirect: pathname canonicalization, a loader that returns [Loader.PermanentRedirect], or a
             [Router.redirect ~permanent:true]. Adapters answer documents with status 308 so the request method survives
             the redirect. *)
+    | PrefetchRefused of RouterRuntime.PrefetchLevel.t
+        (** A prefetch asked for a level more eager than the matched route's level, which it carries. No decoder or
+            loader ran. *)
 
   val run :
     registry:(('view, 'error) Plan.t, 'error) EndpointRegistry.t ->
@@ -336,11 +355,20 @@ module ServerEngine : sig
     diagnosticId:(exn -> string) ->
     revision:(unit -> string) ->
     protocolVersion:int ->
+    ?prefetch:RouterRuntime.PrefetchLevel.t ->
+    ?actionError:'error RouterRuntime.Error.t ->
     request ->
     ('view, 'error) outcome Lwt.t
   (** Validates and matches the request, executes its loaders, resolves the resulting plan, and chooses the smallest
       safe outcome. Unexpected exceptions are offered to the root fallback before a blank internal-error response is
-      used as a last resort. *)
+      used as a last resort.
+
+      [prefetch] marks the request as a prefetch at that level. When it is more eager than the matched route's level,
+      the outcome is [PrefetchRefused] and no decoder or loader runs. Otherwise, including when no route matches, the
+      outcome is the same as without [prefetch], and its headers add [Router-Prefetch] to [Vary].
+
+      [actionError] renders the page as failed with that error after its loaders ran (see {!Plan.withFailure}). A
+      loader's own redirect or failure still wins. *)
 end
 
 (** Configured facade shared by the HTTP adapter and the generated client root. *)
@@ -354,13 +382,21 @@ module Server : sig
     fallback:(search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
     applicationStatus:('error -> RouterRuntime.Status.t) ->
     ?protocolVersion:int ->
+    ?interceptLinks:bool ->
+    ?viewTransitions:bool ->
     unit ->
     ('view, 'error) t
-  (** [trailingSlash] defaults to {!TrailingSlash.Redirect}. *)
+  (** [trailingSlash] defaults to {!TrailingSlash.Redirect}. [interceptLinks] (default [true]) and [viewTransitions]
+      (default [false]) are passed to the client [Provider] by {!clientRoot} and {!clientRootWithCache}. *)
 
   val basePath : ('view, 'error) t -> string
   val protocolVersion : ('view, 'error) t -> int
   val fingerprint : ('view, 'error) t -> string
+
+  val routes : ('view, 'error) t -> string array
+  (** Every concrete route path, optional segments expanded, without the base path, in registry order. The client parses
+      each with [RouterPattern.parse] and matches links with [RouterPattern.matchesPath ~basePath], so a base path that
+      is not valid route syntax, such as [/a%20b], still works. *)
 
   val clientRoot :
     (React.element, 'error) t ->
@@ -368,6 +404,7 @@ module Server : sig
     metadata:React.element ->
     children:React.element ->
     React.element
+  (** The client root with the client's default page cache (30 pages). *)
 
   val clientRootWithCache :
     (React.element, 'error) t ->
@@ -384,6 +421,7 @@ module Server : sig
       protocolVersion:int ->
       registryFingerprint:string ->
       basePath:string ->
+      routes:string array ->
       metadata:React.element ->
       children:React.element ->
       React.element) ->
@@ -396,8 +434,19 @@ module Server : sig
     ('view, 'error) t ->
     diagnosticId:(exn -> string) ->
     revision:(unit -> string) ->
+    ?prefetch:RouterRuntime.PrefetchLevel.t ->
+    ?actionError:'error RouterRuntime.Error.t ->
     ServerEngine.request ->
     ('view, 'error) ServerEngine.outcome Lwt.t
+end
+
+(** Server functions run from a page form without JavaScript. *)
+module Action : sig
+  exception Redirect of RouterRuntime.destination
+
+  val redirect : RouterRuntime.destination -> 'a
+  (** Ends a server function with a redirect. After a form post without JavaScript, the adapter answers 303 to
+      [destination] instead of to the page. *)
 end
 
 (** Server-agnostic pieces of an HTTP adapter. An adapter parses its request into a {!ServerEngine.request}, calls
@@ -412,13 +461,14 @@ module Adapter : sig
 
   val document_element :
     (React.element, 'error) Server.t ->
-    pageCacheCapacity:int ->
+    ?pageCacheCapacity:int ->
     document:(head:React.element -> React.element -> React.element) ->
     (React.element, 'error) ServerEngine.full ->
     React.element
   (** Builds the HTML document for a full response. [document ~head children] builds [<html>]. [head] is the metadata
       element, to be placed inside [<head>]. [children] holds the routed root and a marker that tells the client
-      bootstrap whether the server rendered the markup, and goes in [<body>]. *)
+      bootstrap whether the server rendered the markup, and goes in [<body>]. Without [pageCacheCapacity] the client's
+      default page cache (30 pages) applies; [0] turns it off. *)
 
   val full_model : (React.element, 'error) ServerEngine.full -> React.model_value
   val patch_model : (React.element, 'error) ServerEngine.patch -> React.model_value
@@ -436,20 +486,71 @@ module Adapter : sig
   (** [headers] holds every protocol header for the outcome, including [Content-Type] for [Html] and [Model] and
       [Location] for redirects. The adapter adds nothing but transport details. *)
 
+  val methodReply : allow:string list -> string -> reply option
+  (** Decides an HTTP method before {!Server.run}. [allow] lists the methods the adapter serves at the router's paths.
+      [OPTIONS] answers 204 and a method outside [allow] answers 405, both with an [Allow] header. [None] means the
+      adapter handles the method: [GET] and [HEAD] run the router, and a [HEAD] reply is sent without its body. Methods
+      are case-sensitive. *)
+
+  type formAction =
+    | Completed
+    | Redirected of RouterRuntime.destination  (** The server function called {!Action.redirect}. *)
+    | Failed of exn
+
+  val runFormAction :
+    lookup:(string -> ReactServerDOM.server_function option) -> Js.FormData.t -> formAction option Lwt.t
+  (** Runs the server function named by the [$ACTION_ID_<id>] field of a form posted without JavaScript, with the rest
+      of the form. [None] when the form names no registered server function. Fatal exceptions are re-raised. The server
+      function's result is not used: a page without JavaScript cannot show it. *)
+
+  val redirectLocation : RouterRuntime.destination -> string option
+  (** The [Location] for a redirect to [destination]: its href when it is a path that starts with a single ["/"] (not
+      ["//"] or a slash followed by a backslash) or an absolute [http:] or [https:] URL, without control characters.
+      [None] otherwise, for example [javascript:] or [//host]. Every redirect the router sends goes through it: {!reply}
+      answers an unsafe redirect outcome with 500, {!ServerEngine.run} turns an unsafe loader or route redirect into an
+      internal error, and an unsafe {!Action.redirect} fails the server function. *)
+
+  val actionRedirectHeader : RouterRuntime.destination -> (string * string) option
+  (** [Some ("Router-Redirect", location)] for a safe destination (see {!redirectLocation}). A server function called
+      from JavaScript that ends with {!Action.redirect} gets a normal action response with a [null] result and this
+      header; the client then navigates to the location with a push. The adapter must wait for the function before it
+      sends the headers, and must treat [None] as a failed function. *)
+
+  val formActionReply :
+    (React.element, 'error) Server.t ->
+    diagnosticId:(exn -> string) ->
+    revision:(unit -> string) ->
+    target:string ->
+    ?pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    ServerEngine.request ->
+    formAction ->
+    reply Lwt.t
+  (** The reply to a page form posted without JavaScript, so a reload does not post again:
+      - [Completed]: 303 to [target], the posted URL.
+      - [Redirected destination]: 303 to [destination].
+      - [Failed]: the page at [request], rendered as a document with its nearest error boundary and the status of an
+        internal error, through [Server.run ~actionError]. When the page itself redirects, for example a URL with a
+        trailing slash, the reply is a 303 to that location: a reply to a [POST] is never 307 or 308, so the browser
+        never posts the form again. An unsafe location (see {!redirectLocation}) gives 500 instead of a redirect. *)
+
   val reply :
     (React.element, 'error) Server.t ->
     target:string ->
-    pageCacheCapacity:int ->
+    ?pageCacheCapacity:int ->
     document:(head:React.element -> React.element -> React.element) ->
     kind:ServerEngine.requestKind ->
     (React.element, 'error) ServerEngine.outcome ->
     reply
   (** Maps an outcome to status, headers and body. [target] is the request target, used for [X-Location] on RSC
-      redirects. [kind] is the request kind given to {!Server.run}. Every reply carries [Vary: Accept].
+      redirects. [kind] is the request kind given to {!Server.run}.
       - Full and patch: the resolved status and headers.
       - Document redirect: 303 ([Redirect]) or 308 ([PermanentRedirect]) with [Location].
       - RSC redirect: 200 with [Router-Response: redirect], [Router-Registry] and [Cache-Control: private, no-store].
-      - [ReloadRequired]: 409 with [Router-Response: reload-required] and [Cache-Control: private, no-store]. *)
+      - [PrefetchRefused]: 204 with [Router-Prefetch-Refused] set to the route's level, [Vary: Accept, Router-Prefetch]
+        and [Cache-Control: private, no-store].
+      - [ReloadRequired]: 409 with [Router-Response: reload-required] and [Cache-Control: private, no-store]. Every RSC
+        reply carries [Vary: Accept, Router-Prefetch]; document replies carry [Vary: Accept]. *)
 end
 
 val statusOfError :

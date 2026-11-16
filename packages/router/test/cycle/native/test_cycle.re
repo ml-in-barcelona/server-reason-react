@@ -453,7 +453,8 @@ let testRscFullResponse = () => {
   NotePage.reset();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/42", ())) {
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -509,7 +510,8 @@ let testDocumentNotFoundResponse = () => {
     )
   ) {
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -541,7 +543,8 @@ let testInternalResponseIsSafe = () => {
   NoteLoader.fail();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/42", ())) {
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -571,7 +574,8 @@ let testEngineDecodeError = () => {
   Attachments.reset();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/nope", ())) {
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -659,7 +663,8 @@ let testNestedSearchDecodeError = () => {
     )
   ) {
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -706,7 +711,8 @@ let testInvalidRootSearchBoundary = () => {
     )
   ) {
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -750,6 +756,7 @@ let testEngineRedirect = () => {
   | Full(_) => Alcotest.fail("expected redirect")
   | Patch(_)
   | PermanentRedirect(_)
+  | PrefetchRefused(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Redirect(destination) =>
     Alcotest.check(
@@ -773,6 +780,7 @@ let testDeclaredRedirect = () => {
   | Full(_)
   | Patch(_)
   | PermanentRedirect(_)
+  | PrefetchRefused(_)
   | ReloadRequired => Alcotest.fail("expected redirect")
   | Redirect(destination) =>
     Alcotest.check(
@@ -795,7 +803,8 @@ let testApplicationErrorPolicy = () => {
   WorkspaceLoader.error();
   switch (runEngine(~pathname="/fixture/workspaces/7/notes/42", ())) {
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full response")
   | Patch(_)
   | ReloadRequired => Alcotest.fail("unexpected navigation response")
   | Full(response) =>
@@ -872,7 +881,8 @@ let testPatchResponse = () => {
   | Full(_)
   | ReloadRequired
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected patch")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected patch")
   };
 };
 
@@ -899,7 +909,8 @@ let expectPatch = (~to_, ~navigation) =>
   | Full(_) => Alcotest.fail("expected patch, got full")
   | ReloadRequired => Alcotest.fail("expected patch, got reload")
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected patch, got redirect")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected patch, got redirect")
   };
 
 let expectFull = (~to_, ~navigation) =>
@@ -908,7 +919,8 @@ let expectFull = (~to_, ~navigation) =>
   | Patch(_) => Alcotest.fail("expected full, got patch")
   | ReloadRequired => Alcotest.fail("expected full, got reload")
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full, got redirect")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full, got redirect")
   };
 
 let checkLayouts = expected =>
@@ -1076,7 +1088,8 @@ let testPatchGroupLoaderRedirectEscapes = () => {
   | Full(_)
   | Patch(_)
   | ReloadRequired
-  | PermanentRedirect(_) => Alcotest.fail("expected redirect")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected redirect")
   };
 };
 
@@ -1109,7 +1122,8 @@ let testDecodeErrorPatchResponse = () => {
   | Full(_)
   | ReloadRequired
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected decode-error patch")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected decode-error patch")
   };
 };
 
@@ -1138,7 +1152,8 @@ let testRegistryMismatchReloadsBeforeLoaders = () => {
   | Full(_)
   | Patch(_)
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected reload-required")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected reload-required")
   };
 };
 
@@ -1148,7 +1163,8 @@ let testMissingNavigationFactsDegradeToFull = () => {
   | Patch(_)
   | ReloadRequired
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full response")
   };
 };
 
@@ -1165,7 +1181,8 @@ let testOversizedNavigationFromDegradesToFull = () => {
   | Patch(_)
   | ReloadRequired
   | Redirect(_)
-  | PermanentRedirect(_) => Alcotest.fail("expected full response")
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) => Alcotest.fail("expected full response")
   };
 };
 

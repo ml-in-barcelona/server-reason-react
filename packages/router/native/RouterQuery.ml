@@ -57,7 +57,8 @@ type index = Small | Large of (string, string list ref) Hashtbl.t
 
 let decode search ~start ~stop ~first =
   match Percent.decode_range ~plus:true search ~start ~stop ~first with
-  | Ok value -> Ok value
+  | Ok value when first < 0 || RouterUtf8.valid value -> Ok value
+  | Ok _ -> Error (MalformedEscape (Percent.slice search start stop))
   | Error value -> Error (MalformedEscape value)
 
 let rec find_values key = function
@@ -79,10 +80,11 @@ let parse search =
           let character = search.[index] in
           if equals < 0 && character = '=' then loop start index key_first value_first (index + 1)
           else
-            let escaped = character = '%' || character = '+' in
+            let escaped = match character with '%' | '+' | '\128' .. '\255' -> true | _ -> false in
             let key_first = if equals < 0 && key_first < 0 && escaped then index else key_first in
             let value_first = if equals >= 0 && value_first < 0 && escaped then index else value_first in
             loop start equals key_first value_first (index + 1)
+        else if start = index then if index = length then finish () else loop (index + 1) (-1) (-1) (-1) (index + 1)
         else
           let key_stop = if equals < 0 then index else equals in
           let value_start = if equals < 0 then index else equals + 1 in

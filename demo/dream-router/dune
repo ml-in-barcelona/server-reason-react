@@ -27,4 +27,6 @@
   lwt.unix
   react
   reactDOM
+  js
+  server-reason-react.runtime
   server-reason-react.router-native))

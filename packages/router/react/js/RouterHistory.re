@@ -3,6 +3,7 @@ module DOM = Webapi.Dom;
 type state = {
   key: string,
   revision: string,
+  position: Js.undefined(int),
 };
 
 [@mel.scope "crypto"] external randomUUID: unit => string = "randomUUID";
@@ -24,9 +25,17 @@ external historyState: DOM.History.t => Js.Nullable.t(state) = "state";
 external setScrollRestoration: (DOM.History.t, string) => unit =
   "scrollRestoration";
 
+let makeState = (~key, ~revision, ~position) => {
+  key,
+  revision,
+  position: Js.Undefined.return(position),
+};
+let position = state => Js.Undefined.toOption(state.position);
 let push = (~state, ~url) => pushState(DOM.history, state, "", url);
 let replace = (~state, ~url) => replaceState(DOM.history, state, "", url);
 let state = () => historyState(DOM.history)->Js.Nullable.toOption;
+let length = () => DOM.History.length(DOM.history);
+let traverse = delta => DOM.History.go(delta, DOM.history);
 let scrollRestoration = value => setScrollRestoration(DOM.history, value);
 
 let listen = callback => {

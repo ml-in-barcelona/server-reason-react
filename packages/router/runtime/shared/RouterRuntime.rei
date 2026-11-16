@@ -1,6 +1,24 @@
 type destination;
 type pattern;
 
+/** How eagerly the client may prefetch a route, from least to most eager:
+    [Off], [Intent], [Viewport], [Idle]. A route declares its level with
+    [~prefetch]; the default is [Intent]. */
+module PrefetchLevel: {
+  type t =
+    | Off
+    | Intent
+    | Viewport
+    | Idle;
+
+  /** The lower-case name, as sent in the [Router-Prefetch] header. */
+  let toString: t => string;
+  let fromString: string => option(t);
+
+  /** Negative when [left] is less eager than [right]. */
+  let compare: (t, t) => int;
+};
+
 let destination: (~path: string) => destination;
 let pattern: string => pattern;
 let destinationFromPattern:
@@ -11,6 +29,18 @@ let destinationFromPattern:
   ) =>
   destination;
 let href: destination => string;
+
+/** Sets the fragment of [destination] to [hash], percent-encoded like a
+    search value. An empty [hash] removes the fragment. */
+let withHash: (destination, ~hash: string) => destination;
+
+/** The prefetch level of the route [destination] points to. Generated
+    destinations carry their route's level; other destinations are [Intent]. */
+let prefetchLevel: destination => PrefetchLevel.t;
+
+/** Sets the prefetch level. Generated destinations call it with the level of
+    their route. */
+let withPrefetch: (destination, PrefetchLevel.t) => destination;
 
 /** Query string without the leading [?]: names sorted, every name and value
     percent-encoded. Destinations and [updateSearch] both use it so one query

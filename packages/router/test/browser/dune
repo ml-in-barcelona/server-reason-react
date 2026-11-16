@@ -1,13 +1,21 @@
 (melange.emit
  (target test_router_browser)
  (modules
+  RouterAnnouncer
+  RouterBlocker
   RouterHistory
   RouterOutlet
-  RouterPageCache
+  RouterNavigationCache
   RouterPattern
+  RouterPolicy
+  RouterPrefetch
   RouterRuntime
+  RouterScroll
   RouterSearch
+  RouterSearchKey
+  SearchKeyCases
   RouterTypes
+  RouterViewTransition
   TestRouterBrowser)
  (module_systems commonjs)
  (libraries melange-webapi melange.js reason-react server-reason-react.rsc)
@@ -18,6 +26,7 @@
  (alias runtest)
  (deps
   (alias melange)
+  (source_tree ../../../../demo/client/node_modules/react)
   (:test
    test_router_browser/packages/router/test/browser/TestRouterBrowser.js))
  (action
@@ -28,9 +37,6 @@
 
 (copy_files
  (files ../../react/shared/RouterOutlet.re))
-
-(copy_files
- (files ../../react/shared/RouterPageCache.re))
 
 (copy_files
  (files ../../react/js/RouterHistory.re))
@@ -52,3 +58,27 @@
 
 (copy_files
  (files ../../react/js/RouterSearch.re))
+
+(copy_files
+ (files ../../react/js/RouterAnnouncer.re))
+
+(copy_files
+ (files ../../react/js/RouterBlocker.re))
+
+(copy_files
+ (files ../../react/js/RouterPolicy.re))
+
+(copy_files
+ (files ../../react/js/RouterScroll.re))
+
+(copy_files
+ (files ../../react/js/RouterViewTransition.re))
+
+(copy_files
+ (files ../../react/shared/RouterSearchKey.re))
+
+(copy_files
+ (files ../../react/js/RouterNavigationCache.re))
+
+(copy_files
+ (files ../../react/js/RouterPrefetch.re))

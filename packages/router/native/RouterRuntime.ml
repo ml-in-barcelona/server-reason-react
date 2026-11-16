@@ -1,6 +1,7 @@
 type destination = RouterTypes.destination
 type pattern = RouterPattern.t
 
+module PrefetchLevel = RouterTypes.PrefetchLevel
 module Status = RouterTypes.Status
 module Loader = RouterTypes.Loader
 module Error = RouterTypes.Error
@@ -22,10 +23,10 @@ let encodeSegment value =
   then invalid_arg "route parameters must be valid non-empty path segments";
   encode value
 
-let destination ~path = RouterTypes.makeDestination path
+let destination = RouterTypes.destination
 
 let pattern path =
-  match RouterPattern.parse path with
+  match RouterPattern.parseTemplate path with
   | Ok pattern -> pattern
   | Error _ -> invalid_arg ("invalid generated route pattern " ^ path)
 
@@ -36,16 +37,9 @@ let encodeSearch search =
   |> String.concat "&"
 
 let destinationFromPattern ~pattern ~parameters ~search =
-  let parameter name = List.assoc_opt name parameters in
-  let path =
-    match
-      RouterPattern.render pattern ~parameter ~encodeStatic:RouterPattern.encodeStaticSegment
-        ~encodeParameter:encodeSegment
-    with
-    | Ok path -> path
-    | Error (InvalidPattern message) -> invalid_arg message
-  in
-  let search = encodeSearch search in
-  destination ~path:(if search = "" then path else path ^ "?" ^ search)
+  RouterTypes.renderDestination ~pattern ~parameters ~search ~encodeParameter:encodeSegment ~encodeSearch
 
-let href = RouterTypes.destinationHref
+let href = RouterTypes.href
+let withHash = RouterTypes.destinationWithHash ~encode
+let prefetchLevel = RouterTypes.prefetchLevel
+let withPrefetch = RouterTypes.withPrefetch

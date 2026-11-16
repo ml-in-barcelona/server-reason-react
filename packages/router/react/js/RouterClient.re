@@ -3,12 +3,28 @@ module Response = RouterRuntime.NavigationResponse;
 type error =
   | MissingResponseKind
   | InvalidResponseKind(string)
-  | InvalidContentType(option(string));
+  | InvalidContentType(option(string))
+  | PrefetchRefused(RouterRuntime.PrefetchLevel.t);
+
+type bytes;
 
 type decoded = {
   facts: Response.facts,
   response: Response.t(React.element),
+  bytes: option(Js.Promise.t(bytes)),
 };
+
+[@mel.send]
+external tee: Webapi.ReadableStream.t => array(Webapi.ReadableStream.t) =
+  "tee";
+[@mel.new]
+external responseOfStream: Webapi.ReadableStream.t => Fetch.Response.t =
+  "Response";
+[@mel.new] external responseOfBytes: bytes => Fetch.Response.t = "Response";
+[@mel.send]
+external arrayBuffer: Fetch.Response.t => Js.Promise.t(bytes) = "arrayBuffer";
+[@mel.get]
+external readableBody: Fetch.Response.t => Webapi.ReadableStream.t = "body";
 
 type pending = {
   abort: unit => unit,
@@ -30,6 +46,13 @@ let decodeNavigation = (kind, value) =>
   | Response.ReloadRequiredResponse => Response.ReloadRequired
   };
 
+let decodeBytes = (~kind, bytes) =>
+  readableBody(responseOfBytes(bytes))
+  |> ReactServerDOMEsbuild.createFromReadableStream
+  |> Js.Promise.then_((wire: RSC.t) =>
+       Js.Promise.resolve(decodeNavigation(kind, wire))
+     );
+
 let fetch =
     (
       ~protocolVersion,
@@ -37,7 +60,9 @@ let fetch =
       ~requestId,
       ~baseRevision,
       ~from,
+      ~prefetch=?,
       ~target,
+      (),
     ) => {
   let controller = Fetch.AbortController.make();
   let baseHeaders = [|
@@ -50,11 +75,19 @@ let fetch =
   |];
   let headers =
     Fetch.HeadersInit.makeWithArray(
-      switch (from) {
-      | Some(from) =>
-        Array.append(baseHeaders, [|("Router-Navigation-From", from)|])
-      | None => baseHeaders
-      },
+      Array.concat([
+        baseHeaders,
+        switch (from) {
+        | Some(from) => [|("Router-Navigation-From", from)|]
+        | None => [||]
+        },
+        switch (prefetch) {
+        | Some(level) => [|
+            ("Router-Prefetch", RouterRuntime.PrefetchLevel.toString(level)),
+          |]
+        | None => [||]
+        },
+      ]),
     );
   let request =
     Fetch.fetchWithInit(
@@ -72,7 +105,23 @@ let fetch =
            Fetch.Headers.get("Router-Response", responseHeaders);
          let contentType = Fetch.Headers.get("Content-Type", responseHeaders);
          let status = Fetch.Response.status(httpResponse);
+         let refused =
+           Option.bind(
+             Fetch.Headers.get("Router-Prefetch-Refused", responseHeaders),
+             RouterRuntime.PrefetchLevel.fromString,
+           );
          switch (responseKind) {
+         | _ when status == 204 && Option.is_some(refused) =>
+           Js.Promise.resolve(
+             Error(
+               PrefetchRefused(
+                 Option.value(
+                   refused,
+                   ~default=RouterRuntime.PrefetchLevel.Off,
+                 ),
+               ),
+             ),
+           )
          | None => Js.Promise.resolve(Error(MissingResponseKind))
          | Some(value) =>
            switch (Response.kindOfString(value)) {
@@ -88,13 +137,25 @@ let fetch =
                    kind,
                  },
                  response: Response.ReloadRequired,
+                 bytes: None,
                }),
              )
            | Some(kind) =>
              if (!Response.isComponentContentType(contentType)) {
                Js.Promise.resolve(Error(InvalidContentType(contentType)));
              } else {
-               Fetch.Response.body(httpResponse)
+               let (decodeStream, bytes) =
+                 switch (tee(Fetch.Response.body(httpResponse))) {
+                 | [|decodeStream, copyStream|] =>
+                   let bytes = arrayBuffer(responseOfStream(copyStream));
+                   let _ =
+                     bytes
+                     |> Js.Promise.then_(_ => Js.Promise.resolve())
+                     |> Js.Promise.catch(_ => Js.Promise.resolve());
+                   (decodeStream, Some(bytes));
+                 | _ => (Fetch.Response.body(httpResponse), None)
+                 };
+               decodeStream
                // No ~callServer: the call that hydrated the page already registered it globally and this call reuses it.
                |> ReactServerDOMEsbuild.createFromReadableStream
                |> Js.Promise.then_((wire: RSC.t) =>
@@ -108,6 +169,7 @@ let fetch =
                           kind,
                         },
                         response: decodeNavigation(kind, wire),
+                        bytes,
                       }),
                     )
                   );

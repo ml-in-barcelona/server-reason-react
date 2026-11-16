@@ -8,7 +8,7 @@ type segment =
   | Parameter(parameter)
   | CatchAll({name: string});
 
-type t = list(segment);
+type t = list((segment, bool));
 
 type error =
   | InvalidPattern(string);
@@ -148,34 +148,38 @@ let encodeStaticSegment = value => {
   Buffer.contents(buffer);
 };
 
-let parseParameter = (path, segment) =>
+let parseParameter = (~allowOptional, path, segment) =>
   if (!String.starts_with(~prefix=":", segment)) {
     None;
   } else {
     switch (String.index_opt(segment, '<'), String.index_opt(segment, '>')) {
     | (Some(opening), Some(closing))
         when opening > 1 && closing == String.length(segment) - 1 =>
-      let name = String.sub(segment, 1, opening - 1);
+      let label = String.sub(segment, 1, opening - 1);
+      let optional = String.ends_with(~suffix="?", label);
+      let name =
+        optional ? String.sub(label, 0, String.length(label) - 1) : label;
       let typeName = String.sub(segment, opening + 1, closing - opening - 1);
-      if (!validLabel(name)) {
-        raise(Invalid_argument(path));
-      } else if (typeName == "string...") {
-        Some(CatchAll({ name: name }));
-      } else if (validTypeName(typeName)) {
-        Some(
+      let segment =
+        if (!validLabel(name) || optional && !allowOptional) {
+          raise(Invalid_argument(path));
+        } else if (typeName == "string...") {
+          CatchAll({ name: name });
+        } else if (validTypeName(typeName)) {
           Parameter({
             name,
             typeName,
-          }),
-        );
-      } else {
-        raise(Invalid_argument(path));
-      };
+          });
+        } else {
+          raise(Invalid_argument(path));
+        };
+      let item = (segment, optional);
+      Some(item);
     | _ => raise(Invalid_argument(path))
     };
   };
 
-let parse = path =>
+let parseWith = (~allowOptional, path) =>
   if (path == "") {
     Ok([]);
   } else if (!String.starts_with(~prefix="/", path)) {
@@ -190,19 +194,20 @@ let parse = path =>
       let rec catchAllIsFinal = segments =>
         switch (segments) {
         | []
-        | [CatchAll(_)] => true
-        | [CatchAll(_), ..._] => false
+        | [(CatchAll(_), _)] => true
+        | [(CatchAll(_), _), ..._] => false
         | [_, ...rest] => catchAllIsFinal(rest)
         };
       try({
         let parsed =
           segments
           |> List.map(segment =>
-               switch (parseParameter(path, segment)) {
+               switch (parseParameter(~allowOptional, path, segment)) {
                | Some(parameter) => parameter
                | None =>
                  validStatic(segment)
-                   ? Static(segment) : raise(Invalid_argument(path))
+                   ? (Static(segment), false)
+                   : raise(Invalid_argument(path))
                }
              );
         catchAllIsFinal(parsed) ? Ok(parsed) : Error(InvalidPattern(path));
@@ -212,6 +217,9 @@ let parse = path =>
     };
   };
 
+let parse = parseWith(~allowOptional=false);
+let parseTemplate = parseWith(~allowOptional=true);
+
 let toString = pattern =>
   switch (pattern) {
   | [] => "/"
@@ -219,22 +227,44 @@ let toString = pattern =>
     "/"
     ++ (
       segments
-      |> List.map(segment =>
+      |> List.map(((segment, optional)) => {
+           let marker = optional ? "?" : "";
            switch (segment) {
            | Static(value) => value
            | Parameter({ name, typeName }) =>
-             ":" ++ name ++ "<" ++ typeName ++ ">"
-           | CatchAll({ name }) => ":" ++ name ++ "<string...>"
-           }
-         )
+             ":" ++ name ++ marker ++ "<" ++ typeName ++ ">"
+           | CatchAll({ name }) => ":" ++ name ++ marker ++ "<string...>"
+           };
+         })
       |> String.concat("/")
     )
   };
 
-let segments = pattern => pattern;
+let segments = pattern => List.map(fst, pattern);
+
+let optional = pattern =>
+  pattern
+  |> List.filter_map(((segment, optional)) =>
+       switch (segment) {
+       | Parameter({ name, _ })
+       | CatchAll({ name }) when optional => Some(name)
+       | Static(_)
+       | Parameter(_)
+       | CatchAll(_) => None
+       }
+     );
+
+let rec shapes = pattern =>
+  switch (pattern) {
+  | [] => [[]]
+  | [(segment, optional), ...rest] =>
+    let rest = shapes(rest);
+    let present = List.map(shape => [(segment, false), ...shape], rest);
+    optional ? present @ rest : present;
+  };
 
 let parameters = pattern =>
-  pattern
+  segments(pattern)
   |> List.filter_map(segment =>
        switch (segment) {
        | Static(_) => None
@@ -249,7 +279,7 @@ let parameters = pattern =>
 
 let append = (parent, child) => parent @ child;
 
-let isPrefix = (~prefix, pattern) => {
+let isPrefixSegments = (prefix, pattern) => {
   let rec loop = (prefix, pattern) =>
     switch (prefix, pattern) {
     | ([], _) => true
@@ -269,7 +299,10 @@ let isPrefix = (~prefix, pattern) => {
   loop(prefix, pattern);
 };
 
-let isShapePrefix = (~prefix, pattern) => {
+let isPrefix = (~prefix, pattern) =>
+  isPrefixSegments(segments(prefix), segments(pattern));
+
+let isShapePrefixSegments = (prefix, pattern) => {
   let rec loop = (prefix, pattern) =>
     switch (prefix, pattern) {
     | ([], _) => true
@@ -285,7 +318,7 @@ let isShapePrefix = (~prefix, pattern) => {
 
 /* Lexicographic (static count, finite shape) encoded as one int: a route
    without a catch-all beats a catch-all route with the same static count. */
-let specificity = pattern => {
+let specificitySegments = segments => {
   let (statics, finite) =
     List.fold_left(
       ((statics, finite), segment) =>
@@ -295,10 +328,12 @@ let specificity = pattern => {
         | CatchAll(_) => (statics, 0)
         },
       (0, 1),
-      pattern,
+      segments,
     );
   statics * 2 + finite;
 };
+
+let specificity = pattern => specificitySegments(segments(pattern));
 
 let overlaps = (left, right) => {
   let rec loop = (left, right) =>
@@ -320,9 +355,10 @@ let overlaps = (left, right) => {
 let relationship = (left, right) => {
   let leftSegments = segments(left);
   let rightSegments = segments(right);
-  if (String.equal(toString(left), toString(right))) {
+  if (left == right) {
     Duplicate;
-  } else if (specificity(left) == specificity(right)
+  } else if (specificitySegments(leftSegments)
+             == specificitySegments(rightSegments)
              && overlaps(leftSegments, rightSegments)) {
     Ambiguous;
   } else if (List.length(leftSegments) == List.length(rightSegments)) {
@@ -330,9 +366,10 @@ let relationship = (left, right) => {
   } else {
     let (prefix, pattern) =
       List.length(leftSegments) < List.length(rightSegments)
-        ? (left, right) : (right, left);
-    if (isShapePrefix(~prefix, pattern)) {
-      isPrefix(~prefix, pattern) ? CompatiblePrefix : IncompatiblePrefix;
+        ? (leftSegments, rightSegments) : (rightSegments, leftSegments);
+    if (isShapePrefixSegments(prefix, pattern)) {
+      isPrefixSegments(prefix, pattern)
+        ? CompatiblePrefix : IncompatiblePrefix;
     } else {
       Distinct;
     };
@@ -343,15 +380,16 @@ let render = (pattern, ~parameter, ~encodeStatic, ~encodeParameter) => {
   let rec loop = (rendered, segments) =>
     switch (segments) {
     | [] => Ok("/" ++ (rendered |> List.rev |> String.concat("/")))
-    | [Static(value), ...segments] =>
+    | [(Static(value), _), ...segments] =>
       loop([encodeStatic(value), ...rendered], segments)
-    | [Parameter({ name, _ }), ...segments] =>
+    | [(Parameter({ name, _ }), optional), ...segments] =>
       switch (parameter(name)) {
       | Some(value) =>
         loop([encodeParameter(value), ...rendered], segments)
+      | None when optional => loop(rendered, segments)
       | None => Error(InvalidPattern("missing route parameter " ++ name))
       }
-    | [CatchAll({ name }), ...segments] =>
+    | [(CatchAll({ name }), optional), ...segments] =>
       switch (parameter(name)) {
       | Some(value) =>
         let encoded =
@@ -360,8 +398,158 @@ let render = (pattern, ~parameter, ~encodeStatic, ~encodeParameter) => {
           |> List.map(encodeParameter)
           |> String.concat("/");
         loop([encoded, ...rendered], segments);
+      | None when optional => loop(rendered, segments)
       | None => Error(InvalidPattern("missing route parameter " ++ name))
       }
     };
   loop([], pattern);
 };
+
+/* Melange strings are UTF-16 and native strings are UTF-8 bytes; a quoted
+   [js] literal is the only way to tell them apart without a ppx, because the
+   generator compiles this file with none. */
+let unicodeStrings = String.length({js|é|js}) == 1;
+
+let utf8 = value =>
+  if (!unicodeStrings) {
+    value;
+  } else {
+    let length = String.length(value);
+    let buffer = Buffer.create(length);
+    let add = code => Buffer.add_char(buffer, Char.chr(code));
+    let rec loop = index =>
+      if (index < length) {
+        let unit = Char.code(value.[index]);
+        let low = index + 1 < length ? Char.code(value.[index + 1]) : 0;
+        let (code, next) =
+          if (unit >= 0xd800
+              && unit <= 0xdbff
+              && low >= 0xdc00
+              && low <= 0xdfff) {
+            (0x10000 + (unit - 0xd800) lsl 10 + (low - 0xdc00), index + 2);
+          } else {
+            (unit, index + 1);
+          };
+        if (code < 0x80) {
+          add(code);
+        } else if (code < 0x800) {
+          add(0xc0 lor code lsr 6);
+          add(0x80 lor (code land 0x3f));
+        } else if (code < 0x10000) {
+          add(0xe0 lor code lsr 12);
+          add(0x80 lor (code lsr 6 land 0x3f));
+          add(0x80 lor (code land 0x3f));
+        } else {
+          add(0xf0 lor code lsr 18);
+          add(0x80 lor (code lsr 12 land 0x3f));
+          add(0x80 lor (code lsr 6 land 0x3f));
+          add(0x80 lor (code land 0x3f));
+        };
+        loop(next);
+      };
+    loop(0);
+    Buffer.contents(buffer);
+  };
+
+let hexValue = character =>
+  switch (character) {
+  | '0' .. '9' => Some(Char.code(character) - Char.code('0'))
+  | 'a' .. 'f' => Some(Char.code(character) - Char.code('a') + 10)
+  | 'A' .. 'F' => Some(Char.code(character) - Char.code('A') + 10)
+  | _ => None
+  };
+
+type malformedEscape =
+  | Reject
+  | Keep;
+
+let percentDecode = (~plus, ~malformed, value) => {
+  let length = String.length(value);
+  let buffer = Buffer.create(length);
+  let rec loop = index =>
+    if (index >= length) {
+      Some(Buffer.contents(buffer));
+    } else {
+      switch (value.[index]) {
+      | '+' when plus =>
+        Buffer.add_char(buffer, ' ');
+        loop(index + 1);
+      | '%' =>
+        let escaped =
+          index + 2 < length
+            ? switch (
+                hexValue(value.[index + 1]),
+                hexValue(value.[index + 2]),
+              ) {
+              | (Some(high), Some(low)) => Some(high lsl 4 lor low)
+              | _ => None
+              }
+            : None;
+        switch (escaped, malformed) {
+        | (Some(byte), _) =>
+          Buffer.add_char(buffer, Char.chr(byte));
+          loop(index + 3);
+        | (None, Keep) =>
+          Buffer.add_char(buffer, '%');
+          loop(index + 1);
+        | (None, Reject) => None
+        };
+      | character =>
+        Buffer.add_char(buffer, character);
+        loop(index + 1);
+      };
+    };
+  loop(0);
+};
+
+let decodeSegment = segment =>
+  segment == ""
+    ? None : percentDecode(~plus=false, ~malformed=Reject, segment);
+
+let matchesShape = (pattern, pathSegments) => {
+  let rec loop = (pattern, pathSegments) =>
+    switch (pattern, pathSegments) {
+    | ([], []) => true
+    | ([(CatchAll(_), _)], [_, ..._]) =>
+      List.for_all(segment => decodeSegment(segment) != None, pathSegments)
+    | ([(Static(value), _), ...pattern], [segment, ...pathSegments]) =>
+      decodeSegment(segment) == Some(utf8(value))
+      && loop(pattern, pathSegments)
+    | ([(Parameter(_), _), ...pattern], [segment, ...pathSegments]) =>
+      decodeSegment(segment) != None && loop(pattern, pathSegments)
+    | _ => false
+    };
+  loop(pattern, pathSegments);
+};
+
+let pathSegments = path =>
+  if (path == "/") {
+    Some([]);
+  } else if (String.starts_with(~prefix="/", path)) {
+    Some(List.tl(String.split_on_char('/', path)));
+  } else {
+    None;
+  };
+
+let rec stripBase = (base, path) =>
+  switch (base, path) {
+  | ([], rest) => Some(rest)
+  | ([baseSegment, ...base], [segment, ...path]) =>
+    switch (decodeSegment(baseSegment)) {
+    | Some(decoded) when decodeSegment(segment) == Some(decoded) =>
+      stripBase(base, path)
+    | _ => None
+    }
+  | ([_, ..._], []) => None
+  };
+
+let matchesPath = (~basePath="/", pattern, pathname) =>
+  switch (pathSegments(basePath), pathSegments(pathname)) {
+  | (Some(base), Some(path)) =>
+    switch (stripBase(base, path)) {
+    | Some(rest) =>
+      List.exists(shape => matchesShape(shape, rest), shapes(pattern))
+    | None => false
+    }
+  | _ => false
+  };

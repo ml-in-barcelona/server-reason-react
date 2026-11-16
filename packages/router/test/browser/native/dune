@@ -1,0 +1,25 @@
+(test
+ (name test_search_key)
+ (modules RouterPattern RouterSearchKey SearchKeyCases test_search_key))
+
+(copy_files
+ (files ../../../react/shared/RouterSearchKey.re))
+
+(copy_files
+ (files ../SearchKeyCases.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterPattern.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterPattern.rei))
+
+(test
+ (name test_location_scope)
+ (modules test_location_scope)
+ (libraries
+  lwt
+  lwt.unix
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.router-native))

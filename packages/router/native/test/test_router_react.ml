@@ -46,6 +46,39 @@ let requires_provider () =
   Alcotest.check_raises "no provider" (Invalid_argument "router hooks require an ancestor Router.Provider") (fun () ->
       ignore (ReactDOM.renderToString element))
 
+let link path =
+  RouterReact.Link.make
+    (RouterReact.Link.makeProps ~destination:(RouterRuntime.destination ~path) ~children:(React.string "go") ())
+
+let at_location pathname search children =
+  let initial =
+    RouterRuntime.Navigation.
+      { location = { pathname; search; hash = ""; key = "r1" }; matches = []; layouts = []; revision = "r1" }
+  in
+  ReactDOM.renderToStaticMarkup
+    (RouterReact.Provider.make
+       (RouterReact.Provider.makeProps ~initial ~registryFingerprint:"f" ~basePath:"/" ~metadata:React.null ~children ()))
+
+let contains ~needle value =
+  let limit = String.length value - String.length needle in
+  let rec loop index =
+    index <= limit && (String.equal (String.sub value index (String.length needle)) needle || loop (index + 1))
+  in
+  loop 0
+
+let link_marks_current_page () =
+  let current = at_location "/notes" "?b=2&a=1" (link "/notes?a=1&b=2#top") in
+  Alcotest.(check bool) current true (contains ~needle:{|aria-current="page"|} current);
+  List.iter
+    (fun (pathname, search) ->
+      let other = at_location pathname search (link "/notes?a=1&b=2") in
+      Alcotest.(check bool) other false (contains ~needle:"aria-current" other))
+    [ ("/notes/1", "?a=1&b=2"); ("/notes", "?a=1"); ("/", "") ]
+
+let link_without_provider () =
+  let html = ReactDOM.renderToStaticMarkup (link "/notes") in
+  Alcotest.(check string) "plain anchor" {|<a href="/notes">go</a>|} html
+
 let () =
   Alcotest.run "router react"
     [
@@ -55,5 +88,10 @@ let () =
           Alcotest.test_case "empty search" `Quick empty_search;
           Alcotest.test_case "invalid search" `Quick invalid_search;
           Alcotest.test_case "requires provider" `Quick requires_provider;
+        ] );
+      ( "Link",
+        [
+          Alcotest.test_case "marks the current page" `Quick link_marks_current_page;
+          Alcotest.test_case "works without a provider" `Quick link_without_provider;
         ] );
     ]

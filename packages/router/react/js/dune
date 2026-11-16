@@ -4,15 +4,22 @@
  (modes melange)
  (wrapped false)
  (private_modules
+  RouterAnnouncer
+  RouterBlocker
   RouterClient
   RouterClientRoot
   RouterHistory
   RouterOutlet
-  RouterPageCache
+  RouterNavigationCache
   RouterPattern
+  RouterPolicy
+  RouterPrefetch
+  RouterScroll
   RouterSearch
+  RouterSearchKey
   RouterTransaction
-  RouterTypes)
+  RouterTypes
+  RouterViewTransition)
  (libraries
   melange-webapi
   melange-fetch
@@ -40,9 +47,6 @@
  (files ../shared/RouterClientRoot.re))
 
 (copy_files
- (files ../shared/RouterPageCache.re))
-
-(copy_files
  (files ../../runtime/shared/RouterTypes.re))
 
 (copy_files
@@ -59,3 +63,6 @@
 
 (copy_files
  (files ../../runtime/shared/RouterTransaction.rei))
+
+(copy_files
+ (files ../shared/RouterSearchKey.re))

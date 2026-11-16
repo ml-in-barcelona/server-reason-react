@@ -69,12 +69,19 @@ module Path = struct
 
   let stripBasePath ~basePath pathname =
     if String.equal basePath "/" then Some pathname
-    else if String.equal pathname basePath then Some "/"
     else
-      let prefix = basePath ^ "/" in
-      if String.starts_with ~prefix pathname then
-        Some (String.sub pathname (String.length basePath) (String.length pathname - String.length basePath))
-      else None
+      let length = String.length pathname in
+      let rec strip start = function
+        | [] -> Some (if start = length then "/" else String.sub pathname start (length - start))
+        | segment :: segments -> (
+            if start >= length || pathname.[start] <> '/' then None
+            else
+              let stop = Option.value (String.index_from_opt pathname (start + 1) '/') ~default:length in
+              match decode_segment pathname ~has_escapes:true ~start:(start + 1) ~stop with
+              | Ok decoded when String.equal decoded segment -> strip stop segments
+              | Ok _ | Error _ -> None)
+      in
+      match decodePathname basePath with Ok segments -> strip 0 segments | Error _ -> None
 
   let splitLocation location =
     match String.index_opt location '?' with
@@ -328,6 +335,20 @@ module Decode = struct
     loop [] (Search.values input.Input.search name)
 end
 
+let redirect_location destination =
+  let href = RouterRuntime.href destination in
+  let length = String.length href in
+  let has_prefix prefix =
+    length > String.length prefix && String.lowercase_ascii (String.sub href 0 (String.length prefix)) = prefix
+  in
+  let local = length > 0 && href.[0] = '/' && not (length > 1 && (href.[1] = '/' || href.[1] = '\\')) in
+  if
+    (local || has_prefix "http://" || has_prefix "https://")
+    && String.for_all (fun character -> Char.code character >= 0x20 && Char.code character <> 0x7f) href
+  then Some href
+  else None
+
+let unsafe_redirect destination = Invalid_argument ("unsafe redirect target " ^ RouterRuntime.href destination)
 let fatal_exception = function Lwt.Canceled | Out_of_memory | Stack_overflow | Sys.Break -> true | _ -> false
 
 module Execution = struct
@@ -438,7 +459,11 @@ module Plan = struct
   end
 
   type ('view, 'error) t =
-    | Success of { scopes : 'view Scope.t list; page : 'view }
+    | Success of {
+        scopes : 'view Scope.t list;
+        page : 'view;
+        failure : ('error RouterRuntime.Error.t -> ('view, 'error) t) option;
+      }
     | Failure of {
         scopes : 'view Scope.t list;
         error : 'error RouterRuntime.Error.t;
@@ -454,7 +479,16 @@ module Plan = struct
     headers : RouterRuntime.Headers.t;
   }
 
-  let success ~scopes ~page = Success { scopes; page }
+  let success ~scopes ~page = Success { scopes; page; failure = None }
+
+  let withFailure plan failure =
+    match plan with Success success -> Success { success with failure = Some failure } | Failure _ -> plan
+
+  let fail plan error =
+    match plan with
+    | Success { failure = Some failure; _ } -> failure error
+    | Success { scopes; _ } -> Failure { scopes; error; not_found = None; error_boundary = None }
+    | Failure _ -> plan
 
   let failure ~scopes ~error ?notFound ?errorBoundary () =
     Failure { scopes; error; not_found = notFound; error_boundary = errorBoundary }
@@ -466,22 +500,20 @@ module Plan = struct
   let empty_headers = match RouterRuntime.Headers.make [] with Ok headers -> headers | Error _ -> assert false
 
   let resolve_values scopes =
-    let rec loop metadata headers = function
-      | [] -> Lwt.return (metadata, headers)
-      | scope :: scopes ->
-          let metadata_promise =
-            match scope.Scope.metadata with
-            | None -> Lwt.return metadata
-            | Some make -> Lwt.map (RouterRuntime.Metadata.merge metadata) (make ())
-          in
-          let headers_promise =
-            match scope.Scope.headers with
-            | None -> Lwt.return headers
-            | Some make -> Lwt.map (RouterRuntime.Headers.merge headers) (make ())
-          in
-          Lwt.bind (Lwt.both metadata_promise headers_promise) (fun (metadata, headers) -> loop metadata headers scopes)
-    in
-    loop (RouterRuntime.Metadata.make ()) empty_headers scopes
+    let start = function None -> Lwt.return_none | Some make -> Lwt.map Option.some (Lwt.apply make ()) in
+    let merge merge current = function None -> current | Some value -> merge current value in
+    Lwt.map
+      (List.fold_left
+         (fun (metadata, headers) (scope_metadata, scope_headers) ->
+           ( merge RouterRuntime.Metadata.merge metadata scope_metadata,
+             merge RouterRuntime.Headers.merge headers scope_headers ))
+         (RouterRuntime.Metadata.make (), empty_headers))
+      (Lwt.all
+         (List.map
+            (fun scope ->
+              let metadata = start scope.Scope.metadata in
+              Lwt.both metadata (start scope.Scope.headers))
+            scopes))
 
   let apply_layouts scopes element =
     List.fold_right
@@ -549,12 +581,14 @@ module Endpoint = struct
     route : Route.t;
     active_routes : (string * string list) list;
     fingerprint : string;
+    prefetch : RouterRuntime.PrefetchLevel.t;
     decode : Input.t -> (('result, 'error) prepared, 'error RouterRuntime.Error.t) result;
   }
 
   let make ~id ~path ~activeRoutes ~fingerprint ~decode =
-    { route = Route.make ~id ~path; active_routes = activeRoutes; fingerprint; decode }
+    { route = Route.make ~id ~path; active_routes = activeRoutes; fingerprint; prefetch = Intent; decode }
 
+  let withPrefetch endpoint prefetch = { endpoint with prefetch }
   let prepared ~branch ~execution = { branch; active_routes = None; execution }
   let recovered ~branch ~activeRoutes ~execution = { branch; active_routes = Some activeRoutes; execution }
   let route endpoint = endpoint.route
@@ -564,6 +598,7 @@ module Endpoint = struct
   let branch prepared = prepared.branch
   let execution prepared = prepared.execution ()
   let fingerprint endpoint = endpoint.fingerprint
+  let prefetch endpoint = endpoint.prefetch
 end
 
 module EndpointRegistry = struct
@@ -601,6 +636,7 @@ module EndpointRegistry = struct
   let decode matched ~search = Endpoint.decode matched.endpoint (Input.make ~parameters:matched.parameters ~search)
   let route matched = Endpoint.route matched.endpoint
   let parameters matched = matched.parameters
+  let prefetch matched = Endpoint.prefetch matched.endpoint
 
   let matches matched prepared =
     let active_routes =
@@ -661,13 +697,14 @@ module ServerEngine = struct
     | ReloadRequired
     | Redirect of RouterRuntime.destination
     | PermanentRedirect of RouterRuntime.destination
+    | PrefetchRefused of RouterRuntime.PrefetchLevel.t
 
   let empty_search : Search.t = []
 
   let required_headers ~kind ~response_kind ~protocol_version ~fingerprint =
     let values =
       [
-        ("Vary", "Accept");
+        ("Vary", match kind with Document -> "Accept" | Rsc -> "Accept, Router-Prefetch");
         ("Content-Type", match kind with Document -> "text/html; charset=utf-8" | Rsc -> "application/react.component");
       ]
       @
@@ -682,8 +719,13 @@ module ServerEngine = struct
     in
     match RouterRuntime.Headers.make values with Ok headers -> headers | Error _ -> assert false
 
+  let refused prefetch matched =
+    match prefetch with
+    | Some prefetch -> RouterRuntime.PrefetchLevel.compare prefetch (EndpointRegistry.prefetch matched) > 0
+    | None -> false
+
   let run ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId ~revision ~protocolVersion
-      request =
+      ?prefetch ?actionError request =
     let fingerprint = EndpointRegistry.fingerprint registry in
     let canonical_url = request.pathname ^ request.search ^ request.hash in
     let full ~matches ~layouts plan =
@@ -776,6 +818,8 @@ module ServerEngine = struct
                     | Error _ -> fail ~search (RouterRuntime.Error.InvalidPathParameter { name = "pathname" })
                     | Ok None ->
                         fail ~search (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
+                    | Ok (Some matched) when refused prefetch matched ->
+                        Lwt.return (PrefetchRefused (EndpointRegistry.prefetch matched))
                     | Ok (Some matched) -> (
                         match EndpointRegistry.decode matched ~search with
                         | Error error -> fail ~search error
@@ -786,6 +830,9 @@ module ServerEngine = struct
                             let layouts = Branch.layouts target_branch in
                             Lwt.bind (Execution.run ~diagnosticId execution) (function
                               | RouterRuntime.Loader.Data plan -> (
+                                  let plan =
+                                    match actionError with Some error -> Plan.fail plan error | None -> plan
+                                  in
                                   match patch_target ~target_branch ~plan with
                                   | None -> full ~matches ~layouts plan
                                   | Some (base_revision, depth, replace_from) ->
@@ -821,6 +868,16 @@ module ServerEngine = struct
                               | RouterRuntime.Loader.NotFound ->
                                   fail ~search
                                     (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })
+                              | RouterRuntime.Loader.Redirect destination
+                                when Option.is_none (redirect_location destination) ->
+                                  fail ~search
+                                    (RouterRuntime.Error.Internal
+                                       { diagnosticId = diagnosticId (unsafe_redirect destination) })
+                              | RouterRuntime.Loader.PermanentRedirect destination
+                                when Option.is_none (redirect_location destination) ->
+                                  fail ~search
+                                    (RouterRuntime.Error.Internal
+                                       { diagnosticId = diagnosticId (unsafe_redirect destination) })
                               | RouterRuntime.Loader.Redirect destination -> Lwt.return (Redirect destination)
                               | RouterRuntime.Loader.PermanentRedirect destination ->
                                   Lwt.return (PermanentRedirect destination))))))
@@ -869,10 +926,18 @@ module Server = struct
     fallback : search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t;
     application_status : 'error -> RouterRuntime.Status.t;
     protocol_version : int;
+    routes : string array;
+    intercept_links : bool;
+    view_transitions : bool;
   }
 
+  let client_routes registry =
+    registry.EndpointRegistry.raw |> Registry.routes |> List.map Route.path
+    |> List.fold_left (fun paths path -> if List.mem path paths then paths else path :: paths) []
+    |> List.rev |> Array.of_list
+
   let make ~basePath ~registry ?(trailingSlash = TrailingSlash.Redirect) ~fallback ~applicationStatus
-      ?(protocolVersion = 2) () =
+      ?(protocolVersion = 2) ?(interceptLinks = true) ?(viewTransitions = false) () =
     if not (Path.validBasePath basePath) then invalid_arg ("invalid router base path " ^ basePath)
     else
       {
@@ -882,28 +947,41 @@ module Server = struct
         fallback;
         application_status = applicationStatus;
         protocol_version = protocolVersion;
+        routes = client_routes registry;
+        intercept_links = interceptLinks;
+        view_transitions = viewTransitions;
       }
 
+  let routes server = Array.copy server.routes
   let basePath server = server.base_path
   let protocolVersion server = server.protocol_version
   let fingerprint server = EndpointRegistry.fingerprint server.registry
 
   let clientRootWith server ~make ~initial ~metadata ~children =
     make ~initial ~protocolVersion:server.protocol_version ~registryFingerprint:(fingerprint server)
-      ~basePath:server.base_path ~metadata ~children
+      ~basePath:server.base_path ~routes:(routes server) ~metadata ~children
 
-  let clientRootWithCache server ~pageCacheCapacity =
-    clientRootWith server ~make:(fun ~initial ~protocolVersion ~registryFingerprint ~basePath ~metadata ~children ->
+  let client_root ?pageCacheCapacity server =
+    clientRootWith server
+      ~make:(fun ~initial ~protocolVersion ~registryFingerprint ~basePath ~routes ~metadata ~children ->
         RouterClientRoot.make
-          (RouterClientRoot.makeProps ~initial ~protocolVersion ~registryFingerprint ~basePath ~pageCacheCapacity
-             ~metadata ~children ()))
+          (RouterClientRoot.makeProps ~initial ~protocolVersion ~registryFingerprint ~basePath ?pageCacheCapacity
+             ~routes ~interceptLinks:server.intercept_links ~viewTransitions:server.view_transitions ~metadata ~children
+             ()))
 
-  let clientRoot server = clientRootWithCache server ~pageCacheCapacity:0
+  let clientRootWithCache server ~pageCacheCapacity = client_root ~pageCacheCapacity server
+  let clientRoot server = client_root server
 
-  let run server ~diagnosticId ~revision request =
+  let run server ~diagnosticId ~revision ?prefetch ?actionError request =
     ServerEngine.run ~registry:server.registry ~basePath:server.base_path ~trailingSlash:server.trailing_slash
       ~fallback:server.fallback ~applicationStatus:server.application_status ~diagnosticId ~revision
-      ~protocolVersion:server.protocol_version request
+      ~protocolVersion:server.protocol_version ?prefetch ?actionError request
+end
+
+module Action = struct
+  exception Redirect of RouterRuntime.destination
+
+  let redirect destination = raise (Redirect destination)
 end
 
 module Adapter = struct
@@ -942,22 +1020,28 @@ module Adapter = struct
       [ React.JSX.String ("id", "id", "ssr-query-param"); React.JSX.Style [ ("display", "display", "none") ] ]
       []
 
-  let document_element server ~pageCacheCapacity ~document (response : (React.element, 'error) ServerEngine.full) =
-    let pathname, search = Path.splitLocation response.canonical_url in
-    let initial : RouterRuntime.Navigation.committed =
-      {
-        location = { RouterRuntime.Navigation.pathname; search; hash = ""; key = "server" };
-        revision = response.revision;
-        matches = response.matches;
-        layouts = response.layouts;
-      }
+  let committed ~canonical_url ~revision ~matches ~layouts : RouterRuntime.Navigation.committed =
+    let pathname, search = Path.splitLocation canonical_url in
+    { location = { RouterRuntime.Navigation.pathname; search; hash = ""; key = "server" }; revision; matches; layouts }
+
+  let scoped_element ~committed resolved =
+    RouterReact.locationScope ~committed ~children:(Plan.resolvedElement resolved) ()
+
+  let document_element server ?pageCacheCapacity ~document (response : (React.element, 'error) ServerEngine.full) =
+    let initial =
+      committed ~canonical_url:response.canonical_url ~revision:response.revision ~matches:response.matches
+        ~layouts:response.layouts
     in
     let head = metadata_element response.resolved.metadata in
-    let children =
-      Server.clientRootWithCache server ~pageCacheCapacity ~initial ~metadata:head
-        ~children:(Plan.resolvedElement response.resolved)
+    let root =
+      match
+        Server.client_root ?pageCacheCapacity server ~initial ~metadata:head
+          ~children:(scoped_element ~committed:initial response.resolved)
+      with
+      | React.Client_component component -> React.Client_component { component with key = Some "router:root" }
+      | root -> root
     in
-    document ~head (React.list [ ssr_marker; children ])
+    document ~head (React.list [ ssr_marker; root ])
 
   let full_model (response : (React.element, 'error) ServerEngine.full) =
     let full : React.element RouterRuntime.NavigationResponse.full =
@@ -970,7 +1054,12 @@ module Adapter = struct
         layouts = response.layouts;
         targetRevision = response.revision;
         metadata = metadata_element response.resolved.metadata;
-        payload = Plan.resolvedElement response.resolved;
+        payload =
+          scoped_element
+            ~committed:
+              (committed ~canonical_url:response.canonical_url ~revision:response.revision ~matches:response.matches
+                 ~layouts:response.layouts)
+            response.resolved;
       }
     in
     RouterRuntime.NavigationResponse.full_to_rsc RSC.Primitives.react_element_to_rsc full |> RSC.to_model
@@ -988,7 +1077,12 @@ module Adapter = struct
         matches = response.matches;
         layouts = response.layouts;
         metadata = metadata_element response.resolved.metadata;
-        payload = Plan.resolvedElement response.resolved;
+        payload =
+          scoped_element
+            ~committed:
+              (committed ~canonical_url:response.canonical_url ~revision:response.revision ~matches:response.matches
+                 ~layouts:response.layouts)
+            response.resolved;
       }
     in
     RouterRuntime.NavigationResponse.patch_to_rsc RSC.Primitives.react_element_to_rsc patch |> RSC.to_model
@@ -1002,21 +1096,71 @@ module Adapter = struct
   type body = Empty | Html of React.element | Model of { location : string; model : React.model_value }
   type reply = { status : int; headers : (string * string) list; body : body }
 
-  let reply server ~target ~pageCacheCapacity ~document ~kind outcome =
+  let methodReply ~allow method_ =
+    let headers = [ ("Allow", String.concat ", " allow) ] in
+    if String.equal method_ "OPTIONS" then Some { status = 204; headers; body = Empty }
+    else if List.exists (String.equal method_) allow then None
+    else Some { status = 405; headers; body = Empty }
+
+  let prefetch_refused_reply level =
+    {
+      status = 204;
+      headers =
+        [
+          ("Vary", "Accept, Router-Prefetch");
+          ("Router-Prefetch-Refused", RouterRuntime.PrefetchLevel.toString level);
+          ("Cache-Control", "private, no-store");
+        ];
+      body = Empty;
+    }
+
+  type formAction = Completed | Redirected of RouterRuntime.destination | Failed of exn
+
+  let runFormAction ~lookup formData =
+    match ReactServerDOM.decodeAction formData with
+    | None -> Lwt.return_none
+    | Some (actionId, userFormData) -> (
+        match lookup actionId with
+        | None -> Lwt.return_none
+        | Some handler ->
+            Lwt.catch
+              (fun () ->
+                let model =
+                  match handler with
+                  | ReactServerDOM.FormData handler -> handler [||] userFormData
+                  | ReactServerDOM.Body handler -> handler [||]
+                in
+                Lwt.map (fun _ -> Some Completed) model)
+              (function
+                | Action.Redirect destination when Option.is_none (redirect_location destination) ->
+                    Lwt.return_some (Failed (unsafe_redirect destination))
+                | Action.Redirect destination -> Lwt.return_some (Redirected destination)
+                | exception_ when fatal_exception exception_ -> Lwt.fail exception_
+                | exception_ -> Lwt.return_some (Failed exception_)))
+
+  let redirectLocation = redirect_location
+
+  let actionRedirectHeader destination =
+    Option.map (fun location -> ("Router-Redirect", location)) (redirect_location destination)
+
+  let see_other location = { status = 303; headers = [ ("Location", location) ]; body = Empty }
+  let unsafe_redirect_reply = { status = 500; headers = [ ("Vary", "Accept") ]; body = Empty }
+
+  let reply server ~target ?pageCacheCapacity ~document ~kind outcome =
     let protocolVersion = Server.protocolVersion server in
     let registryFingerprint = Server.fingerprint server in
     let redirect ~status destination =
-      match (kind : ServerEngine.requestKind) with
-      | Document ->
-          { status; headers = [ ("Vary", "Accept"); ("Location", RouterRuntime.href destination) ]; body = Empty }
-      | Rsc ->
+      match ((kind : ServerEngine.requestKind), redirect_location destination) with
+      | _, None -> unsafe_redirect_reply
+      | Document, Some location -> { status; headers = [ ("Vary", "Accept"); ("Location", location) ]; body = Empty }
+      | Rsc, Some _ ->
           {
             status = 200;
             headers =
               [
                 ("Content-Type", "application/react.component");
                 ("Cache-Control", "private, no-store");
-                ("Vary", "Accept");
+                ("Vary", "Accept, Router-Prefetch");
                 ("Router-Response", "redirect");
                 ("Router-Registry", string_of_int protocolVersion ^ "." ^ registryFingerprint);
               ];
@@ -1026,11 +1170,16 @@ module Adapter = struct
     match (outcome : (React.element, 'error) ServerEngine.outcome) with
     | Redirect destination -> redirect ~status:303 destination
     | PermanentRedirect destination -> redirect ~status:308 destination
+    | PrefetchRefused level -> prefetch_refused_reply level
     | ReloadRequired ->
         {
           status = 409;
           headers =
-            [ ("Vary", "Accept"); ("Router-Response", "reload-required"); ("Cache-Control", "private, no-store") ];
+            [
+              ("Vary", "Accept, Router-Prefetch");
+              ("Router-Response", "reload-required");
+              ("Cache-Control", "private, no-store");
+            ];
           body = Empty;
         }
     | Patch response ->
@@ -1044,10 +1193,34 @@ module Adapter = struct
         let headers = RouterRuntime.Headers.toList response.resolved.headers in
         let body =
           match response.kind with
-          | Document -> Html (document_element server ~pageCacheCapacity ~document response)
+          | Document -> Html (document_element server ?pageCacheCapacity ~document response)
           | Rsc -> Model { location = response.canonical_url; model = full_model response }
         in
         { status; headers; body }
+
+  let formActionReply server ~diagnosticId ~revision ~target ?pageCacheCapacity ~document
+      (request : ServerEngine.request) = function
+    | Completed ->
+        Lwt.return
+          (match redirect_location (RouterRuntime.destination ~path:target) with
+          | Some location -> see_other location
+          | None -> unsafe_redirect_reply)
+    | Redirected destination ->
+        Lwt.return
+          (match redirect_location destination with
+          | Some location -> see_other location
+          | None -> unsafe_redirect_reply)
+    | Failed exception_ ->
+        let actionError = RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ } in
+        Lwt.map
+          (fun (outcome : (React.element, 'error) ServerEngine.outcome) ->
+            match outcome with
+            | Redirect destination | PermanentRedirect destination -> (
+                match redirect_location destination with
+                | Some location -> see_other location
+                | None -> unsafe_redirect_reply)
+            | outcome -> reply server ~target ?pageCacheCapacity ~document ~kind:Document outcome)
+          (Server.run server ~diagnosticId ~revision ~actionError { request with kind = Document; navigation = None })
 end
 
 let statusOfError = status_of_error

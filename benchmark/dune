@@ -29,4 +29,4 @@
 (executable
  (name router_bench)
  (modules router_bench)
- (libraries unix server-reason-react.router-native))
+ (libraries unix lwt server-reason-react.router-native))

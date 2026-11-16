@@ -23,10 +23,9 @@ let encodeSegment = value => {
   | _ => invalid_arg("route parameters must be valid non-empty path segments")
   };
 };
-let destination = (~path) => makeDestination(path);
 
 let pattern = path =>
-  switch (RouterPattern.parse(path)) {
+  switch (RouterPattern.parseTemplate(path)) {
   | Ok(pattern) => Pattern(pattern)
   | Error(_) => invalid_arg("invalid generated route pattern " ++ path)
   };
@@ -86,22 +85,13 @@ let encodeSearch = search =>
 
 let destinationFromPattern = (~pattern, ~parameters, ~search) => {
   let Pattern(pattern) = pattern;
-  let parameter = name => List.assoc_opt(name, parameters);
-  let path =
-    switch (
-      RouterPattern.render(
-        pattern,
-        ~parameter,
-        ~encodeStatic=RouterPattern.encodeStaticSegment,
-        ~encodeParameter=encodeSegment,
-      )
-    ) {
-    | Ok(path) => path
-    | Error(InvalidPattern(message)) => invalid_arg(message)
-    };
-  let search = encodeSearch(search);
-  let finalPath: string = search == "" ? path : path ++ "?" ++ search;
-  destination(~path=finalPath);
+  renderDestination(
+    ~pattern,
+    ~parameters,
+    ~search,
+    ~encodeParameter=encodeSegment,
+    ~encodeSearch,
+  );
 };
 
-let href = destinationHref;
+let withHash = destinationWithHash(~encode=encodeSearchPart);

@@ -56,6 +56,7 @@ let server =
            DreamRouter.routes(
              ~server=RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
+             ~lookup=FunctionReferences.get,
              ~ssr=shouldSSR,
              ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
              ~document=
@@ -66,6 +67,7 @@ let server =
            DreamRouter.routes(
              ~server=Demo_hacker_news_router_native.RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
+             ~lookup=FunctionReferences.get,
              ~ssr=shouldSSR,
              ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
              ~pageCacheCapacity=32,

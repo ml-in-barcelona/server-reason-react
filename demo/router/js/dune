@@ -11,6 +11,7 @@
   melange.js
   melange-webapi
   reason-react
+  server-reason-react.react-server-dom-esbuild
   server-reason-react.router
   server-reason-react.rsc
   server-reason-react.runtime)

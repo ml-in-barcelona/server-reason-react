@@ -9,6 +9,10 @@ let option_type ~loc typ = B.ptyp_constr ~loc { txt = Longident.Lident "option";
 let list_type ~loc typ = B.ptyp_constr ~loc { txt = Longident.Lident "list"; loc } [ typ ]
 let bool_type ~loc = result_type ~loc "bool"
 
+let prefetch_level ~loc (level : Router_declaration.prefetch) =
+  let name = match level with Off -> "Off" | Intent -> "Intent" | Viewport -> "Viewport" | Idle -> "Idle" in
+  B.pexp_construct ~loc { txt = Longident.parse ("RouterRuntime.PrefetchLevel." ^ name); loc } None
+
 let destination_declaration ~loc ~manifest ~private_ =
   B.type_declaration ~loc ~name:{ txt = "destination"; loc } ~params:[] ~cstrs:[] ~kind:Ptype_abstract ~private_
     ~manifest
@@ -52,7 +56,13 @@ let search_value_type ~loc (search : Router_declaration.search) =
 let search_argument_label (search : Router_declaration.search) =
   match search.kind with Required -> Labelled search.name | Optional | Default _ | Many -> Optional search.name
 
+let parameter_label (parameter : Router_declaration.parameter) =
+  match parameter.presence with
+  | Segment -> Labelled parameter.name
+  | OptionalSegment | OptionalRest -> Optional parameter.name
+
 let route_input_type ~loc parameters search result =
+  let result = B.ptyp_arrow ~loc (Optional "hash") (result_type ~loc "string") result in
   let result =
     List.fold_right
       (fun (search : Router_declaration.search) result ->
@@ -61,7 +71,7 @@ let route_input_type ~loc parameters search result =
   in
   List.fold_right
     (fun (parameter : Router_declaration.parameter) result ->
-      B.ptyp_arrow ~loc (Labelled parameter.name) parameter.typ result)
+      B.ptyp_arrow ~loc (parameter_label parameter) parameter.argument result)
     parameters result
 
 let route_function_type ~loc parameters search result =
@@ -141,6 +151,12 @@ let route_constructor_expression (route : Router_declaration.route) =
   in
   B.pexp_construct ~loc { txt = Longident.Lident route.name; loc } payload
 
+let absent_value ~loc (parameter : Router_declaration.parameter) =
+  match parameter.presence with
+  | OptionalSegment -> B.pexp_construct ~loc { txt = Longident.Lident "None"; loc } None
+  | OptionalRest -> B.elist ~loc []
+  | Segment -> invalid_arg "a required route parameter has no absent value"
+
 let decode_route_expression (route : Router_declaration.route) =
   let loc = route.loc in
   let bindings =
@@ -154,6 +170,27 @@ let decode_route_expression (route : Router_declaration.route) =
               (Labelled "parse", B.pexp_ident ~loc { txt = parameter.parser; loc });
               (Nolabel, B.evar ~loc "parameters");
             ]
+        in
+        let decoded =
+          match parameter.presence with
+          | Segment -> decoded
+          | OptionalSegment | OptionalRest ->
+              let present =
+                match parameter.presence with
+                | OptionalSegment -> B.pexp_construct ~loc { txt = Longident.Lident "Some"; loc } (Some decoded)
+                | Segment | OptionalRest -> decoded
+              in
+              B.pexp_match ~loc
+                (B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.assoc_opt")
+                   [ (Nolabel, B.estring ~loc parameter.name); (Nolabel, B.evar ~loc "parameters") ])
+                [
+                  B.case
+                    ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "None"; loc } None)
+                    ~guard:None ~rhs:(absent_value ~loc parameter);
+                  B.case
+                    ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (B.ppat_any ~loc)))
+                    ~guard:None ~rhs:present;
+                ]
         in
         B.value_binding ~loc ~pat:(B.pvar ~loc parameter.name) ~expr:decoded)
       route.parameters
@@ -255,6 +292,7 @@ let typed_function ~loc label name typ body =
   B.pexp_fun ~loc label None (B.ppat_constraint ~loc (B.pvar ~loc name) typ) body
 
 let route_input_expression ~loc parameters search body =
+  let body = typed_function ~loc (Optional "hash") "hash" (result_type ~loc "string") body in
   let body =
     List.fold_right
       (fun (search : Router_declaration.search) body ->
@@ -263,7 +301,7 @@ let route_input_expression ~loc parameters search body =
   in
   List.fold_right
     (fun (parameter : Router_declaration.parameter) body ->
-      typed_function ~loc (Labelled parameter.name) parameter.name parameter.typ body)
+      typed_function ~loc (parameter_label parameter) parameter.name parameter.argument body)
     parameters body
 
 let route_function_expression ~loc parameters search body =
@@ -272,12 +310,12 @@ let route_function_expression ~loc parameters search body =
 let apply_route_inputs ~loc callee parameters search =
   let arguments =
     List.map
-      (fun (parameter : Router_declaration.parameter) -> (Labelled parameter.name, B.evar ~loc parameter.name))
+      (fun (parameter : Router_declaration.parameter) -> (parameter_label parameter, B.evar ~loc parameter.name))
       parameters
     @ List.map
         (fun (search : Router_declaration.search) -> (search_argument_label search, B.evar ~loc search.name))
         search
-    @ [ (Nolabel, unit_expression ~loc) ]
+    @ [ (Optional "hash", B.evar ~loc "hash"); (Nolabel, unit_expression ~loc) ]
   in
   B.pexp_apply ~loc callee arguments
 
@@ -360,19 +398,40 @@ let signature (declaration : Router_declaration.t) =
   @ search_contract_signature ~loc root_search
   @ List.map route_signature routes
 
+let parameter_entries ~loc (parameter : Router_declaration.parameter) =
+  let pair value =
+    B.pexp_tuple ~loc
+      [
+        B.estring ~loc parameter.name;
+        B.pexp_apply ~loc (B.pexp_ident ~loc { txt = parameter.to_string; loc }) [ (Nolabel, value) ];
+      ]
+  in
+  let value = B.evar ~loc parameter.name in
+  match parameter.presence with
+  | Segment -> B.elist ~loc [ pair value ]
+  | OptionalSegment ->
+      let mapped =
+        B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.map")
+          [
+            (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc "value") (pair (B.evar ~loc "value"))); (Nolabel, value);
+          ]
+      in
+      B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.to_list") [ (Nolabel, mapped) ]
+  | OptionalRest ->
+      B.pexp_match ~loc value
+        [
+          B.case
+            ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "[]"; loc } None)
+            ~guard:None ~rhs:(B.elist ~loc []);
+          B.case ~lhs:(B.pvar ~loc "value") ~guard:None ~rhs:(B.elist ~loc [ pair (B.evar ~loc "value") ]);
+        ]
+
+let parameter_list ~loc parameters =
+  B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.concat")
+    [ (Nolabel, B.elist ~loc (List.map (parameter_entries ~loc) parameters)) ]
+
 let route_module ~base_path (route : Router_declaration.route) =
   let loc = route.loc in
-  let parameter_values =
-    List.map
-      (fun (parameter : Router_declaration.parameter) ->
-        let printed =
-          B.pexp_apply ~loc
-            (B.pexp_ident ~loc { txt = parameter.to_string; loc })
-            [ (Nolabel, B.evar ~loc parameter.name) ]
-        in
-        B.pexp_tuple ~loc [ B.estring ~loc parameter.name; printed ])
-      route.parameters
-  in
   let print_value to_string value =
     B.pexp_apply ~loc (B.pexp_ident ~loc { txt = to_string; loc }) [ (Nolabel, value) ]
   in
@@ -430,9 +489,49 @@ let route_module ~base_path (route : Router_declaration.route) =
       (B.evar ~loc "RouterRuntime.destinationFromPattern")
       [
         (Labelled "pattern", B.evar ~loc "pattern");
-        (Labelled "parameters", B.elist ~loc parameter_values);
+        (Labelled "parameters", parameter_list ~loc route.parameters);
         (Labelled "search", search_values);
       ]
+  in
+  let destination_body =
+    B.pexp_let ~loc Nonrecursive
+      [ B.value_binding ~loc ~pat:(B.pvar ~loc "value") ~expr:destination_body ]
+      (B.pexp_match ~loc (B.evar ~loc "hash")
+         [
+           B.case
+             ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "None"; loc } None)
+             ~guard:None ~rhs:(B.evar ~loc "value");
+           B.case
+             ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (B.pvar ~loc "hash")))
+             ~guard:None
+             ~rhs:
+               (B.pexp_apply ~loc (B.evar ~loc "RouterRuntime.withHash")
+                  [ (Nolabel, B.evar ~loc "value"); (Labelled "hash", B.evar ~loc "hash") ]);
+         ])
+  in
+  let destination_body =
+    match route.prefetch with
+    | Intent -> destination_body
+    | level ->
+        B.pexp_apply ~loc
+          (B.evar ~loc "RouterRuntime.withPrefetch")
+          [ (Nolabel, destination_body); (Nolabel, prefetch_level ~loc level) ]
+  in
+  let destination_body =
+    List.fold_right
+      (fun (parameter : Router_declaration.parameter) body ->
+        match parameter.presence with
+        | OptionalRest ->
+            B.pexp_let ~loc Nonrecursive
+              [
+                B.value_binding ~loc ~pat:(B.pvar ~loc parameter.name)
+                  ~expr:
+                    (B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.value")
+                       [ (Labelled "default", B.elist ~loc []); (Nolabel, B.evar ~loc parameter.name) ]);
+              ]
+              body
+        | Segment | OptionalSegment -> body)
+      route.parameters destination_body
   in
   let destination_expression =
     route_function_expression ~loc route.parameters route.search
@@ -717,9 +816,31 @@ let native_search_decoder ~loc (search : Router_declaration.search) =
   in
   B.pexp_apply ~loc (B.evar ~loc callee) arguments
 
+let input_pattern ~loc used = B.pvar ~loc (if used then "input" else "_input")
+
 let bind_decode ~loc name decoder body =
   B.pexp_apply ~loc (B.evar ~loc "Stdlib.Result.bind")
     [ (Nolabel, decoder); (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc name) body) ]
+
+let decode_parameters ~present parameters body =
+  List.fold_right
+    (fun (parameter : Router_declaration.parameter) body ->
+      let loc = parameter.loc in
+      if List.mem parameter.name present then
+        let decoder = native_path_decoder ~loc parameter in
+        let decoder =
+          match parameter.presence with
+          | OptionalSegment ->
+              B.pexp_apply ~loc (B.evar ~loc "Stdlib.Result.map")
+                [ (Nolabel, B.evar ~loc "Stdlib.Option.some"); (Nolabel, decoder) ]
+          | Segment | OptionalRest -> decoder
+        in
+        bind_decode ~loc parameter.name decoder body
+      else
+        B.pexp_let ~loc Nonrecursive
+          [ B.value_binding ~loc ~pat:(B.pvar ~loc parameter.name) ~expr:(absent_value ~loc parameter) ]
+          body)
+    parameters body
 
 let boundary_callback ~loc attachment parameters search loaders =
   let call =
@@ -728,23 +849,12 @@ let boundary_callback ~loc attachment parameters search loaders =
   in
   B.pexp_fun ~loc Nolabel None (B.pvar ~loc "error") call
 
-let canonical_parameters ~loc parameters =
-  List.map
-    (fun (parameter : Router_declaration.parameter) ->
-      let value =
-        B.pexp_apply ~loc
-          (B.pexp_ident ~loc { txt = parameter.to_string; loc })
-          [ (Nolabel, B.evar ~loc parameter.name) ]
-      in
-      B.pexp_tuple ~loc [ B.estring ~loc parameter.name; value ])
-    parameters
-
 let branch_scope ~loc (scope : Router_declaration.scope) parameters ~reusable =
   B.pexp_apply ~loc
     (B.evar ~loc "RouterServer.Branch.Scope.make")
     [
       (Labelled "id", B.estring ~loc scope.id);
-      (Labelled "parameters", B.elist ~loc (canonical_parameters ~loc parameters));
+      (Labelled "parameters", parameter_list ~loc parameters);
       (Labelled "reusable", B.ebool ~loc reusable);
     ]
 
@@ -821,6 +931,13 @@ let loader_execution (route : Router_declaration.route) =
             (B.evar ~loc "RouterServer.Plan.success")
             [ (Labelled "scopes", B.elist ~loc completed); (Labelled "page", page) ]
         in
+        let failure =
+          B.pexp_fun ~loc Nolabel None (B.pvar ~loc "error")
+            (failure_plan ~loc completed (B.evar ~loc "error") not_found error_boundary)
+        in
+        let plan =
+          B.pexp_apply ~loc (B.evar ~loc "RouterServer.Plan.withFailure") [ (Nolabel, plan); (Nolabel, failure) ]
+        in
         B.pexp_apply ~loc (B.evar ~loc "RouterServer.Execution.done_") [ (Nolabel, plan) ]
     | (scope : Router_declaration.scope) :: rest -> (
         let parameters = parameters @ scope.Router_declaration.parameters in
@@ -861,21 +978,22 @@ let loader_execution (route : Router_declaration.route) =
   build route.scopes [] [] [] [] None None
 
 let parsed_path path =
-  match RouterPattern.parse path with
+  match RouterPattern.parseTemplate path with
   | Ok pattern -> pattern
   | Error _ -> invalid_arg "validated router path failed to parse"
 
 let active_route_candidates routes pattern =
   routes
-  |> List.filter (fun (_, candidate_pattern) -> RouterPattern.isPrefix ~prefix:candidate_pattern pattern)
-  |> List.sort (fun ((left : Router_declaration.route), left_pattern) (right, right_pattern) ->
+  |> List.filter_map (fun (route, shapes) ->
       match
-        Int.compare
-          (List.length (RouterPattern.segments left_pattern))
-          (List.length (RouterPattern.segments right_pattern))
+        shapes
+        |> List.filter (fun shape -> RouterPattern.isPrefix ~prefix:shape pattern)
+        |> List.map (fun shape -> List.length (RouterPattern.segments shape))
       with
-      | 0 -> String.compare left.name right.name
-      | order -> order)
+      | [] -> None
+      | lengths -> Some (route, List.fold_left max 0 lengths))
+  |> List.sort (fun ((left : Router_declaration.route), left_length) (right, right_length) ->
+      match Int.compare left_length right_length with 0 -> String.compare left.name right.name | order -> order)
 
 let projected_branch (route : Router_declaration.route) =
   let loc = route.loc in
@@ -907,7 +1025,7 @@ let recover_decode_failure ~loc ~branch ~scopes ~active_routes error_boundary =
   in
   B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some prepared)
 
-let decode_endpoint ~routes (route : Router_declaration.route) prepared =
+let decode_endpoint ~routes ~present (route : Router_declaration.route) prepared =
   let rec build scopes pattern parameters search completed branch error_boundary loader_seen root =
     match scopes with
     | [] -> prepared
@@ -940,12 +1058,7 @@ let decode_endpoint ~routes (route : Router_declaration.route) prepared =
               bind_decode ~loc:search.loc search.name (native_search_decoder ~loc:search.loc search) body)
             scope.search success
         in
-        let decoded =
-          List.fold_right
-            (fun (parameter : Router_declaration.parameter) body ->
-              bind_decode ~loc:parameter.loc parameter.name (native_path_decoder ~loc:parameter.loc parameter) body)
-            scope.parameters decoded_search
-        in
+        let decoded = decode_parameters ~present scope.parameters decoded_search in
         if scope.parameters = [] && scope.search = [] then decoded
         else if root then decoded
         else
@@ -1028,9 +1141,12 @@ let fingerprint_parts (route : Router_declaration.route) =
   in
   route_parts @ parameter_parts @ search_parts @ scope_parts
 
-let endpoint ~base_path ~invalid_search ~routes (route : Router_declaration.route) =
+let endpoint ~base_path ~invalid_search ~routes ~primary ~shape (route : Router_declaration.route) =
   let loc = route.loc in
-  let route_pattern = parsed_path route.path in
+  let shape_path = RouterPattern.toString shape in
+  let present =
+    RouterPattern.parameters shape |> List.map (fun (parameter : RouterPattern.parameter) -> parameter.name)
+  in
   let execution = loader_execution route in
   let prepared =
     B.pexp_apply ~loc
@@ -1041,10 +1157,10 @@ let endpoint ~base_path ~invalid_search ~routes (route : Router_declaration.rout
       ]
     |> fun prepared -> B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some prepared)
   in
-  let decoded = decode_endpoint ~routes route prepared in
-  let decode = B.pexp_fun ~loc Nolabel None (B.pvar ~loc "input") decoded in
+  let decoded = decode_endpoint ~routes ~present route prepared in
+  let decode = B.pexp_fun ~loc Nolabel None (input_pattern ~loc (present <> [] || route.search <> [])) decoded in
   let active_routes =
-    active_route_candidates routes route_pattern
+    active_route_candidates routes shape
     |> List.map (fun ((candidate : Router_declaration.route), _) ->
         B.pexp_tuple ~loc
           [
@@ -1056,18 +1172,28 @@ let endpoint ~base_path ~invalid_search ~routes (route : Router_declaration.rout
           ])
   in
   let fingerprint =
-    [ "basePath:" ^ base_path; attachment_part "invalidSearch" invalid_search ] @ fingerprint_parts route
+    ([ "basePath:" ^ base_path; attachment_part "invalidSearch" invalid_search ]
+    @ fingerprint_parts route
+    @ if String.equal shape_path route.path then [] else [ "shape:" ^ shape_path ])
     |> String.concat "\n" |> Digest.string |> Digest.to_hex
   in
-  B.pexp_apply ~loc
-    (B.evar ~loc "RouterServer.Endpoint.make")
-    [
-      (Labelled "id", B.estring ~loc route.name);
-      (Labelled "path", B.estring ~loc route.path);
-      (Labelled "activeRoutes", B.elist ~loc active_routes);
-      (Labelled "fingerprint", B.estring ~loc fingerprint);
-      (Labelled "decode", decode);
-    ]
+  let endpoint =
+    B.pexp_apply ~loc
+      (B.evar ~loc "RouterServer.Endpoint.make")
+      [
+        (Labelled "id", B.estring ~loc (if primary then route.name else route.name ^ "@" ^ shape_path));
+        (Labelled "path", B.estring ~loc shape_path);
+        (Labelled "activeRoutes", B.elist ~loc active_routes);
+        (Labelled "fingerprint", B.estring ~loc fingerprint);
+        (Labelled "decode", decode);
+      ]
+  in
+  match route.prefetch with
+  | Intent -> endpoint
+  | level ->
+      B.pexp_apply ~loc
+        (B.evar ~loc "RouterServer.Endpoint.withPrefetch")
+        [ (Nolabel, endpoint); (Nolabel, prefetch_level ~loc level) ]
 
 let redirect_endpoint ~base_path ~invalid_search (redirect : Router_declaration.redirect) =
   let loc = redirect.loc in
@@ -1102,7 +1228,9 @@ let redirect_endpoint ~base_path ~invalid_search (redirect : Router_declaration.
         bind_decode ~loc:parameter.loc parameter.name (native_path_decoder ~loc:parameter.loc parameter) body)
       redirect.parameters decoded_search
   in
-  let decode = B.pexp_fun ~loc Nolabel None (B.pvar ~loc "input") decoded in
+  let decode =
+    B.pexp_fun ~loc Nolabel None (input_pattern ~loc (redirect.parameters <> [] || redirect.search <> [])) decoded
+  in
   let parameter_parts =
     List.map
       (fun (parameter : Router_declaration.parameter) ->
@@ -1202,7 +1330,8 @@ let fallback (declaration : Router_declaration.t) =
   let with_input =
     B.pexp_let ~loc Nonrecursive
       [
-        B.value_binding ~loc ~pat:(B.pvar ~loc "input")
+        B.value_binding ~loc
+          ~pat:(input_pattern ~loc (search <> []))
           ~expr:(B.pexp_apply ~loc (B.evar ~loc "RouterServer.Input.forSearch") [ (Nolabel, B.evar ~loc "search") ]);
       ]
       folded
@@ -1218,15 +1347,19 @@ let registry (declaration : Router_declaration.t) =
       (function Router_declaration.Page route -> Some route | Router_declaration.RedirectTo _ -> None)
       endpoints
   in
-  let parsed_routes = List.map (fun (route : Router_declaration.route) -> (route, parsed_path route.path)) routes in
+  let parsed_routes =
+    List.map (fun (route : Router_declaration.route) -> (route, Router_declaration.shapes route.path)) routes
+  in
   let route_values =
-    List.map
+    List.concat_map
       (function
         | Router_declaration.Page route ->
-            endpoint ~base_path:declaration.base_path ~invalid_search:declaration.invalid_search ~routes:parsed_routes
-              route
+            Router_declaration.shapes route.path
+            |> List.mapi (fun index shape ->
+                endpoint ~base_path:declaration.base_path ~invalid_search:declaration.invalid_search
+                  ~routes:parsed_routes ~primary:(index = 0) ~shape route)
         | Router_declaration.RedirectTo redirect ->
-            redirect_endpoint ~base_path:declaration.base_path ~invalid_search:declaration.invalid_search redirect)
+            [ redirect_endpoint ~base_path:declaration.base_path ~invalid_search:declaration.invalid_search redirect ])
       endpoints
   in
   let base_path =
@@ -1270,14 +1403,17 @@ let registry (declaration : Router_declaration.t) =
     let expression =
       B.pexp_apply ~loc
         (B.evar ~loc "RouterServer.Server.make")
-        [
-          (Labelled "basePath", B.evar ~loc "basePath");
-          (Labelled "registry", B.evar ~loc "registry");
-          (Labelled "trailingSlash", trailing_slash);
-          (Labelled "fallback", B.evar ~loc "fallback");
-          (Labelled "applicationStatus", B.evar ~loc "applicationStatus");
-          (Nolabel, unit_expression ~loc);
-        ]
+        ([
+           (Labelled "basePath", B.evar ~loc "basePath");
+           (Labelled "registry", B.evar ~loc "registry");
+           (Labelled "trailingSlash", trailing_slash);
+           (Labelled "fallback", B.evar ~loc "fallback");
+           (Labelled "applicationStatus", B.evar ~loc "applicationStatus");
+         ]
+        @ List.filter_map
+            (fun (label, value) -> Option.map (fun value -> (Labelled label, B.ebool ~loc value)) value)
+            [ ("interceptLinks", declaration.intercept_links); ("viewTransitions", declaration.view_transitions) ]
+        @ [ (Nolabel, unit_expression ~loc) ])
     in
     B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "server") ~expr:expression ]
   in

@@ -39,6 +39,7 @@ module RequestContext = struct
           ("RequestContext.set_cookie: no request context. " ^ "This function must be called inside a server function.")
 end
 
+let request () = Lwt.get RequestContext.request_key
 let get_header = RequestContext.get_header
 let get_cookie = RequestContext.get_cookie
 let set_cookie = RequestContext.set_cookie
@@ -154,9 +155,18 @@ let streamFunctionResponse ?(debug = false) ?(timeout = stream_timeout) ~lookup 
         let%lwt result = run () in
         let cookies = serialize_pending_cookies !pending in
         Lwt.return (`Settled (Lwt.return result, cookies)))
-      (fun exn ->
-        pending := [];
-        Lwt.return (`Settled (Lwt.fail exn, [])))
+      (function
+        | RouterServer.Action.Redirect destination as exn -> (
+            match RouterServer.Adapter.actionRedirectHeader destination with
+            | Some header ->
+                let cookies = serialize_pending_cookies !pending in
+                Lwt.return (`Settled (Lwt.return (React.Model.Element React.null), header :: cookies))
+            | None ->
+                pending := [];
+                Lwt.return (`Settled (Lwt.fail exn, [])))
+        | exn ->
+            pending := [];
+            Lwt.return (`Settled (Lwt.fail exn, [])))
   in
   let deadline =
     let%lwt () = Lwt_unix.sleep timeout in
@@ -237,45 +247,113 @@ let respond ~skipRoot ~bootstrapModules (reply : RouterServer.Adapter.reply) =
   | Html element -> stream_html ~code ~headers ~skipRoot ~bootstrapModules element
   | Model { location; model } -> stream_model_value ~code ~headers ~location model
 
-let handler ~server ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = [])
-    ?(pageCacheCapacity = 0) ~document =
- fun request ->
-  with_render_context request (fun () ->
-      let target = Dream.target request in
-      let pathname, query = Dream.split_target target in
-      let search = if String.equal query "" then "" else "?" ^ query in
-      let kind =
-        match Dream.header request "Accept" with
-        | Some accept when is_react_component_header accept -> RouterServer.ServerEngine.Rsc
-        | Some _ | None -> RouterServer.ServerEngine.Document
-      in
-      let navigation =
-        match kind with
-        | RouterServer.ServerEngine.Document -> None
-        | RouterServer.ServerEngine.Rsc ->
-            Some
-              {
-                RouterServer.ServerEngine.from = Dream.header request "Router-Navigation-From";
-                registry = Dream.header request "Router-Registry";
-                base_revision = Dream.header request "Router-Base-Revision";
-              }
-      in
-      let%lwt outcome =
-        RouterServer.Server.run server ~diagnosticId ~revision
-          { RouterServer.ServerEngine.pathname; search; hash = ""; kind; navigation }
-      in
-      RouterServer.Adapter.reply server ~target ~pageCacheCapacity ~document ~kind outcome
-      |> respond ~skipRoot:(not (ssr request)) ~bootstrapModules)
+let allow = [ "GET"; "HEAD"; "OPTIONS"; "POST" ]
 
-let routes ~server ~actionHandler ?(diagnosticId = fun _ -> string_of_int (Random.bits ()))
-    ?(revision = fun () -> string_of_int (Random.bits ())) ?(ssr = fun _request -> true) ?(bootstrapModules = [])
-    ?(pageCacheCapacity = 0) ~document () =
+let engine_request ~kind request =
+  let pathname, query = Dream.split_target (Dream.target request) in
+  let search = if String.equal query "" then "" else "?" ^ query in
+  let navigation =
+    match kind with
+    | RouterServer.ServerEngine.Document -> None
+    | RouterServer.ServerEngine.Rsc ->
+        Some
+          {
+            RouterServer.ServerEngine.from = Dream.header request "Router-Navigation-From";
+            registry = Dream.header request "Router-Registry";
+            base_revision = Dream.header request "Router-Base-Revision";
+          }
+  in
+  { RouterServer.ServerEngine.pathname; search; hash = ""; kind; navigation }
+
+let handler ~server ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = []) ?pageCacheCapacity
+    ~document =
+ fun request ->
+  match RouterServer.Adapter.methodReply ~allow (Dream.method_to_string (Dream.method_ request)) with
+  | Some reply -> respond ~skipRoot:false ~bootstrapModules reply
+  | None ->
+      with_render_context request (fun () ->
+          let target = Dream.target request in
+          let kind =
+            match Dream.header request "Accept" with
+            | Some accept when is_react_component_header accept -> RouterServer.ServerEngine.Rsc
+            | Some _ | None -> RouterServer.ServerEngine.Document
+          in
+          let prefetch =
+            match kind with
+            | RouterServer.ServerEngine.Document -> None
+            | RouterServer.ServerEngine.Rsc ->
+                Option.bind (Dream.header request "Router-Prefetch") RouterRuntime.PrefetchLevel.fromString
+          in
+          let%lwt outcome =
+            RouterServer.Server.run server ~diagnosticId ~revision ?prefetch (engine_request ~kind request)
+          in
+          let reply = RouterServer.Adapter.reply server ~target ?pageCacheCapacity ~document ~kind outcome in
+          let reply = if Dream.method_ request = `HEAD then { reply with body = Empty } else reply in
+          respond ~skipRoot:(not (ssr request)) ~bootstrapModules reply)
+
+let is_form_post request =
+  Option.is_none (Dream.header request "ACTION_ID")
+  &&
+  match Dream.header request "Content-Type" with
+  | Some content_type -> String.starts_with content_type ~prefix:"multipart/form-data"
+  | None -> false
+
+let form_handler ~server ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document
+    ~actionHandler =
+ fun request ->
+  if not (is_form_post request) then actionHandler request
+  else
+    let%lwt body = Dream.body request in
+    Dream.set_body request body;
+    let pass_on () =
+      Dream.set_body request body;
+      actionHandler request
+    in
+    match%lwt Dream.multipart request ~csrf:false with
+    | `Ok formData when not (List.exists (fun (name, _) -> String.starts_with ~prefix:"$ACTION_ID_" name) formData) ->
+        pass_on ()
+    | `Ok formData -> (
+        let pending, run =
+          with_action_context request (fun () ->
+              RouterServer.Adapter.runFormAction ~lookup (dreamFormDataToJs formData))
+        in
+        match%lwt run () with
+        | None -> Dream.empty `Bad_Request
+        | Some action ->
+            let cookies =
+              match action with
+              | RouterServer.Adapter.Failed _ -> []
+              | Completed | Redirected _ -> serialize_pending_cookies !pending
+            in
+            with_render_context request (fun () ->
+                let%lwt reply =
+                  RouterServer.Adapter.formActionReply server ~diagnosticId ~revision ~target:(Dream.target request)
+                    ?pageCacheCapacity ~document
+                    (engine_request ~kind:RouterServer.ServerEngine.Document request)
+                    action
+                in
+                respond ~skipRoot:(not (ssr request)) ~bootstrapModules { reply with headers = reply.headers @ cookies })
+        )
+    | _ -> pass_on ()
+
+let random_id () = Dream.to_base64url (Dream.random 12)
+
+let routes ~server ~actionHandler ?lookup ?(diagnosticId = fun _ -> random_id ()) ?(revision = random_id)
+    ?(ssr = fun _request -> true) ?(bootstrapModules = []) ?pageCacheCapacity ~document () =
   let basePath = RouterServer.Server.basePath server |> Dream.from_percent_encoded in
-  let handler = handler ~server ~diagnosticId ~revision ~ssr ~bootstrapModules ~pageCacheCapacity ~document in
+  let handler = handler ~server ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document in
   let wildcard = if String.equal basePath "/" then "/**" else basePath ^ "/**" in
+  let actionHandler =
+    match lookup with
+    | None -> actionHandler
+    | Some lookup ->
+        form_handler ~server ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document
+          ~actionHandler
+  in
+  let actionHandler = Dream.origin_referrer_check actionHandler in
   [
-    Dream.get basePath handler;
-    Dream.get wildcard handler;
     Dream.post basePath actionHandler;
     Dream.post wildcard actionHandler;
+    Dream.any basePath handler;
+    Dream.any wildcard handler;
   ]
