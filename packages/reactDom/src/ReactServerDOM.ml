@@ -92,11 +92,12 @@ end
 
 module Stream = struct
   (* An async row still rendering. On an abort/timeout every task gets an error row rejecting its client-side
-     reference, [`Boundary] tasks (Suspense content whose B:<id> placeholder already flushed) additionally get a $RX
-     client-render instruction, and [promise] is canceled (best-effort: a no-op for non-cancelable promises). *)
+     reference, [`Boundary parent] tasks (Suspense content whose B:<id> placeholder is in the chunk [parent] reports
+     as written) additionally get a $RX client-render instruction once that chunk was written, and [promise] is
+     canceled (best-effort: a no-op for non-cancelable promises). *)
   type task = {
     row : int;
-    kind : [ `Boundary | `Model_row ];
+    kind : [ `Boundary of bool Lwt.t | `Model_row ];
     (* The running serialization. A placeholder until the task starts; only the abort path reads it, after the task
        was detached from [active_tasks], and no yield separates registration from the assignment, so the placeholder
        is never the promise being canceled. *)
@@ -253,10 +254,11 @@ module Stream = struct
         Hashtbl.replace context.written_symbols symbol reference;
         reference
 
-  (* An asynchronous task row: the id is allocated BEFORE [make_chunk] runs so rows pushed while the task's payload is serialized get later ids. The row is written when the promise resolves — unless an abort detached the task in the meantime, in which case the chunk is dropped. After an abort the registration itself is refused; the id is still allocated so late serialization inside a detached task keeps producing rows the write guards can drop. *)
+  (* An asynchronous task row: the id is allocated BEFORE [make_chunk] runs so rows pushed while the task's payload is serialized get later ids. The row is written when the promise resolves to [Some _]; [None] completes the task without a write. An abort that detached the task in the meantime drops the chunk. After an abort the registration itself is refused; the id is still allocated so late serialization inside a detached task keeps producing rows the write guards can drop. Also returns whether the chunk was written, resolved once the task completes. *)
   let push_task ~kind make_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
+    let written, resolve_written = Lwt.wait () in
     (match context.lifecycle with
     | Aborting | Closed -> ()
     | Open ->
@@ -268,12 +270,13 @@ module Stream = struct
           (* Leaving [Open] detached every task ([begin_abort]): a detached task must not write, re-close, or
              complete twice. In [Open] this task is necessarily still registered, since completion runs once. *)
           | Aborting | Closed -> ()
-          | Open -> (
+          | Open ->
               context.active_tasks <- List.filter (fun other -> other != task) context.active_tasks;
-              context.push (to_chunk index);
+              Option.iter (fun to_chunk -> context.push (to_chunk index)) to_chunk;
               (* Rows deferred during this row's serialization flush right after it, and may register new pending work, so flush before the close check. *)
               flush_deferred ~context;
-              match (context.active_tasks, context.root_pending) with [], false -> close context | _ -> ()));
+              (match (context.active_tasks, context.root_pending) with [], false -> close context | _ -> ());
+              Lwt.wakeup_later resolve_written (Option.is_some to_chunk));
           Lwt.return ()
         in
         task.promise <- promise;
@@ -281,13 +284,20 @@ module Stream = struct
         Lwt.on_failure promise (function
           | Lwt.Canceled -> ()
           | exn -> !Lwt.async_exception_hook exn));
-    index
+    (index, written)
 
   (* An async row of the RSC payload (a lazy element, a promise passed as prop, or the root task) with no placeholder in the flushed HTML. Tracked in [active_tasks] so an abort/timeout can reject its client-side reference with an error row. *)
-  let push_async make_chunk ~context = push_task ~kind:`Model_row make_chunk ~context
+  let push_async make_chunk ~context =
+    fst (push_task ~kind:`Model_row (fun () -> Lwt.map Option.some (make_chunk ())) ~context)
 
-  (* The async HTML content of a Suspense boundary whose placeholder (<template id="B:n">) and fallback were already flushed. Tracked in [active_tasks] so an abort/timeout can emit a $RX client-render instruction for it. *)
-  let push_boundary_async make_chunk ~context = push_task ~kind:`Boundary make_chunk ~context
+  (* The async HTML content of a Suspense boundary whose placeholder (<template id="B:n">) and fallback are in the chunk [parent] reports as written. $RC needs that placeholder in the document, so the chunk is written only after [parent] resolves to [true], and never when it resolves to [false]. Tracked in [active_tasks] so an abort/timeout can emit a $RX client-render instruction for it. *)
+  let push_boundary_async ~parent make_chunk ~context =
+    push_task ~kind:(`Boundary parent)
+      (fun () ->
+        let%lwt to_chunk = make_chunk () in
+        let%lwt parent_written = parent in
+        Lwt.return (if parent_written then Some to_chunk else None))
+      ~context
 
   (* The atomic abort transition: detaches every active task and blocks regular writes, without emitting output or
      canceling anything. The caller settles the returned tasks (error rows, $RX instructions), closes, and only then
@@ -309,7 +319,13 @@ module Stream = struct
   (* Registration-order row ids of the snapshot tasks whose Suspense placeholder already flushed. *)
   let boundary_rows tasks =
     List.rev
-      (List.filter_map (fun task -> match task.kind with `Boundary -> Some task.row | `Model_row -> None) tasks)
+      (List.filter_map
+         (fun task ->
+           match task.kind with
+           | `Boundary parent -> (
+               match Lwt.state parent with Return true -> Some task.row | Return false | Fail _ | Sleep -> None)
+           | `Model_row -> None)
+         tasks)
 
   (* The settlement epilogue shared by every abort path: cancellation runs callbacks synchronously, so the stream
      must be closed before the detached tasks are canceled. *)
@@ -759,25 +775,25 @@ module Model = struct
             React.current_tree_context := saved_ctx;
             to_chunk (Error (env, exn_to_error exn))
           in
-          let rec retry () =
+          let rec retry replayed =
             React.reset_component_id_state saved_ctx;
-            match component () with
-            | element -> Lwt.return (to_chunk (Value (render element)))
-            | exception React.Suspend any_promise ->
+            match React.call_with_promise_replay replayed component with
+            | Ok element -> Lwt.return (to_chunk (Value (render element)))
+            | Error (any_promise, used) ->
                 React.current_tree_context := saved_ctx;
-                retry_after any_promise
+                retry_after any_promise used
             | exception exn -> Lwt.return (render_error exn)
-          and retry_after (React.Any_promise promise) =
+          and retry_after (React.Any_promise promise) used =
             try%lwt
               let%lwt _ = promise in
-              retry ()
+              retry used
             with exn -> Lwt.return (render_error exn)
           in
-          match component () with
-          | element -> render element
-          | exception React.Suspend any_promise ->
+          match React.call_with_promise_replay [] component with
+          | Ok element -> render element
+          | Error (any_promise, used) ->
               React.current_tree_context := saved_ctx;
-              let index = Stream.push_async (fun () -> retry_after any_promise) ~context in
+              let index = Stream.push_async (fun () -> retry_after any_promise used) ~context in
               `String (lazy_value index)
           | exception exn ->
               React.current_tree_context := saved_ctx;
@@ -941,21 +957,21 @@ module Model = struct
           Lwt.return (element_to_payload ~debug ~filter_stack_frame ?debug_info ~context ~to_chunk ~env ~site element)
       | Upper_case_component (name, component) ->
           let saved_ctx = !React.current_tree_context in
-          let rec render () =
+          let rec render replayed =
             React.reset_component_id_state saved_ctx;
-            match component () with
-            | element ->
+            match React.call_with_promise_replay replayed component with
+            | Ok element ->
                 let did_use_id = React.check_did_render_id_hook () in
                 if did_use_id then
                   React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
                 let%lwt payload = continue_with_debug ~name ~debug_info element in
                 React.current_tree_context := saved_ctx;
                 Lwt.return payload
-            | exception React.Suspend (Any_promise promise) -> (
+            | Error (Any_promise promise, used) -> (
                 React.current_tree_context := saved_ctx;
                 try%lwt
                   let%lwt _ = promise in
-                  render ()
+                  render used
                 with exn ->
                   React.current_tree_context := saved_ctx;
                   Lwt.reraise exn)
@@ -963,7 +979,7 @@ module Model = struct
                 React.current_tree_context := saved_ctx;
                 raise exn
           in
-          render ()
+          render []
       | Async_component (name, component) -> (
           let saved_ctx = !React.current_tree_context in
           React.reset_component_id_state saved_ctx;
@@ -1287,6 +1303,19 @@ let host_attributes_to_html ~tag attributes =
             [] ))
   | _ -> (ReactDOM.attributes_to_html attributes, [])
 
+(* Fizz's segment.parentFlushed: resolves to [true] once the chunk that holds the HTML being rendered was written, or
+   [false] when that HTML was dropped. Unset in the shell, which is sent before the stream. *)
+let segment_written_key : bool Lwt.t Lwt.key = Lwt.new_key ()
+let segment_written () = Option.value (Lwt.get segment_written_key) ~default:(Lwt.return true)
+
+let with_segment render =
+  let written, resolve = Lwt.wait () in
+  let settle outcome = Lwt.on_success outcome (Lwt.wakeup_later resolve) in
+  (settle, fun () -> Lwt.with_value segment_written_key (Some written) render)
+
+let written_with promise ~chunk_written =
+  Lwt.try_bind (fun () -> promise) (fun _ -> chunk_written) (fun _ -> Lwt.return false)
+
 let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
@@ -1307,17 +1336,17 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Upper_case_component (_name, component) ->
       let saved_ctx = !React.current_tree_context in
       React.reset_component_id_state saved_ctx;
-      let rec wait_for_suspense_to_resolve () =
-        match component () with
-        | exception React.Suspend (Any_promise promise) ->
+      let rec wait_for_suspense_to_resolve replayed =
+        match React.call_with_promise_replay replayed component with
+        | Error (Any_promise promise, used) ->
             let%lwt _ = promise in
-            wait_for_suspense_to_resolve ()
+            wait_for_suspense_to_resolve used
         | exception exn ->
             (* Propagate like the Async_component branch below: a Suspense boundary above turns the error into a
                client-rendered boundary; without one the render fails. *)
             React.current_tree_context := saved_ctx;
             raise exn
-        | output ->
+        | Ok output ->
             let did_use_id = React.check_did_render_id_hook () in
             if did_use_id then
               React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
@@ -1325,7 +1354,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
             React.current_tree_context := saved_ctx;
             Lwt.return result
       in
-      wait_for_suspense_to_resolve ()
+      wait_for_suspense_to_resolve []
   | Async_component (_, component) -> (
       let saved_ctx = !React.current_tree_context in
       React.reset_component_id_state saved_ctx;
@@ -1342,10 +1371,14 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Suspense { key = _; children; fallback } -> (
       let%lwt fallback_html = client_to_html ~fiber (Option.value fallback ~default:React.null) in
       let context = fiber.context in
+      let parent = segment_written () in
+      let settle, render_children = with_segment (fun () -> client_to_html ~fiber children) in
       try%lwt
-        let promise = client_to_html ~fiber children in
+        let promise = render_children () in
         match Lwt.state promise with
-        | Return html -> Lwt.return (html_suspense_immediate html)
+        | Return html ->
+            settle parent;
+            Lwt.return (html_suspense_immediate html)
         | Sleep ->
             let async =
               try%lwt
@@ -1359,12 +1392,14 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
                       ~message:(client_render_error_message exn) ~include_definition:(Stream.take_rx_definition context)
                       index)
             in
-            let index = Stream.push_boundary_async ~context (fun () -> async) in
+            let index, chunk_written = Stream.push_boundary_async ~parent ~context (fun () -> async) in
+            settle (written_with promise ~chunk_written);
             Lwt.return (html_suspense_placeholder ~fallback:fallback_html index)
         | Fail exn -> Lwt.reraise exn
       with exn ->
         (* The boundary errored before its placeholder was flushed: write it directly in errored form, telling the
            hydrating client to client-render it. *)
+        settle (Lwt.return false);
         Lwt.return (html_suspense_client_render ~env:fiber.env ~exn ~fallback:fallback_html))
   | Client_component { client; _ } -> client_to_html ~fiber client
   | Provider { children; push; async_key; async_value } ->
@@ -1444,20 +1479,22 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
   | Array arr -> elements_to_html ~fiber ~debug_info ~site:Dynamic_item (Array.to_list arr)
   | Upper_case_component (name, component) ->
       let saved_ctx = !React.current_tree_context in
-      let rec render () =
+      let rec render replayed =
         React.reset_component_id_state saved_ctx;
-        match component () with
-        | element ->
+        match React.call_with_promise_replay replayed component with
+        | Ok element ->
             let did_use_id = React.check_did_render_id_hook () in
             if did_use_id then
               React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
             continue_with_debug_html ~fiber ~name ~debug_info element
-        | exception React.Suspend (Any_promise promise) ->
+        | Error (Any_promise promise, used) ->
             React.current_tree_context := saved_ctx;
             let%lwt _ = promise in
-            render ()
+            render used
       in
-      Lwt.finalize render (fun () ->
+      Lwt.finalize
+        (fun () -> render [])
+        (fun () ->
           React.current_tree_context := saved_ctx;
           Lwt.return_unit)
   | Async_component (name, component) -> (
@@ -1500,13 +1537,17 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
       in
       (* The outlined suspense symbol row must be pushed before any row that references it (see Model.symbol_tag). *)
       let tag = Model.symbol_tag ~context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) "react.suspense" in
+      let parent = segment_written () in
+      let settle, render_children =
+        with_segment (fun () -> render_element_to_html ~fiber ~debug_info ~site:Static_slot children)
+      in
       try%lwt
-        let promise = render_element_to_html ~fiber ~debug_info ~site:Static_slot children in
-        match Lwt.state promise with
+        let children = render_children () in
+        match Lwt.state children with
         | Sleep ->
             let promise =
               try%lwt
-                let%lwt html, model = promise in
+                let%lwt html, model = children in
                 let to_chunk index =
                   Html.list
                     [
@@ -1528,15 +1569,18 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
                 in
                 Lwt.return to_chunk
             in
-            let index = Stream.push_boundary_async ~context (fun () -> promise) in
+            let index, chunk_written = Stream.push_boundary_async ~parent ~context (fun () -> promise) in
+            settle (written_with children ~chunk_written);
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
                 Model.suspense_placeholder ~env:fiber.env ~site ~tag ~key ~fallback:model_fallback index )
         | Return (html, model) ->
+            settle parent;
             let model = Model.suspense_node ~env:fiber.env ~site ~tag ~key ~fallback:model_fallback [ model ] in
             Lwt.return (html_suspense_immediate html, model)
         | Fail exn -> Lwt.reraise exn
       with exn ->
+        settle (Lwt.return false);
         let context = fiber.context in
         let error = Model.exn_to_error exn in
         let to_chunk index =
@@ -1546,7 +1590,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
               boundary_to_chunk ?nonce:fiber.nonce Html.null index;
             ]
         in
-        let index = Stream.push ~context to_chunk in
+        let index, _ = Stream.push_boundary_async ~parent ~context (fun () -> Lwt.return to_chunk) in
         let html = html_suspense_placeholder ~fallback:html_fallback index in
         Lwt.return (html, Model.suspense_placeholder ~env:fiber.env ~site ~tag ~key ~fallback:model_fallback index))
   | Provider { children; push; async_key; async_value } ->

@@ -6,6 +6,7 @@
   RouterClientRoot
   RouterOutlet
   RouterPattern
+  RouterQuery
   RouterTypes
   RouterUtf8)
  (libraries
@@ -14,8 +15,7 @@
   server-reason-react.react
   server-reason-react.reactDom
   server-reason-react.rsc-native
-  uutf
-  uri)
+  uutf)
  (preprocess
   (pps
    server-reason-react.ppx

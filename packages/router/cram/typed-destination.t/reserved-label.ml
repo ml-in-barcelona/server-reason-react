@@ -1,1 +1,1 @@
-Router.make ~basePath:"/" [ Router.route Note ~page:Page ~path:"/:options<string>" ]
+Router.make ~basePath:"/" [ Router.route Note ~page:Page ~path:"/:history<string>" ]
