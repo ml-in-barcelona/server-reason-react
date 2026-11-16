@@ -26,16 +26,16 @@
 
 Optional segments: `:name?<type>` and `:name?<string...>`.
 
-  $ server-reason-react.router-gen --mode handles --source optional.ml < optional.ml > Optional.ml
-  $ server-reason-react.router-gen --mode interface --source optional.ml < optional.ml > Optional.mli
-  $ tr -s ' \n' ' ' < Optional.mli | grep -Eo 'val (destination|href) : ([?a-z]+:[a-z ]+ -> )+unit -> [a-z]+'
+  $ server-reason-react.router-gen --mode handles --source optional.ml < optional.ml > OptionalRoutes.ml
+  $ server-reason-react.router-gen --mode interface --source optional.ml < optional.ml > OptionalRoutes.mli
+  $ tr -s ' \n' ' ' < OptionalRoutes.mli | grep -Eo 'val (destination|href) : ([?a-z]+:[a-z ]+ -> )+unit -> [a-z]+'
   val destination : ?rest:string list -> ?hash:string -> unit -> destination
   val href : ?rest:string list -> ?hash:string -> unit -> string
   val destination : ?lang:string -> ?hash:string -> unit -> destination
   val href : ?lang:string -> ?hash:string -> unit -> string
   val destination : ?lang:string -> topic:int -> ?hash:string -> unit -> destination
   val href : ?lang:string -> topic:int -> ?hash:string -> unit -> string
-  $ grep -Eo '(rest|lang|topic): [a-z ]*[a-z]' Optional.mli | sort -u
+  $ grep -Eo '(rest|lang|topic): [a-z ]*[a-z]' OptionalRoutes.mli | sort -u
   lang: string option
   rest: string list
   topic: int
@@ -122,8 +122,8 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   $ grep 'val pattern' Router.interface
   [1]
   $ ocamlc -c Router.ml
-  $ ocamlc -c Optional.mli
-  $ ocamlc -c Optional.ml
+  $ ocamlc -c OptionalRoutes.mli
+  $ ocamlc -c OptionalRoutes.ml
   $ grep -o '?hash:string' Router.interface | sort -u
   ?hash:string
   $ ocamlc -c unsafe_destination.ml

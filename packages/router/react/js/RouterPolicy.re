@@ -221,8 +221,7 @@ let markCurrentLinks = (~location, anchors) =>
 
 let popKind = (~search, kind) =>
   switch (kind) {
-  | RouterRuntime.Navigation.Shallow
-  | RouterRuntime.Navigation.HashOnly when !RouterSearch.valid(search) => RouterRuntime.Navigation.Content
+  | RouterRuntime.Navigation.Shallow when !RouterSearch.valid(search) => RouterRuntime.Navigation.Content
   | kind => kind
   };
 

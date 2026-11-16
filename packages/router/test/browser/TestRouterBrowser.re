@@ -1523,9 +1523,9 @@ expect(
   == RouterRuntime.Navigation.Content,
 );
 expect(
-  "a hash-only pop to an unreadable search stayed on the client",
+  "a hash-only pop on a page with an unreadable search went to the server",
   RouterPolicy.popKind(~search="?text=%ZZ", RouterRuntime.Navigation.HashOnly)
-  == RouterRuntime.Navigation.Content,
+  == RouterRuntime.Navigation.HashOnly,
 );
 expect(
   "a shallow pop to a readable search went to the server",
