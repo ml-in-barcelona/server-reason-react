@@ -1303,20 +1303,23 @@ module Provider = {
             | None => None
             };
           let kind =
-            switch (historyState) {
-            | None
-                when
-                  String.equal(target.pathname, current.location.pathname)
-                  && String.equal(target.search, current.location.search) => Navigation.HashOnly
-            | Some(_)
-            | None =>
-              Navigation.classifyPopByContentIdentity(
-                current,
-                ~target,
-                ~currentIdentity=contentIdentity.current,
-                ~targetIdentity,
-              )
-            };
+            RouterPolicy.popKind(~search=target.search) @@
+            (
+              switch (historyState) {
+              | None
+                  when
+                    String.equal(target.pathname, current.location.pathname)
+                    && String.equal(target.search, current.location.search) => Navigation.HashOnly
+              | Some(_)
+              | None =>
+                Navigation.classifyPopByContentIdentity(
+                  current,
+                  ~target,
+                  ~currentIdentity=contentIdentity.current,
+                  ~targetIdentity,
+                )
+              }
+            );
           RouterBlocker.pop(
             blockers,
             ~current=Some(position.current),

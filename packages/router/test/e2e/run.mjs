@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { copyFile, mkdir, mkdtemp, readdir, symlink } from "node:fs/promises";
+import { chmod, copyFile, mkdir, mkdtemp, readdir, symlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import os from "node:os";
@@ -45,9 +45,18 @@ async function startServer() {
   const runDir = await mkdtemp(path.join(os.tmpdir(), "router-e2e-"));
   await mkdir(path.join(runDir, "demo/server/db"), { recursive: true });
   await copyFile(path.join(root, "demo/server/db/notes.json"), path.join(runDir, "demo/server/db/notes.json"));
-  await symlink(buildDir, path.join(runDir, "_build"));
+  // The demo DB lives under the nearest `_build` above the executable's real path (demo/universal/native/DB.re), so a
+  // copy of the executable inside runDir keeps the checks off the checkout's demo/.running data.
+  const demoBuild = path.join(runDir, "_build/default/demo");
+  await mkdir(path.join(demoBuild, "server"), { recursive: true });
+  await mkdir(path.join(demoBuild, "client"), { recursive: true });
+  const runExe = path.join(demoBuild, "server/server.exe");
+  await copyFile(serverExe, runExe);
+  await chmod(runExe, 0o755);
+  await symlink(path.join(buildDir, "default/demo/output.css"), path.join(demoBuild, "output.css"));
+  await symlink(path.join(buildDir, "default/demo/client/dist"), path.join(demoBuild, "client/dist"));
   const port = await freePort();
-  const child = spawn(serverExe, [], {
+  const child = spawn(runExe, [], {
     cwd: runDir,
     env: { ...process.env, PORT: String(port), SERVER_INTERFACE: "127.0.0.1" },
     stdio: ["ignore", "pipe", "pipe"],
@@ -647,6 +656,37 @@ check("a script URL in Router-Redirect is refused", async ({ page, origin }) => 
   assert.deepEqual(dialogs, [], "an alert opened");
   assert.equal(page.url(), before, "the page navigated");
   return `header ${JSON.stringify(response.headers()["router-redirect"])}, script did not run, URL unchanged`;
+});
+
+check("a shallow entry with an unreadable search asks the server", async ({ page, net, origin }) => {
+  const statuses = [];
+  page.on("response", (response) => {
+    const url = new URL(response.url());
+    if (url.pathname === "/demo/router/e2e" && url.search === "?text=%FF" && response.headers()["router-response"]) {
+      statuses.push(response.status());
+    }
+  });
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#e2e-page");
+  await page.evaluate(() => history.pushState(history.state, "", "/demo/router/e2e?text=%FF"));
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => location.search === "");
+  const mark = net.mark();
+  const answered = page.waitForResponse(
+    (response) => new URL(response.url()).search === "?text=%FF" && response.headers()["router-response"] !== undefined,
+  );
+  await page.evaluate(() => history.forward());
+  await answered;
+  await page.waitForFunction(() => !document.querySelector("#e2e-page"));
+  const text = (await page.innerText("main")).trim().slice(0, 120);
+  const asked = net.since(mark).filter((r) => r.rsc && !r.prefetch && r.url === "/demo/router/e2e?text=%FF").length;
+  const documentResponse = await page.goto(`${origin}/demo/router/e2e?text=%FF`);
+  const documentText = (await page.innerText("main")).trim().slice(0, 120);
+  assert.equal(asked, 1, "the client read the search without asking the server");
+  assert.deepEqual(statuses, [400]);
+  assert.equal(documentResponse.status(), 400);
+  assert.equal(text, documentText, "the client shows another page than a document load");
+  return `navigation requests ${asked}, status ${JSON.stringify(statuses)}, page ${JSON.stringify(text)}, same as the document load (status ${documentResponse.status()})`;
 });
 
 const server = await startServer();

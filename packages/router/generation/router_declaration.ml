@@ -82,7 +82,7 @@ type t = {
   trailing_slash : trailing_slash;
   intercept_links : bool option;
   view_transitions : bool option;
-  application_error : Longident.t option;
+  error_status : expression option;
   invalid_search : expression option;
   root : group;
   loc : Location.t;
@@ -195,7 +195,8 @@ let argument label arguments =
 let unlabelled_arguments arguments =
   List.filter_map (fun (label, expression) -> if label = Nolabel then Some expression else None) arguments
 
-let attachment_labels = [ "layout"; "loading"; "notFound"; "error"; "loader"; "loaderAs_"; "metadata"; "headers" ]
+let attachment_labels = [ "layout"; "loading"; "notFound"; "error"; "loader"; "loaderLabel"; "metadata"; "headers" ]
+let renamed_labels = [ ("loaderAs_", "loaderLabel"); ("to_", "target") ]
 
 let rec duplicate = function
   | [] -> None
@@ -207,7 +208,12 @@ let validate_arguments ~loc ~allowed ~unlabelled arguments =
       (fun (label, _) -> match label with Labelled label | Optional label -> Some label | Nolabel -> None)
       arguments
   in
-  List.iter (fun label -> if not (List.mem label allowed) then error ~loc "unknown router argument ~%s" label) labels;
+  List.iter
+    (fun label ->
+      match List.assoc_opt label renamed_labels with
+      | Some renamed -> error ~loc "~%s was renamed to ~%s" label renamed
+      | None -> if not (List.mem label allowed) then error ~loc "unknown router argument ~%s" label)
+    labels;
   (match duplicate labels with Some label -> error ~loc "duplicate router argument ~%s" label | None -> ());
   if List.length (unlabelled_arguments arguments) <> unlabelled then
     error ~loc "expected %d unlabelled router argument(s)" unlabelled
@@ -278,19 +284,19 @@ let loader_attachment expression =
 let loader_alias expression =
   match expression.pexp_desc with
   | Pexp_ident { txt = Longident.Lident name; _ } | Pexp_construct ({ txt = Longident.Lident name; _ }, None) -> name
-  | _ -> error ~loc:expression.pexp_loc "~loaderAs_ must be an identifier"
+  | _ -> error ~loc:expression.pexp_loc "~loaderLabel must be an identifier"
 
 let attachments arguments =
   let loader =
     match argument (Labelled "loader") arguments with
     | None -> (
-        match argument (Labelled "loaderAs_") arguments with
-        | Some alias -> error ~loc:alias.pexp_loc "~loaderAs_ requires ~loader"
+        match argument (Labelled "loaderLabel") arguments with
+        | Some alias -> error ~loc:alias.pexp_loc "~loaderLabel requires ~loader"
         | None -> None)
     | Some loader ->
         let run, inferred_label = loader_attachment loader in
         let result_label =
-          match argument (Labelled "loaderAs_") arguments with
+          match argument (Labelled "loaderLabel") arguments with
           | Some alias -> loader_alias alias
           | None -> inferred_label
         in
@@ -327,11 +333,6 @@ let scope ~id ~path arguments expression =
     prefetch = prefetch_level arguments;
     loc = expression.pexp_loc;
   }
-
-let root_error_policy arguments =
-  match argument (Labelled "error") arguments with
-  | Some { pexp_desc = Pexp_construct ({ txt; _ }, None); _ } -> Some txt
-  | _ -> None
 
 let trailing_slash_policy arguments =
   match argument (Labelled "trailingSlash") arguments with
@@ -404,7 +405,7 @@ let rec node_of_expression ~address expression =
   else if is_identifier [ "Router"; "redirect" ] callee then (
     let () =
       validate_arguments ~loc:expression.pexp_loc
-        ~allowed:[ "path"; "search"; "to_"; "permanent" ]
+        ~allowed:[ "path"; "search"; "target"; "permanent" ]
         ~unlabelled:0 arguments
     in
     let path =
@@ -415,9 +416,9 @@ let rec node_of_expression ~address expression =
     if RouterPattern.optional (pattern_of_path ~loc:expression.pexp_loc path) <> [] then
       error ~loc:expression.pexp_loc "redirect path %s cannot contain an optional segment" path;
     let target =
-      match argument (Labelled "to_") arguments with
+      match argument (Labelled "target") arguments with
       | Some target -> target
-      | None -> error ~loc:expression.pexp_loc "redirect requires ~to_"
+      | None -> error ~loc:expression.pexp_loc "redirect requires ~target"
     in
     let permanent =
       match argument (Labelled "permanent") arguments with
@@ -598,7 +599,9 @@ let declaration_of_expression expression =
     let () =
       validate_arguments ~loc:expression.pexp_loc
         ~allowed:
-          ([ "basePath"; "trailingSlash"; "search"; "invalidSearch"; "interceptLinks"; "viewTransitions" ]
+          ([
+             "basePath"; "trailingSlash"; "search"; "invalidSearch"; "interceptLinks"; "viewTransitions"; "errorStatus";
+           ]
           @ attachment_labels)
         ~unlabelled:1 arguments
     in
@@ -618,7 +621,7 @@ let declaration_of_expression expression =
       | (Nolabel, children) :: _ -> list_of_expression children
       | _ -> error ~loc:expression.pexp_loc "Router.make requires a route list"
     in
-    let application_error = root_error_policy arguments in
+    let error_status = argument (Labelled "errorStatus") arguments in
     let invalid_search =
       Option.map (component_attachment ~label:"invalidSearch") (argument (Labelled "invalidSearch") arguments)
     in
@@ -634,7 +637,7 @@ let declaration_of_expression expression =
         trailing_slash = trailing_slash_policy arguments;
         intercept_links = bool_argument "interceptLinks" arguments;
         view_transitions = bool_argument "viewTransitions" arguments;
-        application_error;
+        error_status;
         invalid_search;
         root =
           {

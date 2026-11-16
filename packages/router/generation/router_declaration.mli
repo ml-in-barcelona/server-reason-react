@@ -82,7 +82,7 @@ type t = {
   trailing_slash : trailing_slash;
   intercept_links : bool option;
   view_transitions : bool option;
-  application_error : Longident.t option;
+  error_status : expression option;
   invalid_search : expression option;
   root : group;
   loc : Location.t;

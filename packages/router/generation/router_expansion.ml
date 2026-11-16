@@ -1381,8 +1381,8 @@ let registry (declaration : Router_declaration.t) =
   in
   let application_status =
     let expression =
-      match declaration.application_error with
-      | Some policy -> B.pexp_ident ~loc { txt = Longident.Ldot (policy, "status"); loc }
+      match declaration.error_status with
+      | Some status -> status
       | None ->
           let body =
             B.pexp_construct ~loc { txt = Longident.parse "RouterRuntime.Status.InternalServerError"; loc } None

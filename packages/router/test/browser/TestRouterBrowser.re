@@ -1485,3 +1485,50 @@ switch (
 | names =>
   failwith("JS isCurrent answers differ: " ++ String.concat(", ", names))
 };
+
+switch (
+  SearchParseCases.failures(
+    ~parse=
+      search =>
+        switch (RouterSearch.parse(search)) {
+        | Ok(values) => Ok(values)
+        | Error(RouterSearchParse.MalformedEscape(raw)) =>
+          Error("malformed " ++ raw)
+        | Error(RouterSearchParse.QueryTooLong) => Error("too long")
+        },
+    ~encode=Js.Global.encodeURIComponent,
+  )
+) {
+| [] => ()
+| names =>
+  failwith(
+    "the JS search parser differs from the case table: "
+    ++ String.concat(", ", names),
+  )
+};
+expect(
+  "a raw non-ASCII search was not read as its UTF-8 escapes",
+  RouterSearch.parse("?q=caf" ++ Js.String.fromCharCode(0xe9))
+  == Ok([("q", ["caf" ++ Js.String.fromCharCode(0xe9)])]),
+);
+expect(
+  "a lone surrogate in a raw search was accepted",
+  Result.is_error(
+    RouterSearch.parse("?q=" ++ Js.String.fromCharCode(0xd800)),
+  ),
+);
+expect(
+  "a shallow pop to an unreadable search stayed on the client",
+  RouterPolicy.popKind(~search="?text=%FF", RouterRuntime.Navigation.Shallow)
+  == RouterRuntime.Navigation.Content,
+);
+expect(
+  "a hash-only pop to an unreadable search stayed on the client",
+  RouterPolicy.popKind(~search="?text=%ZZ", RouterRuntime.Navigation.HashOnly)
+  == RouterRuntime.Navigation.Content,
+);
+expect(
+  "a shallow pop to a readable search went to the server",
+  RouterPolicy.popKind(~search="?text=a+b", RouterRuntime.Navigation.Shallow)
+  == RouterRuntime.Navigation.Shallow,
+);

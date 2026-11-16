@@ -9,6 +9,7 @@ Router.make(
   ~metadata=Attachments.RootMetadata.make,
   ~headers=Attachments.RootHeaders.make,
   ~error=Attachments.AppError,
+  ~errorStatus=Attachments.AppError.status,
   ~invalidSearch=Attachments.InvalidSearch,
   ~notFound=Attachments.RootNotFound,
   [
@@ -17,7 +18,7 @@ Router.make(
       ~path="/workspaces/:workspaceId<WorkspaceId.t>",
       ~search={ filter: Router.Search.optional(Filter.t) },
       ~loader=WorkspaceLoader,
-      ~loaderAs_=workspace,
+      ~loaderLabel=workspace,
       ~layout=Attachments.WorkspaceLayout,
       ~metadata=Attachments.WorkspaceMetadata.make,
       ~headers=Attachments.WorkspaceHeaders.make,
@@ -29,7 +30,7 @@ Router.make(
           ~page=NotePage,
           ~path="/notes/:id<NoteId.t>",
           ~loader=NoteLoader,
-          ~loaderAs_=noteAccess,
+          ~loaderLabel=noteAccess,
           ~metadata=Attachments.NoteMetadata.make,
           ~headers=Attachments.NoteHeaders.make,
         ),
@@ -38,7 +39,7 @@ Router.make(
           ~page=NotePage,
           ~path="/notes/:id<NoteId.t>/edit",
           ~loader=NoteLoader,
-          ~loaderAs_=noteAccess,
+          ~loaderLabel=noteAccess,
           ~metadata=Attachments.NoteMetadata.make,
           ~headers=Attachments.NoteHeaders.make,
         ),
@@ -62,7 +63,7 @@ Router.make(
           ~page=TeamMemberPage,
           ~path="/members",
           ~loader=MemberLoader,
-          ~loaderAs_=member,
+          ~loaderLabel=member,
         ),
       ],
     ),
@@ -74,7 +75,7 @@ Router.make(
     ),
     Router.redirect(
       ~path="/legacy/:workspaceId<WorkspaceId.t>/notes/:id<NoteId.t>",
-      ~to_=(~workspaceId, ~id, ~page, ~searchText, ()) =>
+      ~target=(~workspaceId, ~id, ~page, ~searchText, ()) =>
       Router.Note.destination(~workspaceId, ~id, ~page, ~searchText?, ())
     ),
   ],

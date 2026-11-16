@@ -78,7 +78,7 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   [2]
 
   $ server-reason-react.router-gen --mode handles --source optional-redirect.ml < optional-redirect.ml
-  File "optional-redirect.ml", line 2, characters 4-104:
+  File "optional-redirect.ml", line 2, characters 4-107:
   Error: router: redirect path /old/:rest?<string...> cannot contain an optional segment
   [2]
 
@@ -168,13 +168,13 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   [2]
 
   $ server-reason-react.router-gen --mode handles --source duplicate-redirect-path.ml < duplicate-redirect-path.ml
-  File "duplicate-redirect-path.ml", line 3, characters 2-76:
+  File "duplicate-redirect-path.ml", line 3, characters 2-79:
   Error: router: duplicate route path /notes
   [2]
 
   $ server-reason-react.router-gen --mode handles --source missing-redirect-target.ml < missing-redirect-target.ml
   File "missing-redirect-target.ml", line 1, characters 28-62:
-  Error: router: redirect requires ~to_
+  Error: router: redirect requires ~target
   [2]
 
   $ server-reason-react.router-gen --mode handles --source ambiguous-paths.ml < ambiguous-paths.ml
@@ -351,7 +351,7 @@ A redirect is temporary unless it sets ~permanent:true.
   RouterServer.Execution.permanentRedirect
   RouterServer.Execution.redirect
   $ server-reason-react.router-gen --mode handles --source invalid-permanent.ml < invalid-permanent.ml
-  File "invalid-permanent.ml", line 1, characters 112-117:
+  File "invalid-permanent.ml", line 1, characters 115-120:
   Error: router: ~permanent must be true or false
   [2]
 
@@ -387,7 +387,7 @@ RouterRuntime.prefetchLevel.
   Error: router: ~prefetch must be Off, Intent, Viewport or Idle
   [2]
   $ server-reason-react.router-gen --mode handles --source prefetch-redirect.ml < prefetch-redirect.ml
-  File "prefetch-redirect.ml", line 1, characters 31-100:
+  File "prefetch-redirect.ml", line 1, characters 31-103:
   Error: router: unknown router argument ~prefetch
   [2]
 
@@ -404,3 +404,30 @@ Provider through Server.make. Without them the generated call passes neither.
   File "client-options-invalid.ml", line 1, characters 46-51:
   Error: router: ~viewTransitions must be true or false
   [2]
+
+`~loaderAs_` and `~to_` were renamed. The old labels name the new ones.
+
+  $ server-reason-react.router-gen --mode handles --source renamed-loader-label.ml < renamed-loader-label.ml
+  File "renamed-loader-label.ml", line 1, characters 28-105:
+  Error: router: ~loaderAs_ was renamed to ~loaderLabel
+  [2]
+  $ server-reason-react.router-gen --mode handles --source renamed-redirect-target.ml < renamed-redirect-target.ml
+  File "renamed-redirect-target.ml", line 1, characters 28-83:
+  Error: router: ~to_ was renamed to ~target
+  [2]
+  $ server-reason-react.router-gen --mode registry --source loader-label.ml < loader-label.ml | grep -o 'fun note ->'
+  fun note ->
+
+The root `~error` is a boundary component, like `~error` on a group or a
+route. `~errorStatus` maps an application error to a status. Without it,
+an application error answers 500.
+
+  $ server-reason-react.router-gen --mode registry --source error-status.ml < error-status.ml | grep -q 'AppBoundary.make' && echo boundary
+  boundary
+  $ server-reason-react.router-gen --mode registry --source error-status.ml < error-status.ml | grep 'let applicationStatus'
+  let applicationStatus = AppError.status
+  $ server-reason-react.router-gen --mode registry --source error-boundary-only.ml < error-boundary-only.ml | grep 'let applicationStatus'
+  let applicationStatus _ = RouterRuntime.Status.InternalServerError
+  $ server-reason-react.router-gen --mode registry --source error-boundary-only.ml < error-boundary-only.ml | grep -c 'status AppBoundary\|AppBoundary.status'
+  0
+  [1]

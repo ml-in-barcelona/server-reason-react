@@ -1,6 +1,15 @@
-(test
- (name test_search_key)
- (modules RouterPattern RouterSearchKey SearchKeyCases test_search_key))
+(tests
+ (names test_search_key test_search_parse)
+ (modules
+  RouterPattern
+  RouterQuery
+  RouterSearchKey
+  RouterSearchParse
+  RouterUtf8
+  SearchKeyCases
+  SearchParseCases
+  test_search_key
+  test_search_parse))
 
 (copy_files
  (files ../../../react/shared/RouterSearchKey.re))
@@ -23,3 +32,15 @@
   server-reason-react.react
   server-reason-react.reactDom
   server-reason-react.router-native))
+
+(copy_files
+ (files ../../../native/RouterQuery.ml))
+
+(copy_files
+ (files ../../../runtime/RouterUtf8.ml))
+
+(copy_files
+ (files ../../../runtime/shared/RouterSearchParse.ml))
+
+(copy_files
+ (files ../SearchParseCases.re))

@@ -12,6 +12,7 @@ Router.make(
   ~layout=Pages.AppLayout,
   ~loading=Pages.GlobalLoading,
   ~error=Pages.AppError,
+  ~errorStatus=Pages.AppError.status,
   ~notFound=Pages.NotFound,
   [
     Router.route(Home, ~page=Pages.App, ~path="/"),
@@ -20,7 +21,7 @@ Router.make(
       ~path="/:id<NoteId.t>",
       ~layout=Pages.NoteLayout,
       ~loader=Pages.NoteLoader,
-      ~loaderAs_=note,
+      ~loaderLabel=note,
       [
         Router.route(Note, ~page=Pages.Note, ~path="/", ~loading=Pages.NoteLoading),
         Router.route(EditNote, ~page=Pages.EditNote, ~path="/edit", ~loading=Pages.EditNoteLoading),
@@ -40,7 +41,7 @@ route constructor or link helper to the generated application API:
 {[
 Router.redirect(
   ~path="/old-notes/:id<NoteId.t>",
-  ~to_=(~id, ()) => Router.Note.destination(~id, ()),
+  ~target=(~id, ()) => Router.Note.destination(~id, ()),
 )
 ]}
 
@@ -60,7 +61,7 @@ manifest or must preserve a legacy URL exactly:
 {[
 Router.redirect(
   ~path="/docs",
-  ~to_=() => Router.unsafeDestination("https://docs.example.com"),
+  ~target=() => Router.unsafeDestination("https://docs.example.com"),
 )
 ]}
 
@@ -74,10 +75,10 @@ each module:
   [Module.make], a component.
 - [~loader] resolves [Module.load]. The scope's components receive the loader
   result under the module name ([Pages.NoteLoader] becomes [~noteLoader]), or
-  under the [~loaderAs_] name when given.
-- [~error] at the root resolves an error policy: a module with a [status]
-  function and a [make] component. On groups and routes, [~error] is a boundary
-  component.
+  under the [~loaderLabel] name when given.
+- [~error] resolves a boundary component, at the root as on groups and routes.
+- [~errorStatus], on [Router.make] only, is a function from an application
+  error to a [Router.Status.t]. Without it, an application error answers 500.
 - [~metadata] and [~headers] are plain functions, not modules.
 
 {2 Prefetch levels}
@@ -255,7 +256,28 @@ Any scope declares search parameters as a typed record:
 
 Child scopes see their ancestors' parameters as well as their own. Canonical
 URLs omit values that equal their declared default. A required root search
-parameter together with a root [~error] policy also requires [~invalidSearch].
+parameter together with a root [~error] boundary also requires [~invalidSearch].
+
+{3 Reading a query}
+
+Server and client read a query string with the same rules, so one URL has
+the same search values on both sides:
+
+- The leading [?] is optional. Pairs are split on [&], and empty pairs are
+  skipped.
+- A pair splits at its first [=]. A pair without [=] has the value [""].
+- [+] is a space and [%2B] is a plus. Hex digits may be upper or lower case.
+- A [%] not followed by two hex digits, or escapes that do not decode to valid
+  UTF-8 (such as [%FF], overlong forms or encoded surrogates), make the whole
+  query invalid.
+- A name keeps all its values in order. Names keep the order of their first
+  appearance.
+- A query longer than 8192 bytes is invalid.
+
+The server answers an invalid query with status 400 and the [~invalidSearch]
+boundary, or the root error page when there is none. When Back or Forward reaches an entry whose query is invalid,
+for example after a [history.pushState] by other code, the client does not
+read it: it asks the server, and shows the same page as a document load.
 
 {1 Generated application API}
 
@@ -649,7 +671,9 @@ elements instead.
 
 {1 Error handling}
 
-The root [~error] policy maps application errors to statuses and renders them:
+The root [~error] is a boundary component, like [~error] on a group or a
+route. [~errorStatus] on [Router.make] maps an application error to the
+response status:
 
 {[
 module AppError = {
@@ -659,7 +683,13 @@ module AppError = {
   let make = (~text as _, ~error as _) =>
     <p> "The requested note could not be loaded." </p>;
 };
+
+Router.make(~error=AppError, ~errorStatus=AppError.status, ...)
 ]}
+
+Without [~errorStatus], an application error answers 500. The other errors
+do not use it: a missing route or a loader [NotFound] answers 404, an invalid
+path or search parameter 400, and an internal failure 500.
 
 [Router.Error.t] distinguishes [NotFound], [Application], invalid path or
 search parameters, and [Internal] failures carrying only a diagnostic id.

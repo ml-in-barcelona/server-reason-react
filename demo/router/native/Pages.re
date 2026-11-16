@@ -88,8 +88,6 @@ module GlobalLoading = {
 };
 
 module AppError = {
-  let status = _ => Router.Status.InternalServerError;
-
   [@react.component]
   let make = (~text as _, ~error as _) =>
     <div className="flex flex-col h-full items-center justify-center gap-2">
