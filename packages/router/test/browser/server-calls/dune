@@ -1,0 +1,26 @@
+(melange.emit
+ (target test_server_calls)
+ (modules ReactServerDOMEsbuild TestServerCalls)
+ (module_systems
+  (commonjs bs.js))
+ (runtime_deps ReactServerDOMEsbuild.js)
+ (libraries melange-webapi melange-fetch melange.js reason-react)
+ (preprocess
+  (pps melange.ppx)))
+
+(rule
+ (alias runtest)
+ (deps
+  (alias melange)
+  test_server_calls/packages/router/test/browser/server-calls/ReactServerDOMEsbuild.js
+  (source_tree ../../../../../demo/client/node_modules/react)
+  (:test
+   test_server_calls/packages/router/test/browser/server-calls/TestServerCalls.bs.js))
+ (action
+  (setenv
+   NODE_PATH
+   %{workspace_root}/demo/client/node_modules
+   (run node %{test}))))
+
+(copy_files
+ (files ../../../../react-server-dom-esbuild/ReactServerDOMEsbuild.re))

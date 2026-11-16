@@ -12,6 +12,7 @@ Router.make(
   ~layout=Pages.AppLayout,
   ~loading=Pages.GlobalLoading,
   ~error=Pages.AppError,
+  ~errorStatus=Pages.AppError.status,
   ~notFound=Pages.NotFound,
   [
     Router.route(Home, ~page=Pages.App, ~path="/"),
@@ -20,7 +21,7 @@ Router.make(
       ~path="/:id<NoteId.t>",
       ~layout=Pages.NoteLayout,
       ~loader=Pages.NoteLoader,
-      ~loaderAs_=note,
+      ~loaderLabel=note,
       [
         Router.route(Note, ~page=Pages.Note, ~path="/", ~loading=Pages.NoteLoading),
         Router.route(EditNote, ~page=Pages.EditNote, ~path="/edit", ~loading=Pages.EditNoteLoading),
@@ -40,7 +41,7 @@ route constructor or link helper to the generated application API:
 {[
 Router.redirect(
   ~path="/old-notes/:id<NoteId.t>",
-  ~to_=(~id, ()) => Router.Note.destination(~id, ()),
+  ~target=(~id, ()) => Router.Note.destination(~id, ()),
 )
 ]}
 
@@ -60,7 +61,7 @@ manifest or must preserve a legacy URL exactly:
 {[
 Router.redirect(
   ~path="/docs",
-  ~to_=() => Router.unsafeDestination("https://docs.example.com"),
+  ~target=() => Router.unsafeDestination("https://docs.example.com"),
 )
 ]}
 
@@ -74,11 +75,49 @@ each module:
   [Module.make], a component.
 - [~loader] resolves [Module.load]. The scope's components receive the loader
   result under the module name ([Pages.NoteLoader] becomes [~noteLoader]), or
-  under the [~loaderAs_] name when given.
-- [~error] at the root resolves an error policy: a module with a [status]
-  function and a [make] component. On groups and routes, [~error] is a boundary
-  component.
+  under the [~loaderLabel] name when given.
+- [~error] resolves a boundary component, at the root as on groups and routes.
+- [~errorStatus], on [Router.make] only, is a function from an application
+  error to a [Router.Status.t]. Without it, an application error answers 500.
 - [~metadata] and [~headers] are plain functions, not modules.
+
+{2 Prefetch levels}
+
+[~prefetch] on [Router.route] or [Router.group] sets how eagerly the client
+may prefetch the route. The levels, from least to most eager, are [Off],
+[Intent], [Viewport] and [Idle]. A route without [~prefetch] takes the level
+of its nearest group that sets one, and [Intent] when none does. A route's own
+[~prefetch] overrides its groups. [Router.make] and [Router.redirect] do not
+take [~prefetch].
+
+{[
+Router.group(
+  ~path="/settings",
+  ~prefetch=Viewport,
+  [
+    Router.route(Settings, ~page=Pages.Settings, ~path="/"),
+    Router.route(Billing, ~page=Pages.Billing, ~path="/billing", ~prefetch=Off),
+  ],
+)
+]}
+
+Every generated destination carries its route's level, so the client reads it
+without a request: [RouterRuntime.prefetchLevel(Router.Settings.destination())]
+is [Viewport]. Other destinations are [Intent];
+[RouterRuntime.withPrefetch] sets a level on one. [RouterRuntime.PrefetchLevel]
+has [toString] and [fromString] for the lower-case names [off], [intent],
+[viewport] and [idle], and [compare], which orders the levels by eagerness.
+
+A navigation request with the header [Router-Prefetch: <level>] is a
+prefetch. When that level is more eager than the route's level, the server
+answers 204 with [Router-Prefetch-Refused: <route level>] and runs no loader.
+Otherwise it answers exactly as it answers the navigation. Every navigation
+reply carries [Vary: Accept, Router-Prefetch], so a shared cache never
+answers a prefetch with a stored navigation or the other way round. A path
+that matches no route answers as a navigation does. An adapter passes the header's level to [Server.run] as
+[?prefetch]. A refusal is the outcome [PrefetchRefused(level)], and
+[Adapter.reply] turns it into the 204. [DreamRouter] does this for RSC
+requests and ignores a header value that is not a level.
 
 {2 Names and labels}
 
@@ -91,7 +130,8 @@ Path parameter names, search parameter names, and loader result labels become
 labelled arguments of the generated helpers. Within one branch they must be
 unique. These labels belong to the generated API and cannot be used:
 [applicationStatus], [ariaCurrent], [basePath], [children], [className],
-[decodeError], [destination], [download], [error], [fallback], [history],
+[decodeError], [destination], [download], [error], [fallback], [hash],
+[history],
 [href], [input], [item], [make], [pattern], [registry], [revalidate], [search],
 [target], [updateSearch], [unsafeDestination], [useNavigation], [useRoute],
 [useSearch], [useUpdateHash], [value], and [values]. The generator reports a
@@ -119,11 +159,32 @@ A segment is one of:
   remaining segments and the page receives them as [list(string)]. It must be
   the last segment of the route path, it cannot appear in a group path, and it
   never matches zero segments: [/assets/:parts<string...>] does not match
-  [/assets]. Declare a separate [/assets] route when both forms exist.
+  [/assets].
+- An optional parameter in the form [:name?<type>]. The route matches with
+  and without the segment. The page receives [option(type)], and the
+  generated helpers take an optional labelled argument [?name]. When the
+  argument is [None], the href leaves out the segment.
+- A final optional catch-all in the form [:name?<string...>]. It matches zero
+  or more remaining segments. The page receives [list(string)], empty when no
+  segment remains. The generated helpers take [?name: list(string)], and an
+  empty list renders no segment: [/docs/:rest?<string...>] gives [/docs] and
+  [/docs/a/b].
 
-Optional parameters and mixed segments such as [file-:id<int>] are not
-supported. Put search values after [?] in a destination through [~search],
-rather than in [~path].
+The [?] after the name marks the segment as optional, like the [?name]
+argument it produces. Optional segments are allowed only in a [Router.route]
+path. A group path and a [Router.redirect] path cannot contain them. Mixed
+segments such as [file-:id<int>] are not supported. Put search values after
+[?] in a destination through [~search], rather than in [~path].
+
+A route with optional segments matches one concrete pattern for each
+combination of present and absent optional segments:
+[/help/:lang?<string>/topics/:id<int>] matches [/help/topics/:id<int>] and
+[/help/:lang<string>/topics/:id<int>]. Each concrete pattern follows the
+precedence and conflict rules below. The generator reports an error when two
+concrete patterns of one route can match the same pathname, as in
+[/docs/:a?<string>/:b?<string>], and when a concrete pattern duplicates or
+overlaps another route: [/:a?<string>/x] next to [/x] is a duplicate, and
+[/docs/:rest?<string...>] next to a [/docs] route is a duplicate.
 
 [~basePath] uses the static path syntax and cannot contain parameters. The
 registry rejects duplicate paths and patterns that can match the same pathname
@@ -133,6 +194,11 @@ overlap has a unique winner, the pattern with more static segments takes
 precedence, and a route without a catch-all takes precedence over a catch-all
 route with the same static count. When one route path is a prefix of another,
 parameters at the same position must use the same name and type.
+
+For example, with [/docs/:rest?<string...>], [/docs/:topic<string>], and
+[/docs/api/:name<string>]: [/docs] matches the catch-all with an empty list,
+[/docs/intro] matches [/docs/:topic<string>], [/docs/api/list] matches
+[/docs/api/:name<string>], and [/docs/a/b] matches the catch-all.
 
 {3 Trailing slashes}
 
@@ -190,7 +256,28 @@ Any scope declares search parameters as a typed record:
 
 Child scopes see their ancestors' parameters as well as their own. Canonical
 URLs omit values that equal their declared default. A required root search
-parameter together with a root [~error] policy also requires [~invalidSearch].
+parameter together with a root [~error] boundary also requires [~invalidSearch].
+
+{3 Reading a query}
+
+Server and client read a query string with the same rules, so one URL has
+the same search values on both sides:
+
+- The leading [?] is optional. Pairs are split on [&], and empty pairs are
+  skipped.
+- A pair splits at its first [=]. A pair without [=] has the value [""].
+- [+] is a space and [%2B] is a plus. Hex digits may be upper or lower case.
+- A [%] not followed by two hex digits, or escapes that do not decode to valid
+  UTF-8 (such as [%FF], overlong forms or encoded surrogates), make the whole
+  query invalid.
+- A name keeps all its values in order. Names keep the order of their first
+  appearance.
+- A query longer than 8192 bytes is invalid.
+
+The server answers an invalid query with status 400 and the [~invalidSearch]
+boundary, or the root error page when there is none. When Back or Forward reaches an entry whose query is invalid,
+for example after a [history.pushState] by other code, the client does not
+read it: it asks the server, and shows the same page as a document load.
 
 {1 Generated application API}
 
@@ -210,6 +297,17 @@ switch Router.useRoute() {
 
 [Router.useRoute] returns the active route as a generated variant with decoded
 path parameters. It returns [None] when no route matched.
+
+Every generated [destination], [href], and route component also takes
+[?hash: string]. The router percent-encodes the value like a search value and
+puts it after [#], after the search. An empty value adds no fragment:
+
+{[
+Router.Note.href(~id, ~hash="comments", ()) /* "/notes/42#comments" */
+]}
+
+A navigation keeps the hash of the destination in the URL. The request to the
+server does not include it.
 
 {2 Navigation}
 
@@ -235,6 +333,11 @@ Flight model and the server answers with a full model, or with a partial patch
 that reuses unchanged layouts. [~revalidate=true] forces a full response.
 [~history] selects [Push], [Replace], or [Pop].
 
+A [Push] or [Replace] to a destination with the committed path and search and
+a non-empty hash, without [~revalidate=true], sends no request. It commits the
+hash like [updateHash] and scrolls to the fragment. A content navigation to a
+URL with a hash also scrolls to and focuses the fragment's element.
+
 A patch grafts into the outlet of the deepest scope both locations share. A
 scope is shared when it declares [~layout], its path parameters are unchanged,
 and the search string is unchanged. Navigating between two routes of the same
@@ -243,12 +346,174 @@ layout mounted. When a loader fails, its scope and everything below it leave
 the response, and the graft moves up to the deepest scope the response still
 renders.
 
-A response without a valid [Router-Response] header, or with a header value
-other than [full], [patch], [redirect], or [reload-required], fails the
-navigation. A [Push] or [Replace] navigation then keeps the current page and
-sets the status to [Failed]. A [Pop] navigation hard-navigates to the target,
-unless a newer navigation has replaced it, in which case the [Pop] is canceled.
-The protocol has no [failed] response kind. The protocol version is 2.
+A response without a [Router-Response] header does not come from the router,
+so the client loads the target as a document. A header value other than
+[full], [patch], [redirect], or [reload-required] fails the navigation. A
+[Push] or [Replace] navigation then keeps the current page and sets the status
+to [Failed]. A [Pop] navigation hard-navigates to the target, unless a newer
+navigation has replaced it, in which case the [Pop] is canceled. The protocol
+has no [failed] response kind. The protocol version is 2.
+
+A [redirect] response continues on the client when its location has the
+page's origin and is under the base path. The redirect target takes the place
+of the entry the navigation would create or replace, so a [Push] that
+redirects adds one entry. After five redirects in a row, or for any other
+[http:] or [https:] location, the client loads the location as a document. A
+location with another scheme, such as [javascript:], fails the navigation.
+
+The default client root passes no optional provider props. To set
+[~onNavigationError], [~viewTransitions] or [~interceptLinks], render
+[RouterReact.Provider] from your own client component and give it to
+[RouterServer.Server.clientRootWith ~make].
+
+[RouterReact.Provider] takes [~onNavigationError], which receives every failed
+navigation: its [target], a [message], and its [recovery], [StayOnPage] when
+the status became [Failed] or [FullLoad] when the client loaded the target as
+a document. A canceled or superseded navigation is not an error. The handler
+is for development tools; the router behaves the same without it.
+
+{3 Navigation cache}
+
+[RouterReact.Provider ~pageCacheCapacity] keeps the navigation responses of
+up to that many pages. The default is [30]. The cache keeps the response
+bytes, not React elements, and decodes them again on each use. Entries are
+kept apart by protocol version and registry fingerprint. Pass
+[~pageCacheCapacity=0] to turn the cache and prefetching off.
+
+The cache is on by default because, with [~pageCacheMaxAge] at [0.0], a
+cached page is shown only where it cannot surprise the user: Back and Forward,
+which show the page the user already saw, and a prefetched page shortly after
+its request. Every other [Push] and [Replace] still asks the server.
+
+- Back and Forward use a cached page of any age.
+- [Push] and [Replace] use a cached page only when it is younger than
+  [~pageCacheMaxAge] seconds. The default [0.0] means never, except for a
+  prefetched page (see Prefetching).
+- [~revalidate=true] does not read the cache. Its response is stored.
+- Only successful pages are stored: the HTTP status and the page status are
+  both 2xx. An error page, a not-found page or a 401 and 403 page is always
+  asked for again.
+
+On a miss the client sends [Router-Navigation-From] as usual, so the server
+can answer with a patch. After a patch commits, the cache stores the page as
+the full response of the page it was applied to, followed by the patch. The
+page that the server rendered first has no stored response, so a patch on top
+of it is not stored. A cached page restores its scroll position like any other
+Back or Forward.
+
+[RouterReact.useInvalidate ()] returns a function that drops entries:
+
+{[
+let invalidate = RouterReact.useInvalidate();
+invalidate(All);
+invalidate(Prefix(Router.Note.destination(~id, ())));
+]}
+
+[Prefix destination] drops the destination's path and every path below it,
+by whole segments, whatever the search. Invalidation also stops the
+prefetches in flight, and a response to a request that started before an
+invalidation it falls under is not stored. After each server function call that
+succeeds, the provider drops every entry by itself. Call [useInvalidate] for
+other changes that cached pages show.
+
+{3 Redirects from server functions}
+
+A server function that ends with [RouterServer.Action.redirect destination]
+answers a JavaScript call with a [Router-Redirect] header. Pass
+[ReactServerDOMEsbuild.fetchCallServer ()] as the [callServer] of the
+bootstrap; it posts each call (to [/] by default, or to [~url]) and reports
+the header. The provider then drops the cached pages and pushes the target: a
+client navigation when the target has the page's origin, is under the base
+path and matches a route, otherwise a full page load. A target that is not an
+[http:] or [https:] URL, such as [javascript:], is refused: the page stays
+and [~onNavigationError] receives the failure.
+
+{3 Prefetching}
+
+When [~pageCacheCapacity] is above [0] (the default), the provider
+prefetches pages into the navigation cache. A prefetch is a full navigation request with a
+[Router-Prefetch] header. It never changes history or the committed page.
+
+- [Intent]: the pointer rests on a link for 50 ms, the link gets focus, or a
+  touch starts on it.
+- [Viewport]: the link comes within 200 px of the viewport.
+- [Idle]: the browser is idle after a navigation, for up to 15 links.
+
+A [Link] whose route level is not [Intent] renders
+[data-router-prefetch="off|viewport|idle"]. A plain anchor counts as
+[Intent], and an anchor can set the attribute itself. The client asks only
+when the trigger is not more eager than the link's level. At most 4
+prefetches are in flight; [Intent] goes before the others. When the server
+refuses, the client remembers the route's level for that URL and does not ask
+again at a more eager level. Links that a click would not intercept, the
+current page, a page already fresh in the cache, and connections with
+[Save-Data] are not prefetched.
+
+A [Push] or [Replace] uses a prefetched page once, within 30 seconds of its
+request, even when [~pageCacheMaxAge] is [0.0]. After that use the entry is
+an ordinary cached page.
+
+{3 Scroll, focus and announcements}
+
+The router saves the scroll position of an entry when a navigation leaves it,
+including [updateSearch], [updateHash] and the page unload. Positions are kept
+in [sessionStorage] for the 100 most recent entries, so Back and Forward
+restore them after a reload or a full page load. When [sessionStorage] is not
+available, the positions last until the page unloads. Back and Forward restore
+the saved position for content, search-only and hash-only entries. Without a
+saved position, a hash scrolls to and focuses its element; otherwise a content
+navigation focuses [#router-focus-root] when it exists and scrolls to the top.
+
+After each content navigation the provider writes the new [document.title]
+into a visually hidden [aria-live="polite"] region, so screen readers
+announce the new page.
+
+{3 View transitions}
+
+[RouterReact.Provider ~viewTransitions=true] commits each content navigation
+inside [document.startViewTransition] when the browser supports it. During the
+transition, [<html>] has [data-router-nav] set to [push], [replace], [back] or
+[forward], for direction-specific CSS:
+
+{[
+html[data-router-nav="back"]::view-transition-old(root) {
+  animation-name: slide-out-right;
+}
+]}
+
+A navigation that starts before a transition has updated the page skips that
+transition, and the page shows the newest content. The default is [false].
+
+{3 Blocking navigation}
+
+[RouterReact.useBlocker shouldBlock] holds navigations while [shouldBlock] is
+true, for example a form with unsaved changes. It returns [Unblocked] or
+[Blocked {target; action; proceed; cancel}]:
+
+{[
+switch (RouterReact.useBlocker(hasUnsavedChanges)) {
+| Unblocked => React.null
+| Blocked({proceed, cancel, _}) => <ConfirmLeave onLeave=proceed onStay=cancel />
+};
+]}
+
+A held navigation is in the {e blocked} state until one of two calls.
+[proceed ()] {e resumes} it: the navigation runs as it would have. [cancel ()]
+{e cancels} it: the page stays and the navigate promise resolves to
+[Canceled]. A newer navigation is held in its place and cancels the older
+one. When the last blocker becomes false or unmounts, the held navigation is
+canceled.
+
+Blockers apply to [navigate] and [Link], including a [navigate] that only
+changes the hash, to intercepted clicks, and to Back or Forward to other
+content. Back and Forward are
+undone at once with [history.go], so the address bar keeps the current URL
+while the navigation is held, and [proceed] repeats the move. When the history
+entry does not record its position, Back and Forward are not blocked.
+[updateSearch], [updateHash], and Back or Forward between search-only and
+hash-only entries do not leave the page and are not blocked. A full page load,
+reload or tab close while a blocker is true shows the browser's
+[beforeunload] prompt.
 
 {2 Search updates}
 
@@ -286,6 +551,51 @@ is already prevented, the router does not navigate. On the server the link
 renders the same attributes and ignores both handlers. These props are on
 [RouterReact.Link] only: the generated per-route [Link]s do not
 take them, because they would clash with path parameters such as [id].
+
+A [Link] whose destination is the current location renders
+[aria-current="page"], unless [~ariaCurrent] is given. The destination is
+current when its path equals the committed path and its search has the same
+names and values as the committed search, in any order and with either
+spelling of a space. The hash is ignored, and a parent path is not current
+for its children. Style current links with [a[aria-current="page"]].
+[RouterReact.useIsCurrent destination] applies the same rule for other
+elements. The comparison uses the URL: a destination does not carry its route
+id.
+
+Every [Link] without [~ariaCurrent] renders [data-router-link]. After each
+committed navigation, including a patch and a search update, the provider sets
+or removes [aria-current="page"] on these anchors, so links in layouts that a
+patch does not render again stay correct.
+
+A [Link] in a server component reads the location from
+[RouterReact.locationScope], which the server wraps around each routed
+element. The Flight payload and the HTML then carry the same
+[aria-current], also after a client navigation.
+
+{3 Plain anchors}
+
+[RouterReact.Provider] also navigates on the client when the user clicks a
+plain [<a href>] anywhere in the document, such as a link in markdown HTML or
+in a server component. The click is intercepted only when all of these hold:
+the left button with no modifier key, the event is not prevented, the [href]
+has the page's origin, is under the base path and matches a route, the
+anchor has no
+[download] attribute, its [target] is absent or [_self], and the link is not a
+hash on the current page. Add [data-router-reload] to an anchor to keep a full
+page load. Intercepted clicks [Push] the URL.
+
+The provider gets the route paths from the server in [~routes] and matches
+the path against them with [RouterPattern.matchesPath ~basePath], without a
+request. A
+URL that matches no route, such as a file download under the base path,
+loads as a document at once. A provider given no routes treats every URL
+under the base path as a route; such a URL that the router does not serve
+still loads as a document, after one request, because its response has no
+[Router-Response] header. Prefetching uses the same rule.
+
+[~interceptLinks] is [true] by default, so content outside [Link] gets the
+same client navigation. Pass [~interceptLinks=false] when the application
+handles anchor clicks itself.
 
 {2 Untyped destinations}
 
@@ -333,30 +643,27 @@ A patch still runs every loader on the matched branch, not only the loaders
 of the scopes it sends. Child loaders receive the results of their ancestors,
 so the server cannot skip an ancestor loader.
 
-Loaders read request-local data, such as a session or a request id, through a
-key that the server adapter owns. The router passes no request context to
-loaders. Create an [Lwt.key], set it with [Lwt.with_value], and read it with
-[Lwt.get] inside the loader. The key must wrap the {e whole} handler, including
-the streaming response, not only [Server.run]. A streaming body, for example
-the callback of [Dream.stream], runs after the handler returns. Lwt copies the
-storage into a callback when the callback is registered, so a key set only
-around [Server.run] is empty there.
+Loaders read request-local data, such as a session or a request id, from
+the request the adapter holds. [DreamRouter.routes] holds the Dream request
+for the whole response, including the streamed body, and
+[DreamRouter.request ()] returns it in loaders, [~metadata], [~headers] and
+server components. Lwt copies this storage into every callback when the
+callback is registered, so each loader reads its own request after any wait,
+also when requests run at the same time. Outside a request it returns [None].
 
 {[
-let requestKey : Dream.request Lwt.key = Lwt.new_key ()
-
-let handler request =
-  Lwt.with_value requestKey (Some request) (fun () ->
-      (* Server.run, the outcome match and Dream.stream all run here. *)
-      Lwt.bind (RouterServer.Server.run server ~diagnosticId ~revision engineRequest)
-        (respond request))
-
-(* In a loader: *)
-let load ~id:_ () =
-  match Lwt.get requestKey with
-  | Some request -> findSession request
-  | None -> Lwt.return Router.Loader.NotFound
+let load = (~id as _, ()) =>
+  switch (DreamRouter.request()) {
+  | Some(request) => findSession(request)
+  | None => Lwt.return(Router.Loader.NotFound)
+  };
 ]}
+
+An adapter for another server does the same: it sets an [Lwt.key] with
+[Lwt.with_value] around the {e whole} handler, including the streaming
+response, not only [Server.run]. A streaming body, for example the callback
+of [Dream.stream], runs after the handler returns, so a key set only around
+[Server.run] is empty there.
 
 Keep loaders for fast validation, redirects, and route-level not-found
 decisions; stream slow data from async server components inside the route
@@ -364,7 +671,9 @@ elements instead.
 
 {1 Error handling}
 
-The root [~error] policy maps application errors to statuses and renders them:
+The root [~error] is a boundary component, like [~error] on a group or a
+route. [~errorStatus] on [Router.make] maps an application error to the
+response status:
 
 {[
 module AppError = {
@@ -374,7 +683,13 @@ module AppError = {
   let make = (~text as _, ~error as _) =>
     <p> "The requested note could not be loaded." </p>;
 };
+
+Router.make(~error=AppError, ~errorStatus=AppError.status, ...)
 ]}
+
+Without [~errorStatus], an application error answers 500. The other errors
+do not use it: a missing route or a loader [NotFound] answers 404, an invalid
+path or search parameter 400, and an internal failure 500.
 
 [Router.Error.t] distinguishes [NotFound], [Application], invalid path or
 search parameters, and [Internal] failures carrying only a diagnostic id.
@@ -474,10 +789,88 @@ adapter only parses the request and writes the reply:
 Bootstrap modules and the skip-root choice are not part of the reply. The
 adapter picks them for each request when it writes [Html].
 
+The client root receives the router's settings as props. [~interceptLinks]
+(default [true]) and [~viewTransitions] (default [false]) on [Router.make], or
+[?interceptLinks] and [?viewTransitions] on [Server.make], reach the client
+[Provider]. The client root also receives [routes]: every concrete route path
+without the base path, from [Server.routes]. The client matches plain links
+against them with [RouterPattern.matchesPath(~basePath)], which strips the
+percent-encoded base path segment by segment. [onNavigationError] is a function, so it cannot
+travel from the server in the RSC payload. To set it, render your own client
+component through [Server.clientRootWith] and give the [Provider]
+[~onNavigationError] there.
+
 The repository's [demo/dream-router/DreamRouter.ml] is a thin Dream adapter
 over these functions. It also parses the request and sets the request
 context. [DreamRouter] is demo-only: it is not installed by any published
 package.
+
+{2 Request details}
+
+- Base path: the server compares [~basePath] with the request pathname
+  segment by segment, after percent-decoding, the same way route segments
+  match. [/app] matches [/app] and [/app/x] but not [/apple], and
+  [/m%c3%bcnchen] matches the base path [/m%C3%BCnchen]. The base path itself
+  must be written in canonical form, without a trailing slash.
+- Search: empty pairs, as in [?a=1&&b=2&], are ignored. A key or value that is
+  not valid UTF-8 after percent-decoding, such as [?q=%FF], makes the search
+  invalid, the same as a malformed escape: the response is 400 with
+  [InvalidSearchParameter].
+- Methods: [Adapter.methodReply ~allow method_] decides a method before
+  [Server.run]. [allow] lists the methods the adapter serves at the router's
+  paths. [OPTIONS] answers 204 and a method outside [allow] answers 405, both
+  with an [Allow] header. For [None], [GET] and [HEAD] run the router, and the
+  adapter sends a [HEAD] reply without its body. [DreamRouter.routes] allows
+  [GET, HEAD, OPTIONS, POST] and sends [POST] to the action handler.
+- [~metadata] and [~headers] of all scopes start at the same time. The results
+  still merge from the root down, whatever order they resolve in.
+
+{2 Forms without JavaScript}
+
+A form whose [action] is a server function renders [action=""] and a hidden
+[$ACTION_ID_<id>] input. Without JavaScript, the browser posts it as
+multipart to the page URL. The router turns that post into
+post/redirect/get, so a reload does not post again:
+
+- The server function runs with the rest of the form. Then the server
+  answers 303 to the same URL, and the browser loads the page again.
+- A server function that calls [RouterServer.Action.redirect(destination)]
+  gets a 303 to [destination] instead, for example
+  [RouterServer.Action.redirect(Router.Note.destination(~id, ()))].
+- A server function that fails renders the page, after its loaders, inside
+  the nearest [~error] boundary of the route, with status 500. A route
+  without a boundary shows the built-in text. Cookies set by the failed
+  function are dropped. A loader's own redirect or failure still wins.
+- The reply to a form post is never 307 or 308, which would make the
+  browser post again. When the page redirects, for example because its URL
+  ends with a slash, the reply is a 303 to the new location.
+
+The server function's return value is not used: a page without JavaScript
+cannot show it. A call from JavaScript (with the [ACTION_ID] header) returns
+the Flight action response as before. When that function calls
+[RouterServer.Action.redirect], the response carries
+[Router-Redirect: <href>] and the result [null], and the client navigates to
+[href]. The server waits for the function before it sends the headers.
+
+[RouterServer.Adapter.runFormAction ~lookup formData] runs the function and
+returns [Completed], [Redirected(destination)] or [Failed(exn)], or [None]
+when the form names no registered function.
+[RouterServer.Adapter.formActionReply] turns the result into the reply.
+[DreamRouter.routes ~lookup] does both for a multipart [POST] without an
+[ACTION_ID] header, behind the same origin check as the other actions. A
+multipart [POST] without a [$ACTION_ID_] field, such as a plain upload, goes
+to [~actionHandler] with its body intact. Without [~lookup], every [POST]
+still goes to [~actionHandler].
+
+{2 Redirect targets}
+
+The server sends a redirect only to a path that starts with a single [/]
+(not [//] or a slash followed by a backslash) or to an absolute [http:] or [https:] URL, without
+control characters. [RouterServer.Adapter.redirectLocation] makes this check
+for every redirect: the 303 or 308 [Location], the RSC redirect envelope and
+the [Router-Redirect] header. A loader or route redirect to another target,
+such as [javascript:alert(1)] or [//evil.example], renders the page as an
+internal error. A server function that redirects there fails.
 
 {1 Libraries}
 

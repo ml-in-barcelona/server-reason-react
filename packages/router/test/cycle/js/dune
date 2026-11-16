@@ -28,6 +28,7 @@
  (alias runtest)
  (deps
   (alias melange)
+  (source_tree ../../../../../demo/client/node_modules/react)
   (:test test_cycle_js/packages/router/test/cycle/js/TestCycleJs.js))
  (action
   (setenv

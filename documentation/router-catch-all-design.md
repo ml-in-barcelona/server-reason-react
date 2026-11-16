@@ -41,8 +41,9 @@ Rules:
 - The label follows the existing parameter-name grammar and participates in
   the existing duplicate-label and reserved-label validation.
 - A catch-all matches one or more segments. It does not match zero segments.
-  `/assets/:parts<string...>` does not match `/assets`. An application that
-  wants both declares two routes.
+  `/assets/:parts<string...>` does not match `/assets`. To match zero
+  segments too, use the optional form `:name?<string...>` (see "Optional
+  catch-all").
 
 The zero-match rejection keeps `render` total: an empty list cannot produce
 `/assets/` (a non-canonical href) or `/assets` (a collision with a sibling
@@ -181,11 +182,40 @@ symmetric.
 Canonicalization happens before matching, so `/assets/a/b/` redirects to
 `/assets/a/b` and then matches the catch-all. No new rule is needed.
 
+## Optional catch-all
+
+Added 2026-11-16. `:name?<string...>` matches zero or more final segments:
+
+```reason
+Router.route(Docs, ~page=Pages.Docs, ~path="/docs/:rest?<string...>")
+```
+
+- The `?` comes after the name, as in the `?rest` argument it produces. The
+  type in `<...>` does not change.
+- The page receives `~rest: list(string)`. The list is empty when no segment
+  remains.
+- The generated helpers take `?rest: list(string)`. `None` and `[]` both
+  render `/docs`, so the empty list has one href.
+- The generator expands the route into two concrete patterns, `/docs` and
+  `/docs/:rest<string...>`. Each one becomes its own registry endpoint, so
+  the matcher and invariants 1 to 4 do not change. The
+  `/docs/:rest<string...>` endpoint keeps the id `Docs`. The `/docs`
+  endpoint gets the id `Docs@/docs`.
+- Each concrete pattern uses the normal ranking: more static segments win,
+  and a finite route wins over a catch-all with the same static count. With
+  `/docs/:topic<string>` and `/docs/api/:name<string>` next to it, `/docs`
+  goes to the catch-all with `[]`, `/docs/intro` goes to the topic route,
+  `/docs/api/list` goes to the api route, and `/docs/a/b` goes to the
+  catch-all.
+- The generator rejects overlaps with the normal checks, which it runs on
+  each concrete pattern. A `/docs` route next to it is an error:
+  `duplicate route path /docs (from /docs/:rest?<string...>)`. A required
+  catch-all at the same prefix is ambiguous.
+- Like the required form, it must be final and cannot appear in a group
+  path. A redirect path cannot contain it.
+
 ## Rejected alternatives
 
-- Zero-or-more catch-all. It creates two route shapes in one declaration,
-  an href ambiguity for the empty list, and an overlap with the parent
-  static route. Two explicit routes express the same thing.
 - Typed catch-all (`<NoteId.t...>`). Element-wise decode introduces partial
   failure: element 3 fails and the route has already been selected. The page
   can decode `list(string)` itself and choose its own failure behavior.

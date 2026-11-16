@@ -293,6 +293,56 @@ let oversized_search () =
   | Error RouterServer.Search.QueryTooLong -> ()
   | _ -> Alcotest.fail "expected oversized search rejection"
 
+let search_skips_empty_pairs () =
+  match RouterServer.Search.parse "?&a=1&&b=2&" with
+  | Ok search ->
+      Alcotest.(check (list (pair string (list string))))
+        "pairs"
+        [ ("a", [ "1" ]); ("b", [ "2" ]) ]
+        (RouterServer.Search.unknown search ~owned:[])
+  | Error _ -> Alcotest.fail "expected valid search"
+
+let invalid_utf8_search () =
+  List.iter
+    (fun search ->
+      match RouterServer.Search.parse search with
+      | Error (MalformedEscape _) -> ()
+      | _ -> Alcotest.failf "expected %S to be rejected" search)
+    [ "q=%FF"; "q=%C3"; "%C3=1"; "q=\xff"; "q=%ED%A0%80"; "q=%C0%80"; "q=%E0%80%80"; "q=%F4%90%80%80"; "q=%E2%82" ];
+  List.iter
+    (fun (search, expected) ->
+      match RouterServer.Search.parse search with
+      | Ok parsed -> Alcotest.(check (list string)) search [ expected ] (RouterServer.Search.values parsed "q")
+      | Error _ -> Alcotest.failf "expected %S to be accepted" search)
+    [
+      ("q=%F0%9F%98%80", "\xF0\x9F\x98\x80");
+      ("q=\xC3\xA9", "\xC3\xA9");
+      ("q=%E2%82%AC", "\xE2\x82\xAC");
+      ("q=%EF%BF%BF", "\xEF\xBF\xBF");
+      ("q=%F4%8F%BF%BF", "\xF4\x8F\xBF\xBF");
+    ]
+
+let base_path_matches_segments () =
+  let strip ~basePath pathname = RouterServer.Path.stripBasePath ~basePath pathname in
+  let check ~basePath pathname expected =
+    Alcotest.(check (option string)) (basePath ^ " " ^ pathname) expected (strip ~basePath pathname)
+  in
+  check ~basePath:"/app" "/app" (Some "/");
+  check ~basePath:"/app" "/app/x" (Some "/x");
+  check ~basePath:"/app" "/app/x/y" (Some "/x/y");
+  check ~basePath:"/app" "/apple" None;
+  check ~basePath:"/app" "/apple/x" None;
+  check ~basePath:"/app" "/ap" None;
+  check ~basePath:"/app" "/" None;
+  check ~basePath:"/app" "/app%2Fx" None;
+  check ~basePath:"/app" "/%61pp/x" (Some "/x");
+  check ~basePath:"/a/b" "/a/b/c" (Some "/c");
+  check ~basePath:"/a/b" "/a/bc" None;
+  check ~basePath:"/m%C3%BCnchen" "/m%c3%bcnchen/item" (Some "/item");
+  check ~basePath:"/m%C3%BCnchen" "/m%C3%BCnchen" (Some "/");
+  check ~basePath:"/m%C3%BCnchen" "/m%C3%BCnchenx" None;
+  check ~basePath:"/" "/x" (Some "/x")
+
 let loader_sequence () =
   let events = ref [] in
   let execution =
@@ -889,6 +939,15 @@ let root_pathname_is_canonical () =
       Alcotest.(check int) "status" 404 (RouterRuntime.Status.toInt full.resolved.status)
   | _ -> Alcotest.fail "expected full response"
 
+let engine_matches_lower_case_base_path_escapes () =
+  match
+    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/m%C3%BCnchen"
+      ~pathname:"/m%c3%bcnchen/notes" ()
+  with
+  | RouterServer.ServerEngine.Full full ->
+      Alcotest.(check int) "status" 200 (RouterRuntime.Status.toInt full.resolved.status)
+  | _ -> Alcotest.fail "expected full response"
+
 let default_boundary_renders_text () =
   let render error =
     let resolved =
@@ -1027,12 +1086,12 @@ let adapter_document_invalid_search_reply () =
           let html, _subscribe = Lwt_main.run (ReactServerDOM.render_html ~skipRoot:false element) in
           Alcotest.(check bool) "document" true (contains ~needle:"<body>" html)
       | Empty | Model _ -> Alcotest.fail "expected html")
-    [ "?q=%zz"; "?q=" ^ String.make 8190 'a' ]
+    [ "?q=%zz"; "?q=%FF"; "?q=" ^ String.make 8190 'a' ]
 
 let adapter_rsc_reply () =
   let reply = adapter_reply ~kind:Rsc "/app/item" in
   Alcotest.(check int) "status" 200 reply.status;
-  check_header reply "Vary" (Some "Accept");
+  check_header reply "Vary" (Some "Accept, Router-Prefetch");
   check_header reply "Router-Response" (Some "full");
   check_header reply "Router-Registry" (Some ("2." ^ RouterServer.Server.fingerprint (adapter_server ())));
   check_header reply "Cache-Control" (Some "private, no-store");
@@ -1043,7 +1102,7 @@ let adapter_rsc_reply () =
 let adapter_reload_required_reply () =
   let reply = adapter_reply ~registry:(Some "2.wrong") ~kind:Rsc "/app/item" in
   Alcotest.(check int) "status" 409 reply.status;
-  check_header reply "Vary" (Some "Accept");
+  check_header reply "Vary" (Some "Accept, Router-Prefetch");
   check_header reply "Router-Response" (Some "reload-required");
   check_header reply "Cache-Control" (Some "private, no-store");
   Alcotest.(check bool) "empty body" true (reply.body = Empty)
@@ -1061,7 +1120,7 @@ let adapter_document_redirect_reply () =
 let adapter_rsc_redirect_reply () =
   let reply = adapter_reply ~kind:Rsc "/app/go" in
   Alcotest.(check int) "status" 200 reply.status;
-  check_header reply "Vary" (Some "Accept");
+  check_header reply "Vary" (Some "Accept, Router-Prefetch");
   check_header reply "Router-Response" (Some "redirect");
   check_header reply "Router-Registry" (Some ("2." ^ RouterServer.Server.fingerprint (adapter_server ())));
   check_header reply "Cache-Control" (Some "private, no-store");
@@ -1146,6 +1205,300 @@ let suffix_plan_omits_shared_layouts () =
   in
   Alcotest.(check (option string)) "suffix" (Some "child(page)") resolved.element
 
+let scope_values_resolve_concurrently () =
+  let open RouterRuntime in
+  let headers values = match Headers.make values with Ok headers -> headers | Error _ -> assert false in
+  let started = ref [] in
+  let scope name ~title ?description () =
+    let ready, wake = Lwt.wait () in
+    let start value =
+      started := name :: !started;
+      Lwt.map (fun () -> value) ready
+    in
+    ( RouterServer.Plan.Scope.make
+        ~metadata:(fun () -> start (Metadata.make ~title ?description ()))
+        ~headers:(fun () -> start (headers [ ("Set-Cookie", name ^ "=1") ]))
+        (),
+      wake )
+  in
+  let root, wake_root = scope "root" ~title:"Root" ~description:"Root" () in
+  let child, wake_child = scope "child" ~title:"Child" () in
+  let plan = RouterServer.Plan.success ~scopes:[ root; child ] ~page:"page" in
+  let resolved = RouterServer.Plan.resolve plan ~applicationStatus:(fun _ -> Status.InternalServerError) in
+  Alcotest.(check (list string))
+    "all scopes start before any resolves" [ "child"; "child"; "root"; "root" ] (List.sort compare !started);
+  Lwt.wakeup wake_child ();
+  Lwt.wakeup wake_root ();
+  match Lwt.state resolved with
+  | Lwt.Return resolved ->
+      Alcotest.(check (option string)) "child title wins" (Some "Child") resolved.metadata.title;
+      Alcotest.(check (option string)) "root description kept" (Some "Root") resolved.metadata.description;
+      Alcotest.(check (list (pair string string)))
+        "headers in tree order"
+        [ ("Set-Cookie", "root=1"); ("Set-Cookie", "child=1") ]
+        (Headers.toList resolved.headers)
+  | _ -> Alcotest.fail "expected resolved plan"
+
+let adapter_method_replies () =
+  let allow = [ "GET"; "HEAD"; "OPTIONS"; "POST" ] in
+  let reply method_ = RouterServer.Adapter.methodReply ~allow method_ in
+  List.iter
+    (fun method_ -> Alcotest.(check bool) (method_ ^ " runs the router") true (Option.is_none (reply method_)))
+    [ "GET"; "HEAD"; "POST" ];
+  let check method_ status =
+    match reply method_ with
+    | Some reply ->
+        Alcotest.(check int) (method_ ^ " status") status reply.status;
+        check_header reply "Allow" (Some "GET, HEAD, OPTIONS, POST");
+        Alcotest.(check bool) (method_ ^ " empty body") true (reply.body = RouterServer.Adapter.Empty)
+    | None -> Alcotest.failf "expected a reply for %s" method_
+  in
+  check "OPTIONS" 204;
+  check "PUT" 405;
+  check "DELETE" 405;
+  check "get" 405
+
+let prefetch_registry ran =
+  let endpoint ~id ?prefetch () : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+    let endpoint =
+      RouterServer.Endpoint.make ~id ~path:("/" ^ id) ~activeRoutes:[] ~fingerprint:id ~decode:(fun _ ->
+          Ok
+            (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+                 RouterServer.Execution.load
+                   (fun () ->
+                     incr ran;
+                     Lwt.return (RouterRuntime.Loader.Data ()))
+                   (fun () -> RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:id)))))
+    in
+    match prefetch with Some level -> RouterServer.Endpoint.withPrefetch endpoint level | None -> endpoint
+  in
+  RouterServer.EndpointRegistry.makeExn
+    [ endpoint ~id:"viewport" ~prefetch:RouterRuntime.PrefetchLevel.Viewport (); endpoint ~id:"default" () ]
+
+let prefetch_request pathname : RouterServer.ServerEngine.request =
+  { pathname; search = ""; hash = ""; kind = Rsc; navigation = None }
+
+let run_prefetch ~ran ?prefetch pathname =
+  Lwt_main.run
+    (RouterServer.ServerEngine.run ~registry:(prefetch_registry ran) ~basePath:"/"
+       ~trailingSlash:RouterServer.TrailingSlash.Redirect
+       ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+       ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+       ~diagnosticId:(fun _ -> "diagnostic")
+       ~revision:(fun () -> "revision")
+       ~protocolVersion:1 ?prefetch (prefetch_request pathname))
+
+let vary outcome =
+  match outcome with
+  | RouterServer.ServerEngine.Full full -> List.assoc_opt "Vary" (RouterRuntime.Headers.toList full.resolved.headers)
+  | _ -> Alcotest.fail "expected full response"
+
+let refused_prefetch_runs_no_loader () =
+  let open RouterRuntime.PrefetchLevel in
+  let ran = ref 0 in
+  let refused ~prefetch pathname expected =
+    match run_prefetch ~ran ~prefetch pathname with
+    | RouterServer.ServerEngine.PrefetchRefused level ->
+        Alcotest.(check string) pathname (toString expected) (toString level)
+    | _ -> Alcotest.failf "expected %s to refuse a %s prefetch" pathname (toString prefetch)
+  in
+  refused ~prefetch:Idle "/viewport" Viewport;
+  refused ~prefetch:Viewport "/default" Intent;
+  refused ~prefetch:Idle "/default" Intent;
+  Alcotest.(check bool)
+    "unmatched path runs as a navigation" true
+    (match run_prefetch ~ran ~prefetch:Idle "/missing" with
+    | RouterServer.ServerEngine.Full full -> RouterRuntime.Status.toInt full.resolved.status = 404
+    | _ -> false);
+  Alcotest.(check int) "no loader ran" 0 !ran
+
+let accepted_prefetch_answers_like_navigation () =
+  let open RouterRuntime.PrefetchLevel in
+  let ran = ref 0 in
+  Alcotest.(check (option string)) "navigation" (Some "Accept, Router-Prefetch") (vary (run_prefetch ~ran "/viewport"));
+  List.iter
+    (fun (prefetch, pathname) ->
+      Alcotest.(check (option string))
+        (toString prefetch ^ " " ^ pathname)
+        (Some "Accept, Router-Prefetch")
+        (vary (run_prefetch ~ran ~prefetch pathname)))
+    [ (Viewport, "/viewport"); (Intent, "/viewport"); (Off, "/viewport"); (Intent, "/default") ];
+  Alcotest.(check int) "loaders ran" 5 !ran
+
+let prefetch_level_names () =
+  let open RouterRuntime.PrefetchLevel in
+  List.iter
+    (fun level -> Alcotest.(check bool) (toString level) true (fromString (toString level) = Some level))
+    [ Off; Intent; Viewport; Idle ];
+  Alcotest.(check bool) "unknown" true (fromString "Intent" = None);
+  Alcotest.(check bool) "order" true (compare Off Intent < 0 && compare Intent Viewport < 0 && compare Viewport Idle < 0);
+  Alcotest.(check string)
+    "untyped destination" "intent"
+    (toString (RouterRuntime.prefetchLevel (RouterRuntime.destination ~path:"/x")));
+  let destination = RouterRuntime.withPrefetch (RouterRuntime.destination ~path:"/x") Off in
+  Alcotest.(check string)
+    "withHash keeps the level" "off"
+    (toString (RouterRuntime.prefetchLevel (RouterRuntime.withHash destination ~hash:"top")))
+
+let adapter_refused_prefetch_reply () =
+  let server = adapter_server () in
+  let reply prefetch =
+    let outcome =
+      Lwt_main.run
+        (RouterServer.Server.run server
+           ~diagnosticId:(fun _ -> "diagnostic")
+           ~revision:(fun () -> "revision")
+           ~prefetch
+           { pathname = "/app/item"; search = ""; hash = ""; kind = Rsc; navigation = None })
+    in
+    RouterServer.Adapter.reply server ~target:"/app/item" ~pageCacheCapacity:0
+      ~document:(fun ~head:_ children -> children)
+      ~kind:Rsc outcome
+  in
+  let allowed = reply RouterRuntime.PrefetchLevel.Intent in
+  Alcotest.(check int) "intent status" 200 allowed.status;
+  check_header allowed "Vary" (Some "Accept, Router-Prefetch");
+  let refused = reply RouterRuntime.PrefetchLevel.Viewport in
+  Alcotest.(check int) "status" 204 refused.status;
+  check_header refused "Router-Prefetch-Refused" (Some "intent");
+  check_header refused "Vary" (Some "Accept, Router-Prefetch");
+  check_header refused "Cache-Control" (Some "private, no-store");
+  Alcotest.(check bool) "empty body" true (refused.body = RouterServer.Adapter.Empty)
+
+let client_routes_exclude_base_path () =
+  let endpoint path : ((React.element, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+    RouterServer.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
+        Ok
+          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:React.null))))
+  in
+  let registry =
+    RouterServer.EndpointRegistry.makeExn
+      [ endpoint "/"; endpoint "/notes/:id<int>"; endpoint "/assets/:parts<string...>"; endpoint "/docs" ]
+  in
+  let server basePath =
+    RouterServer.Server.make ~basePath ~registry
+      ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+      ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+      ()
+  in
+  let expected = [| "/"; "/notes/:id<int>"; "/assets/:parts<string...>"; "/docs" |] in
+  List.iter
+    (fun basePath -> Alcotest.(check (array string)) basePath expected (RouterServer.Server.routes (server basePath)))
+    [ "/"; "/app"; "/m%C3%BCnchen" ];
+  let passed = ref [||] in
+  ignore
+    (RouterServer.Server.clientRootWith (server "/app")
+       ~make:(fun ~initial:_ ~protocolVersion:_ ~registryFingerprint:_ ~basePath:_ ~routes ~metadata:_ ~children ->
+         passed := routes;
+         children)
+       ~initial:
+         RouterRuntime.Navigation.
+           {
+             location = { pathname = "/app"; search = ""; hash = ""; key = "k" };
+             matches = [];
+             layouts = [];
+             revision = "r";
+           }
+       ~metadata:React.null ~children:React.null);
+  Alcotest.(check (array string)) "clientRootWith" expected !passed
+
+let action_error_renders_after_loaders () =
+  let run ?(redirect = false) ?(withFailure = true) () =
+    let page = RouterServer.Plan.success ~scopes:[] ~page:"page" in
+    let page =
+      if withFailure then
+        RouterServer.Plan.withFailure page (fun error ->
+            RouterServer.Plan.failure ~scopes:[] ~error ~errorBoundary:(fun _ -> "boundary") ())
+      else page
+    in
+    let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+      RouterServer.Endpoint.make ~id:"page" ~path:"/page" ~activeRoutes:[] ~fingerprint:"page" ~decode:(fun _ ->
+          Ok
+            (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+                 RouterServer.Execution.load
+                   (fun () ->
+                     Lwt.return
+                       (if redirect then RouterRuntime.Loader.Redirect (RouterRuntime.destination ~path:"/login")
+                        else RouterRuntime.Loader.Data ()))
+                   (fun () -> RouterServer.Execution.done_ page))))
+    in
+    Lwt_main.run
+      (RouterServer.ServerEngine.run
+         ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
+         ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
+         ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+         ~applicationStatus:(fun _ -> RouterRuntime.Status.Forbidden)
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~revision:(fun () -> "revision")
+         ~protocolVersion:1
+         ~actionError:(RouterRuntime.Error.Internal { diagnosticId = "d" })
+         { pathname = "/page"; search = ""; hash = ""; kind = Document; navigation = None })
+  in
+  (match run () with
+  | RouterServer.ServerEngine.Full full ->
+      Alcotest.(check int) "status" 500 (RouterRuntime.Status.toInt full.resolved.status);
+      Alcotest.(check (option string)) "boundary" (Some "boundary") full.resolved.element
+  | _ -> Alcotest.fail "expected full response");
+  (match run ~withFailure:false () with
+  | RouterServer.ServerEngine.Full full ->
+      Alcotest.(check int) "plain status" 500 (RouterRuntime.Status.toInt full.resolved.status);
+      Alcotest.(check (option string)) "no boundary" None full.resolved.element
+  | _ -> Alcotest.fail "expected full response");
+  match run ~redirect:true () with
+  | RouterServer.ServerEngine.Redirect _ -> ()
+  | _ -> Alcotest.fail "expected the loader redirect to win"
+
+let unsafe_redirects_are_internal_errors () =
+  let run target =
+    let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+      RouterServer.Endpoint.make ~id:"go" ~path:"/go" ~activeRoutes:[] ~fingerprint:"go" ~decode:(fun _ ->
+          Ok
+            (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+                 RouterServer.Execution.redirect (RouterRuntime.destination ~path:target))))
+    in
+    Lwt_main.run
+      (RouterServer.ServerEngine.run
+         ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
+         ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
+         ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+         ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~revision:(fun () -> "revision")
+         ~protocolVersion:1
+         { pathname = "/go"; search = ""; hash = ""; kind = Document; navigation = None })
+  in
+  List.iter
+    (fun target ->
+      match run target with
+      | RouterServer.ServerEngine.Full full ->
+          Alcotest.(check int) target 500 (RouterRuntime.Status.toInt full.resolved.status)
+      | _ -> Alcotest.failf "expected %S to be refused" target)
+    [
+      "javascript:alert(1)";
+      "JavaScript:alert(1)";
+      "data:text/html,x";
+      "//evil.example/";
+      "/\\evil.example/";
+      "notes";
+      "";
+      "/a\nSet-Cookie: x=1";
+      "ftp://example.com/";
+    ];
+  List.iter
+    (fun target ->
+      match run target with
+      | RouterServer.ServerEngine.Redirect destination ->
+          Alcotest.(check string) target target (RouterRuntime.href destination)
+      | _ -> Alcotest.failf "expected %S to redirect" target)
+    [ "/"; "/notes?a=1#top"; "https://example.com/x"; "http://example.com"; "HTTPS://example.com/" ];
+  Alcotest.(check (option string))
+    "location of a safe destination" (Some "/notes")
+    (RouterServer.Adapter.redirectLocation (RouterRuntime.destination ~path:"/notes"));
+  Alcotest.(check (option string))
+    "location of an unsafe destination" None
+    (RouterServer.Adapter.redirectLocation (RouterRuntime.destination ~path:"javascript:alert(1)"))
+
 let () =
   Alcotest.run "router server"
     [
@@ -1179,6 +1532,10 @@ let () =
           test "decoded search" decoded_search;
           test "malformed search" malformed_search;
           test "oversized search" oversized_search;
+          test "search skips empty pairs" search_skips_empty_pairs;
+          test "invalid UTF-8 search" invalid_utf8_search;
+          test "base path matches segments" base_path_matches_segments;
+          test "engine matches lower-case base path escapes" engine_matches_lower_case_base_path_escapes;
           test "loader sequence" loader_sequence;
           test "loader short circuit" loader_short_circuit;
           test "rejected loader uses nearest boundary" rejected_loader_uses_nearest_boundary;
@@ -1230,5 +1587,14 @@ let () =
           test "shared layout prefix uses canonical identity" shared_layout_prefix_uses_canonical_identity;
           test "plan scope count bounds the graft" plan_scope_count_bounds_the_graft;
           test "suffix plan omits shared layouts" suffix_plan_omits_shared_layouts;
+          test "scope values resolve concurrently" scope_values_resolve_concurrently;
+          test "adapter method replies" adapter_method_replies;
+          test "refused prefetch runs no loader" refused_prefetch_runs_no_loader;
+          test "accepted prefetch answers like navigation" accepted_prefetch_answers_like_navigation;
+          test "prefetch level names" prefetch_level_names;
+          test "adapter refused prefetch reply" adapter_refused_prefetch_reply;
+          test "client routes exclude base path" client_routes_exclude_base_path;
+          test "action error renders after loaders" action_error_renders_after_loaders;
+          test "unsafe redirects are internal errors" unsafe_redirects_are_internal_errors;
         ] );
     ]

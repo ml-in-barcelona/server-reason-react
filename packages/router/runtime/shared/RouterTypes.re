@@ -1,7 +1,85 @@
-type destination = {href: string};
+module PrefetchLevel = {
+  type t =
+    | Off
+    | Intent
+    | Viewport
+    | Idle;
 
-let makeDestination: string => destination = href => { href: href };
+  let toString =
+    fun
+    | Off => "off"
+    | Intent => "intent"
+    | Viewport => "viewport"
+    | Idle => "idle";
+
+  let fromString =
+    fun
+    | "off" => Some(Off)
+    | "intent" => Some(Intent)
+    | "viewport" => Some(Viewport)
+    | "idle" => Some(Idle)
+    | _ => None;
+
+  let rank =
+    fun
+    | Off => 0
+    | Intent => 1
+    | Viewport => 2
+    | Idle => 3;
+
+  let compare = (left, right) => Int.compare(rank(left), rank(right));
+};
+
+type destination = {
+  href: string,
+  prefetch: PrefetchLevel.t,
+};
+
+let makeDestination: string => destination = href => {
+  href,
+  prefetch: PrefetchLevel.Intent,
+};
 let destinationHref = destination => destination.href;
+let destinationPrefetch = destination => destination.prefetch;
+
+let destination = (~path) => makeDestination(path);
+let href = destinationHref;
+let prefetchLevel = destinationPrefetch;
+let withPrefetch = (destination, prefetch) => {
+  ...destination,
+  prefetch,
+};
+
+let destinationWithHash = (~encode, destination, ~hash) => {
+  let base =
+    switch (String.index_opt(destination.href, '#')) {
+    | Some(index) => String.sub(destination.href, 0, index)
+    | None => destination.href
+    };
+  {
+    ...destination,
+    href: hash == "" ? base : base ++ "#" ++ encode(hash),
+  };
+};
+
+let renderDestination =
+    (~pattern, ~parameters, ~search, ~encodeParameter, ~encodeSearch) => {
+  let parameter = name => List.assoc_opt(name, parameters);
+  let path =
+    switch (
+      RouterPattern.render(
+        pattern,
+        ~parameter,
+        ~encodeStatic=RouterPattern.encodeStaticSegment,
+        ~encodeParameter,
+      )
+    ) {
+    | Ok(path) => path
+    | Error(InvalidPattern(message)) => invalid_arg(message)
+    };
+  let search = encodeSearch(search);
+  makeDestination(search == "" ? path : path ++ "?" ++ search);
+};
 
 module Status = {
   type t =

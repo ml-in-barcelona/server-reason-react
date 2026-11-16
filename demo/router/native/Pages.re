@@ -30,6 +30,14 @@ module AppLayout = {
               </Text>
             </p>
           </section>
+          <nav className="flex flex-row gap-2" key="e2e-links">
+            <Router.E2e className="layout-e2e">
+              {React.string("Checks")}
+            </Router.E2e>
+            <Router.E2eLong className="layout-long">
+              {React.string("Long page")}
+            </Router.E2eLong>
+          </nav>
           <section className="mt-4 mb-4 flex flex-row gap-2" key="search">
             <SearchField />
           </section>
@@ -80,8 +88,6 @@ module GlobalLoading = {
 };
 
 module AppError = {
-  let status = _ => Router.Status.InternalServerError;
-
   [@react.component]
   let make = (~text as _, ~error as _) =>
     <div className="flex flex-col h-full items-center justify-center gap-2">
@@ -149,4 +155,75 @@ module EditNote = {
   [@react.component]
   let make = (~id as _, ~text as _, ~note) =>
     <NoteItem note isEditing=true />;
+};
+
+module E2e = {
+  [@react.component]
+  let make = (~text as _) =>
+    <div className="flex flex-col gap-4 p-4" id="e2e-page">
+      <h1> {React.string("Router checks")} </h1>
+      <a id="plain-route" href="/demo/router/e2e/long">
+        {React.string("Plain anchor to a route")}
+      </a>
+      <a id="plain-off" href="/demo/router/e2e/off">
+        {React.string("Plain anchor to a route that refuses prefetch")}
+      </a>
+      <a id="plain-missing-note" href="/demo/router/999">
+        {React.string("Plain anchor to a note that does not exist")}
+      </a>
+      <a id="plain-missing" href="/demo/router/e2e/missing.txt">
+        {React.string("Plain anchor to a URL without a route")}
+      </a>
+      <Router.E2eOff className="link-off">
+        {React.string("Prefetch off")}
+      </Router.E2eOff>
+      <Router.E2eLong className="link-long">
+        {React.string("Long page")}
+      </Router.E2eLong>
+      <Router.E2e className="link-self">
+        {React.string("This page")}
+      </Router.E2e>
+      <form id="visit-form" action={`Function(E2eActions.countVisit)}>
+        <span id="visits">
+          {React.string(string_of_int(E2eState.visits^))}
+        </span>
+        <button id="count-visit" type_="submit">
+          {React.string("Count a visit")}
+        </button>
+      </form>
+      <E2eTools />
+      <div style={ReactDOM.Style.make(~height="2400px", ())} />
+      <Router.E2eViewport className="link-viewport">
+        {React.string("Viewport prefetch")}
+      </Router.E2eViewport>
+      <h2 id="section"> {React.string("Section")} </h2>
+      <div style={ReactDOM.Style.make(~height="1200px", ())} />
+    </div>;
+};
+
+module E2eLong = {
+  [@react.component]
+  let make = (~text as _) =>
+    <div className="p-4" id="e2e-long">
+      <h1> {React.string("Long page")} </h1>
+      <Router.E2e className="long-back">
+        {React.string("Checks")}
+      </Router.E2e>
+      <div style={ReactDOM.Style.make(~height="4000px", ())} />
+      <p id="long-end"> {React.string("End")} </p>
+    </div>;
+};
+
+module E2eOff = {
+  [@react.component]
+  let make = (~text as _) =>
+    <p id="e2e-off"> {React.string("A route that is never prefetched")} </p>;
+};
+
+module E2eViewport = {
+  [@react.component]
+  let make = (~text as _) =>
+    <p id="e2e-viewport">
+      {React.string("A route prefetched near the viewport")}
+    </p>;
 };

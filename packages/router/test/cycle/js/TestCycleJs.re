@@ -215,3 +215,40 @@ switch (
 | Ok(_)
 | Error(_) => failwith("router transaction accepted an invalid patch graft")
 };
+
+let (hashLoading, hashRequestId) =
+  RouterRuntime.Navigation.start(
+    RouterRuntime.Navigation.make(committed),
+    ~to_={
+      ...location,
+      pathname: "/to",
+      hash: "#details",
+    },
+    ~action=RouterRuntime.Navigation.Push,
+  );
+switch (
+  RouterTransaction.prepare(
+    ~action=RouterRuntime.Navigation.Push,
+    ~requestId=hashRequestId,
+    ~validatedRequestId=hashRequestId,
+    ~currentState=hashLoading,
+    ~currentCommitted=committed,
+    ~targetHash="#details",
+    ~historyKey=None,
+    ~locationFromUrl=
+      (~key, _url) =>
+        {
+          ...location,
+          pathname: "/to",
+          key,
+        },
+    response,
+  )
+) {
+| Ok({ url, restore: (_, hash, _), _ }) =>
+  if (url != "/to#details" || hash != "#details") {
+    failwith("a content navigation dropped the fragment of its target");
+  }
+| Error(_) =>
+  failwith("router transaction unexpectedly rejected a response with a hash")
+};

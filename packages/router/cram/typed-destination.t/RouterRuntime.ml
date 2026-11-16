@@ -45,3 +45,4 @@ let pattern path = path
 let destination ~path = path
 let destinationFromPattern ~pattern:_ ~parameters:_ ~search:_ = ""
 let href destination = destination
+let withHash destination ~hash:_ = destination

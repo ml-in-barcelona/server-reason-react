@@ -23,6 +23,74 @@
   [2]
   $ grep -E 'old-notes|redirect:2' Router_compat.mli
   [1]
+
+Optional segments: `:name?<type>` and `:name?<string...>`.
+
+  $ server-reason-react.router-gen --mode handles --source optional.ml < optional.ml > OptionalRoutes.ml
+  $ server-reason-react.router-gen --mode interface --source optional.ml < optional.ml > OptionalRoutes.mli
+  $ tr -s ' \n' ' ' < OptionalRoutes.mli | grep -Eo 'val (destination|href) : ([?a-z]+:[a-z ]+ -> )+unit -> [a-z]+'
+  val destination : ?rest:string list -> ?hash:string -> unit -> destination
+  val href : ?rest:string list -> ?hash:string -> unit -> string
+  val destination : ?lang:string -> ?hash:string -> unit -> destination
+  val href : ?lang:string -> ?hash:string -> unit -> string
+  val destination : ?lang:string -> topic:int -> ?hash:string -> unit -> destination
+  val href : ?lang:string -> topic:int -> ?hash:string -> unit -> string
+  $ grep -Eo '(rest|lang|topic): [a-z ]*[a-z]' OptionalRoutes.mli | sort -u
+  lang: string option
+  rest: string list
+  topic: int
+  $ server-reason-react.router-gen --mode registry --source optional.ml < optional.ml | tr -d ' \n' | grep -Eo 'id:"[^"]*"~path:"[^"]*"~activeRoutes:\[(\("[A-Za-z]+",\[[^]]*\]\);?)*\]'
+  id:"Docs"~path:"/docs/:rest<string...>"~activeRoutes:[("Docs",["rest"])]
+  id:"Docs@/docs"~path:"/docs"~activeRoutes:[("Docs",["rest"])]
+  id:"Help"~path:"/help/:lang<string>"~activeRoutes:[("Help",["lang"])]
+  id:"Help@/help"~path:"/help"~activeRoutes:[("Help",["lang"])]
+  id:"HelpTopic"~path:"/help/:lang<string>/topics/:topic<int>"~activeRoutes:[("Help",["lang"]);("HelpTopic",["lang";"topic"])]
+  id:"HelpTopic@/help/topics/:topic<int>"~path:"/help/topics/:topic<int>"~activeRoutes:[("Help",["lang"]);("HelpTopic",["lang";"topic"])]
+
+  $ server-reason-react.router-gen --mode registry --source optional-duplicate.ml < optional-duplicate.ml
+  File "optional-duplicate.ml", line 3, characters 2-57:
+  Error: router: duplicate route path /x (from /:a?<string>/x)
+  [2]
+
+  $ server-reason-react.router-gen --mode registry --source optional-catch-all-duplicate.ml < optional-catch-all-duplicate.ml
+  File "optional-catch-all-duplicate.ml", line 3, characters 2-62:
+  Error: router: duplicate route path /docs (from /docs/:rest?<string...>)
+  [2]
+
+  $ server-reason-react.router-gen --mode registry --source optional-catch-all-ambiguous.ml < optional-catch-all-ambiguous.ml
+  File "optional-catch-all-ambiguous.ml", line 3, characters 2-65:
+  Error: router: ambiguous route patterns /assets/:a<string...> and /assets/:b<string...> (from /assets/:b?<string...>)
+  [2]
+
+  $ server-reason-react.router-gen --mode registry --source optional-self-ambiguous.ml < optional-self-ambiguous.ml
+  File "optional-self-ambiguous.ml", line 1, characters 28-94:
+  Error: router: optional segments in /docs/:a?<string>/:b?<string> make /docs/:a<string> and /docs/:b<string> ambiguous
+  [2]
+
+  $ server-reason-react.router-gen --mode registry --source optional-crossing.ml < optional-crossing.ml
+  File "optional-crossing.ml", line 3, characters 2-53:
+  Error: router: ambiguous route patterns /:a<string>/x (from /:a?<string>/x) and /x/:b<string>
+  [2]
+
+  $ server-reason-react.router-gen --mode handles --source optional-group.ml < optional-group.ml
+  File "optional-group.ml", line 2, characters 4-89:
+  Error: router: group path /:lang?<string> cannot contain an optional segment
+  [2]
+
+  $ server-reason-react.router-gen --mode handles --source optional-redirect.ml < optional-redirect.ml
+  File "optional-redirect.ml", line 2, characters 4-107:
+  Error: router: redirect path /old/:rest?<string...> cannot contain an optional segment
+  [2]
+
+  $ server-reason-react.router-gen --mode handles --source optional-nonfinal.ml < optional-nonfinal.ml
+  File "optional-nonfinal.ml", line 1, characters 28-92:
+  Error: router: invalid route path /docs/:rest?<string...>/raw
+  [2]
+
+  $ server-reason-react.router-gen --mode handles --source reserved-hash.ml < reserved-hash.ml
+  File "reserved-hash.ml", line 1, characters 28-120:
+  Error: router: branch input label hash conflicts with a generated router argument
+  [2]
   $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -Eo 'activeRoutes:\[\]|RouterServer.Execution.redirect|Router.Note.destination' | sort -u
   Router.Note.destination
   RouterServer.Execution.redirect
@@ -54,6 +122,10 @@
   $ grep 'val pattern' Router.interface
   [1]
   $ ocamlc -c Router.ml
+  $ ocamlc -c OptionalRoutes.mli
+  $ ocamlc -c OptionalRoutes.ml
+  $ grep -o '?hash:string' Router.interface | sort -u
+  ?hash:string
   $ ocamlc -c unsafe_destination.ml
   $ ocamlc -c loader_redirect.ml
   $ ocamlc -c bad.ml
@@ -96,13 +168,13 @@
   [2]
 
   $ server-reason-react.router-gen --mode handles --source duplicate-redirect-path.ml < duplicate-redirect-path.ml
-  File "duplicate-redirect-path.ml", line 3, characters 2-76:
+  File "duplicate-redirect-path.ml", line 3, characters 2-79:
   Error: router: duplicate route path /notes
   [2]
 
   $ server-reason-react.router-gen --mode handles --source missing-redirect-target.ml < missing-redirect-target.ml
   File "missing-redirect-target.ml", line 1, characters 28-62:
-  Error: router: redirect requires ~to_
+  Error: router: redirect requires ~target
   [2]
 
   $ server-reason-react.router-gen --mode handles --source ambiguous-paths.ml < ambiguous-paths.ml
@@ -224,6 +296,7 @@
   $ ocamlc -w -53 -c RouterPattern.ml
   $ ocamlc -o pattern-test RouterPattern.cmo pattern_test.ml
   $ ./pattern-test
+  matchesPath passed
   static path grammar and UTF-8 href rendering passed
 
   $ server-reason-react.router-gen --mode registry --source unicode-path.ml < unicode-path.ml > unicode-registry.ml
@@ -255,7 +328,7 @@
 
   $ server-reason-react.router-gen --mode registry --source recover-root-error.ml < recover-root-error.ml > recover-root-error-registry.ml
   $ grep -c 'AppError.make' recover-root-error-registry.ml
-  4
+  6
 
 Errors name the manifest location, or the file set by a line directive.
 
@@ -278,6 +351,83 @@ A redirect is temporary unless it sets ~permanent:true.
   RouterServer.Execution.permanentRedirect
   RouterServer.Execution.redirect
   $ server-reason-react.router-gen --mode handles --source invalid-permanent.ml < invalid-permanent.ml
-  File "invalid-permanent.ml", line 1, characters 112-117:
+  File "invalid-permanent.ml", line 1, characters 115-120:
   Error: router: ~permanent must be true or false
   [2]
+
+`~prefetch` on a route or group sets the route's prefetch level. Children
+inherit it, a route overrides it, and the default is Intent, which emits
+nothing.
+
+  $ server-reason-react.router-gen --mode handles --source prefetch.ml < prefetch.ml | tr -d ' \n' | grep -Eo 'module[A-Z][A-Za-z]*=struct|PrefetchLevel.[A-Za-z]+'
+  moduleHome=struct
+  moduleSettings=struct
+  PrefetchLevel.Viewport
+  moduleBilling=struct
+  PrefetchLevel.Off
+  $ server-reason-react.router-gen --mode registry --source prefetch.ml < prefetch.ml | tr -d ' \n' | grep -Eo 'id:"[A-Z][A-Za-z]*"|PrefetchLevel.[A-Za-z]+'
+  id:"Home"
+  id:"Settings"
+  PrefetchLevel.Viewport
+  id:"Billing"
+  PrefetchLevel.Off
+
+The level does not change the interface: a destination reads it with
+RouterRuntime.prefetchLevel.
+
+  $ server-reason-react.router-gen --mode interface --source prefetch.ml < prefetch.ml | tr -s ' \n' ' ' | grep -Eo 'module [A-Z][A-Za-z]* : sig|val destination : [?a-z: >-]*destination'
+  module Home : sig
+  val destination : ?hash:string -> unit -> destination
+  module Settings : sig
+  val destination : ?hash:string -> unit -> destination
+  module Billing : sig
+  val destination : ?hash:string -> unit -> destination
+  $ server-reason-react.router-gen --mode handles --source prefetch-invalid.ml < prefetch-invalid.ml
+  File "prefetch-invalid.ml", line 1, characters 84-89:
+  Error: router: ~prefetch must be Off, Intent, Viewport or Idle
+  [2]
+  $ server-reason-react.router-gen --mode handles --source prefetch-redirect.ml < prefetch-redirect.ml
+  File "prefetch-redirect.ml", line 1, characters 31-103:
+  Error: router: unknown router argument ~prefetch
+  [2]
+
+`~interceptLinks` and `~viewTransitions` on Router.make reach the client
+Provider through Server.make. Without them the generated call passes neither.
+
+  $ server-reason-react.router-gen --mode registry --source client-options.ml < client-options.ml | tr -d ' \n' | grep -Eo '~(interceptLinks|viewTransitions):[a-z]+'
+  ~interceptLinks:false
+  ~viewTransitions:true
+  $ server-reason-react.router-gen --mode registry --source prefetch.ml < prefetch.ml | grep -c 'interceptLinks\|viewTransitions'
+  0
+  [1]
+  $ server-reason-react.router-gen --mode registry --source client-options-invalid.ml < client-options-invalid.ml
+  File "client-options-invalid.ml", line 1, characters 46-51:
+  Error: router: ~viewTransitions must be true or false
+  [2]
+
+`~loaderAs_` and `~to_` were renamed. The old labels name the new ones.
+
+  $ server-reason-react.router-gen --mode handles --source renamed-loader-label.ml < renamed-loader-label.ml
+  File "renamed-loader-label.ml", line 1, characters 28-105:
+  Error: router: ~loaderAs_ was renamed to ~loaderLabel
+  [2]
+  $ server-reason-react.router-gen --mode handles --source renamed-redirect-target.ml < renamed-redirect-target.ml
+  File "renamed-redirect-target.ml", line 1, characters 28-83:
+  Error: router: ~to_ was renamed to ~target
+  [2]
+  $ server-reason-react.router-gen --mode registry --source loader-label.ml < loader-label.ml | grep -o 'fun note ->'
+  fun note ->
+
+The root `~error` is a boundary component, like `~error` on a group or a
+route. `~errorStatus` maps an application error to a status. Without it,
+an application error answers 500.
+
+  $ server-reason-react.router-gen --mode registry --source error-status.ml < error-status.ml | grep -q 'AppBoundary.make' && echo boundary
+  boundary
+  $ server-reason-react.router-gen --mode registry --source error-status.ml < error-status.ml | grep 'let applicationStatus'
+  let applicationStatus = AppError.status
+  $ server-reason-react.router-gen --mode registry --source error-boundary-only.ml < error-boundary-only.ml | grep 'let applicationStatus'
+  let applicationStatus _ = RouterRuntime.Status.InternalServerError
+  $ server-reason-react.router-gen --mode registry --source error-boundary-only.ml < error-boundary-only.ml | grep -c 'status AppBoundary\|AppBoundary.status'
+  0
+  [1]

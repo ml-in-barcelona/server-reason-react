@@ -165,6 +165,11 @@ test-flight-key-validation: ## Test native Flight output in development and prod
 	$(DUNE) build --root . $(flight_spec_dir)/key_validation/export_fixtures.exe
 	node $(flight_spec_dir)/key_validation/run.mjs
 
+.PHONY: test-router-e2e
+test-router-e2e: ## Run the router checks in Chromium against the notes demo (requires `npm ci` in packages/router/test/e2e and a Playwright Chromium)
+	$(DUNE) build --root . --profile=dev @demo
+	node packages/router/test/e2e/run.mjs
+
 .PHONY: spec-generate
 spec-generate: ## Regenerate React Flight fixtures from react-server-dom-webpack (requires `npm ci` in $(flight_spec_dir))
 	$(DUNE) build --root . --profile=dev @$(flight_spec_dir)/melange

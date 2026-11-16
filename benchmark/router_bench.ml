@@ -64,6 +64,65 @@ let consume_search search () =
   | Ok parsed -> sink := !sink + List.length (RouterServer.Search.values parsed "tag")
   | Error _ -> sink := !sink + 1
 
+let page_registry () =
+  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~reusable:true in
+  let headers values = match RouterRuntime.Headers.make values with Ok headers -> headers | Error _ -> assert false in
+  let root =
+    RouterServer.Plan.Scope.make
+      ~layout:(fun child -> child)
+      ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"App" ~description:"Root" ()))
+      ~headers:(fun () -> Lwt.return (headers [ ("Vary", "Cookie"); ("Cache-Control", "private") ]))
+      ()
+  in
+  let leaf id =
+    RouterServer.Plan.Scope.make
+      ~metadata:(fun () ->
+        Lwt.return
+          (RouterRuntime.Metadata.make ~title:id ~entries:[ RouterRuntime.Metadata.meta ~name:"robots" "noindex" ] ()))
+      ~headers:(fun () -> Lwt.return (headers [ ("X-Route", id) ]))
+      ()
+  in
+  let endpoint id =
+    RouterServer.Endpoint.make ~id
+      ~path:("/" ^ id ^ "/:id<string>")
+      ~activeRoutes:[ (id, [ "id" ]) ]
+      ~fingerprint:id
+      ~decode:(fun input ->
+        match RouterServer.Decode.path ~input ~name:"id" ~parse:(fun value -> Ok value) with
+        | Error error -> Error error
+        | Ok value ->
+            Ok
+              (RouterServer.Endpoint.prepared
+                 ~branch:
+                   [ root_branch; RouterServer.Branch.Scope.make ~id ~parameters:[ ("id", value) ] ~reusable:true ]
+                 ~execution:(fun () ->
+                   RouterServer.Execution.load
+                     (fun () -> Lwt.return (RouterRuntime.Loader.Data value))
+                     (fun data ->
+                       RouterServer.Execution.done_
+                         (RouterServer.Plan.success ~scopes:[ root; leaf id ] ~page:(String.length data))))))
+  in
+  RouterServer.EndpointRegistry.makeExn [ endpoint "notes"; endpoint "teams" ]
+
+let engine_outcome registry request =
+  match
+    Lwt.state
+      (RouterServer.ServerEngine.run ~registry ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
+         ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+         ~applicationStatus:(fun () -> RouterRuntime.Status.InternalServerError)
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~revision:(fun () -> "revision")
+         ~protocolVersion:2 request)
+  with
+  | Lwt.Return outcome -> outcome
+  | Lwt.Fail _ | Lwt.Sleep -> failwith "engine benchmark did not resolve synchronously"
+
+let consume_engine registry request () =
+  match engine_outcome registry request with
+  | RouterServer.ServerEngine.Full full -> sink := !sink + List.length full.matches
+  | RouterServer.ServerEngine.Patch patch -> sink := !sink + String.length patch.replace_from
+  | _ -> sink := !sink + 1
+
 let run_iterations iterations run =
   for _ = 1 to iterations do
     run ()
@@ -142,6 +201,23 @@ let () =
   let large_dynamic = dynamic_registry 512 in
   let large_static_endpoints = static_endpoint_registry 512 in
   let large_dynamic_endpoints = dynamic_endpoint_registry 512 in
+  let pages = page_registry () in
+  let page_request ?navigation kind : RouterServer.ServerEngine.request =
+    { pathname = "/notes/42"; search = "?tab=a"; hash = ""; kind; navigation }
+  in
+  let patch_navigation =
+    {
+      RouterServer.ServerEngine.from = Some "/teams/7?tab=a";
+      registry = Some ("2." ^ RouterServer.EndpointRegistry.fingerprint pages);
+      base_revision = Some "base";
+    }
+  in
+  (match engine_outcome pages (page_request Document) with
+  | RouterServer.ServerEngine.Full _ -> ()
+  | _ -> failwith "engine/full-document must give a full response");
+  (match engine_outcome pages (page_request ~navigation:patch_navigation Rsc) with
+  | RouterServer.ServerEngine.Patch _ -> ()
+  | _ -> failwith "engine/patch-rsc must give a patch");
   let benchmarks =
     [
       { name = "match/static-small-first"; run = consume_match small_static "/static/0000" };
@@ -159,6 +235,8 @@ let () =
       { name = "parse/path-plain"; run = consume_path "/api/projects/alpha/issues/42" };
       { name = "parse/path-encoded"; run = consume_path "/api/projects/caf%C3%A9/issues/hello%20world" };
       { name = "parse/search"; run = consume_search "?tag=one&tag=two&page=42&filter=caf%C3%A9+open" };
+      { name = "engine/full-document"; run = consume_engine pages (page_request Document) };
+      { name = "engine/patch-rsc"; run = consume_engine pages (page_request ~navigation:patch_navigation Rsc) };
     ]
   in
   let results = List.map measure benchmarks in

@@ -7,6 +7,8 @@
   RouterOutlet
   RouterPattern
   RouterQuery
+  RouterSearchKey
+  RouterSearchParse
   RouterTypes
   RouterUtf8)
  (libraries
@@ -14,8 +16,7 @@
   server-reason-react.js
   server-reason-react.react
   server-reason-react.reactDom
-  server-reason-react.rsc-native
-  uutf)
+  server-reason-react.rsc-native)
  (preprocess
   (pps
    server-reason-react.ppx
@@ -45,3 +46,9 @@
 
 (copy_files
  (files ../react/shared/RouterClientRoot.re))
+
+(copy_files
+ (files ../react/shared/RouterSearchKey.re))
+
+(copy_files
+ (files ../runtime/shared/RouterSearchParse.ml))

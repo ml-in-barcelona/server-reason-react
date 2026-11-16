@@ -7,7 +7,10 @@ type patch = {
 
 type operation =
   | NoPatch
-  | RefreshFull({serial: int})
+  | RefreshFull({
+      serial: int,
+      grafts: list((string, React.element)),
+    })
   | ApplyPatch(patch);
 
 let context: React.Context.t(operation) = React.createContext(NoPatch);
@@ -21,15 +24,21 @@ type saved = {
 let transition = (~owner, ~children, saved, operation) => {
   switch (operation) {
   | NoPatch => (saved.child, None)
-  | RefreshFull(refresh) => (
-      children,
+  | RefreshFull(refresh) =>
+    let child =
+      switch (List.assoc_opt(owner, refresh.grafts)) {
+      | Some(payload) => payload
+      | None => children
+      };
+    (
+      child,
       refresh.serial > saved.serial
         ? Some({
             serial: refresh.serial,
-            child: children,
+            child,
           })
         : None,
-    )
+    );
   | ApplyPatch(patch) when String.equal(patch.graftAt, owner) => (
       patch.payload,
       patch.serial > saved.serial

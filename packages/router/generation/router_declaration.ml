@@ -1,6 +1,17 @@
 open Ppxlib
 
-type parameter = { name : string; typ : core_type; parser : Longident.t; to_string : Longident.t; loc : Location.t }
+type parameter_kind = Segment | OptionalSegment | OptionalRest
+
+type parameter = {
+  name : string;
+  presence : parameter_kind;
+  typ : core_type;
+  argument : core_type;
+  parser : Longident.t;
+  to_string : Longident.t;
+  loc : Location.t;
+}
+
 type search_kind = Required | Optional | Default of expression | Many
 
 type search = {
@@ -24,12 +35,15 @@ type attachments = {
   headers : expression option;
 }
 
+type prefetch = Off | Intent | Viewport | Idle
+
 type scope = {
   id : string;
   path : string;
   parameters : parameter list;
   search : search list;
   attachments : attachments;
+  prefetch : prefetch option;
   loc : Location.t;
 }
 
@@ -46,6 +60,7 @@ type route = {
   parameters : parameter list;
   search : search list;
   scopes : scope list;
+  prefetch : prefetch;
   loc : Location.t;
 }
 
@@ -65,7 +80,9 @@ type trailing_slash = Redirect | Reject
 type t = {
   base_path : string;
   trailing_slash : trailing_slash;
-  application_error : Longident.t option;
+  intercept_links : bool option;
+  view_transitions : bool option;
+  error_status : expression option;
   invalid_search : expression option;
   root : group;
   loc : Location.t;
@@ -127,32 +144,45 @@ let parser_of_type ~loc name =
 
 let type_name_of_expression expression = longident_of_expression expression |> longident_parts |> String.concat "."
 
+let pattern_of_path ~loc path =
+  match (RouterUtf8.valid path, RouterPattern.parseTemplate path) with
+  | false, _ | true, Error _ -> error ~loc "invalid route path %s" path
+  | true, Ok pattern -> pattern
+
 let parameters_of_path ~loc path =
-  match (RouterUtf8.valid path, RouterPattern.parse path) with
-  | false, _ -> error ~loc "invalid route path %s" path
-  | true, Error _ -> error ~loc "invalid route path %s" path
-  | true, Ok pattern ->
-      RouterPattern.parameters pattern
-      |> List.map (fun (parameter : RouterPattern.parameter) ->
-          match parameter.typeName with
-          | "string..." ->
-              {
-                name = parameter.name;
-                typ =
-                  Ast_builder.Default.ptyp_constr ~loc { txt = Longident.Lident "list"; loc }
-                    [ type_of_name ~loc "string" ];
-                parser = Longident.parse "RouterRuntime.CatchAll.parse";
-                to_string = Longident.parse "RouterRuntime.CatchAll.toString";
-                loc;
-              }
-          | type_name ->
-              {
-                name = parameter.name;
-                typ = type_of_name ~loc type_name;
-                parser = parser_of_type ~loc type_name;
-                to_string = to_string_of_type ~loc type_name;
-                loc;
-              })
+  let pattern = pattern_of_path ~loc path in
+  let optional = RouterPattern.optional pattern in
+  RouterPattern.parameters pattern
+  |> List.map (fun (parameter : RouterPattern.parameter) ->
+      let is_optional = List.mem parameter.name optional in
+      match parameter.typeName with
+      | "string..." ->
+          let typ =
+            Ast_builder.Default.ptyp_constr ~loc { txt = Longident.Lident "list"; loc } [ type_of_name ~loc "string" ]
+          in
+          {
+            name = parameter.name;
+            presence = (if is_optional then OptionalRest else Segment);
+            typ;
+            argument = typ;
+            parser = Longident.parse "RouterRuntime.CatchAll.parse";
+            to_string = Longident.parse "RouterRuntime.CatchAll.toString";
+            loc;
+          }
+      | type_name ->
+          let argument = type_of_name ~loc type_name in
+          {
+            name = parameter.name;
+            presence = (if is_optional then OptionalSegment else Segment);
+            typ =
+              (if is_optional then
+                 Ast_builder.Default.ptyp_constr ~loc { txt = Longident.Lident "option"; loc } [ argument ]
+               else argument);
+            argument;
+            parser = parser_of_type ~loc type_name;
+            to_string = to_string_of_type ~loc type_name;
+            loc;
+          })
 
 let arguments expression =
   match expression.pexp_desc with
@@ -165,7 +195,8 @@ let argument label arguments =
 let unlabelled_arguments arguments =
   List.filter_map (fun (label, expression) -> if label = Nolabel then Some expression else None) arguments
 
-let attachment_labels = [ "layout"; "loading"; "notFound"; "error"; "loader"; "loaderAs_"; "metadata"; "headers" ]
+let attachment_labels = [ "layout"; "loading"; "notFound"; "error"; "loader"; "loaderLabel"; "metadata"; "headers" ]
+let renamed_labels = [ ("loaderAs_", "loaderLabel"); ("to_", "target") ]
 
 let rec duplicate = function
   | [] -> None
@@ -177,7 +208,12 @@ let validate_arguments ~loc ~allowed ~unlabelled arguments =
       (fun (label, _) -> match label with Labelled label | Optional label -> Some label | Nolabel -> None)
       arguments
   in
-  List.iter (fun label -> if not (List.mem label allowed) then error ~loc "unknown router argument ~%s" label) labels;
+  List.iter
+    (fun label ->
+      match List.assoc_opt label renamed_labels with
+      | Some renamed -> error ~loc "~%s was renamed to ~%s" label renamed
+      | None -> if not (List.mem label allowed) then error ~loc "unknown router argument ~%s" label)
+    labels;
   (match duplicate labels with Some label -> error ~loc "duplicate router argument ~%s" label | None -> ());
   if List.length (unlabelled_arguments arguments) <> unlabelled then
     error ~loc "expected %d unlabelled router argument(s)" unlabelled
@@ -231,7 +267,7 @@ let rec list_of_expression expression =
   | _ -> error ~loc:expression.pexp_loc "expected a route list"
 
 let join_path parent child =
-  match (RouterPattern.parse parent, RouterPattern.parse child) with
+  match (RouterPattern.parseTemplate parent, RouterPattern.parseTemplate child) with
   | Ok parent, Ok child -> RouterPattern.append parent child |> RouterPattern.toString
   | _ -> invalid_arg "validated router paths failed to compose"
 
@@ -248,19 +284,19 @@ let loader_attachment expression =
 let loader_alias expression =
   match expression.pexp_desc with
   | Pexp_ident { txt = Longident.Lident name; _ } | Pexp_construct ({ txt = Longident.Lident name; _ }, None) -> name
-  | _ -> error ~loc:expression.pexp_loc "~loaderAs_ must be an identifier"
+  | _ -> error ~loc:expression.pexp_loc "~loaderLabel must be an identifier"
 
 let attachments arguments =
   let loader =
     match argument (Labelled "loader") arguments with
     | None -> (
-        match argument (Labelled "loaderAs_") arguments with
-        | Some alias -> error ~loc:alias.pexp_loc "~loaderAs_ requires ~loader"
+        match argument (Labelled "loaderLabel") arguments with
+        | Some alias -> error ~loc:alias.pexp_loc "~loaderLabel requires ~loader"
         | None -> None)
     | Some loader ->
         let run, inferred_label = loader_attachment loader in
         let result_label =
-          match argument (Labelled "loaderAs_") arguments with
+          match argument (Labelled "loaderLabel") arguments with
           | Some alias -> loader_alias alias
           | None -> inferred_label
         in
@@ -277,6 +313,15 @@ let attachments arguments =
     headers = argument (Labelled "headers") arguments;
   }
 
+let prefetch_level arguments =
+  match argument (Labelled "prefetch") arguments with
+  | None -> None
+  | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "Off"; _ }, None); _ } -> Some Off
+  | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "Intent"; _ }, None); _ } -> Some Intent
+  | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "Viewport"; _ }, None); _ } -> Some Viewport
+  | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "Idle"; _ }, None); _ } -> Some Idle
+  | Some expression -> error ~loc:expression.pexp_loc "~prefetch must be Off, Intent, Viewport or Idle"
+
 let scope ~id ~path arguments expression =
   {
     id;
@@ -285,13 +330,9 @@ let scope ~id ~path arguments expression =
     search =
       (match argument (Labelled "search") arguments with Some search -> search_of_expression search | None -> []);
     attachments = attachments arguments;
+    prefetch = prefetch_level arguments;
     loc = expression.pexp_loc;
   }
-
-let root_error_policy arguments =
-  match argument (Labelled "error") arguments with
-  | Some { pexp_desc = Pexp_construct ({ txt; _ }, None); _ } -> Some txt
-  | _ -> None
 
 let trailing_slash_policy arguments =
   match argument (Labelled "trailingSlash") arguments with
@@ -300,12 +341,19 @@ let trailing_slash_policy arguments =
   | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "Reject"; _ }, None); _ } -> Reject
   | Some expression -> error ~loc:expression.pexp_loc "~trailingSlash must be Redirect or Reject"
 
+let bool_argument label arguments =
+  match argument (Labelled label) arguments with
+  | None -> None
+  | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "true"; _ }, None); _ } -> Some true
+  | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "false"; _ }, None); _ } -> Some false
+  | Some expression -> error ~loc:expression.pexp_loc "~%s must be true or false" label
+
 let rec node_of_expression ~address expression =
   let callee, arguments = arguments expression in
   if is_identifier [ "Router"; "route" ] callee then
     let () =
       validate_arguments ~loc:expression.pexp_loc
-        ~allowed:([ "page"; "path"; "search" ] @ attachment_labels)
+        ~allowed:([ "page"; "path"; "search"; "prefetch" ] @ attachment_labels)
         ~unlabelled:1 arguments
     in
     let name =
@@ -327,19 +375,21 @@ let rec node_of_expression ~address expression =
   else if is_identifier [ "Router"; "group" ] callee then
     let () =
       validate_arguments ~loc:expression.pexp_loc
-        ~allowed:([ "path"; "search" ] @ attachment_labels)
+        ~allowed:([ "path"; "search"; "prefetch" ] @ attachment_labels)
         ~unlabelled:1 arguments
     in
     let local_path =
       match argument (Labelled "path") arguments with Some path -> string_of_expression path | None -> "/"
     in
     let () =
-      match RouterPattern.parse local_path with
+      match RouterPattern.parseTemplate local_path with
       | Ok pattern
         when List.exists
                (function RouterPattern.CatchAll _ -> true | Static _ | Parameter _ -> false)
                (RouterPattern.segments pattern) ->
           error ~loc:expression.pexp_loc "group path %s cannot contain a catch-all segment" local_path
+      | Ok pattern when RouterPattern.optional pattern <> [] ->
+          error ~loc:expression.pexp_loc "group path %s cannot contain an optional segment" local_path
       | Ok _ | Error _ -> ()
     in
     match List.rev arguments with
@@ -352,10 +402,10 @@ let rec node_of_expression ~address expression =
               |> List.mapi (fun index child -> node_of_expression ~address:(address ^ "." ^ Int.to_string index) child);
           }
     | _ -> error ~loc:expression.pexp_loc "group requires a child list"
-  else if is_identifier [ "Router"; "redirect" ] callee then
+  else if is_identifier [ "Router"; "redirect" ] callee then (
     let () =
       validate_arguments ~loc:expression.pexp_loc
-        ~allowed:[ "path"; "search"; "to_"; "permanent" ]
+        ~allowed:[ "path"; "search"; "target"; "permanent" ]
         ~unlabelled:0 arguments
     in
     let path =
@@ -363,10 +413,12 @@ let rec node_of_expression ~address expression =
       | Some path -> string_of_expression path
       | None -> error ~loc:expression.pexp_loc "redirect requires ~path"
     in
+    if RouterPattern.optional (pattern_of_path ~loc:expression.pexp_loc path) <> [] then
+      error ~loc:expression.pexp_loc "redirect path %s cannot contain an optional segment" path;
     let target =
-      match argument (Labelled "to_") arguments with
+      match argument (Labelled "target") arguments with
       | Some target -> target
-      | None -> error ~loc:expression.pexp_loc "redirect requires ~to_"
+      | None -> error ~loc:expression.pexp_loc "redirect requires ~target"
     in
     let permanent =
       match argument (Labelled "permanent") arguments with
@@ -382,10 +434,15 @@ let rec node_of_expression ~address expression =
         permanent;
         scope = scope ~id:("redirect:" ^ address) ~path arguments expression;
         loc = expression.pexp_loc;
-      }
+      })
   else error ~loc:expression.pexp_loc "expected Router.route, Router.group, or Router.redirect"
 
 let root_search declaration = declaration.root.scope.search
+
+let shapes path =
+  match RouterPattern.parseTemplate path with
+  | Ok pattern -> RouterPattern.shapes pattern
+  | Error _ -> invalid_arg "validated router path failed to parse"
 
 let generated_labels =
   [
@@ -399,6 +456,7 @@ let generated_labels =
     "download";
     "error";
     "fallback";
+    "hash";
     "history";
     "href";
     "input";
@@ -429,7 +487,11 @@ let endpoints declaration =
     let search = search @ local_scope.search in
     let scopes = scopes @ [ local_scope ] in
     match node with
-    | Route leaf -> [ Page { name = leaf.name; page = leaf.page; path; parameters; search; scopes; loc = leaf.loc } ]
+    | Route leaf ->
+        let prefetch =
+          List.fold_left (fun level (scope : scope) -> Option.value scope.prefetch ~default:level) Intent scopes
+        in
+        [ Page { name = leaf.name; page = leaf.page; path; parameters; search; scopes; prefetch; loc = leaf.loc } ]
     | Redirect leaf ->
         [
           RedirectTo
@@ -481,36 +543,50 @@ let endpoints declaration =
     routes;
   let endpoint_path = function Page route -> route.path | RedirectTo redirect -> redirect.path in
   let endpoint_loc = function Page route -> route.loc | RedirectTo redirect -> redirect.loc in
-  let parsed endpoint =
-    match RouterPattern.parse (endpoint_path endpoint) with
-    | Ok pattern -> pattern
-    | Error _ -> invalid_arg "validated router path failed to parse"
+  let describe endpoint shape =
+    let path = endpoint_path endpoint in
+    let shape = RouterPattern.toString shape in
+    if String.equal shape path then shape else shape ^ " (from " ^ path ^ ")"
   in
-  let validate_pair (left, left_pattern) (right, right_pattern) =
-    match RouterPattern.relationship left_pattern right_pattern with
-    | Duplicate -> error ~loc:(endpoint_loc right) "duplicate route path %s" (endpoint_path right)
+  let validate_shape (left, left_shape) (right, right_shape) =
+    match RouterPattern.relationship left_shape right_shape with
+    | Duplicate -> error ~loc:(endpoint_loc right) "duplicate route path %s" (describe right right_shape)
     | Ambiguous ->
-        error ~loc:(endpoint_loc right) "ambiguous route patterns %s and %s" (endpoint_path left) (endpoint_path right)
+        error ~loc:(endpoint_loc right) "ambiguous route patterns %s and %s" (describe left left_shape)
+          (describe right right_shape)
     | IncompatiblePrefix -> (
         match (left, right) with
         | Page _, Page _ ->
-            let prefix, pattern =
-              if List.length (RouterPattern.segments left_pattern) < List.length (RouterPattern.segments right_pattern)
-              then (left, right)
-              else (right, left)
+            let (prefix, prefix_shape), (pattern, pattern_shape) =
+              if List.length (RouterPattern.segments left_shape) < List.length (RouterPattern.segments right_shape) then
+                ((left, left_shape), (right, right_shape))
+              else ((right, right_shape), (left, left_shape))
             in
-            error ~loc:(endpoint_loc pattern) "route prefix parameters differ between %s and %s" (endpoint_path prefix)
-              (endpoint_path pattern)
+            error ~loc:(endpoint_loc pattern) "route prefix parameters differ between %s and %s"
+              (describe prefix prefix_shape) (describe pattern pattern_shape)
         | Page _, RedirectTo _ | RedirectTo _, Page _ | RedirectTo _, RedirectTo _ -> ())
     | Distinct | CompatiblePrefix -> ()
   in
-  let rec validate_pairs = function
-    | [] -> ()
-    | route :: rest ->
-        List.iter (validate_pair route) rest;
-        validate_pairs rest
-  in
-  validate_pairs (List.map (fun endpoint -> (endpoint, parsed endpoint)) endpoints);
+  let rec pairs = function [] -> [] | item :: rest -> List.map (fun other -> (item, other)) rest @ pairs rest in
+  let expanded = List.map (fun endpoint -> (endpoint, shapes (endpoint_path endpoint))) endpoints in
+  List.iter
+    (fun (endpoint, shapes) ->
+      List.iter
+        (fun (left, right) ->
+          match RouterPattern.relationship left right with
+          | Duplicate | Ambiguous ->
+              error ~loc:(endpoint_loc endpoint) "optional segments in %s make %s and %s ambiguous"
+                (endpoint_path endpoint) (RouterPattern.toString left) (RouterPattern.toString right)
+          | Distinct | CompatiblePrefix | IncompatiblePrefix -> ())
+        (pairs shapes))
+    expanded;
+  List.iter
+    (fun ((left, left_shapes), (right, right_shapes)) ->
+      List.iter
+        (fun left_shape ->
+          List.iter (fun right_shape -> validate_shape (left, left_shape) (right, right_shape)) right_shapes)
+        left_shapes)
+    (pairs expanded);
   endpoints
 
 let routes declaration =
@@ -522,7 +598,11 @@ let declaration_of_expression expression =
   else
     let () =
       validate_arguments ~loc:expression.pexp_loc
-        ~allowed:([ "basePath"; "trailingSlash"; "search"; "invalidSearch" ] @ attachment_labels)
+        ~allowed:
+          ([
+             "basePath"; "trailingSlash"; "search"; "invalidSearch"; "interceptLinks"; "viewTransitions"; "errorStatus";
+           ]
+          @ attachment_labels)
         ~unlabelled:1 arguments
     in
     let base_path =
@@ -541,7 +621,7 @@ let declaration_of_expression expression =
       | (Nolabel, children) :: _ -> list_of_expression children
       | _ -> error ~loc:expression.pexp_loc "Router.make requires a route list"
     in
-    let application_error = root_error_policy arguments in
+    let error_status = argument (Labelled "errorStatus") arguments in
     let invalid_search =
       Option.map (component_attachment ~label:"invalidSearch") (argument (Labelled "invalidSearch") arguments)
     in
@@ -555,7 +635,9 @@ let declaration_of_expression expression =
       {
         base_path;
         trailing_slash = trailing_slash_policy arguments;
-        application_error;
+        intercept_links = bool_argument "interceptLinks" arguments;
+        view_transitions = bool_argument "viewTransitions" arguments;
+        error_status;
         invalid_search;
         root =
           {
