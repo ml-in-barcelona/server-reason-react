@@ -1741,6 +1741,160 @@ let client_use_promise_reuses_the_promise_of_the_earlier_call () =
   Alcotest.(check int) "calls" 2 !calls;
   Lwt.return ()
 
+let render_streamed ?timeout app =
+  let%lwt html, subscribe = ReactServerDOM.render_html ~env:`Prod ~progressive_chunk_size:1 ?timeout app in
+  let chunks = ref [] in
+  let%lwt () =
+    subscribe (fun chunk ->
+        chunks := chunk :: !chunks;
+        Lwt.return ())
+  in
+  Lwt.return (html, List.rev !chunks)
+
+let assert_completions_follow_their_template outputs =
+  let complete_boundary_call = Str.regexp "\\$RC('B:\\([0-9a-f]+\\)'" in
+  let rec check earlier output position =
+    match Str.search_forward complete_boundary_call output position with
+    | exception Not_found -> ()
+    | found ->
+        let id = Str.matched_group 1 output in
+        if not (contains_substring earlier (Printf.sprintf "<template id=\"B:%s\">" id)) then
+          Alcotest.failf "$RC for B:%s has no template in an earlier output" id;
+        check earlier output (found + 1)
+  in
+  ignore
+    (List.fold_left
+       (fun earlier output ->
+         check earlier output 0;
+         earlier ^ output)
+       "" outputs)
+
+let assert_nested_stream ?timeout app expected =
+  let%lwt html, chunks = render_streamed ?timeout app in
+  assert_completions_follow_their_template (html :: chunks);
+  assert_list_of_strings chunks expected;
+  Lwt.return ()
+
+let nested_suspense ~inner ~sibling =
+  mk_suspense ~fallback:(React.string "Outer loading")
+    ~children:(React.list [ mk_suspense ~fallback:(React.string "Inner loading") ~children:inner (); sibling ])
+    ()
+
+let in_client_component client =
+  React.Client_component { key = None; props = []; client; import_module = "./client.js"; import_name = "Client" }
+
+let nested_suspense_inner_resolves_first () =
+  assert_nested_stream
+    (nested_suspense ~inner:(await_tick ~ms:1 "inner") ~sibling:(await_tick ~ms:5 "sibling"))
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      "<div hidden id=\"S:3\"><!--$?--><template id=\"B:2\"></template>Inner loading<!--/$--><!-- -->sibling</div>\n\
+       <script>$RC('B:3', 'S:3')</script><script \
+       data-payload='3:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Inner loading\"}],\"sibling\"]\n\
+       '>window.srr_stream.push()</script>";
+      "<div hidden id=\"S:2\">inner</div>\n\
+       <script>$RC('B:2', 'S:2')</script><script data-payload='2:\"inner\"\n\
+       '>window.srr_stream.push()</script>";
+      "<script>window.srr_stream.close()</script>";
+    ]
+
+let nested_suspense_inner_resolves_first_in_client_tree () =
+  assert_nested_stream
+    (in_client_component (nested_suspense ~inner:(await_tick ~ms:1 "inner") ~sibling:(await_tick ~ms:5 "sibling")))
+    [
+      "<script data-payload='3:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<div hidden id=\"S:2\"><!--$?--><template id=\"B:1\"></template>Inner loading<!--/$--><!-- -->sibling</div>\n\
+       <script>$RC('B:2', 'S:2')</script>";
+      "<div hidden id=\"S:1\">inner</div>\n<script>$RC('B:1', 'S:1')</script>";
+      "<script>window.srr_stream.close()</script>";
+    ]
+
+let suspense_inside_inline_suspense_waits_for_enclosing_boundary () =
+  let inline = mk_suspense ~children:(mk_suspense ~children:(await_tick ~ms:1 "inner") ()) () in
+  assert_nested_stream
+    (nested_suspense ~inner:inline ~sibling:(await_tick ~ms:5 "sibling"))
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      "<div hidden id=\"S:3\"><!--$--><!--$--><!--$?--><template \
+       id=\"B:2\"></template><!--/$--><!--/$--><!--/$-->sibling</div>\n\
+       <script>$RC('B:3', 'S:3')</script><script \
+       data-payload='3:[[\"$\",\"$1\",null,{\"children\":[\"$\",\"$1\",null,{\"children\":[\"$\",\"$1\",null,{\"children\":\"$L2\"}]}],\"fallback\":\"Inner \
+       loading\"}],\"sibling\"]\n\
+       '>window.srr_stream.push()</script>";
+      "<div hidden id=\"S:2\">inner</div>\n\
+       <script>$RC('B:2', 'S:2')</script><script data-payload='2:\"inner\"\n\
+       '>window.srr_stream.push()</script>";
+      "<script>window.srr_stream.close()</script>";
+    ]
+
+let suspense_inside_failed_suspense_is_not_completed () =
+  assert_nested_stream
+    (nested_suspense ~inner:(await_tick ~ms:1 "inner") ~sibling:(await_tick ~ms:5 ~raise:true "sibling"))
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      Printf.sprintf
+        "<script data-payload='3:E{\"digest\":\"\"}\n\
+         '>window.srr_stream.push()</script><script>%s;$RX(\"B:3\",\"\")</script>"
+        rx_definition;
+      "<script>window.srr_stream.close()</script>";
+    ]
+
+let suspense_inside_failed_suspense_in_client_tree_is_not_completed () =
+  assert_nested_stream
+    (in_client_component
+       (nested_suspense ~inner:(await_tick ~ms:1 "inner") ~sibling:(await_tick ~ms:5 ~raise:true "sibling")))
+    [
+      "<script data-payload='3:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      Printf.sprintf "<script>%s;$RX(\"B:2\",\"\")</script>" rx_definition;
+      "<script>window.srr_stream.close()</script>";
+    ]
+
+let suspense_inside_synchronously_failed_suspense_is_not_completed () =
+  let throwing = React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")) in
+  assert_nested_stream
+    (nested_suspense ~inner:(await_tick ~ms:1 "inner") ~sibling:throwing)
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:E{\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script><div hidden id=\"S:3\"></div>\n\
+       <script>$RC('B:3', 'S:3')</script>";
+      "<script>window.srr_stream.close()</script>";
+    ]
+
+let failed_suspense_inside_pending_suspense_waits_for_enclosing_boundary () =
+  let throwing = React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")) in
+  let app =
+    mk_suspense ~fallback:(React.string "Outer loading")
+      ~children:
+        (React.list
+           [ await_tick ~ms:1 "before"; mk_suspense ~fallback:(React.string "Inner loading") ~children:throwing () ])
+      ()
+  in
+  assert_nested_stream app
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      "<div hidden id=\"S:2\">before<!--$?--><template id=\"B:3\"></template>Inner loading<!--/$--></div>\n\
+       <script>$RC('B:2', 'S:2')</script><script \
+       data-payload='2:[\"before\",[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Inner loading\"}]]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='3:E{\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script><div hidden id=\"S:3\"></div>\n\
+       <script>$RC('B:3', 'S:3')</script>";
+      "<script>window.srr_stream.close()</script>";
+    ]
+
+let timeout_skips_suspense_whose_template_was_not_sent () =
+  assert_nested_stream ~timeout:0.005
+    (nested_suspense ~inner:(await_tick ~ms:30 "inner") ~sibling:(await_tick ~ms:30 "sibling"))
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      Printf.sprintf
+        "<script data-payload='2:E{\"digest\":\"\"}\n\
+         '>window.srr_stream.push()</script><script data-payload='3:E{\"digest\":\"\"}\n\
+         '>window.srr_stream.push()</script><script>%s;$RX(\"B:3\",\"\")</script><script>window.srr_stream.close()</script>"
+        rx_definition;
+    ]
+
 let tests =
   [
     test "debug_adds_debug_info" debug_adds_debug_info;
@@ -1799,6 +1953,19 @@ let tests =
     test ~timeout:500 "timeout_with_late_resolving_boundary_does_not_crash"
       timeout_with_late_resolving_boundary_does_not_crash;
     test ~timeout:500 "external_abort_settles_pending_boundary" external_abort_settles_pending_boundary;
+    test "nested_suspense_inner_resolves_first" nested_suspense_inner_resolves_first;
+    test "nested_suspense_inner_resolves_first_in_client_tree" nested_suspense_inner_resolves_first_in_client_tree;
+    test "suspense_inside_inline_suspense_waits_for_enclosing_boundary"
+      suspense_inside_inline_suspense_waits_for_enclosing_boundary;
+    test "suspense_inside_failed_suspense_is_not_completed" suspense_inside_failed_suspense_is_not_completed;
+    test "suspense_inside_failed_suspense_in_client_tree_is_not_completed"
+      suspense_inside_failed_suspense_in_client_tree_is_not_completed;
+    test "suspense_inside_synchronously_failed_suspense_is_not_completed"
+      suspense_inside_synchronously_failed_suspense_is_not_completed;
+    test "failed_suspense_inside_pending_suspense_waits_for_enclosing_boundary"
+      failed_suspense_inside_pending_suspense_waits_for_enclosing_boundary;
+    test ~timeout:500 "timeout_skips_suspense_whose_template_was_not_sent"
+      timeout_skips_suspense_whose_template_was_not_sent;
     test ~timeout:500 "abort_after_completed_render_delivers_queued_rows"
       abort_after_completed_render_delivers_queued_rows;
     test ~timeout:500 "timeout_does_not_affect_fast_renders" timeout_does_not_affect_fast_renders;
