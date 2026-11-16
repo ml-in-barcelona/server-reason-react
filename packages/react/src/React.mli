@@ -650,6 +650,8 @@ end
 
 module StrictMode : module type of Fragment
 
+val prop_key : JSX.prop -> string
+
 val createElement : string -> JSX.prop list -> element list -> element
 (** The child list contains explicit sibling positions. Wrap a runtime collection with [list] or [array] so its members
     remain eligible for missing-key warnings.

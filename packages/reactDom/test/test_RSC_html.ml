@@ -859,6 +859,12 @@ let input_form_action () =
     ~server_model:
       "[\"$\",\"form\",null,{\"children\":[\"$\",\"input\",null,{\"type\":\"submit\",\"formAction\":\"$F1\"},null,null,1]},null,null,1]"
 
+let button_camel_case_form_action () =
+  assert_server_and_client_html
+    (React.createElement "button" [ React.JSX.Action ("formAction", "formAction", form_action) ] [ React.string "go" ])
+    ~html:("<button " ^ action_button_attributes ^ ">go</button>")
+    ~server_model:"[\"$\",\"button\",null,{\"children\":\"go\",\"formAction\":\"$F1\"},null,null,1]"
+
 let button_form_action_overrides_name_and_form_attributes () =
   assert_server_and_client_html
     (React.createElement "button"
@@ -1831,6 +1837,7 @@ let tests =
     test "form_action_and_button_form_action" form_action_and_button_form_action;
     test "form_action_overrides_method_enc_type_and_target" form_action_overrides_method_enc_type_and_target;
     test "input_form_action" input_form_action;
+    test "button_camel_case_form_action" button_camel_case_form_action;
     test "button_form_action_overrides_name_and_form_attributes" button_form_action_overrides_name_and_form_attributes;
     test "form_action_with_dangerously_set_inner_html" form_action_with_dangerously_set_inner_html;
     test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;

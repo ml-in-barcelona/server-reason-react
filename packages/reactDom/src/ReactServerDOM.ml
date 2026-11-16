@@ -560,7 +560,7 @@ module Model = struct
     in
     action_value index
 
-  let prop_to_json (prop : React.JSX.prop) =
+  let prop_to_json ~context ~to_chunk (prop : React.JSX.prop) =
     match prop with
     (* We ignore the HTML name, and only use the JSX name *)
     | Bool (_, key, value) -> Some (key, `Bool value)
@@ -576,9 +576,10 @@ module Model = struct
         Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String (escape_string_value html)) ])
     | Ref _ -> None
     | Event _ -> None
-    | Action _ -> None
+    (* Serialized directly (instead of being rewritten into a String prop) so the internal "$F<id>" reference is not $$-escaped. *)
+    | Action (_, key, f) -> Some (key, `String (outline_server_function ~context ~to_chunk f))
 
-  let props_to_json props = List.filter_map prop_to_json props
+  let props_to_json ~context ~to_chunk props = List.filter_map (prop_to_json ~context ~to_chunk) props
   let chunk_ref_or_null = function None -> `Null | Some idx -> `String (ref_value idx)
 
   let node ~env ~site ~tag ?(key = None) ~props ?(owner = None) children : json =
@@ -730,15 +731,7 @@ module Model = struct
       | Int i -> `Int i
       | Float f -> float_to_json f
       | Lower_case_element { key; tag; attributes; children } ->
-          (* Action props are serialized directly to JSON here (instead of being rewritten into String props) so the internal "$F<id>" reference is not $$-escaped. *)
-          let props =
-            List.filter_map
-              (fun (prop : React.JSX.prop) ->
-                match prop with
-                | React.JSX.Action (_, key, f) -> Some (key, `String (outline_server_function ~context ~to_chunk f))
-                | _ -> prop_to_json prop)
-              attributes
-          in
+          let props = props_to_json ~context ~to_chunk attributes in
           let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
           node ~env ~site ~key ~tag ~props ~owner
             (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info ~site:Static_slot) children)
@@ -1243,36 +1236,26 @@ let map_children_with_tree_context_lwt f children =
 
 let action_id_prefix = "$ACTION_ID_"
 
-(* A server function [action] or [formAction] renders so that a submit before hydration posts multipart form data
-   to the current URL with the function id in the [$ACTION_ID_<id>] field name, which [decodeAction] reads (verified
-   against react-dom 19.1.0). *)
+(* Output matches react-dom renderToString (verified against 19.1.0, 19.2.9 and 19.3.1). *)
 let host_attributes_to_html ~tag attributes =
   let server_action_id name =
     List.find_map
       (fun (prop : React.JSX.prop) ->
-        match prop with Action (prop_name, _, f) when String.equal prop_name name -> Some f.id | _ -> None)
+        match prop with
+        | Action (prop_name, _, f) when String.equal (String.lowercase_ascii prop_name) name -> Some f.id
+        | _ -> None)
       attributes
   in
   let attributes_to_html_without names extra =
     let kept =
-      List.filter
-        (fun (prop : React.JSX.prop) ->
-          match prop with
-          | Bool (name, _, _)
-          | BooleanishString (name, _, _)
-          | String (name, _, _)
-          | Int (name, _, _)
-          | Float (name, _, _) ->
-              not (List.mem (String.lowercase_ascii name) names)
-          | _ -> true)
-        attributes
+      List.filter (fun prop -> not (List.mem (String.lowercase_ascii (React.prop_key prop)) names)) attributes
     in
     ReactDOM.attributes_to_html kept @ extra
   in
   match tag with
   | "form" -> (
       match server_action_id "action" with
-      | None -> (ReactDOM.attributes_to_html attributes, None)
+      | None -> (ReactDOM.attributes_to_html attributes, [])
       | Some id ->
           ( attributes_to_html_without [ "method"; "enctype"; "target" ]
               [
@@ -1280,17 +1263,18 @@ let host_attributes_to_html ~tag attributes =
                 Html.attribute "encType" "multipart/form-data";
                 Html.attribute "method" "POST";
               ],
-            Some
-              (Html.node "input"
-                 [
-                   Html.attribute "type" "hidden";
-                   Html.attribute "name" (action_id_prefix ^ id);
-                   Html.attribute "value" "";
-                 ]
-                 []) ))
+            [
+              Html.node "input"
+                [
+                  Html.attribute "type" "hidden";
+                  Html.attribute "name" (action_id_prefix ^ id);
+                  Html.attribute "value" "";
+                ]
+                [];
+            ] ))
   | "button" | "input" -> (
       match server_action_id "formaction" with
-      | None -> (ReactDOM.attributes_to_html attributes, None)
+      | None -> (ReactDOM.attributes_to_html attributes, [])
       | Some id ->
           ( attributes_to_html_without
               [ "name"; "formmethod"; "formenctype"; "formtarget" ]
@@ -1300,8 +1284,8 @@ let host_attributes_to_html ~tag attributes =
                 Html.attribute "formEncType" "multipart/form-data";
                 Html.attribute "formMethod" "POST";
               ],
-            None ))
-  | _ -> (ReactDOM.attributes_to_html attributes, None)
+            [] ))
+  | _ -> (ReactDOM.attributes_to_html attributes, [])
 
 let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
@@ -1389,7 +1373,6 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
 
 and render_lower_case ~fiber ~tag ~attributes ~children =
   let html_props, action_input = host_attributes_to_html ~tag attributes in
-  let action_input = Option.to_list action_input in
   match ReactDOM.getDangerouslyInnerHtml attributes with
   | Some inner_html -> Lwt.return (Html.node tag html_props (action_input @ [ Html.raw inner_html ]))
   | None ->
@@ -1639,7 +1622,7 @@ and render_lower_case_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~ch
 
 and handle_hoistable_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html ~on_push () =
   fiber.hoisted_count <- fiber.hoisted_count + 1;
-  let props = Model.props_to_json attributes in
+  let props = Model.props_to_json ~context:fiber.context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) attributes in
   let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
   let create_model children =
     (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
@@ -1663,19 +1646,11 @@ and handle_hoistable_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~chi
     on_push ~fiber html;
     Lwt.return (Html.null, create_model children_model))
 
-and props_to_json ~context ~nonce attributes =
-  List.filter_map
-    (fun (prop : React.JSX.prop) ->
-      match prop with
-      | Action (_, key, f) ->
-          Some (key, `String (Model.outline_server_function ~context ~to_chunk:(model_to_chunk ?nonce) f))
-      | _ -> Model.prop_to_json prop)
-    attributes
-
 and render_regular_element ~fiber ~debug_info ~site ~key ~tag ~attributes ~children ~inner_html () =
   let html_props, action_input = host_attributes_to_html ~tag attributes in
-  let action_input = Option.to_list action_input in
-  let json_props = props_to_json ~context:fiber.context ~nonce:fiber.nonce attributes in
+  let json_props =
+    Model.props_to_json ~context:fiber.context ~to_chunk:(model_to_chunk ?nonce:fiber.nonce) attributes
+  in
   let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
   match (Html.is_self_closing_tag tag, inner_html) with
   | true, _ ->
