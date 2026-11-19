@@ -126,7 +126,7 @@ answers 204 with [Router-Prefetch-Refused: <route level>] and runs no loader.
 Otherwise it answers exactly as it answers the navigation. Every navigation
 reply carries [Vary: Accept, Router-Prefetch], so a shared cache never
 answers a prefetch with a stored navigation or the other way round. A path
-that matches no route answers as a navigation does. An adapter passes the header's level to [Server.run] as
+that matches no route answers as a navigation does. An adapter passes the header's level to [RouterServer.run] as
 [?prefetch]. A refusal is the outcome [PrefetchRefused(level)], and
 [Adapter.reply] turns it into the 204. [DreamRouter] does this for RSC
 requests and ignores a header value that is not a level.
@@ -740,9 +740,9 @@ let load = (~id as _, ()) =>
 
 An adapter for another server does the same: it sets an [Lwt.key] with
 [Lwt.with_value] around the {e whole} handler, including the streaming
-response, not only [Server.run]. A streaming body, for example the callback
+response, not only [RouterServer.run]. A streaming body, for example the callback
 of [Dream.stream], runs after the handler returns, so a key set only around
-[Server.run] is empty there.
+[RouterServer.run] is empty there.
 
 Keep loaders for fast validation, redirects, and route-level not-found
 decisions; stream slow data from async server components inside the route
@@ -839,7 +839,7 @@ it. Use one of them.
 The native generator emits [RouterRegistry.server], a configured
 [RouterServer.Server.t]. A native HTTP adapter builds a
 [RouterServer.ServerEngine.request] from the request location and router
-navigation headers, then calls [RouterServer.Server.run]. The adapter maps the
+navigation headers, then calls [RouterServer.run]. The adapter maps the
 resulting full, patch, redirect, permanent-redirect, or reload-required outcome
 to its HTTP server and streams render data through [ReactServerDOM].
 
@@ -896,7 +896,7 @@ package.
   percent-decoding, such as [?q=%FF], is dropped. A query longer than 8192
   bytes answers 400 with [InvalidSearchParameter].
 - Methods: [Adapter.methodReply ~allow method_] decides a method before
-  [Server.run]. [allow] lists the methods the adapter serves at the router's
+  [RouterServer.run]. [allow] lists the methods the adapter serves at the router's
   paths. [OPTIONS] answers 204 and a method outside [allow] answers 405, both
   with an [Allow] header. For [None], [GET] and [HEAD] run the router, and the
   adapter sends a [HEAD] reply without its body. [DreamRouter.routes] allows

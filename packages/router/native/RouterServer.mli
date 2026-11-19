@@ -353,7 +353,7 @@ module ServerEngine : sig
     fallback:(search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
     applicationStatus:('error -> RouterRuntime.Status.t) ->
     diagnosticId:(exn -> string) ->
-    revision:(unit -> string) ->
+    ?revision:(unit -> string) ->
     protocolVersion:int ->
     ?prefetch:RouterRuntime.PrefetchLevel.t ->
     ?actionError:'error RouterRuntime.Error.t ->
@@ -368,7 +368,11 @@ module ServerEngine : sig
       outcome is the same as without [prefetch], and its headers add [Router-Prefetch] to [Vary].
 
       [actionError] renders the page as failed with that error after its loaders ran (see {!Plan.withFailure}). A
-      loader's own redirect or failure still wins. *)
+      loader's own redirect or failure still wins.
+
+      [revision] names the deployed build in full and patch responses. The client commits it and sends it back as the
+      base revision of its next navigation; a patch whose base revision is not the committed one is a full load. The
+      default is the constant [""], for an application that does not track deploys. *)
 end
 
 (** Configured facade shared by the HTTP adapter and the generated client root. *)
@@ -429,15 +433,6 @@ module Server : sig
     metadata:React.element ->
     children:React.element ->
     React.element
-
-  val run :
-    ('view, 'error) t ->
-    diagnosticId:(exn -> string) ->
-    revision:(unit -> string) ->
-    ?prefetch:RouterRuntime.PrefetchLevel.t ->
-    ?actionError:'error RouterRuntime.Error.t ->
-    ServerEngine.request ->
-    ('view, 'error) ServerEngine.outcome Lwt.t
 end
 
 (** Server functions run from a page form without JavaScript. *)
@@ -450,8 +445,8 @@ module Action : sig
 end
 
 (** Server-agnostic pieces of an HTTP adapter. An adapter parses its request into a {!ServerEngine.request}, calls
-    {!Server.run}, passes the outcome to {!reply}, and writes the {!reply} with its own server. Nothing here depends on
-    an HTTP server. *)
+    {!run}, passes the outcome to {!reply}, and writes the {!reply} with its own server. Nothing here depends on an HTTP
+    server. *)
 module Adapter : sig
   val metadata_element : RouterRuntime.Metadata.t -> React.element
   (** Renders resolved metadata as head elements: [<title>], [<meta name="description">], then each entry as a [<meta>]
@@ -487,7 +482,7 @@ module Adapter : sig
       [Location] for redirects. The adapter adds nothing but transport details. *)
 
   val methodReply : allow:string list -> string -> reply option
-  (** Decides an HTTP method before {!Server.run}. [allow] lists the methods the adapter serves at the router's paths.
+  (** Decides an HTTP method before {!run}. [allow] lists the methods the adapter serves at the router's paths.
       [OPTIONS] answers 204 and a method outside [allow] answers 405, both with an [Allow] header. [None] means the
       adapter handles the method: [GET] and [HEAD] run the router, and a [HEAD] reply is sent without its body. Methods
       are case-sensitive. *)
@@ -519,7 +514,7 @@ module Adapter : sig
   val formActionReply :
     (React.element, 'error) Server.t ->
     diagnosticId:(exn -> string) ->
-    revision:(unit -> string) ->
+    ?revision:(unit -> string) ->
     target:string ->
     ?pageCacheCapacity:int ->
     document:(head:React.element -> React.element -> React.element) ->
@@ -530,9 +525,9 @@ module Adapter : sig
       - [Completed]: 303 to [target], the posted URL.
       - [Redirected destination]: 303 to [destination].
       - [Failed]: the page at [request], rendered as a document with its nearest error boundary and the status of an
-        internal error, through [Server.run ~actionError]. When the page itself redirects, for example a URL with a
-        trailing slash, the reply is a 303 to that location: a reply to a [POST] is never 307 or 308, so the browser
-        never posts the form again. An unsafe location (see {!redirectLocation}) gives 500 instead of a redirect. *)
+        internal error, through [run ~actionError]. When the page itself redirects, for example a URL with a trailing
+        slash, the reply is a 303 to that location: a reply to a [POST] is never 307 or 308, so the browser never posts
+        the form again. An unsafe location (see {!redirectLocation}) gives 500 instead of a redirect. *)
 
   val reply :
     (React.element, 'error) Server.t ->
@@ -543,7 +538,7 @@ module Adapter : sig
     (React.element, 'error) ServerEngine.outcome ->
     reply
   (** Maps an outcome to status, headers and body. [target] is the request target, used for [X-Location] on RSC
-      redirects. [kind] is the request kind given to {!Server.run}.
+      redirects. [kind] is the request kind given to {!run}.
       - Full and patch: the resolved status and headers.
       - Document redirect: 303 ([Redirect]) or 308 ([PermanentRedirect]) with [Location].
       - RSC redirect: 200 with [Router-Response: redirect], [Router-Registry] and [Cache-Control: private, no-store].
@@ -552,6 +547,17 @@ module Adapter : sig
       - [ReloadRequired]: 409 with [Router-Response: reload-required] and [Cache-Control: private, no-store]. Every RSC
         reply carries [Vary: Accept, Router-Prefetch]; document replies carry [Vary: Accept]. *)
 end
+
+val run :
+  ('view, 'error) Server.t ->
+  diagnosticId:(exn -> string) ->
+  ?revision:(unit -> string) ->
+  ?prefetch:RouterRuntime.PrefetchLevel.t ->
+  ?actionError:'error RouterRuntime.Error.t ->
+  ServerEngine.request ->
+  ('view, 'error) ServerEngine.outcome Lwt.t
+(** Runs {!ServerEngine.run} with the configuration of [server]. [revision] defaults to the constant [""] (see
+    {!ServerEngine.run}). *)
 
 val statusOfError :
   application:('error -> RouterRuntime.Status.t) -> 'error RouterRuntime.Error.t -> RouterRuntime.Status.t

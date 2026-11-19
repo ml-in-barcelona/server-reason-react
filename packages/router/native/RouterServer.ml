@@ -717,8 +717,8 @@ module ServerEngine = struct
     | Some prefetch -> RouterRuntime.PrefetchLevel.compare prefetch (EndpointRegistry.prefetch matched) > 0
     | None -> false
 
-  let run ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId ~revision ~protocolVersion
-      ?prefetch ?actionError request =
+  let run ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId ?(revision = fun () -> "")
+      ~protocolVersion ?prefetch ?actionError request =
     let fingerprint = EndpointRegistry.fingerprint registry in
     let canonical_url = request.pathname ^ request.search ^ request.hash in
     let full ~matches ~layouts plan =
@@ -965,9 +965,9 @@ module Server = struct
   let clientRootWithCache server ~pageCacheCapacity = client_root ~pageCacheCapacity server
   let clientRoot server = client_root server
 
-  let run server ~diagnosticId ~revision ?prefetch ?actionError request =
+  let run server ~diagnosticId ?revision ?prefetch ?actionError request =
     ServerEngine.run ~registry:server.registry ~basePath:server.base_path ~trailingSlash:server.trailing_slash
-      ~fallback:server.fallback ~applicationStatus:server.application_status ~diagnosticId ~revision
+      ~fallback:server.fallback ~applicationStatus:server.application_status ~diagnosticId ?revision
       ~protocolVersion:server.protocol_version ?prefetch ?actionError request
 end
 
@@ -1191,7 +1191,7 @@ module Adapter = struct
         in
         { status; headers; body }
 
-  let formActionReply server ~diagnosticId ~revision ~target ?pageCacheCapacity ~document
+  let formActionReply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document
       (request : ServerEngine.request) = function
     | Completed ->
         Lwt.return
@@ -1213,7 +1213,8 @@ module Adapter = struct
                 | Some location -> see_other location
                 | None -> unsafe_redirect_reply)
             | outcome -> reply server ~target ?pageCacheCapacity ~document ~kind:Document outcome)
-          (Server.run server ~diagnosticId ~revision ~actionError { request with kind = Document; navigation = None })
+          (Server.run server ~diagnosticId ?revision ~actionError { request with kind = Document; navigation = None })
 end
 
+let run = Server.run
 let statusOfError = status_of_error

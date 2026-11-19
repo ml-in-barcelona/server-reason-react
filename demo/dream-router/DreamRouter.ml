@@ -284,9 +284,7 @@ let handler ~server ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(boot
             | RouterServer.ServerEngine.Rsc ->
                 Option.bind (Dream.header request "Router-Prefetch") RouterRuntime.PrefetchLevel.fromString
           in
-          let%lwt outcome =
-            RouterServer.Server.run server ~diagnosticId ~revision ?prefetch (engine_request ~kind request)
-          in
+          let%lwt outcome = RouterServer.run server ~diagnosticId ~revision ?prefetch (engine_request ~kind request) in
           let reply = RouterServer.Adapter.reply server ~target ?pageCacheCapacity ~document ~kind outcome in
           let reply = if Dream.method_ request = `HEAD then { reply with body = Empty } else reply in
           respond ~skipRoot:(not (ssr request)) ~bootstrapModules reply)
