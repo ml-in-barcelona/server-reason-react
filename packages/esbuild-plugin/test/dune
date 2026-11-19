@@ -6,3 +6,17 @@
   ClientComponentWithModule.js
   ServerFunction.js
   %{bin:server-reason-react.extract_client_components}))
+
+(rule
+ (alias runtest)
+ (deps
+  ../plugin.mjs
+  plugin_failure.mjs
+  %{bin:server-reason-react.extract_client_components}
+  (source_tree ../../react-server-dom-esbuild/node_modules/esbuild)
+  (source_tree ../../react-server-dom-esbuild/node_modules/@esbuild))
+ (action
+  (run
+   node
+   plugin_failure.mjs
+   ../../react-server-dom-esbuild/node_modules/esbuild)))

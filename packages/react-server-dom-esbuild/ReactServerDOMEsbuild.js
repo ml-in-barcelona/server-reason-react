@@ -166,6 +166,24 @@ const BUNDLES = 2;
  * in global manifest maps (`window.__client_manifest_map` and
  * `window.__server_functions_manifest_map`) by the esbuild build plugin.
  */
+/*
+ * The manifest maps an id to the Melange record { id, call }. A client
+ * component prop reads the record fields, and a form action must be a
+ * function, so a reference resolves to a function that also has both fields.
+ */
+const callableServerFunctions = new WeakMap();
+
+function callableServerFunction(serverFunction) {
+  let callable = callableServerFunctions.get(serverFunction);
+  if (callable === undefined) {
+    callable = (...args) => serverFunction.call(...args);
+    callable.id = serverFunction.id;
+    callable.call = serverFunction.call;
+    callableServerFunctions.set(serverFunction, callable);
+  }
+  return callable;
+}
+
 const ReactFlightClientConfigBundlerEsbuild = {
   /*
    * Called when the Flight client encounters a client module reference in the stream.
@@ -273,8 +291,10 @@ const ReactFlightClientConfigBundlerEsbuild = {
   requireModule(metadata) {
     const getModule = (type, id) => {
       switch (type) {
-        case "ServerFunction":
-          return window.__server_functions_manifest_map[id];
+        case "ServerFunction": {
+          const serverFunction = window.__server_functions_manifest_map[id];
+          return serverFunction && callableServerFunction(serverFunction);
+        }
         case "ClientComponent": {
           const entry = window.__client_manifest_map[id];
           if (!entry) {

@@ -55,13 +55,14 @@ export default function plugin(config) {
 					/* TODO: Make sure `server-reason-react.extract_client_components` is available in $PATH */
 					const bootstrapContent = execSync(
 						`server-reason-react.extract_client_components ${config.target}`,
-						{ encoding: "utf8" },
+						{ encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
 					);
 					await generateBootstrapFile(bootstrapOutput, bootstrapContent);
 				} catch (e) {
-					console.log("Extraction of client components failed:");
-					console.error(e);
-					return;
+					const detail = e.stderr ? String(e.stderr).trim() : e.message;
+					return {
+						errors: [{ text: `Extraction of client components and server functions failed: ${detail}` }],
+					};
 				}
 			});
 

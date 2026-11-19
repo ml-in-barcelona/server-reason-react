@@ -48,6 +48,7 @@
   (integers (>= 0.7.0))
   (zarith (>= 1.14))
   (melange-fetch (>= 0.2.0))
+  (melange-json (>= 2.0.0))
   (melange-json-native (>= 2.0.0))
   (melange-webapi (>= 0.21.0))
   (reason-react (>= 0.17.0))

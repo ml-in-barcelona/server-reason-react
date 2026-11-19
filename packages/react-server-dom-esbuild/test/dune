@@ -1,0 +1,20 @@
+(rule
+ (target ReactServerDOMEsbuild.mjs)
+ (deps
+  ../ReactServerDOMEsbuild.js
+  (source_tree ../node_modules))
+ (action
+  (run
+   ../node_modules/esbuild/bin/esbuild
+   ../ReactServerDOMEsbuild.js
+   --bundle
+   --format=esm
+   --platform=node
+   --log-level=warning
+   --outfile=%{target})))
+
+(rule
+ (alias runtest)
+ (deps ReactServerDOMEsbuild.mjs server_function_reference.mjs)
+ (action
+  (run node server_function_reference.mjs)))

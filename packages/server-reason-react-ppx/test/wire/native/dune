@@ -1,0 +1,24 @@
+(test
+ (name wire_test)
+ (modules FunctionReferences WireFunctions wire_test)
+ (libraries
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.js
+  server-reason-react.runtime
+  server-reason-react.rsc-native
+  melange-json-native
+  yojson
+  lwt)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -shared-folder-prefix=wire/native/
+   server-reason-react.melange_ppx
+   server-reason-react.rsc-native.ppx
+   melange-json-native.ppx))
+ (action
+  (run %{test} %{dep:../js/replies.json})))
+
+(copy_files
+ (files ../shared/*.re))

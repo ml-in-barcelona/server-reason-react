@@ -12,7 +12,7 @@
   $ cat > dune << EOF
   > (melange.emit
   >  (target js)
-  >  (libraries server-reason-react.runtime reason-react server-reason-react.rsc)
+  >  (libraries server-reason-react.runtime reason-react server-reason-react.rsc melange-json)
   >  (preprocess (pps reason-react-ppx melange.ppx server-reason-react.rsc.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
   > 
   > (rule
@@ -34,20 +34,22 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 1073617701 withLabelledArg ",
+                "// extract-server-function input#withLabelledArg withLabelledArg ",
               );
             };
             let withLabelledArg = {
-              Runtime.id: "1073617701",
+              Runtime.id: "input#withLabelledArg",
               call: (~name: string, ~age: int) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("1073617701");
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withLabelledArg",
+                  );
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
                     (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
-                      name,
-                      age,
+                      Melange_json.Primitives.string_to_json(name),
+                      Melange_json.Primitives.int_to_json(age),
                     ),
                   ): _
                 )
@@ -65,21 +67,29 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 416745144 withLabelledArgAndUnlabeledArg ",
+                "// extract-server-function input#withLabelledArgAndUnlabeledArg withLabelledArgAndUnlabeledArg ",
               );
             };
   
             let withLabelledArgAndUnlabeledArg = {
-              Runtime.id: "416745144",
+              Runtime.id: "input#withLabelledArgAndUnlabeledArg",
               call: (~name: string="Lola", age: int) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("416745144");
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withLabelledArgAndUnlabeledArg",
+                  );
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
                     (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
-                      name,
-                      age,
+                      (
+                        Melange_json.Primitives.option_to_json(
+                          Melange_json.Primitives.string_to_json,
+                        )
+                      )(
+                        Some(name),
+                      ),
+                      Melange_json.Primitives.int_to_json(age),
                     ),
                   ): _
                 )
@@ -97,21 +107,29 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 874321837 withOptionalArg ",
+                "// extract-server-function input#withOptionalArg withOptionalArg ",
               );
             };
   
             let withOptionalArg = {
-              Runtime.id: "874321837",
+              Runtime.id: "input#withOptionalArg",
               call: (~name: string="Lola", ()) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("874321837");
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withOptionalArg",
+                  );
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
                     (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
-                      name,
-                      (),
+                      (
+                        Melange_json.Primitives.option_to_json(
+                          Melange_json.Primitives.string_to_json,
+                        )
+                      )(
+                        Some(name),
+                      ),
+                      Js.Json.null,
                     ),
                   ): _
                 )
@@ -128,15 +146,26 @@
                 [@ocaml.warning "-unboxable-type-in-prim-decl"]
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
-              J.unsafe_expr("// extract-server-function 898874717 withNoArgs ");
+              J.unsafe_expr(
+                "// extract-server-function input#withNoArgs withNoArgs ",
+              );
             };
   
             let withNoArgs = {
-              Runtime.id: "898874717",
+              Runtime.id: "input#withNoArgs",
               call: () => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("898874717");
-                Js.Internal.run(action)
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withNoArgs",
+                  );
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(
+                      Js.Json.null,
+                    ),
+                  ): _
+                )
                 |> Js.Promise.then_(response =>
                      Js.Promise.resolve(RSC.Primitives.string_of_rsc(response))
                    );
@@ -153,16 +182,25 @@
                     external unsafe_expr: _ => _ = "#raw_stmt";
                   };
                   J.unsafe_expr(
-                    "// extract-server-function 157629082 nestedServerFunction SomeModule.Nested",
+                    "// extract-server-function input.SomeModule.Nested#nestedServerFunction nestedServerFunction SomeModule.Nested",
                   );
                 };
   
                 let nestedServerFunction = {
-                  Runtime.id: "157629082",
+                  Runtime.id: "input.SomeModule.Nested#nestedServerFunction",
                   call: () => {
                     let action =
-                      ReactServerDOMEsbuild.createServerReference("157629082");
-                    Js.Internal.run(action)
+                      ReactServerDOMEsbuild.createServerReference(
+                        "input.SomeModule.Nested#nestedServerFunction",
+                      );
+                    (
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      Js.Internal.opaqueFullApply(
+                        (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(
+                          Js.Json.null,
+                        ),
+                      ): _
+                    )
                     |> Js.Promise.then_(response =>
                          Js.Promise.resolve(
                            RSC.Primitives.string_of_rsc(response),
@@ -181,15 +219,17 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 890905285 withFormData.call ",
+                "// extract-server-function input#withFormData withFormData ",
               );
             };
   
             let withFormData = {
-              Runtime.id: "890905285",
+              Runtime.id: "input#withFormData",
               call: (formData: Js.FormData.t) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("890905285");
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withFormData",
+                  );
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
@@ -212,20 +252,22 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 465790865 withFormDataAndLabelledArgs.call ",
+                "// extract-server-function input#withFormDataAndLabelledArgs withFormDataAndLabelledArgs ",
               );
             };
   
             let withFormDataAndLabelledArgs = {
-              Runtime.id: "465790865",
+              Runtime.id: "input#withFormDataAndLabelledArgs",
               call: (country: string, ~formData: Js.FormData.t) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("465790865");
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withFormDataAndLabelledArgs",
+                  );
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
                     (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
-                      country,
+                      Melange_json.Primitives.string_to_json(country),
                       formData,
                     ),
                   ): _
@@ -244,21 +286,23 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 512972037 withFormDataAndArgsDifferentOrder.call ",
+                "// extract-server-function input#withFormDataAndArgsDifferentOrder withFormDataAndArgsDifferentOrder ",
               );
             };
   
             let withFormDataAndArgsDifferentOrder = {
-              Runtime.id: "512972037",
+              Runtime.id: "input#withFormDataAndArgsDifferentOrder",
               call: (~formData: Js.FormData.t, country: string) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("512972037");
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withFormDataAndArgsDifferentOrder",
+                  );
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
                     (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
                       formData,
-                      country,
+                      Melange_json.Primitives.string_to_json(country),
                     ),
                   ): _
                 )
@@ -276,19 +320,23 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 639322061 withBoolArg ",
+                "// extract-server-function input#withBoolArg withBoolArg ",
               );
             };
   
             let withBoolArg = {
-              Runtime.id: "639322061",
+              Runtime.id: "input#withBoolArg",
               call: (~flag: bool) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("639322061");
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withBoolArg",
+                  );
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
-                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(flag),
+                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(
+                      Melange_json.Primitives.bool_to_json(flag),
+                    ),
                   ): _
                 )
                 |> Js.Promise.then_(response =>
@@ -305,19 +353,29 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 543472495 withListArg ",
+                "// extract-server-function input#withListArg withListArg ",
               );
             };
   
             let withListArg = {
-              Runtime.id: "543472495",
+              Runtime.id: "input#withListArg",
               call: (~names: list(string)) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("543472495");
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withListArg",
+                  );
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
-                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(names),
+                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(
+                      (
+                        Melange_json.Primitives.list_to_json(
+                          Melange_json.Primitives.string_to_json,
+                        )
+                      )(
+                        names,
+                      ),
+                    ),
                   ): _
                 )
                 |> Js.Promise.then_(response =>
@@ -334,19 +392,30 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 271688509 withResultArg ",
+                "// extract-server-function input#withResultArg withResultArg ",
               );
             };
   
             let withResultArg = {
-              Runtime.id: "271688509",
+              Runtime.id: "input#withResultArg",
               call: (~res: result(string, string)) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("271688509");
+                  ReactServerDOMEsbuild.createServerReference(
+                    "input#withResultArg",
+                  );
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
-                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(res),
+                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(
+                      (
+                        Melange_json.Primitives.result_to_json(
+                          Melange_json.Primitives.string_to_json,
+                          Melange_json.Primitives.string_to_json,
+                        )
+                      )(
+                        res,
+                      ),
+                    ),
                   ): _
                 )
                 |> Js.Promise.then_(response =>
@@ -355,3 +424,18 @@
               },
             };
           };
+
+Every server function, FormData ones too, registers its { id, call } record
+  $ grep server_functions_manifest_map _build/default/boostrap.js | sed 's|require("[^"]*")|require(...)|'
+  window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};
+  window.__server_functions_manifest_map["input#withLabelledArg"] = require(...).withLabelledArg
+  window.__server_functions_manifest_map["input#withLabelledArgAndUnlabeledArg"] = require(...).withLabelledArgAndUnlabeledArg
+  window.__server_functions_manifest_map["input#withOptionalArg"] = require(...).withOptionalArg
+  window.__server_functions_manifest_map["input#withNoArgs"] = require(...).withNoArgs
+  window.__server_functions_manifest_map["input.SomeModule.Nested#nestedServerFunction"] = require(...).SomeModule.Nested.nestedServerFunction
+  window.__server_functions_manifest_map["input#withFormData"] = require(...).withFormData
+  window.__server_functions_manifest_map["input#withFormDataAndLabelledArgs"] = require(...).withFormDataAndLabelledArgs
+  window.__server_functions_manifest_map["input#withFormDataAndArgsDifferentOrder"] = require(...).withFormDataAndArgsDifferentOrder
+  window.__server_functions_manifest_map["input#withBoolArg"] = require(...).withBoolArg
+  window.__server_functions_manifest_map["input#withListArg"] = require(...).withListArg
+  window.__server_functions_manifest_map["input#withResultArg"] = require(...).withResultArg
