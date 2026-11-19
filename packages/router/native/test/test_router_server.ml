@@ -409,7 +409,6 @@ let rejected_loader_uses_nearest_boundary () =
            RouterServer.Plan.failure ~scopes:[] ~error ~errorBoundary:(boundary "fallback") ())
          ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
          ~diagnosticId:(fun _ -> "diagnostic-1")
-         ~revision:(fun () -> "revision-1")
          ~protocolVersion:1 request)
   in
   match outcome with
@@ -840,7 +839,6 @@ let run_trailing_slash_engine ~trailingSlash ~basePath ~pathname ?(search = "") 
        ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
        ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
        ~diagnosticId:(fun _ -> "diagnostic")
-       ~revision:(fun () -> "revision")
        ~protocolVersion:1
        { pathname; search; hash = ""; kind = Document; navigation = None })
 
@@ -855,7 +853,6 @@ let run_redirect_engine ~kind execution =
        ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
        ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
        ~diagnosticId:(fun _ -> "diagnostic")
-       ~revision:(fun () -> "revision")
        ~protocolVersion:1
        { pathname = "/old"; search = ""; hash = ""; kind; navigation = None })
 
@@ -1039,16 +1036,29 @@ let adapter_reply ?(registry = None) ?(search = "") ~kind pathname =
   in
   let outcome =
     Lwt_main.run
-      (RouterServer.Server.run server
-         ~diagnosticId:(fun _ -> "diagnostic")
-         ~revision:(fun () -> "revision")
-         { pathname; search; hash = ""; kind; navigation })
+      (RouterServer.run server ~diagnosticId:(fun _ -> "diagnostic") { pathname; search; hash = ""; kind; navigation })
   in
   RouterServer.Adapter.reply server ~target:pathname ~pageCacheCapacity:0
     ~document:(fun ~head children ->
       React.createElement "html" []
         [ React.createElement "head" [] [ head ]; React.createElement "body" [] [ children ] ])
     ~kind outcome
+
+let revision_defaults_to_empty () =
+  let server = adapter_server () in
+  let revision ?revision () =
+    match
+      Lwt_main.run
+        (RouterServer.run server
+           ~diagnosticId:(fun _ -> "diagnostic")
+           ?revision
+           { pathname = "/app/item"; search = ""; hash = ""; kind = Document; navigation = None })
+    with
+    | RouterServer.ServerEngine.Full full -> full.revision
+    | _ -> Alcotest.fail "expected full response"
+  in
+  Alcotest.(check string) "default" "" (revision ());
+  Alcotest.(check string) "given" "r2" (revision ~revision:(fun () -> "r2") ())
 
 let header name (reply : RouterServer.Adapter.reply) = List.assoc_opt name reply.headers
 let check_header reply name expected = Alcotest.(check (option string)) name expected (header name reply)
@@ -1285,7 +1295,6 @@ let run_prefetch ~ran ?prefetch pathname =
        ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
        ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
        ~diagnosticId:(fun _ -> "diagnostic")
-       ~revision:(fun () -> "revision")
        ~protocolVersion:1 ?prefetch (prefetch_request pathname))
 
 let vary outcome =
@@ -1345,9 +1354,8 @@ let adapter_refused_prefetch_reply () =
   let reply prefetch =
     let outcome =
       Lwt_main.run
-        (RouterServer.Server.run server
+        (RouterServer.run server
            ~diagnosticId:(fun _ -> "diagnostic")
-           ~revision:(fun () -> "revision")
            ~prefetch
            { pathname = "/app/item"; search = ""; hash = ""; kind = Rsc; navigation = None })
     in
@@ -1430,7 +1438,6 @@ let action_error_renders_after_loaders () =
          ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
          ~applicationStatus:(fun _ -> RouterRuntime.Status.Forbidden)
          ~diagnosticId:(fun _ -> "diagnostic")
-         ~revision:(fun () -> "revision")
          ~protocolVersion:1
          ~actionError:(RouterRuntime.Error.Internal { diagnosticId = "d" })
          { pathname = "/page"; search = ""; hash = ""; kind = Document; navigation = None })
@@ -1464,7 +1471,6 @@ let unsafe_redirects_are_internal_errors () =
          ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
          ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
          ~diagnosticId:(fun _ -> "diagnostic")
-         ~revision:(fun () -> "revision")
          ~protocolVersion:1
          { pathname = "/go"; search = ""; hash = ""; kind = Document; navigation = None })
   in
@@ -1576,6 +1582,7 @@ let () =
           test "root pathname is canonical" root_pathname_is_canonical;
           test "default boundary renders text" default_boundary_renders_text;
           test "server base path validation" server_base_path_validation;
+          test "revision defaults to empty" revision_defaults_to_empty;
           test "adapter document reply" adapter_document_reply;
           test "adapter document invalid search reply" adapter_document_invalid_search_reply;
           test "adapter rsc reply" adapter_rsc_reply;

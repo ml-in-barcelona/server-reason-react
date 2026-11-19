@@ -111,7 +111,6 @@ let engine_outcome registry request =
          ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
          ~applicationStatus:(fun () -> RouterRuntime.Status.InternalServerError)
          ~diagnosticId:(fun _ -> "diagnostic")
-         ~revision:(fun () -> "revision")
          ~protocolVersion:2 request)
   with
   | Lwt.Return outcome -> outcome

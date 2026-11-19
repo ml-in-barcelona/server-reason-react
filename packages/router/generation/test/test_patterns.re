@@ -436,10 +436,9 @@ let testActionErrorBoundary = () => {
   let render = pathname => {
     let outcome =
       Lwt_main.run(
-        RouterServer.Server.run(
+        RouterServer.run(
           RouterRegistry.server,
           ~diagnosticId=_ => "diagnostic",
-          ~revision=() => "revision",
           ~actionError=RouterRuntime.Error.Internal({ diagnosticId: "d" }),
           {
             pathname,
