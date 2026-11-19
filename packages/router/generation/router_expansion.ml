@@ -320,6 +320,18 @@ let apply_route_inputs ~loc callee parameters search =
   in
   B.pexp_apply ~loc callee arguments
 
+let search_codec_signature ~loc =
+  [
+    B.psig_value ~loc
+      (B.value_description ~loc ~name:{ txt = "search_to_rsc"; loc }
+         ~type_:(B.ptyp_arrow ~loc Nolabel (result_type ~loc "search") (result_type ~loc "RSC.t"))
+         ~prim:[]);
+    B.psig_value ~loc
+      (B.value_description ~loc ~name:{ txt = "search_of_rsc"; loc }
+         ~type_:(B.ptyp_arrow ~loc Nolabel (result_type ~loc "RSC.t") (result_type ~loc "search"))
+         ~prim:[]);
+  ]
+
 let route_search_type ~loc ~root_search search =
   if List.length search = List.length root_search then
     (Nonrecursive, search_type_declaration ~manifest:(result_type ~loc "search") ~loc search)
@@ -335,6 +347,7 @@ let route_search_signature ~loc ~root_search search =
         B.psig_value ~loc
           (B.value_description ~loc ~name:{ txt = "search"; loc } ~type_:(search_constructor_type ~loc search) ~prim:[]);
       ]
+      @ search_codec_signature ~loc
 
 let route_signature ~root_search (route : Router_declaration.route) =
   let loc = route.loc in
@@ -377,15 +390,15 @@ let structure_alias ~loc name =
 let search_contract_signature ~loc search =
   if search = [] then []
   else
-    [
-      B.psig_type ~loc Recursive [ search_type_declaration ~loc search ];
-      B.psig_value ~loc
-        (B.value_description ~loc ~name:{ txt = "useSearch"; loc }
-           ~type_:
-             (B.ptyp_arrow ~loc Nolabel (unit_type ~loc)
-                (B.ptyp_tuple ~loc [ result_type ~loc "search"; update_search_function_type ~loc ]))
-           ~prim:[]);
-    ]
+    (B.psig_type ~loc Recursive [ search_type_declaration ~loc search ] :: search_codec_signature ~loc)
+    @ [
+        B.psig_value ~loc
+          (B.value_description ~loc ~name:{ txt = "useSearch"; loc }
+             ~type_:
+               (B.ptyp_arrow ~loc Nolabel (unit_type ~loc)
+                  (B.ptyp_tuple ~loc [ result_type ~loc "search"; update_search_function_type ~loc ]))
+             ~prim:[]);
+      ]
 
 let signature (declaration : Router_declaration.t) =
   let loc = declaration.loc in
@@ -448,6 +461,31 @@ let parameter_list ~loc parameters =
   B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.concat")
     [ (Nolabel, B.elist ~loc (List.map (parameter_entries ~loc) parameters)) ]
 
+let search_decoder ~loc (search : Router_declaration.search) =
+  let callee =
+    match search.kind with
+    | Required -> "RouterRuntime.Search.required"
+    | Optional -> "RouterRuntime.Search.optional"
+    | Default _ -> "RouterRuntime.Search.default"
+    | Many -> "RouterRuntime.Search.many"
+  in
+  let arguments =
+    [
+      (Labelled "name", B.estring ~loc search.name); (Labelled "parse", B.pexp_ident ~loc { txt = search.parser; loc });
+    ]
+    @ (match search.kind with Default fallback -> [ (Labelled "fallback", fallback) ] | _ -> [])
+    @ [ (Nolabel, B.evar ~loc "values") ]
+  in
+  B.pexp_apply ~loc (B.evar ~loc callee) arguments
+
+let search_of_values ~loc search =
+  B.pexp_record ~loc
+    (List.map
+       (fun (search : Router_declaration.search) ->
+         ({ txt = Longident.Lident search.name; loc = search.loc }, search_decoder ~loc:search.loc search))
+       search)
+    None
+
 let search_values_expression ~loc record search =
   let entry (search : Router_declaration.search) =
     let value = B.pexp_field ~loc record { txt = Longident.Lident search.name; loc } in
@@ -508,6 +546,40 @@ let search_constructor_expression ~loc search =
         (B.ppat_constraint ~loc (B.pvar ~loc search.name) (search_value_type ~loc search))
         body)
     search body
+
+let search_codec_structure ~loc ~values search =
+  let primitive name = B.evar ~loc ("RSC.Primitives." ^ name) in
+  let codec suffix =
+    B.pexp_apply ~loc
+      (primitive ("list" ^ suffix))
+      [
+        ( Nolabel,
+          B.pexp_apply ~loc
+            (primitive ("tuple2" ^ suffix))
+            [
+              (Nolabel, primitive ("string" ^ suffix));
+              (Nolabel, B.pexp_apply ~loc (primitive ("list" ^ suffix)) [ (Nolabel, primitive ("string" ^ suffix)) ]);
+            ] );
+      ]
+  in
+  let to_rsc =
+    B.pexp_fun ~loc Nolabel None
+      (B.ppat_constraint ~loc (B.pvar ~loc "search") (result_type ~loc "search"))
+      (B.pexp_apply ~loc (codec "_to_rsc") [ (Nolabel, values) ])
+  in
+  let of_rsc =
+    B.pexp_fun ~loc Nolabel None (B.pvar ~loc "rsc")
+      (B.pexp_let ~loc Nonrecursive
+         [
+           B.value_binding ~loc ~pat:(B.pvar ~loc "values")
+             ~expr:(B.pexp_apply ~loc (codec "_of_rsc") [ (Nolabel, B.evar ~loc "rsc") ]);
+         ]
+         (B.pexp_constraint ~loc (search_of_values ~loc search) (result_type ~loc "search")))
+  in
+  [
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "search_to_rsc") ~expr:to_rsc ];
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "search_of_rsc") ~expr:of_rsc ];
+  ]
 
 let route_module ~base_path ~root_search (route : Router_declaration.route) =
   let loc = route.loc in
@@ -663,6 +735,9 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
           B.pstr_value ~loc Nonrecursive
             [ B.value_binding ~loc ~pat:(B.pvar ~loc "search") ~expr:(search_constructor_expression ~loc route.search) ];
         ]
+        @ search_codec_structure ~loc
+            ~values:(B.pexp_apply ~loc (B.evar ~loc "searchValues") [ (Nolabel, B.evar ~loc "search") ])
+            route.search
   in
   let private_items =
     B.pstr_open ~loc
@@ -687,31 +762,6 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
         ])
   in
   B.pstr_module ~loc (B.module_binding ~loc ~name:{ txt = Some route.name; loc } ~expr:module_expression)
-
-let search_decoder ~loc (search : Router_declaration.search) =
-  let callee =
-    match search.kind with
-    | Required -> "RouterRuntime.Search.required"
-    | Optional -> "RouterRuntime.Search.optional"
-    | Default _ -> "RouterRuntime.Search.default"
-    | Many -> "RouterRuntime.Search.many"
-  in
-  let arguments =
-    [
-      (Labelled "name", B.estring ~loc search.name); (Labelled "parse", B.pexp_ident ~loc { txt = search.parser; loc });
-    ]
-    @ (match search.kind with Default fallback -> [ (Labelled "fallback", fallback) ] | _ -> [])
-    @ [ (Nolabel, B.evar ~loc "values") ]
-  in
-  B.pexp_apply ~loc (B.evar ~loc callee) arguments
-
-let search_of_values ~loc search =
-  B.pexp_record ~loc
-    (List.map
-       (fun (search : Router_declaration.search) ->
-         ({ txt = Longident.Lident search.name; loc = search.loc }, search_decoder ~loc:search.loc search))
-       search)
-    None
 
 let search_contract_structure ~loc search =
   if search = [] then []
@@ -744,10 +794,9 @@ let search_contract_structure ~loc search =
         (B.ptyp_arrow ~loc Nolabel (unit_type ~loc)
            (B.ptyp_tuple ~loc [ result_type ~loc "search"; update_search_function_type ~loc ]))
     in
-    [
-      B.pstr_type ~loc Recursive [ search_type_declaration ~loc search ];
-      B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "useSearch") ~expr:use_search ];
-    ]
+    B.pstr_type ~loc Recursive [ search_type_declaration ~loc search ]
+    :: search_codec_structure ~loc ~values:(search_values_expression ~loc (B.evar ~loc "search") search) search
+    @ [ B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "useSearch") ~expr:use_search ] ]
 
 let handles (declaration : Router_declaration.t) =
   let base_path = if declaration.base_path = "/" then "" else declaration.base_path in

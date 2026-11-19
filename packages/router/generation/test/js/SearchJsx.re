@@ -17,6 +17,13 @@ let constructorHref =
     (),
   );
 
+let record =
+  Router.Inspector.search(~target="t", ~input="i", ~hash=["a", "b"], ());
+
+let roundTrip =
+  Router.Inspector.search_of_rsc(Router.Inspector.search_to_rsc(record))
+  == record;
+
 let elements = [
   <Router.Inspector
     target="_blank"

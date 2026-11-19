@@ -101,6 +101,7 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -A2 'id:"Asset"' | tr -d ' ~\n' | grep -Eo 'activeRoutes:\[(\("[A-Za-z]+",\[[^]]*\]\);?)*\]'
   activeRoutes:[("Asset",["parts"])]
   $ ocamlc -c RouterRuntime.ml
+  $ ocamlc -c RSC.ml
   $ ocamlc -c Js.ml
   $ ocamlc -c React.ml
   $ ocamlc -c RouterReact.ml
@@ -443,6 +444,10 @@ parameter.
   type search = { revalidate: string option ; updateSearch: string option ; id: string option }
   type search = { revalidate: string option ; updateSearch: string option ; target: string ; error: string option ; input: string ; hash: string list ; value: int ; pattern: string option }
   $ ocamlc -c search_names_use.ml
+  $ grep -c 'val search_to_rsc : search -> RSC.t' SearchNames.mli
+  3
+  $ grep -c 'val search_of_rsc : RSC.t -> search' SearchNames.mli
+  3
   $ server-reason-react.router-gen --mode registry --source search-names.ml < search-names.ml | grep -Eo 'type redirect_[0-9_]+_search|Router\.[A-Za-z]+\.search\)|~search:routeSearch|~search:search' | sort -u
   Router.Inspector.search)
   Router.Note.search)

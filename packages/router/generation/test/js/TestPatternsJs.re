@@ -44,6 +44,7 @@ expect(
   "/site/inspector?input=x&target=a%20b",
   SearchJsx.constructorHref,
 );
+expect("search rsc round trip", "true", string_of_bool(SearchJsx.roundTrip));
 expect(
   "search elements",
   "2",

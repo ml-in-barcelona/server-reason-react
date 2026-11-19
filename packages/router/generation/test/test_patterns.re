@@ -270,6 +270,41 @@ let testSearchRecord = () => {
       </Router.Inspector>,
     ),
   );
+  let record =
+    Router.Inspector.search(
+      ~target="t",
+      ~input="i",
+      ~hash=["a", "b"],
+      ~value=2,
+      (),
+    );
+  Alcotest.(check(bool))(
+    "rsc round trip",
+    true,
+    Router.Inspector.search_of_rsc(Router.Inspector.search_to_rsc(record))
+    == record,
+  );
+  let chunks = ref([]);
+  Lwt_main.run(
+    ReactServerDOM.render_model(
+      ~subscribe=
+        chunk => {
+          chunks := [chunk, ...chunks^];
+          Lwt.return();
+        },
+      <InspectorBadge search=record />,
+    ),
+  );
+  let model = String.concat("", List.rev(chunks^));
+  let needle = {|"search":[["target",["t"]],["input",["i"]],["hash",["a","b"]],["value",["2"]]]|};
+  let rec contains = index =>
+    index
+    + String.length(needle) <= String.length(model)
+    && (
+      String.sub(model, index, String.length(needle)) == needle
+      || contains(index + 1)
+    );
+  Alcotest.(check(bool))("client component prop", true, contains(0));
   Alcotest.check(
     string,
     "registry decodes the record",
