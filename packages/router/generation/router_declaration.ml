@@ -374,8 +374,14 @@ let rec node_of_expression ~address expression =
     Route { name; page; scope = scope ~id:("route:" ^ name) ~path arguments expression; loc = expression.pexp_loc }
   else if is_identifier [ "Router"; "group" ] callee then
     let () =
+      match argument (Labelled "search") arguments with
+      | Some search ->
+          error ~loc:search.pexp_loc "Router.group cannot declare ~search; declare it on Router.make or on each route"
+      | None -> ()
+    in
+    let () =
       validate_arguments ~loc:expression.pexp_loc
-        ~allowed:([ "path"; "search"; "prefetch" ] @ attachment_labels)
+        ~allowed:([ "path"; "prefetch" ] @ attachment_labels)
         ~unlabelled:1 arguments
     in
     let local_path =

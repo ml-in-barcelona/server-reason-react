@@ -51,9 +51,9 @@ redirect answers documents with a see-other response. A client navigation
 receives the redirect envelope in both cases.
 
 The destination callback receives the redirect's decoded path and search
-values, including values inherited from parent groups and the root. Redirects
-inside groups inherit their path and search schemas, but do not run group
-loaders or attachments.
+values, including path parameters inherited from parent groups and search
+values from the root. Redirects inside groups inherit their path schema, but
+do not run group loaders or attachments.
 
 Use [Router.unsafeDestination] when the target is outside the generated route
 manifest or must preserve a legacy URL exactly:
@@ -243,7 +243,9 @@ parse produces [InvalidPathParameter].
 
 {2 Search parameters}
 
-Any scope declares search parameters as a typed record:
+[Router.make], [Router.route] and [Router.redirect] declare search parameters
+as a typed record. [Router.group] cannot declare them: put shared parameters
+on [Router.make], or repeat them on each route.
 
 {[
 ~search={
@@ -254,7 +256,7 @@ Any scope declares search parameters as a typed record:
 }
 ]}
 
-Child scopes see their ancestors' parameters as well as their own. Canonical
+A route or redirect sees the root parameters as well as its own. Canonical
 URLs omit values that equal their declared default. A required root search
 parameter together with a root [~error] boundary also requires [~invalidSearch].
 

@@ -7,6 +7,13 @@
   Error: router: group path /assets/:parts<string...> cannot contain a catch-all segment
   [2]
 
+Search parameters belong to the root or to a route. A group cannot declare them.
+
+  $ server-reason-react.router-gen --mode handles --source group-search.ml < group-search.ml
+  File "group-search.ml", line 3, characters 45-87:
+  Error: router: Router.group cannot declare ~search; declare it on Router.make or on each route
+  [2]
+
   $ server-reason-react.router-gen --mode handles --source catch-all-nonfinal.ml < catch-all-nonfinal.ml
   File "catch-all-nonfinal.ml", line 1, characters 31-96:
   Error: router: invalid route path /:parts<string...>/raw

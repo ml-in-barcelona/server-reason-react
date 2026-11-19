@@ -102,7 +102,6 @@ module WorkspaceLayoutView = {
         ~workspaceId as _,
         ~page as _,
         ~searchText as _,
-        ~filter as _,
         ~workspace as _,
         ~children,
       ) => children;
@@ -118,14 +117,7 @@ module WorkspaceLayout = {
 
 module WorkspaceMetadata = {
   let make =
-      (
-        ~workspaceId as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
-        ~workspace as _,
-        (),
-      ) => {
+      (~workspaceId as _, ~page as _, ~searchText as _, ~workspace as _, ()) => {
     record("workspace-metadata");
     Lwt.return(RouterRuntime.Metadata.make(~description="Workspace", ()));
   };
@@ -133,14 +125,7 @@ module WorkspaceMetadata = {
 
 module WorkspaceHeaders = {
   let make =
-      (
-        ~workspaceId as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
-        ~workspace as _,
-        (),
-      ) => {
+      (~workspaceId as _, ~page as _, ~searchText as _, ~workspace as _, ()) => {
     record("workspace-headers");
     Lwt.return(headers([("Cache-Control", "private")]));
   };
@@ -148,14 +133,7 @@ module WorkspaceHeaders = {
 
 module WorkspaceBoundaryView = {
   [@react.component]
-  let make =
-      (
-        ~workspaceId as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
-        ~error as _,
-      ) =>
+  let make = (~workspaceId as _, ~page as _, ~searchText as _, ~error as _) =>
     React.string("workspace-error");
 };
 
@@ -169,14 +147,7 @@ module WorkspaceBoundary = {
 
 module WorkspaceNotFound = {
   [@react.component]
-  let make =
-      (
-        ~workspaceId as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
-        ~error as _,
-      ) => {
+  let make = (~workspaceId as _, ~page as _, ~searchText as _, ~error as _) => {
     record("workspace-not-found");
     React.string("workspace-not-found");
   };

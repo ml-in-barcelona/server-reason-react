@@ -16,7 +16,7 @@ let record = event => events := [event, ...events^];
 let events = () => List.rev(events^);
 
 let load =
-    (~workspaceId, ~page, ~searchText as _, ~filter as _, ())
+    (~workspaceId, ~page, ~searchText as _, ())
     : Lwt.t(RouterRuntime.Loader.result(string, string)) => {
   record("workspace");
   if (shouldError^) {
