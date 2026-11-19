@@ -1,6 +1,6 @@
 module App = {
   [@react.component]
-  let make = (~text as _) =>
+  let make = (~search as _) =>
     <div className="flex flex-col h-full items-center justify-center gap-2">
       <Text size=XXLarge> "🥺" </Text>
       <Text> "Click a note on the left to view something!" </Text>
@@ -9,7 +9,7 @@ module App = {
 
 module AppLayout = {
   [@react.component]
-  let make = (~children, ~text as _) =>
+  let make = (~children, ~search as _) =>
     <DemoLayout background=Theme.Color.Gray2 mode=DemoLayout.FullScreen>
       <div className="flex flex-row gap-8 h-full">
         <section
@@ -81,7 +81,7 @@ module Document = {
 
 module GlobalLoading = {
   [@react.component]
-  let make = (~text as _) =>
+  let make = (~search as _) =>
     <div className="flex items-center justify-center h-full">
       <Text> "Loading..." </Text>
     </div>;
@@ -89,7 +89,7 @@ module GlobalLoading = {
 
 module AppError = {
   [@react.component]
-  let make = (~text as _, ~error as _) =>
+  let make = (~search as _, ~error as _) =>
     <div className="flex flex-col h-full items-center justify-center gap-2">
       <Text size=XXLarge> "⚠️" </Text>
       <Text> "The requested note could not be loaded." </Text>
@@ -98,7 +98,7 @@ module AppError = {
 
 module NotFound = {
   [@react.component]
-  let make = (~text as _, ~error as _) =>
+  let make = (~search as _, ~error as _) =>
     <div className="flex flex-col h-full items-center justify-center gap-2">
       <Text size=XXLarge> "😵‍💫" </Text>
       <Text> "No route matches this location." </Text>
@@ -107,23 +107,23 @@ module NotFound = {
 
 module NewNoteLoading = {
   [@react.component]
-  let make = (~text as _) => <NoteSkeleton isEditing=true />;
+  let make = (~search as _) => <NoteSkeleton isEditing=true />;
 };
 
 module NoteLoading = {
   [@react.component]
-  let make = (~id as _, ~text as _, ~note as _) =>
+  let make = (~id as _, ~search as _, ~note as _) =>
     <NoteSkeleton isEditing=false />;
 };
 
 module EditNoteLoading = {
   [@react.component]
-  let make = (~id as _, ~text as _, ~note as _) =>
+  let make = (~id as _, ~search as _, ~note as _) =>
     <NoteSkeleton isEditing=true />;
 };
 
 module NoteLoader = {
-  let load = (~id, ~text as _, ()) =>
+  let load = (~id, ~search as _, ()) =>
     DB.fetchNoteOption(id)
     |> Lwt.map(result =>
          switch (result) {
@@ -136,30 +136,30 @@ module NoteLoader = {
 
 module NoteLayout = {
   [@react.component]
-  let make = (~id as _, ~text as _, ~note as _, ~children) => children;
+  let make = (~id as _, ~search as _, ~note as _, ~children) => children;
 };
 
 module NewNote = {
   [@react.component]
-  let make = (~text as _) =>
+  let make = (~search as _) =>
     <NoteEditor id=None initialTitle="Untitled" initialBody="" />;
 };
 
 module Note = {
   [@react.component]
-  let make = (~id as _, ~text as _, ~note) =>
+  let make = (~id as _, ~search as _, ~note) =>
     <NoteItem note isEditing=false />;
 };
 
 module EditNote = {
   [@react.component]
-  let make = (~id as _, ~text as _, ~note) =>
+  let make = (~id as _, ~search as _, ~note) =>
     <NoteItem note isEditing=true />;
 };
 
 module E2e = {
   [@react.component]
-  let make = (~text as _) =>
+  let make = (~search as _) =>
     <div className="flex flex-col gap-4 p-4" id="e2e-page">
       <h1> {React.string("Router checks")} </h1>
       <a id="plain-route" href="/demo/router/e2e/long">
@@ -203,7 +203,7 @@ module E2e = {
 
 module E2eLong = {
   [@react.component]
-  let make = (~text as _) =>
+  let make = (~search as _) =>
     <div className="p-4" id="e2e-long">
       <h1> {React.string("Long page")} </h1>
       <Router.E2e className="long-back">
@@ -216,13 +216,13 @@ module E2eLong = {
 
 module E2eOff = {
   [@react.component]
-  let make = (~text as _) =>
+  let make = (~search as _) =>
     <p id="e2e-off"> {React.string("A route that is never prefetched")} </p>;
 };
 
 module E2eViewport = {
   [@react.component]
-  let make = (~text as _) =>
+  let make = (~search as _) =>
     <p id="e2e-viewport">
       {React.string("A route prefetched near the viewport")}
     </p>;

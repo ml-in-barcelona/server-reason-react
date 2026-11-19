@@ -36,7 +36,7 @@ Router.make(
         ),
         Router.route(
           EditNote,
-          ~page=NotePage,
+          ~page=NotePage.Edit,
           ~path="/notes/:id<NoteId.t>/edit",
           ~search={ filter: Router.Search.optional(Filter.t) },
           ~loader=NoteLoader,
@@ -79,8 +79,18 @@ Router.make(
     ),
     Router.redirect(
       ~path="/legacy/:workspaceId<WorkspaceId.t>/notes/:id<NoteId.t>",
-      ~target=(~workspaceId, ~id, ~page, ~searchText, ()) =>
-      Router.Note.destination(~workspaceId, ~id, ~page, ~searchText?, ())
+      ~target=(~workspaceId, ~id, ~search, ()) =>
+      Router.Note.destination(
+        ~workspaceId,
+        ~id,
+        ~search=
+          Router.Note.search(
+            ~page=search.page,
+            ~searchText=?search.searchText,
+            (),
+          ),
+        (),
+      )
     ),
   ],
 );

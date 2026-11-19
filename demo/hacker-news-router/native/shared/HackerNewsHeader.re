@@ -57,17 +57,17 @@ let make = () => {
 
   let%melange_only onSubmit = event => {
     React.Event.Form.preventDefault(event);
-    let text = text == "" ? None : Some(text);
+    let search = { Router.text: text == "" ? None : Some(text) };
     let destination =
       switch (route) {
-      | Some(Router.New) => Router.New.destination(~text?, ())
-      | Some(Router.Best) => Router.Best.destination(~text?, ())
-      | Some(Router.Ask) => Router.Ask.destination(~text?, ())
-      | Some(Router.Show) => Router.Show.destination(~text?, ())
-      | Some(Router.Jobs) => Router.Jobs.destination(~text?, ())
+      | Some(Router.New) => Router.New.destination(~search, ())
+      | Some(Router.Best) => Router.Best.destination(~search, ())
+      | Some(Router.Ask) => Router.Ask.destination(~search, ())
+      | Some(Router.Show) => Router.Show.destination(~search, ())
+      | Some(Router.Jobs) => Router.Jobs.destination(~search, ())
       | Some(Router.Top)
       | Some(Router.Story(_))
-      | None => Router.Top.destination(~text?, ())
+      | None => Router.Top.destination(~search, ())
       };
     startSearching(() => navigate(destination) |> ignore);
   };

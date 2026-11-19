@@ -1,12 +1,4 @@
 [@react.component]
-let make =
-    (
-      ~teamId: WorkspaceId.t,
-      ~page: int,
-      ~searchText: option(string),
-      ~member: string,
-    ) => {
-  ignore(page);
-  ignore(searchText);
+let make = (~teamId: WorkspaceId.t, ~search as _, ~member: string) => {
   React.string("member:" ++ WorkspaceId.to_string(teamId) ++ ":" ++ member);
 };

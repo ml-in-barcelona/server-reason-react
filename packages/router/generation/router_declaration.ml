@@ -471,6 +471,7 @@ let generated_labels =
     "pattern";
     "registry";
     "revalidate";
+    "routeSearch";
     "search";
     "target";
     "updateSearch";
@@ -524,11 +525,10 @@ let endpoints declaration =
               route.loc )
         | RedirectTo redirect -> (redirect.parameters, redirect.search, [], redirect.loc)
       in
-      let labels =
-        List.map (fun (parameter : parameter) -> parameter.name) parameters
-        @ List.map (fun (search : search) -> search.name) search
-        @ loader_labels
-      in
+      (match duplicate (List.map (fun (search : search) -> search.name) search) with
+      | Some name -> error ~loc "duplicate search parameter %s" name
+      | None -> ());
+      let labels = List.map (fun (parameter : parameter) -> parameter.name) parameters @ loader_labels in
       match duplicate labels with
       | Some label -> error ~loc "duplicate branch input label %s" label
       | None ->

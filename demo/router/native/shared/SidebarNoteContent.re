@@ -23,7 +23,7 @@ let make =
       ~children: React.element,
       ~expandedChildren: React.element,
     ) => {
-  let ({ Router.text }, _) = Router.useSearch();
+  let (search, _) = Router.useSearch();
   let (isExpanded, setIsExpanded) = RR.useStateValue(false);
   let isActive =
     switch (Router.useRoute()) {
@@ -43,7 +43,7 @@ let make =
     ])}>
     <Router.Note
       id
-      ?text
+      search
       className="relative p-4 w-full justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 flex flex-col gap-1 cursor-pointer"
       ?ariaCurrent>
       children

@@ -6,7 +6,8 @@
   RouterReact
   RouterRuntime
   RouterTransaction
-  RouterTypes)
+  RouterTypes
+  SearchJsx)
  (modes melange)
  (wrapped false)
  (libraries melange.js reason-react server-reason-react.rsc)
@@ -32,7 +33,7 @@
    (run node %{test}))))
 
 (copy_files
- (files ../Router.re))
+ (files ../Router.{re,rei}))
 
 (copy_files
  (files ../../../test/cycle/js/RouterReact.re))

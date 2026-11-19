@@ -2,16 +2,10 @@
 let make =
     (
       ~workspaceId: WorkspaceId.t,
-      ~page: int,
-      ~searchText: option(string),
-      ~filter: option(Filter.t),
-      ~view: option(NoteId.t),
+      ~search: Router.SearchResults.search,
       ~workspace: string,
     ) => {
   ignore(workspaceId);
-  ignore(page);
-  ignore(searchText);
-  ignore(filter);
-  ignore(view);
+  ignore(search.view);
   React.string(workspace);
 };

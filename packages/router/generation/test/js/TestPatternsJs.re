@@ -21,7 +21,7 @@ expect(
 expect(
   "hash after search",
   "/site/notes/1?tab=a%20b#top",
-  Router.Note.href(~id=1, ~tab="a b", ~hash="top", ()),
+  Router.Note.href(~id=1, ~search={ tab: Some("a b") }, ~hash="top", ()),
 );
 expect(
   "encoded hash",
@@ -34,6 +34,21 @@ expect(
   Router.Note.href(~id=1, ~hash=Js.String.fromCharCode(0xd800), ()),
 );
 expect("empty hash", "/site/notes/1", Router.Note.href(~id=1, ~hash="", ()));
+expect(
+  "search record",
+  "/site/inspector?error=e&hash=a&target=x",
+  SearchJsx.recordHref,
+);
+expect(
+  "search constructor",
+  "/site/inspector?input=x&target=a%20b",
+  SearchJsx.constructorHref,
+);
+expect(
+  "search elements",
+  "2",
+  string_of_int(List.length(SearchJsx.elements)),
+);
 
 let level = destination =>
   RouterRuntime.PrefetchLevel.toString(

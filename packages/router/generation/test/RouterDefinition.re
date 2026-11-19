@@ -57,5 +57,31 @@ Router.make(
       ~path="/notes/:id<int>",
       ~search={ tab: Router.Search.optional(string) },
     ),
+    Router.route(
+      Inspector,
+      ~page=Pages.Inspector,
+      ~path="/inspector",
+      ~search={
+        target: Router.Search.required(string),
+        error: Router.Search.optional(string),
+        input: Router.Search.default(string, "all"),
+        hash: Router.Search.many(string),
+        value: Router.Search.optional(int),
+        pattern: Router.Search.optional(string),
+      },
+    ),
+    Router.redirect(
+      ~path="/old-inspector",
+      ~search={ site: Router.Search.optional(string) },
+      ~target=(~search, ()) =>
+      Router.Inspector.destination(
+        ~search=
+          Router.Inspector.search(
+            ~target=Option.value(search.site, ~default="none"),
+            (),
+          ),
+        (),
+      )
+    ),
   ],
 );
