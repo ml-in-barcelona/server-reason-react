@@ -2,9 +2,9 @@ let string = Alcotest.string;
 let pairs = Alcotest.(list(pair(string, string)));
 let active = Alcotest.(list(pair(string, pairs)));
 
-let resolve = pathname => {
+let resolve = (~query="", pathname) => {
   let search =
-    switch (RouterServer.Search.parse("")) {
+    switch (RouterServer.Search.parse(query)) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected valid search")
     };
@@ -181,7 +181,7 @@ let testHash = () => {
     string,
     "hash after search",
     "/site/notes/1?tab=a%20b#top",
-    Router.Note.href(~id=1, ~tab="a b", ~hash="top", ()),
+    Router.Note.href(~id=1, ~search={ tab: Some("a b") }, ~hash="top", ()),
   );
   Alcotest.check(
     string,
@@ -209,6 +209,111 @@ let testHash = () => {
     {|<a href="/site/help/fr#faq">FAQ</a>|},
     ReactDOM.renderToStaticMarkup(
       <Router.Help lang="fr" hash="faq"> {React.string("FAQ")} </Router.Help>,
+    ),
+  );
+};
+
+let testSearchRecord = () => {
+  Alcotest.check(
+    string,
+    "record literal",
+    "/site/inspector?error=e&hash=a&hash=b&pattern=p&target=example.com&value=3",
+    Router.Inspector.href(
+      ~search={
+        target: "example.com",
+        error: Some("e"),
+        input: "all",
+        hash: ["a", "b"],
+        value: Some(3),
+        pattern: Some("p"),
+      },
+      (),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "constructor",
+    "/site/inspector?input=x&target=a%20b",
+    Router.Inspector.href(
+      ~search=Router.Inspector.search(~target="a b", ~input="x", ()),
+      (),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "jsx record literal",
+    {|<a href="/site/inspector?hash=h&amp;target=example.com" target="_blank">x</a>|},
+    ReactDOM.renderToStaticMarkup(
+      <Router.Inspector
+        target="_blank"
+        search={
+          target: "example.com",
+          error: None,
+          input: "all",
+          hash: ["h"],
+          value: None,
+          pattern: None,
+        }>
+        {React.string("x")}
+      </Router.Inspector>,
+    ),
+  );
+  Alcotest.check(
+    string,
+    "jsx constructor",
+    {|<a href="/site/inspector?error=e&amp;target=t" target="_self">y</a>|},
+    ReactDOM.renderToStaticMarkup(
+      <Router.Inspector
+        target="_self"
+        search={Router.Inspector.search(~target="t", ~error="e", ())}>
+        {React.string("y")}
+      </Router.Inspector>,
+    ),
+  );
+  let record =
+    Router.Inspector.search(
+      ~target="t",
+      ~input="i",
+      ~hash=["a", "b"],
+      ~value=2,
+      (),
+    );
+  Alcotest.(check(bool))(
+    "rsc round trip",
+    true,
+    Router.Inspector.search_of_rsc(Router.Inspector.search_to_rsc(record))
+    == record,
+  );
+  let chunks = ref([]);
+  Lwt_main.run(
+    ReactServerDOM.render_model(
+      ~subscribe=
+        chunk => {
+          chunks := [chunk, ...chunks^];
+          Lwt.return();
+        },
+      <InspectorBadge search=record />,
+    ),
+  );
+  let model = String.concat("", List.rev(chunks^));
+  let needle = {|"search":[["target",["t"]],["input",["i"]],["hash",["a","b"]],["value",["2"]]]|};
+  let rec contains = index =>
+    index
+    + String.length(needle) <= String.length(model)
+    && (
+      String.sub(model, index, String.length(needle)) == needle
+      || contains(index + 1)
+    );
+  Alcotest.(check(bool))("client component prop", true, contains(0));
+  Alcotest.check(
+    string,
+    "registry decodes the record",
+    "t|e|all|a,b|7|p",
+    snd(
+      resolve(
+        ~query="?target=t&error=e&hash=a&hash=b&value=7&pattern=p",
+        "/inspector",
+      ),
     ),
   );
 };
@@ -387,6 +492,7 @@ let () =
         ],
       ),
       ("hash", [Alcotest.test_case("href", `Quick, testHash)]),
+      ("search", [Alcotest.test_case("record", `Quick, testSearchRecord)]),
       (
         "form action",
         [

@@ -21,7 +21,7 @@ let headers = values =>
 
 module RootLayoutView = {
   [@react.component]
-  let make = (~page as _, ~searchText as _, ~children) => children;
+  let make = (~search as _, ~children) => children;
 };
 
 module RootLayout = {
@@ -34,18 +34,18 @@ module RootLayout = {
 
 module RootLoading = {
   [@react.component]
-  let make = (~page as _, ~searchText as _) => React.string("loading");
+  let make = (~search as _) => React.string("loading");
 };
 
 module RootMetadata = {
-  let make = (~page as _, ~searchText as _, ()) => {
+  let make = (~search as _, ()) => {
     record("root-metadata");
     Lwt.return(RouterRuntime.Metadata.make(~title="Root", ()));
   };
 };
 
 module RootHeaders = {
-  let make = (~page as _, ~searchText as _, ()) => {
+  let make = (~search as _, ()) => {
     record("root-headers");
     Lwt.return(headers([("Vary", "Accept")]));
   };
@@ -53,7 +53,7 @@ module RootHeaders = {
 
 module RootBoundaryView = {
   [@react.component]
-  let make = (~page as _, ~searchText as _, ~error as _) => {
+  let make = (~search as _, ~error as _) => {
     React.string("root-error");
   };
 };
@@ -89,7 +89,7 @@ module InvalidSearch = {
 
 module RootNotFound = {
   [@react.component]
-  let make = (~page as _, ~searchText as _, ~error as _) => {
+  let make = (~search as _, ~error as _) => {
     record("root-not-found");
     React.string("root-not-found");
   };
@@ -97,15 +97,7 @@ module RootNotFound = {
 
 module WorkspaceLayoutView = {
   [@react.component]
-  let make =
-      (
-        ~workspaceId as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
-        ~workspace as _,
-        ~children,
-      ) => children;
+  let make = (~workspaceId as _, ~search as _, ~workspace as _, ~children) => children;
 };
 
 module WorkspaceLayout = {
@@ -117,30 +109,14 @@ module WorkspaceLayout = {
 };
 
 module WorkspaceMetadata = {
-  let make =
-      (
-        ~workspaceId as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
-        ~workspace as _,
-        (),
-      ) => {
+  let make = (~workspaceId as _, ~search as _, ~workspace as _, ()) => {
     record("workspace-metadata");
     Lwt.return(RouterRuntime.Metadata.make(~description="Workspace", ()));
   };
 };
 
 module WorkspaceHeaders = {
-  let make =
-      (
-        ~workspaceId as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
-        ~workspace as _,
-        (),
-      ) => {
+  let make = (~workspaceId as _, ~search as _, ~workspace as _, ()) => {
     record("workspace-headers");
     Lwt.return(headers([("Cache-Control", "private")]));
   };
@@ -148,14 +124,7 @@ module WorkspaceHeaders = {
 
 module WorkspaceBoundaryView = {
   [@react.component]
-  let make =
-      (
-        ~workspaceId as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
-        ~error as _,
-      ) =>
+  let make = (~workspaceId as _, ~search as _, ~error as _) =>
     React.string("workspace-error");
 };
 
@@ -169,14 +138,7 @@ module WorkspaceBoundary = {
 
 module WorkspaceNotFound = {
   [@react.component]
-  let make =
-      (
-        ~workspaceId as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
-        ~error as _,
-      ) => {
+  let make = (~workspaceId as _, ~search as _, ~error as _) => {
     record("workspace-not-found");
     React.string("workspace-not-found");
   };
@@ -197,9 +159,7 @@ module NoteMetadata = {
       (
         ~workspaceId as _,
         ~id as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
+        ~search as _,
         ~workspace as _,
         ~noteAccess as _,
         (),
@@ -214,9 +174,7 @@ module NoteHeaders = {
       (
         ~workspaceId as _,
         ~id as _,
-        ~page as _,
-        ~searchText as _,
-        ~filter as _,
+        ~search as _,
         ~workspace as _,
         ~noteAccess as _,
         (),
@@ -228,7 +186,7 @@ module NoteHeaders = {
 
 module TeamLayoutView = {
   [@react.component]
-  let make = (~teamId as _, ~page as _, ~searchText as _, ~children) => children;
+  let make = (~teamId as _, ~search as _, ~children) => children;
 };
 
 module TeamLayout = {
@@ -241,7 +199,7 @@ module TeamLayout = {
 
 module TeamBoundaryView = {
   [@react.component]
-  let make = (~teamId as _, ~page as _, ~searchText as _, ~error as _) =>
+  let make = (~teamId as _, ~search as _, ~error as _) =>
     React.string("team-error");
 };
 
@@ -255,7 +213,7 @@ module TeamBoundary = {
 
 module TeamNotFound = {
   [@react.component]
-  let make = (~teamId as _, ~page as _, ~searchText as _, ~error as _) => {
+  let make = (~teamId as _, ~search as _, ~error as _) => {
     record("team-not-found");
     React.string("team-not-found");
   };

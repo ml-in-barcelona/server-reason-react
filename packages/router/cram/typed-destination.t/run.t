@@ -7,6 +7,13 @@
   Error: router: group path /assets/:parts<string...> cannot contain a catch-all segment
   [2]
 
+Search parameters belong to the root or to a route. A group cannot declare them.
+
+  $ server-reason-react.router-gen --mode handles --source group-search.ml < group-search.ml
+  File "group-search.ml", line 3, characters 45-87:
+  Error: router: Router.group cannot declare ~search; declare it on Router.make or on each route
+  [2]
+
   $ server-reason-react.router-gen --mode handles --source catch-all-nonfinal.ml < catch-all-nonfinal.ml
   File "catch-all-nonfinal.ml", line 1, characters 31-96:
   Error: router: invalid route path /:parts<string...>/raw
@@ -87,10 +94,6 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   Error: router: invalid route path /docs/:rest?<string...>/raw
   [2]
 
-  $ server-reason-react.router-gen --mode handles --source reserved-hash.ml < reserved-hash.ml
-  File "reserved-hash.ml", line 1, characters 28-120:
-  Error: router: branch input label hash conflicts with a generated router argument
-  [2]
   $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -Eo 'activeRoutes:\[\]|RouterServer.Execution.redirect|Router.Note.destination' | sort -u
   Router.Note.destination
   RouterServer.Execution.redirect
@@ -98,6 +101,7 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -A2 'id:"Asset"' | tr -d ' ~\n' | grep -Eo 'activeRoutes:\[(\("[A-Za-z]+",\[[^]]*\]\);?)*\]'
   activeRoutes:[("Asset",["parts"])]
   $ ocamlc -c RouterRuntime.ml
+  $ ocamlc -c RSC.ml
   $ ocamlc -c Js.ml
   $ ocamlc -c React.ml
   $ ocamlc -c RouterReact.ml
@@ -221,11 +225,6 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   Error: router: branch input label history conflicts with a generated router argument
   [2]
 
-  $ server-reason-react.router-gen --mode handles --source reserved-revalidate.ml < reserved-revalidate.ml
-  File "reserved-revalidate.ml", line 2, characters 2-44:
-  Error: router: branch input label revalidate conflicts with a generated router argument
-  [2]
-
   $ server-reason-react.router-gen --mode handles --source options-label.ml < options-label.ml > Router.ml
   $ ocamlc -c Router.ml
 
@@ -245,11 +244,6 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   $ server-reason-react.router-gen --mode handles --source reserved-destination.ml < reserved-destination.ml
   File "reserved-destination.ml", line 1, characters 28-86:
   Error: router: branch input label destination conflicts with a generated router argument
-  [2]
-
-  $ server-reason-react.router-gen --mode handles --source reserved-update-search.ml < reserved-update-search.ml
-  File "reserved-update-search.ml", line 2, characters 2-44:
-  Error: router: branch input label updateSearch conflicts with a generated router argument
   [2]
 
   $ server-reason-react.router-gen --mode registry --source required-root-error.ml < required-root-error.ml
@@ -431,3 +425,36 @@ an application error answers 500.
   $ server-reason-react.router-gen --mode registry --source error-boundary-only.ml < error-boundary-only.ml | grep -c 'status AppBoundary\|AppBoundary.status'
   0
   [1]
+
+Search parameters reach the generated API as one record, so their names never
+meet a generated argument. A path parameter may share a name with a search
+parameter.
+
+  $ server-reason-react.router-gen --mode handles --source search-names.ml < search-names.ml > SearchNames.ml
+  $ server-reason-react.router-gen --mode interface --source search-names.ml < search-names.ml > SearchNames.mli
+  $ ocamlc -c SearchNames.mli
+  $ ocamlc -c SearchNames.ml
+  $ tr -s ' \n' ' ' < SearchNames.mli | grep -Eo 'val (search|destination) :( [?a-zA-Z]+:[a-zA-Z ]+ ->)* unit -> [a-z]+'
+  val search : ?revalidate:string -> ?updateSearch:string -> ?id:string -> unit -> search
+  val destination : id:int -> ?search:search -> ?hash:string -> unit -> destination
+  val search : ?revalidate:string -> ?updateSearch:string -> target:string -> ?error:string -> ?input:string -> ?hash:string list -> ?value:int -> ?pattern:string -> unit -> search
+  val destination : search:search -> ?hash:string -> unit -> destination
+  $ tr -s ' \n' ' ' < SearchNames.mli | grep -Eo 'type (nonrec )?search = [^}]*}'
+  type search = { revalidate: string option ; updateSearch: string option }
+  type search = { revalidate: string option ; updateSearch: string option ; id: string option }
+  type search = { revalidate: string option ; updateSearch: string option ; target: string ; error: string option ; input: string ; hash: string list ; value: int ; pattern: string option }
+  $ ocamlc -c search_names_use.ml
+  $ grep -c 'val search_to_rsc : search -> RSC.t' SearchNames.mli
+  3
+  $ grep -c 'val search_of_rsc : RSC.t -> search' SearchNames.mli
+  3
+  $ server-reason-react.router-gen --mode registry --source search-names.ml < search-names.ml | grep -Eo 'type redirect_[0-9_]+_search|Router\.[A-Za-z]+\.search\)|~search:routeSearch|~search:search' | sort -u
+  Router.Inspector.search)
+  Router.Note.search)
+  type redirect_2_search
+  ~search:routeSearch
+
+  $ server-reason-react.router-gen --mode registry --source duplicate-search.ml < duplicate-search.ml
+  File "duplicate-search.ml", line 2, characters 4-93:
+  Error: router: duplicate search parameter page
+  [2]

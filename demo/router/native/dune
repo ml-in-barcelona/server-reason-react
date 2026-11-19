@@ -23,7 +23,7 @@
    server-reason-react.rsc-native.ppx)))
 
 (copy_files
- (files ../generated/Router.ml))
+ (files ../generated/Router.{ml,mli}))
 
 (copy_files
  (files ../generated/RouterRegistry.ml))

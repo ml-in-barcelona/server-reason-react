@@ -2,7 +2,7 @@
 let make = (~id: NoteId.t) => {
   let (isDeleting, setIsDeleting) = RR.useStateValue(false);
   let (navigate, navigation) = Router.useNavigation();
-  let ({ Router.text }, _) = Router.useSearch();
+  let (search, _) = Router.useSearch();
   let isNavigating =
     switch (navigation) {
     | Router.Navigation.Loading(_) => true
@@ -17,7 +17,7 @@ let make = (~id: NoteId.t) => {
          navigate(
            ~history=Router.Navigation.Replace,
            ~revalidate=true,
-           Router.Home.destination(~text?, ()),
+           Router.Home.destination(~search, ()),
          )
          |> ignore;
          Js.Promise.resolve();

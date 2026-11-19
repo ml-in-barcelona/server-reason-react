@@ -23,7 +23,8 @@
   js
   server-reason-react.react
   lwt
-  server-reason-react.router-native)
+  server-reason-react.router-native
+  server-reason-react.rsc-native)
  (preprocess
   (per_module
    ((pps server-reason-react.ppx)

@@ -50,10 +50,22 @@ receive status 308, so the request method survives the redirect. A temporary
 redirect answers documents with a see-other response. A client navigation
 receives the redirect envelope in both cases.
 
-The destination callback receives the redirect's decoded path and search
-values, including values inherited from parent groups and the root. Redirects
-inside groups inherit their path and search schemas, but do not run group
-loaders or attachments.
+The destination callback receives the redirect's decoded path parameters,
+including those inherited from parent groups, and its search record as
+[~search]. Redirects inside groups inherit their path schema, but do not run
+group loaders or attachments. The search record has the root parameters and
+the redirect's own. Without its own parameters it has the type
+[Router.search]. With its own parameters, its type is local to the registry,
+so build a route's record from its fields:
+
+{[
+Router.redirect(
+  ~path="/old-search",
+  ~search={ q: Router.Search.optional(string) },
+  ~target=(~search, ()) =>
+    Router.Home.destination(~search=Router.Home.search(~text=?search.q, ()), ()),
+)
+]}
 
 Use [Router.unsafeDestination] when the target is outside the generated route
 manifest or must preserve a legacy URL exactly:
@@ -126,16 +138,20 @@ Each route name must be unique, and these names are reserved because the
 generated module already uses them: [Status], [Loader], [Error], [Metadata],
 [Headers], [Navigation], [Search], and [Link].
 
-Path parameter names, search parameter names, and loader result labels become
-labelled arguments of the generated helpers. Within one branch they must be
-unique. These labels belong to the generated API and cannot be used:
-[applicationStatus], [ariaCurrent], [basePath], [children], [className],
-[decodeError], [destination], [download], [error], [fallback], [hash],
-[history],
-[href], [input], [item], [make], [pattern], [registry], [revalidate], [search],
-[target], [updateSearch], [unsafeDestination], [useNavigation], [useRoute],
-[useSearch], [useUpdateHash], [value], and [values]. The generator reports a
-conflict at the route that uses the label.
+Path parameter names and loader result labels become labelled arguments of
+the generated helpers. Within one branch they must be unique. These labels
+belong to the generated API and cannot be used: [applicationStatus],
+[ariaCurrent], [basePath], [children], [className], [decodeError],
+[destination], [download], [error], [fallback], [hash], [history], [href],
+[input], [item], [make], [pattern], [registry], [revalidate], [routeSearch],
+[search], [target], [updateSearch], [unsafeDestination], [useNavigation],
+[useRoute], [useSearch], [useUpdateHash], [value], and [values]. The
+generator reports a conflict at the route that uses the label.
+
+Search parameters are fields of one [search] record, not labelled arguments,
+so these names do not apply to them: a search parameter can be called
+[target], [error], [input] or [hash]. Search parameter names must be unique
+within a branch, and a path parameter may share a name with one.
 
 {2 Path syntax}
 
@@ -243,7 +259,9 @@ parse produces [InvalidPathParameter].
 
 {2 Search parameters}
 
-Any scope declares search parameters as a typed record:
+[Router.make], [Router.route] and [Router.redirect] declare search parameters
+as a typed record. [Router.group] cannot declare them: put shared parameters
+on [Router.make], or repeat them on each route.
 
 {[
 ~search={
@@ -254,9 +272,58 @@ Any scope declares search parameters as a typed record:
 }
 ]}
 
-Child scopes see their ancestors' parameters as well as their own. Canonical
+A route or redirect sees the root parameters as well as its own. Canonical
 URLs omit values that equal their declared default. A required root search
 parameter together with a root [~error] boundary also requires [~invalidSearch].
+
+The field name is the query key, so a key must be a valid record label.
+
+{3 The search record}
+
+The generator turns the search parameters into records that hold decoded
+values: [required(t)] is [t], [optional(t)] is [option(t)], [default(t, d)]
+is [t] and [many(t)] is [list(t)]. [Router.search] holds the root parameters.
+Each route with search parameters has [Router.Route.search], with the root
+parameters followed by the route's own. A route without its own parameters
+re-exports [Router.search], so a [Router.useSearch] record passes to it as
+is. A route that adds parameters has its own type: build it with the
+generated constructor, which takes each parameter as a labelled argument,
+with optional ones as [?name]:
+
+{[
+Router.SiteInspector.search(~target="example.com", ())
+]}
+
+Generated functions and route components take the record as [?search], or
+as [~search] when a parameter is required. An absent [?search] means every
+parameter at its default. A route without search parameters takes no
+[search] argument:
+
+{[
+<Router.SiteInspector target="_blank" search={Router.SiteInspector.search(~target="example.com", ())}>
+  children
+</Router.SiteInspector>
+
+Router.Home.href(~search={text: Some("notes")}, ())
+]}
+
+A record literal lists every field, root fields included. Inside a JSX prop,
+it needs the generated interface, because the component's props function
+does not carry the field types. Generate [Router.mli] with
+[--mode interface] next to [Router.ml], as in the Libraries section. Without
+it, qualify one field ([{Router.Home.text: None}]) or use the constructor.
+
+Each search type also has [search_to_rsc] and [search_of_rsc], so a client
+component can take a search record as a prop:
+
+{[
+[@react.client.component]
+let make = (~search: Router.SiteInspector.search) =>
+  <span> {React.string(search.target)} </span>;
+]}
+
+Attachments and pages receive the record of their scope as [~search] (see
+Loaders).
 
 {3 Reading a query}
 
@@ -284,7 +351,7 @@ read it: it asks the server, and shows the same page as a document load.
 Each route is a component and owns its typed helpers:
 
 {[
-<Router.Note id> children </Router.Note>
+<Router.Note id search> children </Router.Note>
 
 let destination = Router.Note.destination(~id, ())
 let href = Router.Note.href(~id, ())
@@ -517,13 +584,13 @@ reload or tab close while a blocker is true shows the browser's
 
 {2 Search updates}
 
-[Router.useSearch] returns the decoded search record and its typed update
-function:
+[Router.useSearch] returns the decoded root search record and its update
+function, which takes a whole record:
 
 {[
-let ({Router.text: text}, updateSearch) = Router.useSearch();
+let (search, updateSearch) = Router.useSearch();
 
-let onChange = value => updateSearch(~text=Some(value), ()) |> ignore;
+let onChange = value => updateSearch({...search, text: Some(value)}) |> ignore;
 ]}
 
 Search updates are {e shallow}. They update the URL and client state
@@ -609,12 +676,12 @@ passes it to [navigate].
 {1 Loaders}
 
 A loader runs on the server before streaming. It receives the decoded path
-parameters, the scope's search values, and ancestor loader results as labelled
-arguments, and returns a [Router.Loader.result]:
+parameters and ancestor loader results as labelled arguments, the scope's
+search record as [~search], and returns a [Router.Loader.result]:
 
 {[
 module NoteLoader = {
-  let load = (~id, ~text as _, ()) =>
+  let load = (~id, ~search as _, ()) =>
     DB.fetchNoteOption(id)
     |> Lwt.map(result =>
          switch (result) {
@@ -625,6 +692,13 @@ module NoteLoader = {
        );
 };
 ]}
+
+The root and its groups receive [Router.search]. A route and its page receive
+[Router.Route.search]. A scope with no search parameters in reach receives no
+[~search]. To read a field, annotate the argument, as in
+[(~search: Router.Note.search, ...)], or qualify the field. One component
+used as the page of two routes that each add search parameters receives two
+different types: give each route its own component.
 
 Loaders execute parent-first and complete before response headers or RSC
 rendering begin. The scope's components receive [Data] ([~note] in the
@@ -680,7 +754,7 @@ module AppError = {
   let status = _ => Router.Status.InternalServerError;
 
   [@react.component]
-  let make = (~text as _, ~error as _) =>
+  let make = (~search as _, ~error as _) =>
     <p> "The requested note could not be loaded." </p>;
 };
 
@@ -709,12 +783,12 @@ shows error details. [DreamRouter] uses it.
 
 [~metadata] and [~headers] resolve per scope on every response, including
 patches, and merge from the root down. Like loaders, they receive the decoded
-path parameters, search values, and ancestor loader results, and return
+path parameters, the search record, and ancestor loader results, and return
 [Lwt] promises:
 
 {[
 module NoteMetadata = {
-  let make = (~id as _, ~text as _, ~note, ()) =>
+  let make = (~id as _, ~search as _, ~note, ()) =>
     Lwt.return(Router.Metadata.make(~title=Note.title(note), ()));
 };
 ]}
@@ -879,3 +953,27 @@ applications depend on [server-reason-react.router-native]. Route generation
 uses [server-reason-react.router-gen]. A native adapter that calls
 [ReactServerDOM] also depends on [server-reason-react.reactDom]. There is no
 installed Dream router package.
+
+The generator reads the manifest on standard input and writes [Router.ml]
+([--mode handles]), its interface [Router.mli] ([--mode interface]) and the
+native [RouterRegistry.ml] ([--mode registry]). The registry refers to the
+generated module as [Router]. [Router.ml] uses [RSC], so a library that
+compiles it also depends on [server-reason-react.rsc] (Melange) or
+[server-reason-react.rsc-native] (native):
+
+{[
+(rule
+ (targets Router.ml Router.mli RouterRegistry.ml)
+ (deps Routes.ml)
+ (action
+  (progn
+   (with-stdout-to Router.ml
+    (with-stdin-from %{dep:Routes.ml}
+     (run %{bin:server-reason-react.router-gen} --mode handles --source %{dep:Routes.ml})))
+   (with-stdout-to Router.mli
+    (with-stdin-from %{dep:Routes.ml}
+     (run %{bin:server-reason-react.router-gen} --mode interface --source %{dep:Routes.ml})))
+   (with-stdout-to RouterRegistry.ml
+    (with-stdin-from %{dep:Routes.ml}
+     (run %{bin:server-reason-react.router-gen} --mode registry --source %{dep:Routes.ml}))))))
+]}

@@ -3,7 +3,7 @@ let testGeneratedHref = () => {
     Router.Note.href(
       ~workspaceId=WorkspaceId.make(7),
       ~id=NoteId.make(42),
-      ~filter=Filter.make("active/ü"),
+      ~search=Router.Note.search(~filter=Filter.make("active/ü"), ()),
       (),
     );
   Alcotest.check(
@@ -19,8 +19,8 @@ let testCanonicalSearch = () => {
     Router.Note.href(
       ~workspaceId=WorkspaceId.make(7),
       ~id=NoteId.make(42),
-      ~page=2,
-      ~filter=Filter.make("active/ü"),
+      ~search=
+        Router.Note.search(~page=2, ~filter=Filter.make("active/ü"), ()),
       (),
     );
   Alcotest.check(
@@ -36,7 +36,7 @@ let testEncodeURIComponentParity = () => {
     Router.Note.href(
       ~workspaceId=WorkspaceId.make(7),
       ~id=NoteId.make(42),
-      ~filter=Filter.make("it's"),
+      ~search=Router.Note.search(~filter=Filter.make("it's"), ()),
       (),
     );
   Alcotest.check(

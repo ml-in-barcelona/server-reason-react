@@ -4,7 +4,7 @@ let reset = () => shouldNotFound := false;
 let notFound = () => shouldNotFound := true;
 
 let load =
-    (~teamId, ~page as _, ~searchText as _, ())
+    (~teamId, ~search as _, ())
     : Lwt.t(RouterRuntime.Loader.result(string, string)) =>
   if (shouldNotFound^) {
     Lwt.return(RouterRuntime.Loader.NotFound);

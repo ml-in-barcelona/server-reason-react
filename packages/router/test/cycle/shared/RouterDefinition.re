@@ -16,7 +16,6 @@ Router.make(
     Router.route(Workspaces, ~page=WorkspacesPage, ~path="/workspaces"),
     Router.group(
       ~path="/workspaces/:workspaceId<WorkspaceId.t>",
-      ~search={ filter: Router.Search.optional(Filter.t) },
       ~loader=WorkspaceLoader,
       ~loaderLabel=workspace,
       ~layout=Attachments.WorkspaceLayout,
@@ -29,6 +28,7 @@ Router.make(
           Note,
           ~page=NotePage,
           ~path="/notes/:id<NoteId.t>",
+          ~search={ filter: Router.Search.optional(Filter.t) },
           ~loader=NoteLoader,
           ~loaderLabel=noteAccess,
           ~metadata=Attachments.NoteMetadata.make,
@@ -36,8 +36,9 @@ Router.make(
         ),
         Router.route(
           EditNote,
-          ~page=NotePage,
+          ~page=NotePage.Edit,
           ~path="/notes/:id<NoteId.t>/edit",
+          ~search={ filter: Router.Search.optional(Filter.t) },
           ~loader=NoteLoader,
           ~loaderLabel=noteAccess,
           ~metadata=Attachments.NoteMetadata.make,
@@ -47,7 +48,10 @@ Router.make(
           SearchResults,
           ~page=SearchPage,
           ~path="/search",
-          ~search={ view: Router.Search.optional(NoteId.t) },
+          ~search={
+            filter: Router.Search.optional(Filter.t),
+            view: Router.Search.optional(NoteId.t),
+          },
         ),
       ],
     ),
@@ -75,8 +79,18 @@ Router.make(
     ),
     Router.redirect(
       ~path="/legacy/:workspaceId<WorkspaceId.t>/notes/:id<NoteId.t>",
-      ~target=(~workspaceId, ~id, ~page, ~searchText, ()) =>
-      Router.Note.destination(~workspaceId, ~id, ~page, ~searchText?, ())
+      ~target=(~workspaceId, ~id, ~search, ()) =>
+      Router.Note.destination(
+        ~workspaceId,
+        ~id,
+        ~search=
+          Router.Note.search(
+            ~page=search.page,
+            ~searchText=?search.searchText,
+            (),
+          ),
+        (),
+      )
     ),
   ],
 );

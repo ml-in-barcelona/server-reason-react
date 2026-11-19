@@ -374,8 +374,14 @@ let rec node_of_expression ~address expression =
     Route { name; page; scope = scope ~id:("route:" ^ name) ~path arguments expression; loc = expression.pexp_loc }
   else if is_identifier [ "Router"; "group" ] callee then
     let () =
+      match argument (Labelled "search") arguments with
+      | Some search ->
+          error ~loc:search.pexp_loc "Router.group cannot declare ~search; declare it on Router.make or on each route"
+      | None -> ()
+    in
+    let () =
       validate_arguments ~loc:expression.pexp_loc
-        ~allowed:([ "path"; "search"; "prefetch" ] @ attachment_labels)
+        ~allowed:([ "path"; "prefetch" ] @ attachment_labels)
         ~unlabelled:1 arguments
     in
     let local_path =
@@ -465,6 +471,7 @@ let generated_labels =
     "pattern";
     "registry";
     "revalidate";
+    "routeSearch";
     "search";
     "target";
     "updateSearch";
@@ -518,11 +525,10 @@ let endpoints declaration =
               route.loc )
         | RedirectTo redirect -> (redirect.parameters, redirect.search, [], redirect.loc)
       in
-      let labels =
-        List.map (fun (parameter : parameter) -> parameter.name) parameters
-        @ List.map (fun (search : search) -> search.name) search
-        @ loader_labels
-      in
+      (match duplicate (List.map (fun (search : search) -> search.name) search) with
+      | Some name -> error ~loc "duplicate search parameter %s" name
+      | None -> ());
+      let labels = List.map (fun (parameter : parameter) -> parameter.name) parameters @ loader_labels in
       match duplicate labels with
       | Some label -> error ~loc "duplicate branch input label %s" label
       | None ->

@@ -16,7 +16,7 @@ let record = event => events := [event, ...events^];
 let events = () => List.rev(events^);
 
 let load =
-    (~workspaceId, ~page, ~searchText as _, ~filter as _, ())
+    (~workspaceId, ~search: Router.search, ())
     : Lwt.t(RouterRuntime.Loader.result(string, string)) => {
   record("workspace");
   if (shouldError^) {
@@ -32,7 +32,9 @@ let load =
   } else {
     Lwt.return(
       RouterRuntime.Loader.Data(
-        WorkspaceId.to_string(workspaceId) ++ ":" ++ Int.to_string(page),
+        WorkspaceId.to_string(workspaceId)
+        ++ ":"
+        ++ Int.to_string(search.page),
       ),
     );
   };

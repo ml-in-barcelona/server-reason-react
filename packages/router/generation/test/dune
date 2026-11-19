@@ -1,5 +1,5 @@
 (rule
- (targets Router.re RouterRegistry.re)
+ (targets Router.re Router.rei RouterRegistry.re)
  (deps RouterDefinition.re)
  (action
   (progn
@@ -15,6 +15,17 @@
       %{dep:RouterDefinition.re})
      (run %{bin:refmt} --parse ml --print re)))
    (with-stdout-to
+    Router.rei
+    (pipe-outputs
+     (run %{bin:refmt} --parse re --print ml %{dep:RouterDefinition.re})
+     (run
+      %{bin:server-reason-react.router-gen}
+      --mode
+      interface
+      --source
+      %{dep:RouterDefinition.re})
+     (run %{bin:refmt} --interface true --parse ml --print re)))
+   (with-stdout-to
     RouterRegistry.re
     (pipe-outputs
      (run %{bin:refmt} --parse re --print ml %{dep:RouterDefinition.re})
@@ -28,7 +39,7 @@
 
 (test
  (name test_patterns)
- (modules Pages Router RouterRegistry Test_patterns)
+ (modules InspectorBadge Pages Router RouterRegistry Test_patterns)
  (libraries
   alcotest
   js
@@ -36,10 +47,16 @@
   lwt.unix
   server-reason-react.react
   server-reason-react.reactDom
-  server-reason-react.router-native)
+  server-reason-react.router-native
+  server-reason-react.rsc-native)
  (preprocess
   (per_module
    ((pps server-reason-react.ppx)
     Pages
     Router
-    Test_patterns))))
+    Test_patterns)
+   ((pps
+     server-reason-react.ppx
+     -shared-folder-prefix=/test/
+     server-reason-react.rsc-native.ppx)
+    InspectorBadge))))

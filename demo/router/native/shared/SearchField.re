@@ -16,7 +16,7 @@ let make = () => {
     let next = nextText == "" ? None : Some(nextText);
     startSearching(() => {
       setText(nextText);
-      let _ = updateSearch(~text=next, ());
+      let _ = updateSearch({ Router.text: next });
       ();
     });
   };

@@ -1,6 +1,4 @@
 [@react.component]
-let make = (~scalarId: ScalarId.t, ~page: int, ~searchText: option(string)) => {
-  ignore(page);
-  ignore(searchText);
+let make = (~scalarId: ScalarId.t, ~search as _) => {
   React.string(scalarId);
 };

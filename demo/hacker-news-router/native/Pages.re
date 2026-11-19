@@ -35,7 +35,7 @@ let domain = url =>
 
 module Layout = {
   [@react.component]
-  let make = (~text as _, ~children) =>
+  let make = (~search as _, ~children) =>
     <div className="hn-app">
       <HackerNewsHeader />
       <main id="router-focus-root" tabIndex=(-1) className="hn-main">
@@ -149,42 +149,42 @@ module Feed = {
 
 module Top = {
   [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Top text stories />;
+  let make = (~search: Router.search, ~stories) =>
+    <Feed feed=HackerNewsApi.Top text={search.text} stories />;
 };
 
 module New = {
   [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.New text stories />;
+  let make = (~search: Router.search, ~stories) =>
+    <Feed feed=HackerNewsApi.New text={search.text} stories />;
 };
 
 module Best = {
   [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Best text stories />;
+  let make = (~search: Router.search, ~stories) =>
+    <Feed feed=HackerNewsApi.Best text={search.text} stories />;
 };
 
 module Ask = {
   [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Ask text stories />;
+  let make = (~search: Router.search, ~stories) =>
+    <Feed feed=HackerNewsApi.Ask text={search.text} stories />;
 };
 
 module Show = {
   [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Show text stories />;
+  let make = (~search: Router.search, ~stories) =>
+    <Feed feed=HackerNewsApi.Show text={search.text} stories />;
 };
 
 module Jobs = {
   [@react.component]
-  let make = (~text, ~stories) =>
-    <Feed feed=HackerNewsApi.Jobs text stories />;
+  let make = (~search: Router.search, ~stories) =>
+    <Feed feed=HackerNewsApi.Jobs text={search.text} stories />;
 };
 
-let loadFeed = (feed, ~text, ()) =>
-  HackerNewsApi.fetchFeed(~feed, ~query=text)
+let loadFeed = (feed, ~search: Router.search, ()) =>
+  HackerNewsApi.fetchFeed(~feed, ~query=search.text)
   |> Lwt.map(stories => Router.Loader.Data(stories));
 
 module TopLoader = {
@@ -314,7 +314,7 @@ module StoryData = {
 
 module Story = {
   [@react.component]
-  let make = (~id, ~text as _, ~storyResult) => {
+  let make = (~id, ~search as _, ~storyResult) => {
     let comments =
       HackerNewsApi.fetchComments(id)
       |> Lwt.map(commentsResult => <CommentsData commentsResult />);
@@ -323,33 +323,33 @@ module Story = {
 };
 
 module StoryLoader = {
-  let load = (~id, ~text as _, ()) =>
+  let load = (~id, ~search as _, ()) =>
     HackerNewsApi.fetchStory(id)
     |> Lwt.map(storyResult => Router.Loader.Data(storyResult));
 };
 
 module FeedLoading = {
   [@react.component]
-  let make = (~text as _, ~stories as _) =>
+  let make = (~search as _, ~stories as _) =>
     <Loading label="Loading stories" />;
 };
 
 module StoryLoading = {
   [@react.component]
-  let make = (~id as _, ~text as _, ~storyResult as _) =>
+  let make = (~id as _, ~search as _, ~storyResult as _) =>
     <Loading label="Loading story" />;
 };
 
 module GlobalLoading = {
   [@react.component]
-  let make = (~text as _) => <Loading label="Loading Hacker News" />;
+  let make = (~search as _) => <Loading label="Loading Hacker News" />;
 };
 
 module AppError = {
   let status = (_error: string) => Router.Status.InternalServerError;
 
   [@react.component]
-  let make = (~text as _, ~error: Router.Error.t(string)) =>
+  let make = (~search as _, ~error: Router.Error.t(string)) =>
     <div className="hn-state" role="alert">
       {React.string("Hacker News could not be loaded.")}
     </div>;
@@ -357,7 +357,7 @@ module AppError = {
 
 module NotFound = {
   [@react.component]
-  let make = (~text as _, ~error as _) =>
+  let make = (~search as _, ~error as _) =>
     <div className="hn-state">
       {React.string("This page does not exist.")}
     </div>;

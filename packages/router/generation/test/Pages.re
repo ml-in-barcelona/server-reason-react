@@ -41,8 +41,28 @@ module HelpTopic = {
 
 module Note = {
   [@react.component]
-  let make = (~id: int, ~tab: option(string)) =>
-    React.string("note:" ++ string_of_int(id) ++ ":" ++ language(tab));
+  let make = (~id: int, ~search: Router.Note.search) =>
+    React.string(
+      "note:" ++ string_of_int(id) ++ ":" ++ language(search.tab),
+    );
+};
+
+module Inspector = {
+  [@react.component]
+  let make = (~search: Router.Inspector.search) =>
+    React.string(
+      String.concat(
+        "|",
+        [
+          search.target,
+          language(search.error),
+          search.input,
+          String.concat(",", search.hash),
+          language(Option.map(string_of_int, search.value)),
+          language(search.pattern),
+        ],
+      ),
+    );
 };
 
 module Settings = {

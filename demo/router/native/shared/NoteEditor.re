@@ -2,7 +2,7 @@
 let make =
     (~id: option(NoteId.t), ~initialTitle: string, ~initialBody: string) => {
   let (navigate, navigation) = Router.useNavigation();
-  let ({ Router.text }, _) = Router.useSearch();
+  let (search, _) = Router.useSearch();
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
   let isNavigating =
@@ -51,7 +51,7 @@ let make =
                      ~revalidate=true,
                      Router.Note.destination(
                        ~id=NoteId.make(result.id),
-                       ~text?,
+                       ~search,
                        (),
                      ),
                    )
