@@ -1500,10 +1500,24 @@ module ServerFunction = struct
         | Error (loc, msg) -> (Nolabel, [%expr [%ocaml.error [%e estring ~loc msg]]]))
       args
 
-  let encode_function_response ~loc ~response_expr ~core_type =
+  let reject_into_promise ~loc expr =
     [%expr
-      try [%e response_expr] |> Lwt.map (fun response -> [%e response_to_model ~loc core_type [%expr response]])
-      with e -> Lwt.fail e]
+      try [%e expr] with
+      | (Stdlib.Out_of_memory | Stdlib.Stack_overflow | Stdlib.Sys.Break) as e -> Stdlib.raise e
+      | e -> Lwt.fail e]
+
+  let encode_function_response ~loc ~response_expr ~core_type =
+    [%expr [%e response_expr] |> Lwt.map (fun response -> [%e response_to_model ~loc core_type [%expr response]])]
+
+  let check_arguments_length ~loc ~function_name ~min ~max =
+    let expected = if min = max then string_of_int min else Printf.sprintf "%d to %d" min max in
+    [%expr
+      let length = Stdlib.Array.length args in
+      if length < [%e eint ~loc min] || length > [%e eint ~loc max] then
+        Stdlib.raise
+          (Invalid_argument
+             (Stdlib.Printf.sprintf "server-reason-react: server function '%s' expects %s arguments, received %d"
+                [%e estring ~loc function_name] [%e estring ~loc expected] length))]
 
   let decode_arguments_vb ~loc args_to_decode =
     args_to_decode
@@ -1514,14 +1528,15 @@ module ServerFunction = struct
           ~pat:[%pat? [%p ppat_var ~loc { txt = label; loc }]]
           ~expr:
             [%expr
-              try [%e of_json]
-              with _ ->
-                Stdlib.raise
-                  (Invalid_argument
-                     (Stdlib.Printf.sprintf
-                        "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
-                        [%e estring ~loc label] [%e estring ~loc core_type_string]
-                        (Stdlib.Array.unsafe_get args [%e eint ~loc i] |> Yojson.Basic.to_string)))])
+              try [%e of_json] with
+              | (Stdlib.Out_of_memory | Stdlib.Stack_overflow | Stdlib.Sys.Break) as e -> Stdlib.raise e
+              | _ ->
+                  Stdlib.raise
+                    (Invalid_argument
+                       (Stdlib.Printf.sprintf
+                          "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
+                          [%e estring ~loc label] [%e estring ~loc core_type_string]
+                          (Stdlib.Array.unsafe_get args [%e eint ~loc i] |> Yojson.Basic.to_string)))])
 
   let create_function_reference_registration ~loc ~id ~function_name ~args ~core_type =
     let apply_args = map_arguments_to_expressions ~loc args in
@@ -1548,10 +1563,14 @@ module ServerFunction = struct
 
     let body_expr =
       match args_to_decode with
-      | [] -> encoded_response_expr
+      | [] -> reject_into_promise ~loc encoded_response_expr
       | args_to_decode ->
           let decoded_expr = decode_arguments_vb ~loc args_to_decode in
-          pexp_let ~loc Nonrecursive decoded_expr encoded_response_expr
+          let check =
+            check_arguments_length ~loc ~function_name ~min:(List.length args_to_decode) ~max:(List.length args)
+          in
+          reject_into_promise ~loc
+            (pexp_sequence ~loc check (pexp_let ~loc Nonrecursive decoded_expr encoded_response_expr))
     in
     match (formData, args) with
     | [], _ -> [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]

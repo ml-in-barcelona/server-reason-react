@@ -384,6 +384,94 @@ let decode_rejects_deeply_nested_body () =
   let body = String.concat "" [ "["; String.make depth '['; "1"; String.make depth ']'; "]" ] in
   match ReactServerDOM.decodeReply body with Ok _ -> () | Error _ -> ()
 
+let nested ~depth leaf = String.concat "" [ String.make depth '['; leaf; String.make depth ']' ]
+
+let decode_rejects_body_deeper_than_default_max_depth () =
+  ignore (unwrap_ok (ReactServerDOM.decodeReply (nested ~depth:512 "1")));
+  let msg = unwrap_error (ReactServerDOM.decodeReply (nested ~depth:513 "1")) in
+  assert_string msg "decodeReply: payload nesting is deeper than 512"
+
+let decode_rejects_deep_body_before_parsing () =
+  let unterminated = String.make 500_000 '[' in
+  let msg = unwrap_error (ReactServerDOM.decodeReply unterminated) in
+  assert_string msg "decodeReply: payload nesting is deeper than 512"
+
+let decode_rejects_comments () =
+  let hidden_quote = "[1,/* \" */" ^ nested ~depth:300_000 "1" ^ "]" in
+  assert_string
+    (unwrap_error (ReactServerDOM.decodeReply hidden_quote))
+    "decodeReply: invalid JSON, '/' outside a string";
+  assert_string
+    (unwrap_error (ReactServerDOM.decodeReply "[1 // \"\n]"))
+    "decodeReply: invalid JSON, '/' outside a string";
+  match ReactServerDOM.decodeReply "[\"a/b\"]" with
+  | Ok [| `String "a/b" |] -> ()
+  | _ -> Alcotest.fail "expected a '/' inside a string to decode"
+
+let decode_respects_max_depth () =
+  ignore (unwrap_ok (ReactServerDOM.decodeReply ~max_depth:3 "[{\"a\":[1]}]"));
+  let msg = unwrap_error (ReactServerDOM.decodeReply ~max_depth:3 "[{\"a\":[[1]]}]") in
+  assert_string msg "decodeReply: payload nesting is deeper than 3"
+
+let decode_ignores_brackets_inside_strings () =
+  match ReactServerDOM.decodeReply ~max_depth:1 "[\"[[{{\\\"[[\"]" with
+  | Ok [| `String value |] -> assert_string value "[[{{\"[["
+  | Ok _ -> Alcotest.fail "expected one string argument"
+  | Error msg -> Alcotest.fail (Printf.sprintf "unexpected Error: %s" msg)
+
+let decode_rejects_body_over_default_max_bytes () =
+  let body max = "[\"" ^ String.make (max - 4) 'a' ^ "\"]" in
+  ignore (unwrap_ok (ReactServerDOM.decodeReply (body 1_048_576)));
+  let msg = unwrap_error (ReactServerDOM.decodeReply (body 1_048_577)) in
+  assert_string msg "decodeReply: payload is 1048577 bytes, over the limit of 1048576"
+
+let decode_respects_max_bytes () =
+  ignore (unwrap_ok (ReactServerDOM.decodeReply ~max_bytes:7 "[\"abc\"]"));
+  let msg = unwrap_error (ReactServerDOM.decodeReply ~max_bytes:6 "[\"abc\"]") in
+  assert_string msg "decodeReply: payload is 7 bytes, over the limit of 6"
+
+let form_data_of entries =
+  let formData = Js.FormData.make () in
+  List.iter (fun (k, v) -> Js.FormData.append formData k (`String v)) entries;
+  formData
+
+let decode_form_data_counts_depth_across_outlined_entries () =
+  let entries = [ ("0", "[\"$1\"]"); ("1", "[\"$2\"]"); ("2", "[\"$3\"]") ] in
+  ignore (unwrap_ok (ReactServerDOM.decodeFormDataReply ~max_depth:3 (form_data_of (("3", "\"leaf\"") :: entries))));
+  let msg = unwrap_error (ReactServerDOM.decodeFormDataReply ~max_depth:3 (form_data_of (("3", "[1]") :: entries))) in
+  assert_string msg "decodeReply: payload nesting is deeper than 3"
+
+let decode_form_data_rejects_entry_over_max_bytes () =
+  let root = unwrap_error (ReactServerDOM.decodeFormDataReply ~max_bytes:6 (form_data_of [ ("0", "[\"abc\"]") ])) in
+  assert_string root "decodeReply: payload is 7 bytes, over the limit of 6";
+  let outlined =
+    unwrap_error
+      (ReactServerDOM.decodeFormDataReply ~max_bytes:6 (form_data_of [ ("0", "[\"$1\"]"); ("1", "[\"abc\"]") ]))
+  in
+  assert_string outlined "decodeReply: payload is 7 bytes, over the limit of 6"
+
+let decode_form_data_cached_entry_counts_its_depth () =
+  let entry i =
+    let leaf = if i = 1 then "1" else Printf.sprintf "\"$%x\"" (i - 1) in
+    (string_of_int i, nested ~depth:500 leaf)
+  in
+  let root = "[" ^ String.concat "," (List.init 50 (fun i -> Printf.sprintf "\"$%x\"" (i + 1))) ^ "]" in
+  let msg =
+    unwrap_error
+      (ReactServerDOM.decodeFormDataReply (form_data_of (("0", root) :: List.init 50 (fun i -> entry (i + 1)))))
+  in
+  assert_string msg "decodeReply: payload nesting is deeper than 512"
+
+let decode_form_data_reuses_cached_entry_within_max_depth () =
+  let entries = [ ("0", "[\"$1\",[\"$1\"]]"); ("1", "[[1]]") ] in
+  match ReactServerDOM.decodeFormDataReply ~max_depth:4 (form_data_of entries) with
+  | Ok ([| `List [ `List [ `Int 1 ] ]; `List [ `List [ `List [ `Int 1 ] ] ] |], _) -> (
+      match ReactServerDOM.decodeFormDataReply ~max_depth:3 (form_data_of entries) with
+      | Error msg -> assert_string msg "decodeReply: payload nesting is deeper than 3"
+      | Ok _ -> Alcotest.fail "expected the second, deeper use of the entry to fail")
+  | Ok _ -> Alcotest.fail "unexpected decoded shape"
+  | Error msg -> Alcotest.fail (Printf.sprintf "unexpected Error: %s" msg)
+
 let decode_valid_outlined_map_still_works () =
   let args, _ =
     decode_outlined ~entries:[ ("1", "[[\"name\",\"Alice\"],[\"role\",\"admin\"]]") ] ~root_json:"[\"$Q1\"]"
@@ -595,6 +683,19 @@ let tests =
     test "decodeFormDataReply: rejects mutually referential entries" decode_rejects_mutually_referential_entries;
     test "decodeFormDataReply: rejects malformed outlined entry" decode_rejects_malformed_outlined_entry;
     test "decodeReply: deeply nested body does not raise" decode_rejects_deeply_nested_body;
+    test "decodeReply: rejects body deeper than the default max_depth" decode_rejects_body_deeper_than_default_max_depth;
+    test "decodeReply: rejects a deep body before parsing" decode_rejects_deep_body_before_parsing;
+    test "decodeReply: respects max_depth" decode_respects_max_depth;
+    test "decodeReply: rejects comments" decode_rejects_comments;
+    test "decodeFormDataReply: a cached entry counts its depth" decode_form_data_cached_entry_counts_its_depth;
+    test "decodeFormDataReply: reuses a cached entry within max_depth"
+      decode_form_data_reuses_cached_entry_within_max_depth;
+    test "decodeReply: ignores brackets inside strings" decode_ignores_brackets_inside_strings;
+    test "decodeReply: rejects body over the default max_bytes" decode_rejects_body_over_default_max_bytes;
+    test "decodeReply: respects max_bytes" decode_respects_max_bytes;
+    test "decodeFormDataReply: counts depth across outlined entries"
+      decode_form_data_counts_depth_across_outlined_entries;
+    test "decodeFormDataReply: rejects an entry over max_bytes" decode_form_data_rejects_entry_over_max_bytes;
     test "decodeFormDataReply: valid outlined map still works" decode_valid_outlined_map_still_works;
     test "decodeFormDataReply: shared outlined entry decodes once" decode_shared_outlined_entry_once;
     (* Outlined models without FormData context *)

@@ -59,6 +59,11 @@ let installFetch: (string => unit, Js.Nullable.t(string)) => unit = [%mel.raw
   };
 }|}
 ];
+let installFailingFetch: (int, string) => unit = [%mel.raw
+  {|(status, body) => {
+  globalThis.fetch = () => Promise.resolve(new Response(body, { status }));
+}|}
+];
 let requests = ref([]);
 let redirects = ref([]);
 let stopRedirects =
@@ -102,5 +107,24 @@ let _ =
          "a removed redirect listener was called",
          List.length(redirects^) == 1,
        );
+       installFailingFetch(500, "database unavailable");
+       callServer("save", [])
+       |> Js.Promise.then_(_ => Js.Promise.resolve(None))
+       |> Js.Promise.catch(error =>
+            Js.Promise.resolve(Some(Js.Exn.anyToExnInternal(error)))
+          );
+     })
+  |> Js.Promise.then_(error => {
+       switch (error) {
+       | Some(
+           ReactServerDOMEsbuild.ServerCallFailed({
+             status: 500,
+             body: "database unavailable",
+           }),
+         ) =>
+         ()
+       | Some(_) => failwith("a failed response rejected with another error")
+       | None => failwith("a failed response resolved")
+       };
        Js.Promise.resolve();
      });

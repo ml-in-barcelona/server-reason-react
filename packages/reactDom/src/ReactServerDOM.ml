@@ -2035,16 +2035,38 @@ let create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?
    are keyed by the decimal representation of the part ID. *)
 let hex_to_formdata_key hex_id = Option.map string_of_int (int_of_string_opt ("0x" ^ hex_id))
 
+let check_reply_size ~max_depth ~max_bytes text =
+  let length = String.length text in
+  let rec scan index depth in_string =
+    if index >= length then Ok ()
+    else
+      match (String.unsafe_get text index, in_string) with
+      | '\\', true -> scan (index + 2) depth true
+      | '"', _ -> scan (index + 1) depth (not in_string)
+      | ('[' | '{'), false ->
+          if depth >= max_depth then Error (Printf.sprintf "decodeReply: payload nesting is deeper than %d" max_depth)
+          else scan (index + 1) (depth + 1) false
+      | (']' | '}'), false -> scan (index + 1) (depth - 1) false
+      | '/', false -> Error "decodeReply: invalid JSON, '/' outside a string"
+      | _ -> scan (index + 1) depth in_string
+  in
+  if length > max_bytes then
+    Error (Printf.sprintf "decodeReply: payload is %d bytes, over the limit of %d" length max_bytes)
+  else scan 0 0 false
+
 (* Look up an outlined model entry from FormData by hex-encoded ID and parse it as JSON. *)
-let resolve_from_formdata formData hex_id =
+let resolve_from_formdata ~max_depth ~max_bytes formData hex_id =
   match hex_to_formdata_key hex_id with
   | Some key -> (
       try
         let (`String json_str) = Js.FormData.get formData key in
-        match Yojson.Basic.from_string json_str with
-        | json -> Ok json
-        | exception Yojson.Json_error msg ->
-            Error (Printf.sprintf "decodeReply: invalid JSON in outlined entry %s: %s" key msg)
+        match check_reply_size ~max_depth ~max_bytes json_str with
+        | Error _ as error -> error
+        | Ok () -> (
+            match Yojson.Basic.from_string json_str with
+            | json -> Ok json
+            | exception Yojson.Json_error msg ->
+                Error (Printf.sprintf "decodeReply: invalid JSON in outlined entry %s: %s" key msg))
       with Not_found -> Ok `Null)
   | None -> Ok `Null
 
@@ -2074,7 +2096,11 @@ type decode_ctx = {
   formData : Js.FormData.t option;
   temporaryReferences : (string -> json option) option;
   resolving : string list;
-  decoded : (string, json) Hashtbl.t;
+  decoded : (string, json * int) Hashtbl.t;
+  deepest : int ref;
+  depth : int;
+  max_depth : int;
+  max_bytes : int;
 }
 
 let resolve_temporary_reference ctx id =
@@ -2090,11 +2116,18 @@ let resolve_temporary_reference ctx id =
   | None -> Error "decodeReply: Temporary Reference ($T) requires a temporaryReferences resolver"
 
 (* Recursively decode a JSON value, resolving $-prefixed special strings. When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved by looking up the corresponding FormData entry and recursively decoding it. *)
+let enter ctx =
+  let depth = ctx.depth + 1 in
+  if depth > !(ctx.deepest) then ctx.deepest := depth;
+  { ctx with depth }
+
 let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
   match json with
   | `String value when String.length value >= 2 && String.get value 0 = '$' -> decode_prefixed_value ctx value
-  | `List items -> decode_list ctx items
-  | `Assoc pairs -> decode_assoc ctx pairs
+  | (`List _ | `Assoc _) when ctx.depth >= ctx.max_depth ->
+      Error (Printf.sprintf "decodeReply: payload nesting is deeper than %d" ctx.max_depth)
+  | `List items -> decode_list (enter ctx) items
+  | `Assoc pairs -> decode_assoc (enter ctx) pairs
   | other -> Ok other
 
 and decode_prefixed_value ctx value =
@@ -2144,18 +2177,26 @@ and decode_assoc ctx pairs =
   in
   Ok (`Assoc pairs)
 
-(* The cycle check keys on the decimal FormData key, not the hex id, so alternate hex spellings of the same entry (e.g. "1" vs "01") cannot evade the guard. *)
+(* The cycle check keys on the decimal FormData key, not the hex id, so alternate hex spellings of the same entry (e.g. "1" vs "01") cannot evade the guard. A cached entry stores how many levels it nests below its reference, so a reuse at a deeper position still respects max_depth. *)
 and resolve_and_decode_outlined ctx fd hex_id =
   let entry_key = Option.value (hex_to_formdata_key hex_id) ~default:hex_id in
   if List.mem entry_key ctx.resolving then
     Error (Printf.sprintf "decodeReply: cyclic reference to outlined entry %s" entry_key)
   else
     match Hashtbl.find_opt ctx.decoded entry_key with
-    | Some decoded -> Ok decoded
+    | Some (_, height) when ctx.depth + height > ctx.max_depth ->
+        Error (Printf.sprintf "decodeReply: payload nesting is deeper than %d" ctx.max_depth)
+    | Some (decoded, height) ->
+        if ctx.depth + height > !(ctx.deepest) then ctx.deepest := ctx.depth + height;
+        Ok decoded
     | None ->
-        let* resolved = resolve_from_formdata fd hex_id in
+        let* resolved = resolve_from_formdata ~max_depth:ctx.max_depth ~max_bytes:ctx.max_bytes fd hex_id in
+        let outer_deepest = !(ctx.deepest) in
+        ctx.deepest := ctx.depth;
         let* decoded = decode_value { ctx with resolving = entry_key :: ctx.resolving } resolved in
-        Hashtbl.replace ctx.decoded entry_key decoded;
+        let height = !(ctx.deepest) - ctx.depth in
+        ctx.deepest := max outer_deepest !(ctx.deepest);
+        Hashtbl.replace ctx.decoded entry_key (decoded, height);
         Ok decoded
 
 and resolve_outlined ctx type_name hex_id =
@@ -2181,20 +2222,36 @@ and decode_outlined_map ctx hex_id =
 
 let protect_reply_decode decode = try decode () with Stack_overflow -> Error "decodeReply: payload nesting too deep"
 
-let parse_reply_arguments ~invalid_json input =
+let parse_reply_arguments ~max_depth ~max_bytes ~invalid_json input =
+  let* () = check_reply_size ~max_depth ~max_bytes input in
   match Yojson.Basic.from_string input with
   | `List arguments -> Ok arguments
   | _ -> Error "Invalid args, this request was not created by server-reason-react"
   | exception Yojson.Json_error message -> Error (Printf.sprintf "%s: %s" invalid_json message)
 
+let default_max_depth = 512
+let default_max_bytes = 1_048_576
+
+let decode_context ~max_depth ~max_bytes ~formData ~temporaryReferences =
+  {
+    formData;
+    temporaryReferences;
+    resolving = [];
+    decoded = Hashtbl.create 8;
+    deepest = ref 1;
+    depth = 1;
+    max_depth;
+    max_bytes;
+  }
+
 let decode_arguments ctx arguments =
   let* arguments = map_result (decode_value ctx) arguments in
   Ok (Array.of_list arguments)
 
-let decodeReply ?temporaryReferences body =
+let decodeReply ?temporaryReferences ?(max_depth = default_max_depth) ?(max_bytes = default_max_bytes) body =
   protect_reply_decode (fun () ->
-      let context = { formData = None; temporaryReferences; resolving = []; decoded = Hashtbl.create 0 } in
-      let* arguments = parse_reply_arguments ~invalid_json:"Invalid JSON" body in
+      let context = decode_context ~max_depth ~max_bytes ~formData:None ~temporaryReferences in
+      let* arguments = parse_reply_arguments ~max_depth ~max_bytes ~invalid_json:"Invalid JSON" body in
       decode_arguments context arguments)
 
 (* "$K<id>" marks where the caller's own form fields live: they are stored as "<id>_<name>". The marker is not one of the arguments. *)
@@ -2203,14 +2260,14 @@ let form_data_field_prefix = function
       Some (String.sub value 2 (String.length value - 2) ^ "_")
   | _ -> None
 
-let read_form_data_reply formData =
+let read_form_data_reply ~max_depth ~max_bytes formData =
   let* model =
     try
       let (`String model) = Js.FormData.get formData "0" in
       Ok model
     with Not_found -> Error "decodeReply: FormData is missing the root entry at key \"0\""
   in
-  let* items = parse_reply_arguments ~invalid_json:"Invalid JSON in FormData root" model in
+  let* items = parse_reply_arguments ~max_depth ~max_bytes ~invalid_json:"Invalid JSON in FormData root" model in
   let arguments, prefix =
     List.fold_left
       (fun (arguments, prefix) item ->
@@ -2237,10 +2294,11 @@ let extract_user_form_data formData ~prefix =
     (Js.FormData.entries formData);
   user_fd
 
-let decodeFormDataReply ?temporaryReferences formData =
+let decodeFormDataReply ?temporaryReferences ?(max_depth = default_max_depth) ?(max_bytes = default_max_bytes) formData
+    =
   protect_reply_decode (fun () ->
-      let context = { formData = Some formData; temporaryReferences; resolving = []; decoded = Hashtbl.create 8 } in
-      let* arguments, prefix = read_form_data_reply formData in
+      let context = decode_context ~max_depth ~max_bytes ~formData:(Some formData) ~temporaryReferences in
+      let* arguments, prefix = read_form_data_reply ~max_depth ~max_bytes formData in
       let* arguments = decode_arguments context arguments in
       Ok (arguments, extract_user_form_data formData ~prefix))
 
