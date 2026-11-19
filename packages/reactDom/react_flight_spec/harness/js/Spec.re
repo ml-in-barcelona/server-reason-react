@@ -84,7 +84,7 @@ let object_ = (name: string, fields: list((string, model))): prop => (
 /* A server function reference: registerServerReference(fn, id, null) tags
    [fn] with $$id = "<id>" (no export-name suffix when the third argument is
    null), which Flight serializes as an outlined {"id","bound"} row plus a
-   "$F<hexid>" reference — no server manifest involved. Created once and
+   "$h<hexid>" reference — no server manifest involved. Created once and
    reused so that cases can exercise React's per-reference dedup
    (writtenServerReferences). */
 type server_function;

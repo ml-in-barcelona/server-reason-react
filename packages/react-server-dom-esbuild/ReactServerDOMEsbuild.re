@@ -81,7 +81,7 @@ let resolveCallServer = callServer =>
 
 /* The returned promise is a real Promise (chainable with Js.Promise.then_)
    that also carries live status/value/reason getters delegating to
-   react-client's root chunk, so React.use keeps its synchronous unwrap
+   the Flight client's root chunk, so React.use keeps its synchronous unwrap
    during hydration. See chainableRoot in ReactServerDOMEsbuild.js. */
 let createFromReadableStream = (~callServer=?, stream): Js.Promise.t('a) => {
   switch (resolveCallServer(callServer)) {

@@ -1,4 +1,4 @@
-1:I["spec/Await.js",[],"Await"]
-3:I["spec/Other.js",[],"Other"]
+1:I["spec/Await.js",[],"Await",1]
+3:I["spec/Other.js",[],"Other",1]
 0:["$","div",null,{"children":[["$","$L1",null,{"data":"$@2"}],["$","$L3",null,{"data":"$@2"}]]}]
 2:"shared everywhere"

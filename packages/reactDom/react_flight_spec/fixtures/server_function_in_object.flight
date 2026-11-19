@@ -1,3 +1,3 @@
-1:I["spec/Form.js",[],"Form"]
+1:I["spec/Form.js",[],"Form",1]
 2:{"id":"spec/actions#save","bound":null}
-0:["$","$L1",null,{"handlers":{"save":"$F2","label":"Save"}}]
+0:["$","$L1",null,{"handlers":{"save":"$h2","label":"Save"}}]

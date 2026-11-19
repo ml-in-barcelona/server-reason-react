@@ -10,7 +10,7 @@ let client ?key ?(props = []) children =
     {
       key;
       import_module = "key-validation-client";
-      import_name = "default";
+      import_name = "";
       props = ("children", React.Model.Element children) :: props;
       client =
         React.createElement "section"

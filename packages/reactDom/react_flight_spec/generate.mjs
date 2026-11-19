@@ -48,7 +48,7 @@ const { renderToPipeableStream } = await import("react-server-dom-webpack/server
 
 // ---------------------------------------------------------------------------
 // Client manifest: echo module/name back so `I` rows come out as
-// ["<module>",[],"<name>"], byte-matching srr's [import_module, [], import_name].
+// ["<module>",[],"<name>",1], byte-matching srr's [import_module, [], import_name, 1].
 // ---------------------------------------------------------------------------
 
 const clientManifest = new Proxy(
@@ -58,7 +58,7 @@ const clientManifest = new Proxy(
       if (typeof key !== "string") return undefined;
       const hash = key.lastIndexOf("#");
       if (hash === -1) return undefined;
-      return { id: key.slice(0, hash), chunks: [], name: key.slice(hash + 1) };
+      return { id: key.slice(0, hash), chunks: [], name: key.slice(hash + 1), async: true };
     },
   },
 );

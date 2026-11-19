@@ -488,7 +488,7 @@ module Model = struct
   let promise_value id = Printf.sprintf "$@%x" id
   let ref_value id = Printf.sprintf "$%x" id
   let error_value id = Printf.sprintf "$Z%x" id
-  let action_value id = Printf.sprintf "$F%x" id
+  let action_value id = Printf.sprintf "$h%x" id
 
   (* User strings starting with '$' are escaped with an extra '$' mirrors escapeStringValue in React's ReactFlightServer.js *)
   let escape_string_value value =
@@ -569,7 +569,7 @@ module Model = struct
   let action_to_json (action : _ Runtime.server_function) =
     `Assoc [ ("id", `String (escape_string_value action.id)); ("bound", `Null) ]
 
-  (* Outlines a server function as its own {"id","bound"} row (deduplicated on physical identity, mirroring React's writtenServerReferences) and returns the "$F<hexid>" reference. *)
+  (* Outlines a server function as its own {"id","bound"} row (deduplicated on physical identity, mirroring React's writtenServerReferences) and returns the "$h<hexid>" reference. *)
   let outline_server_function ~context ~to_chunk fn =
     let index =
       Stream.push_server_reference ~context ~key:(Physical_key.make fn) (to_chunk (Value (action_to_json fn)))
@@ -592,7 +592,7 @@ module Model = struct
         Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String (escape_string_value html)) ])
     | Ref _ -> None
     | Event _ -> None
-    (* Serialized directly (instead of being rewritten into a String prop) so the internal "$F<id>" reference is not $$-escaped. *)
+    (* Serialized directly (instead of being rewritten into a String prop) so the internal "$h<id>" reference is not $$-escaped. *)
     | Action (_, key, f) -> Some (key, `String (outline_server_function ~context ~to_chunk f))
 
   let props_to_json ~context ~to_chunk props = List.filter_map (prop_to_json ~context ~to_chunk) props
@@ -642,7 +642,8 @@ module Model = struct
     let id = `String module_ in
     let chunks = `List [] in
     let component_name = `String name in
-    `List [ id; chunks; component_name ]
+    let async_module = `Int 1 in
+    `List [ id; chunks; component_name; async_module ]
 
   let value_to_chunk id value =
     let buf = Buffer.create (4 * 1024) in
@@ -2019,7 +2020,7 @@ let create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?
      $Q  → Map → Assoc (if all keys are strings) or List of [key, value] pairs
      $W  → Set → List
      $i  → Iterator → List
-     $F  → Server Reference → Assoc {id, bound}
+     $h  → Server Reference → Assoc {id, bound}
 
    Unsupported (raise Invalid_argument with descriptive message):
      $@  → Promise (not representable as synchronous JSON)
@@ -2089,7 +2090,7 @@ let resolve_temporary_reference ctx id =
           Error message)
   | None -> Error "decodeReply: Temporary Reference ($T) requires a temporaryReferences resolver"
 
-(* Recursively decode a JSON value, resolving $-prefixed special strings. When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved by looking up the corresponding FormData entry and recursively decoding it. *)
+(* Recursively decode a JSON value, resolving $-prefixed special strings. When formData is provided, outlined model references ($Q, $W, $h, $i) are resolved by looking up the corresponding FormData entry and recursively decoding it. *)
 let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
   match json with
   | `String value when String.length value >= 2 && String.get value 0 = '$' -> decode_prefixed_value ctx value
@@ -2112,7 +2113,7 @@ and decode_prefixed_value ctx value =
   | 'Q' -> decode_outlined_map ctx payload
   | 'W' -> resolve_outlined ctx "Set ($W)" payload
   | 'i' -> resolve_outlined ctx "Iterator ($i)" payload
-  | 'F' -> resolve_outlined ctx "Server Reference ($F)" payload
+  | 'h' -> resolve_outlined ctx "Server Reference ($h)" payload
   | 'T' -> resolve_temporary_reference ctx payload
   | '@' -> unsupported "Promise ($@)"
   | ('A' | 'O' | 'o' | 'U' | 'S' | 's' | 'L' | 'l' | 'G' | 'g' | 'M' | 'm' | 'V') as prefix ->
@@ -2197,10 +2198,10 @@ let decodeReply ?temporaryReferences body =
       let* arguments = parse_reply_arguments ~invalid_json:"Invalid JSON" body in
       decode_arguments context arguments)
 
-(* "$K<id>" marks where the caller's own form fields live: they are stored as "<id>_<name>". The marker is not one of the arguments. *)
+(* "$K<id>" marks where the caller's own form fields live: they are stored as "_<id>_<name>". The marker is not one of the arguments. *)
 let form_data_field_prefix = function
   | `String value when String.length value > 2 && String.get value 0 = '$' && String.get value 1 = 'K' ->
-      Some (String.sub value 2 (String.length value - 2) ^ "_")
+      Some ("_" ^ String.sub value 2 (String.length value - 2) ^ "_")
   | _ -> None
 
 let read_form_data_reply formData =

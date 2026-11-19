@@ -70,7 +70,7 @@ npx --no-install playwright install chromium
 make test-flight-key-validation
 ```
 
-The browser tests use React, React DOM, and the Flight client at 19.1.0. They cover
+The browser tests use React, React DOM, and the Flight client (`react-server-dom-webpack`) at 19.1.10. They cover
 key warnings, client props, async rows, document mounting, and streamed hydration.
 Results and native rows are written to `_build/flight-key-validation/`.
 

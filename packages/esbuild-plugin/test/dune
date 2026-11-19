@@ -4,5 +4,4 @@
   (package server-reason-react)
   ClientComponent.js
   ClientComponentWithModule.js
-  ServerFunction.js
   %{bin:server-reason-react.extract_client_components}))

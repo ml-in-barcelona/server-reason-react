@@ -309,11 +309,17 @@ module Conv = struct
   let repr_variant_cases cs = List.rev cs
 
   let deriving_of ~name ~of_t ~is_allow_any_constr ~derive_of_tuple ~derive_of_record ~derive_of_variant
-      ~derive_of_variant_case () =
+      ~derive_of_variant_case ~derive_of_server_function () =
     (object (self)
-       inherit Schema.deriving1
+       inherit Schema.deriving1 as super
        method name = name
        method t ~loc _name t = [%type: [%t of_t ~loc] -> [%t t]]
+
+       method! private derive_type_ref' ~loc name n ts =
+         match (n.txt, ts) with
+         | Longident.Ldot (Longident.Lident "Runtime", "server_function"), [ callback ] ->
+             As_fun (derive_of_server_function self#derive_of_core_type callback)
+         | _ -> super#derive_type_ref' ~loc name n ts
 
        method! derive_of_tuple t ts x =
          let t = { tpl_loc = t.ptyp_loc; tpl_types = ts; tpl_ctx = t } in

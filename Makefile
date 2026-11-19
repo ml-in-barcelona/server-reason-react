@@ -65,7 +65,6 @@ install: ## Install opam dependencies
 
 .PHONY: install-npm
 install-npm: ## Install npm dependencies
-	cd packages/react-server-dom-esbuild && npm install;
 	cd demo && npm install;
 	cd demo/client && npm install
 

@@ -1603,7 +1603,7 @@ module ServerFunction = struct
     in
     fn
 
-  let rewrite_client_function ~nested_module_names ~vb ~rec_flag structure_item =
+  let rewrite_client_function ~vb ~rec_flag structure_item =
     let loc = structure_item.pstr_loc in
 
     let function_name = get_function_name vb in
@@ -1617,24 +1617,7 @@ module ServerFunction = struct
           (create_server_function_record ~loc:vb.pvb_loc id
              (last_expr_to_fn ~loc base_fn (create_client_function ~loc ~return_core_type id args)))
     in
-
-    let loc = structure_item.pstr_loc in
-    let module_name = String.concat "." nested_module_names in
-    let _, formData =
-      List.partition_map
-        ~f:(fun arg ->
-          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
-        args
-    in
-    let functionToCall = match formData with [] -> function_name | _ -> Printf.sprintf "%s.call" function_name in
-    let comment = Printf.sprintf "// extract-server-function %s %s %s" id functionToCall module_name in
-    let raw = estring ~loc comment in
-    let extract_client_raw = [%stri [%%raw [%e raw]]] in
-    [%stri
-      include struct
-        [%%i extract_client_raw]
-        [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ server_function_record_vb ]]
-      end]
+    pstr_value ~loc:structure_item.pstr_loc rec_flag [ server_function_record_vb ]
 end
 
 let rewrite_structure_item ~nested_module_names structure_item =
@@ -1793,7 +1776,7 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
           [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]])
   | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
       let vb = List.hd value_bindings in
-      ServerFunction.rewrite_client_function ~nested_module_names ~vb ~rec_flag structure_item
+      ServerFunction.rewrite_client_function ~vb ~rec_flag structure_item
   (* let make = ... *)
   | Pstr_value (rec_flag, value_bindings) when isClientComponentBinding value_bindings ->
       let first_value_binding = List.hd value_bindings in
