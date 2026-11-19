@@ -134,14 +134,14 @@ let all : case list =
       [ `Assoc [ ("config", `Assoc [ ("x", `Int 1) ]) ]; `String "tail" ]
       ~form:[ ("1", {|[["x",1]]|}) ];
     (* A top-level FormData argument is consumed: it is removed from the args
-       array and returned as the residual FormData with the "<id>_" prefix
+       array and returned as the residual FormData with the "_<id>_" prefix
        stripped. *)
     case "formdata" [] ~form:[ ("age", "20"); ("name", "Lola") ];
     case "formdata_with_leading_arg" [ `String "Hello" ] ~form:[ ("age", "20"); ("name", "Lola") ];
     (* A FormData nested inside an object is NOT reconstructed: srr has no
        Yojson representation for it, so the $K reference decodes to `Null and
        its prefixed entries pass through untouched. *)
-    case "formdata_nested" [ `Assoc [ ("form", `Null) ] ] ~form:[ ("1_name", "Lola") ];
+    case "formdata_nested" [ `Assoc [ ("form", `Null) ] ] ~form:[ ("_1_name", "Lola") ];
     case "blob_text" [ `String "blob-content-here" ] ~form:[ ("1", "blob-content-here") ];
     case "server_reference"
       [ `Assoc [ ("id", `String "srv#action"); ("bound", `Null) ] ]

@@ -1,6 +1,6 @@
 /* A server function nested inside an object prop: the containing object is
    inlined into the props while the function itself is still outlined as an
-   {"id","bound"} row referenced with "$F". */
+   {"id","bound"} row referenced with "$h". */
 let app = () => {
   let save = Spec.server_function(~id="spec/actions#save");
   Spec.client_component(

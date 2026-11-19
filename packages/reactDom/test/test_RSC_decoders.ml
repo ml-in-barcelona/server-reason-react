@@ -184,8 +184,8 @@ let decodeReply_invalid_body () =
 
 let decodeFormDataReply () =
   let formData = Js.FormData.make () in
-  Js.FormData.append formData "1_name" (`String "Lola");
-  Js.FormData.append formData "1_age" (`String "20");
+  Js.FormData.append formData "_1_name" (`String "Lola");
+  Js.FormData.append formData "_1_age" (`String "20");
   Js.FormData.append formData "0" (`String "[\"$K1\"]");
   let _, formData = ReactServerDOM.decodeFormDataReply formData |> unwrap_ok in
   match (Js.FormData.get formData "name", Js.FormData.get formData "age") with
@@ -195,8 +195,8 @@ let decodeFormDataReply () =
 
 let decodeFormDataReplyWithArg () =
   let formData = Js.FormData.make () in
-  Js.FormData.append formData "1_name" (`String "Lola");
-  Js.FormData.append formData "1_age" (`String "20");
+  Js.FormData.append formData "_1_name" (`String "Lola");
+  Js.FormData.append formData "_1_age" (`String "20");
   Js.FormData.append formData "0" (`String "[\"Hello\", \"$K1\"]");
   let args, formData = ReactServerDOM.decodeFormDataReply formData |> unwrap_ok in
   match (args, Js.FormData.get formData "name", Js.FormData.get formData "age") with
@@ -210,7 +210,7 @@ let decodeFormDataReply_with_undefined_arg () =
   (* Simulates: fn(~name: option(string)=?, formData: Js.FormData.t)
      called with name=None. $undefined should become Null, not be filtered. *)
   let formData = Js.FormData.make () in
-  Js.FormData.append formData "1_name" (`String "Lola");
+  Js.FormData.append formData "_1_name" (`String "Lola");
   Js.FormData.append formData "0" (`String "[\"$undefined\", \"$K1\"]");
   let args, formData = ReactServerDOM.decodeFormDataReply formData |> unwrap_ok in
   match (args, Js.FormData.get formData "name") with
@@ -220,7 +220,7 @@ let decodeFormDataReply_with_undefined_arg () =
 let decodeFormDataReply_with_special_values () =
   (* Mixed special values alongside FormData reference *)
   let formData = Js.FormData.make () in
-  Js.FormData.append formData "1_file" (`String "data");
+  Js.FormData.append formData "_1_file" (`String "data");
   Js.FormData.append formData "0" (`String "[\"$$escaped\", \"$D2024-01-01T00:00:00.000Z\", \"$K1\", \"$N\"]");
   let args, formData = ReactServerDOM.decodeFormDataReply formData |> unwrap_ok in
   match (args, Js.FormData.get formData "file") with
@@ -275,10 +275,10 @@ let decodeFormDataReply_iterator () =
   | [| `List [ `String "x"; `String "y"; `String "z" ] |] -> ()
   | _ -> Alcotest.fail "expected List for Iterator"
 
-(* Outlined model resolution: $F Server Reference *)
+(* Outlined model resolution: $h Server Reference *)
 
 let decodeFormDataReply_server_ref () =
-  let args, _ = decode_outlined ~entries:[ ("1", "{\"id\":\"abc123\",\"bound\":null}") ] ~root_json:"[\"$F1\"]" in
+  let args, _ = decode_outlined ~entries:[ ("1", "{\"id\":\"abc123\",\"bound\":null}") ] ~root_json:"[\"$h1\"]" in
   match args with
   | [| `Assoc [ ("id", `String id); ("bound", `Null) ] |] -> assert_string id "abc123"
   | _ -> Alcotest.fail "expected Assoc {id, bound} for Server Reference"
@@ -314,7 +314,9 @@ let decodeFormDataReply_mixed_outlined_and_regular () =
   | _ -> Alcotest.fail "expected mixed regular args and outlined model"
 
 let decodeFormDataReply_outlined_and_formdata () =
-  let args, fd = decode_outlined ~entries:[ ("1", "[[\"a\",1]]"); ("2_name", "Lola") ] ~root_json:"[\"$Q1\",\"$K2\"]" in
+  let args, fd =
+    decode_outlined ~entries:[ ("1", "[[\"a\",1]]"); ("_2_name", "Lola") ] ~root_json:"[\"$Q1\",\"$K2\"]"
+  in
   (match args with
   | [| `Assoc [ ("a", `Int 1) ] |] -> ()
   | _ -> Alcotest.fail "expected outlined Map resolved alongside FormData");
@@ -585,7 +587,7 @@ let tests =
     test "decodeFormDataReply: $W Set" decodeFormDataReply_set;
     test "decodeFormDataReply: $W Set of strings" decodeFormDataReply_set_strings;
     test "decodeFormDataReply: $i Iterator" decodeFormDataReply_iterator;
-    test "decodeFormDataReply: $F Server Reference" decodeFormDataReply_server_ref;
+    test "decodeFormDataReply: $h Server Reference" decodeFormDataReply_server_ref;
     test "decodeFormDataReply: nested outlined models" decodeFormDataReply_nested_outlined;
     test "decodeFormDataReply: outlined with special values" decodeFormDataReply_outlined_with_special_values;
     test "decodeFormDataReply: mixed regular + outlined" decodeFormDataReply_mixed_outlined_and_regular;

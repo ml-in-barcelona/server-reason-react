@@ -279,5 +279,4 @@
 
   $ cat _build/default/boostrap.js
   window.__client_manifest_map = window.__client_manifest_map || {};
-  window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};
   window.__client_manifest_map["input.re"] = { load: () => import("$TESTCASE_ROOT/_build/default/js/input.js").then(module => module.make_client) }

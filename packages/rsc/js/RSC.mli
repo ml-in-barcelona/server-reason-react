@@ -26,7 +26,8 @@ module Primitives : sig
   val tuple4_of_rsc : (t -> 'a) -> (t -> 'b) -> (t -> 'c) -> (t -> 'd) -> t -> 'a * 'b * 'c * 'd
   val react_element_of_rsc : t -> React.element
   val promise_of_rsc : (t -> 'a) -> t -> 'a Js.Promise.t
-  val server_function_of_rsc : t -> 'callback Runtime.server_function
+  val cached_server_function : t -> (unit -> 'callback Runtime.server_function) -> 'callback Runtime.server_function
+  val call_server_reference : t -> Obj.t array -> t Js.Promise.t
   val list_values_to_rsc : t list -> t
   val assoc_to_rsc : (string * t) list -> t
   val string_to_rsc : string -> t

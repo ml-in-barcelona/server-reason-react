@@ -268,7 +268,7 @@ module Page = {
         <Hr />
         <Section
           title="Server function from props on a Client Component"
-          description="In this case, react will use the server function from the window.__server_functions_manifest_map">
+          description="The server function reaches the client as a server reference">
           <ServerActionFromPropsClient
             actionOnClick=ServerFunctions.simpleResponse
             optionalAction=ServerFunctions.optionalAction
@@ -295,13 +295,13 @@ module Page = {
         <Hr />
         <Section
           title="Server function with FormData on action attribute on Server Component"
-          description="In this case, react will use the server function from the window.__server_functions_manifest_map">
+          description="The server function reaches the client as a server reference">
           <ServerActionWithFormDataServer />
         </Section>
         <Hr />
         <Section
           title="Server function with FormData on formAction attribute on Server Component"
-          description="In this case, react will use the server function from the window.__server_functions_manifest_map">
+          description="The server function reaches the client as a server reference">
           <ServerActionWithFormDataFormAction />
         </Section>
         <Hr />

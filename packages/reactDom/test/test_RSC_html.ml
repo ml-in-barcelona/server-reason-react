@@ -321,7 +321,7 @@ let suspense_with_async_and_client_component () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
-      "<script data-payload='3:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:I[\"./client-with-props.js\",[],\"\",1]\n'>window.srr_stream.push()</script>";
       "<div hidden id=\"S:2\"><span>Only the client<!-- -->Part of async component</span></div>\n\
        <script>$RC('B:2', 'S:2')</script><script \
        data-payload='2:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$L3\",null,{},null,null,1],\"Part of async \
@@ -438,7 +438,7 @@ let client_with_promise_props () =
        Content\"},null,null,2],[\"$\",\"$L2\",null,{\"promise\":\"$@1\"},null,null,2]]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='1:\"||| Resolved |||\"\n'>window.srr_stream.push()</script>";
     ]
@@ -473,7 +473,7 @@ let client_with_promise_failed_props () =
        Content\"}],[\"$\",\"$L2\",null,{\"promise\":\"$@1\"}]]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='1:E{\"digest\":\"\"}\n'>window.srr_stream.push()</script>";
     ]
@@ -504,7 +504,7 @@ let client_with_element_props () =
        data-payload='0:[\"$\",\"$L1\",null,{\"element\":[\"$\",\"span\",null,{\"children\":\"server-component-as-props-to-client-component\"},null,null,0]},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+      "<script data-payload='1:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -535,7 +535,7 @@ let client_component_with_async_component () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:\"Async Component\"\n'>window.srr_stream.push()</script>";
-      "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./client.js\",[],\"Client\",1]\n'>window.srr_stream.push()</script>";
     ]
 
 let suspense_with_error () =
@@ -628,7 +628,7 @@ let client_with_sync_error_under_client_suspense () =
       "<!--$!--><template data-msg=\"Failure(&quot;boom&quot;)\n\
        \"></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{},null,null,0]\n\
        '>window.srr_stream.push()</script>"
-    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
+    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\",1]\n'>window.srr_stream.push()</script>" ]
 
 let client_with_sync_error_under_client_suspense_in_prod () =
   let app =
@@ -639,7 +639,7 @@ let client_with_sync_error_under_client_suspense_in_prod () =
     ~shell:
       "<!--$!--><template></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{}]\n\
        '>window.srr_stream.push()</script>"
-    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
+    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\",1]\n'>window.srr_stream.push()</script>" ]
 
 let client_with_async_error_under_client_suspense () =
   let failing =
@@ -656,7 +656,7 @@ let client_with_async_error_under_client_suspense () =
        data-payload='0:[\"$\",\"$L2\",null,{},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./client.js\",[],\"Client\",1]\n'>window.srr_stream.push()</script>";
       Printf.sprintf
         "<script>%s;$RX(\"B:1\",\"\",\"Switched to client rendering because the server rendering \
          errored:\\n\\nFailure(\\\"boom\\\")\")</script>"
@@ -678,7 +678,7 @@ let client_with_async_error_under_client_suspense_in_prod () =
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L2\",null,{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./client.js\",[],\"Client\",1]\n'>window.srr_stream.push()</script>";
       Printf.sprintf "<script>%s;$RX(\"B:1\",\"\")</script>" rx_definition;
     ]
 
@@ -709,7 +709,7 @@ let writer_subtree_with_client_component () =
       "<div>Client Counter</div><script \
        data-payload='0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$L1\",null,{},null,null,1]},null,null,0]\n\
        '>window.srr_stream.push()</script>"
-    [ "<script data-payload='1:I[\"./counter.js\",[],\"Counter\"]\n'>window.srr_stream.push()</script>" ]
+    [ "<script data-payload='1:I[\"./counter.js\",[],\"Counter\",1]\n'>window.srr_stream.push()</script>" ]
 
 let client_with_error_without_suspense () =
   let client = React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")) in
@@ -788,7 +788,7 @@ let server_function_as_action () =
     ~shell:
       "<form action=\"\" encType=\"multipart/form-data\" method=\"POST\"><input type=\"hidden\" \
        name=\"$ACTION_ID_1234-4321\" value=\"\" />Server Content</form><script \
-       data-payload='0:[\"$\",\"form\",null,{\"children\":\"Server Content\",\"action\":\"$F1\"},null,null,1]\n\
+       data-payload='0:[\"$\",\"form\",null,{\"children\":\"Server Content\",\"action\":\"$h1\"},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [ "<script data-payload='1:{\"id\":\"1234-4321\",\"bound\":null}\n'>window.srr_stream.push()</script>" ]
 
@@ -815,7 +815,7 @@ let assert_server_and_client_html element ~html ~server_model =
   assert_html
     (React.Upper_case_component ("app", fun () -> client))
     ~shell:(html ^ model_script "[\"$\",\"$L1\",null,{},null,null,1]")
-    [ "<script data-payload='1:I[\"./form.js\",[],\"Form\"]\n'>window.srr_stream.push()</script>" ]
+    [ "<script data-payload='1:I[\"./form.js\",[],\"Form\",1]\n'>window.srr_stream.push()</script>" ]
 
 let form_action_and_button_form_action () =
   assert_server_and_client_html
@@ -830,7 +830,7 @@ let form_action_and_button_form_action () =
       ("<form " ^ action_form_attributes ^ ">" ^ action_input ^ "<button " ^ action_button_attributes
      ^ ">go</button></form>")
     ~server_model:
-      "[\"$\",\"form\",null,{\"children\":[\"$\",\"button\",null,{\"children\":\"go\",\"formAction\":\"$F1\"},null,null,1],\"action\":\"$F1\"},null,null,1]"
+      "[\"$\",\"form\",null,{\"children\":[\"$\",\"button\",null,{\"children\":\"go\",\"formAction\":\"$h1\"},null,null,1],\"action\":\"$h1\"},null,null,1]"
 
 let form_action_overrides_method_enc_type_and_target () =
   assert_server_and_client_html
@@ -845,7 +845,7 @@ let form_action_overrides_method_enc_type_and_target () =
        [ React.string "x" ])
     ~html:("<form id=\"f\" " ^ action_form_attributes ^ ">" ^ action_input ^ "x</form>")
     ~server_model:
-      "[\"$\",\"form\",null,{\"children\":\"x\",\"id\":\"f\",\"action\":\"$F1\",\"method\":\"get\",\"encType\":\"text/plain\",\"target\":\"_blank\"},null,null,1]"
+      "[\"$\",\"form\",null,{\"children\":\"x\",\"id\":\"f\",\"action\":\"$h1\",\"method\":\"get\",\"encType\":\"text/plain\",\"target\":\"_blank\"},null,null,1]"
 
 let input_form_action () =
   assert_server_and_client_html
@@ -857,13 +857,13 @@ let input_form_action () =
        ])
     ~html:("<form><input type=\"submit\" " ^ action_button_attributes ^ " /></form>")
     ~server_model:
-      "[\"$\",\"form\",null,{\"children\":[\"$\",\"input\",null,{\"type\":\"submit\",\"formAction\":\"$F1\"},null,null,1]},null,null,1]"
+      "[\"$\",\"form\",null,{\"children\":[\"$\",\"input\",null,{\"type\":\"submit\",\"formAction\":\"$h1\"},null,null,1]},null,null,1]"
 
 let button_camel_case_form_action () =
   assert_server_and_client_html
     (React.createElement "button" [ React.JSX.Action ("formAction", "formAction", form_action) ] [ React.string "go" ])
     ~html:("<button " ^ action_button_attributes ^ ">go</button>")
-    ~server_model:"[\"$\",\"button\",null,{\"children\":\"go\",\"formAction\":\"$F1\"},null,null,1]"
+    ~server_model:"[\"$\",\"button\",null,{\"children\":\"go\",\"formAction\":\"$h1\"},null,null,1]"
 
 let button_form_action_overrides_name_and_form_attributes () =
   assert_server_and_client_html
@@ -879,7 +879,7 @@ let button_form_action_overrides_name_and_form_attributes () =
        [ React.string "go" ])
     ~html:("<button value=\"v\" " ^ action_button_attributes ^ ">go</button>")
     ~server_model:
-      "[\"$\",\"button\",null,{\"children\":\"go\",\"formAction\":\"$F1\",\"name\":\"n\",\"value\":\"v\",\"formMethod\":\"get\",\"formEncType\":\"text/plain\",\"formTarget\":\"_blank\"},null,null,1]"
+      "[\"$\",\"button\",null,{\"children\":\"go\",\"formAction\":\"$h1\",\"name\":\"n\",\"value\":\"v\",\"formMethod\":\"get\",\"formEncType\":\"text/plain\",\"formTarget\":\"_blank\"},null,null,1]"
 
 let form_action_with_dangerously_set_inner_html () =
   assert_server_and_client_html
@@ -888,7 +888,7 @@ let form_action_with_dangerously_set_inner_html () =
        [])
     ~html:("<form " ^ action_form_attributes ^ ">" ^ action_input ^ "<b>x</b></form>")
     ~server_model:
-      "[\"$\",\"form\",null,{\"action\":\"$F1\",\"dangerouslySetInnerHTML\":{\"__html\":\"<b>x</b>\"}},null,null,1]"
+      "[\"$\",\"form\",null,{\"action\":\"$h1\",\"dangerouslySetInnerHTML\":{\"__html\":\"<b>x</b>\"}},null,null,1]"
 
 let suspense_in_a_list_with_error () =
   let fallback = React.string "Loading..." in
@@ -1063,8 +1063,8 @@ let nested_context () =
        page\",\"children\":[\"/about\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='1:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='2:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='1:I[\"./provider.js\",[],\"Provider\",1]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./consumer.js\",[],\"Consumer\",1]\n'>window.srr_stream.push()</script>";
     ]
 
 let context_preserved_across_async_suspense () =
@@ -1178,7 +1178,7 @@ let context_client_component_reads_context_across_async_suspense () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
-      "<script data-payload='3:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:I[\"./consumer.js\",[],\"Consumer\",1]\n'>window.srr_stream.push()</script>";
       "<div hidden id=\"S:2\"><div>ctx-value</div></div>\n\
        <script>$RC('B:2', 'S:2')</script><script data-payload='2:[\"$\",\"$L3\",null,{},null,null,1]\n\
        '>window.srr_stream.push()</script>";
@@ -1202,7 +1202,7 @@ let suspense_with_sync_client_component () =
     ~shell:
       "<!--$--><div>Sync content</div><!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{},null,null,0]\n\
        '>window.srr_stream.push()</script>"
-    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
+    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\",1]\n'>window.srr_stream.push()</script>" ]
 
 let text_with_ampersand () =
   let app = React.createElement "div" [] [ React.string "Tom & Jerry" ] in
@@ -1400,7 +1400,7 @@ let timeout_rejects_pending_promise_prop_row () =
     "no $RX script is emitted without pending boundaries" false (contains_substring all_content "$RX");
   assert_list_of_strings !subscribed_elements
     [
-      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='1:E{\"message\":\"The render timed \
        out.\",\"stack\":null,\"env\":\"Server\",\"digest\":\"\"}\n\
@@ -1900,7 +1900,7 @@ let nested_suspense_inner_resolves_first_in_client_tree () =
   assert_nested_stream
     (in_client_component (nested_suspense ~inner:(await_tick ~ms:1 "inner") ~sibling:(await_tick ~ms:5 "sibling")))
     [
-      "<script data-payload='3:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:I[\"./client.js\",[],\"Client\",1]\n'>window.srr_stream.push()</script>";
       "<div hidden id=\"S:2\"><!--$?--><template id=\"B:1\"></template>Inner loading<!--/$--><!-- -->sibling</div>\n\
        <script>$RC('B:2', 'S:2')</script>";
       "<div hidden id=\"S:1\">inner</div>\n<script>$RC('B:1', 'S:1')</script>";
@@ -1942,7 +1942,7 @@ let suspense_inside_failed_suspense_in_client_tree_is_not_completed () =
     (in_client_component
        (nested_suspense ~inner:(await_tick ~ms:1 "inner") ~sibling:(await_tick ~ms:5 ~raise:true "sibling")))
     [
-      "<script data-payload='3:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:I[\"./client.js\",[],\"Client\",1]\n'>window.srr_stream.push()</script>";
       Printf.sprintf "<script>%s;$RX(\"B:2\",\"\")</script>" rx_definition;
       "<script>window.srr_stream.close()</script>";
     ]

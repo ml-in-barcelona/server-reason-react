@@ -2,14 +2,7 @@ module List = ListLabels
 
 let read_file path = try Some (In_channel.with_open_bin path In_channel.input_all) with _ -> None
 
-type manifest_item =
-  | Client_component of { original_path : string; compiled_js_path : string; module_name : string list option }
-  | Server_function of {
-      id : string;
-      compiled_js_path : string;
-      module_name : string list option;
-      function_name : string;
-    }
+type manifest_item = { original_path : string; compiled_js_path : string; module_name : string list option }
 
 let parse_module_name str = String.split_on_char '.' str
 let print_module_name str = String.concat "." str
@@ -20,57 +13,36 @@ let parse_client_component_line line =
         Ok (filename, if module_name = "" then None else Some (parse_module_name module_name)))
   with End_of_file | Scanf.Scan_failure _ -> Error "Invalid `extract-client` command format"
 
-let parse_server_function_line line =
-  try
-    Scanf.sscanf line "// extract-server-function %s %s %s" (fun id function_name module_name ->
-        Ok ((if module_name = "" then None else Some (parse_module_name module_name)), function_name, id))
-  with End_of_file | Scanf.Scan_failure _ -> Error "Invalid `extract-server-function` command format"
-
 let parse_manifest_item ~path line =
-  match (parse_client_component_line (String.trim line), parse_server_function_line (String.trim line)) with
-  | Ok (original_path, module_name), _ ->
-      Some (Client_component { compiled_js_path = path; original_path; module_name })
-  | _, Ok (module_name, function_name, id) ->
-      Some (Server_function { compiled_js_path = path; module_name; function_name; id })
-  | Error _, Error _ -> None
+  match parse_client_component_line (String.trim line) with
+  | Ok (original_path, module_name) -> Some { compiled_js_path = path; original_path; module_name }
+  | Error _ -> None
 
 let parse_manifest_data ~path content : manifest_item list =
   content |> String.split_on_char '\n' |> List.filter_map ~f:(parse_manifest_item ~path)
 
 let render_manifest manifest =
   let register_client_modules =
-    List.map manifest ~f:(function
-      | Client_component { original_path; compiled_js_path; module_name } ->
-          let original_path_with_submodule =
-            match module_name with
-            | Some name -> Printf.sprintf "%s#%s" original_path (print_module_name name)
-            | None -> original_path
-          in
-          let export =
-            match module_name with
-            | Some name -> Printf.sprintf "%s.make_client" (print_module_name name)
-            | None -> "make_client"
-          in
-          (* A loader record, not a React.lazy: the Flight client's $L references already provide
+    List.map manifest ~f:(fun { original_path; compiled_js_path; module_name } ->
+        let original_path_with_submodule =
+          match module_name with
+          | Some name -> Printf.sprintf "%s#%s" original_path (print_module_name name)
+          | None -> original_path
+        in
+        let export =
+          match module_name with
+          | Some name -> Printf.sprintf "%s.make_client" (print_module_name name)
+          | None -> "make_client"
+        in
+        (* A loader record, not a React.lazy: the Flight client's $L references already provide
              laziness (preloadModule starts the import and blocks the module chunk; requireModule
              returns the component synchronously once loaded). Wrapping in React.lazy produced a
              lazy-resolving-to-lazy element type, which React rejects when the chunk isn't already
              loaded ("Lazy element type must resolve to a class or function"). *)
-          Printf.sprintf
-            "window.__client_manifest_map[\"%s\"] = { load: () => import(\"%s\").then(module => module.%s) }"
-            original_path_with_submodule compiled_js_path export
-      | Server_function { compiled_js_path; module_name; function_name; id } ->
-          let export =
-            match module_name with
-            | Some name -> Printf.sprintf "%s.%s" (print_module_name name) function_name
-            | None -> function_name
-          in
-          Printf.sprintf "window.__server_functions_manifest_map[\"%s\"] = require(\"%s\").%s" id compiled_js_path
-            export)
+        Printf.sprintf "window.__client_manifest_map[\"%s\"] = { load: () => import(\"%s\").then(module => module.%s) }"
+          original_path_with_submodule compiled_js_path export)
   in
-  Printf.sprintf
-    {|window.__client_manifest_map = window.__client_manifest_map || {};
-window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};
+  Printf.sprintf {|window.__client_manifest_map = window.__client_manifest_map || {};
 %s|}
     (String.concat "\n" register_client_modules)
 

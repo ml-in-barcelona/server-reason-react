@@ -76,9 +76,11 @@ module Conv : sig
       allow_any_constr:(expression -> expression) option ->
       expression ->
       expression) ->
+    derive_of_server_function:(derive_of_core_type -> core_type -> expression -> expression) ->
     unit ->
     deriving
-  (** Define a deserializer. *)
+  (** Define a deserializer. [derive_of_server_function] decodes [Runtime.server_function(callback)] from its callback
+      type. *)
 
   val deriving_of_match :
     name:label ->

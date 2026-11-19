@@ -16,6 +16,7 @@ let of_rsc_unexpected_variant ?depth:_ ?width:_ ~rsc msg =
   of_rsc_msg_unexpected_variant (msg ^ "; received " ^ describe (Obj.magic rsc))
 
 let promise_cache_key = "__server_reason_react_rsc_promise"
+let server_function_cache_key = "__server_reason_react_rsc_server_function"
 
 let cached_promise decode promise =
   let cache = (Obj.magic promise : 'a Js.Promise.t Js.Dict.t) in
@@ -119,5 +120,16 @@ module Primitives = struct
 
   let react_element_of_rsc rsc = Obj.magic rsc
   let promise_of_rsc of_rsc rsc = cached_promise of_rsc (Obj.magic rsc)
-  let server_function_of_rsc rsc = Obj.magic rsc
+
+  let cached_server_function reference make =
+    let cache = (Obj.magic reference : 'a Runtime.server_function Js.Dict.t) in
+    match Js.Dict.get cache server_function_cache_key with
+    | Some decoded -> decoded
+    | None ->
+        let decoded = make () in
+        Js.Dict.set cache server_function_cache_key decoded;
+        decoded
+
+  let call_server_reference : t -> Obj.t array -> t Js.Promise.t =
+    [%mel.raw {|function (reference, args) { return reference.apply(null, args); }|}]
 end

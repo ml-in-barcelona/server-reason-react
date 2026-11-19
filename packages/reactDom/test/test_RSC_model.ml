@@ -97,7 +97,7 @@ let dollar_prefixed_json_props_are_escaped () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
   assert_list_of_strings !output
     [
-      "1:I[\"./client.js\",[],\"Component\"]\n";
+      "1:I[\"./client.js\",[],\"Component\",1]\n";
       "0:[\"$\",\"$L1\",null,{\"data\":{\"label\":\"$$ref-like\"}},null,null,0]\n";
     ];
   Lwt.return ()
@@ -685,7 +685,7 @@ let client_without_props () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client-without-props.js\",[],\"ClientWithoutProps\"]\n";
+      "1:I[\"./client-without-props.js\",[],\"ClientWithoutProps\",1]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,null,2],[\"$\",\"$L1\",null,{},null,null,2]]\n";
     ];
   Lwt.return ()
@@ -722,7 +722,7 @@ let client_with_json_props () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
        Content\"},null,null,2],[\"$\",\"$L1\",null,{\"null\":null,\"string\":\"Title\",\"int\":1,\"float\":1.1,\"bool \
        true\":true,\"bool false\":false,\"string list\":[\"Item 1\",\"Item \
@@ -752,7 +752,7 @@ let client_with_element_props () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
        Content\"},null,null,2],[\"$\",\"$L1\",null,{\"children\":\"Client Content\"},null,null,2]]\n";
     ];
@@ -785,7 +785,7 @@ let client_with_promise_props () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
        Content\"},null,null,2],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,2]]\n";
       "2:\"||| Resolved |||\"\n";
@@ -820,7 +820,7 @@ let client_with_promise_failed_props () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
        Content\"},null,null,2],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,2]]\n";
       "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
@@ -852,7 +852,7 @@ let client_with_promise_already_failed_props () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
        Content\"},null,null,2],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,2]]\n";
       "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
@@ -890,8 +890,8 @@ let mixed_server_and_client () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client-1.js\",[],\"Client1\"]\n";
-      "2:I[\"./client-2.js\",[],\"Client2\"]\n";
+      "1:I[\"./client-1.js\",[],\"Client1\",1]\n";
+      "2:I[\"./client-2.js\",[],\"Client2\",1]\n";
       "0:[[\"$\",\"header\",null,{\"children\":\"Server \
        Header\"},null,null,2],[\"$\",\"$L1\",null,{},null,null,2],[\"$\",\"footer\",null,{\"children\":\"Server \
        Footer\"},null,null,2],[\"$\",\"$L2\",null,{},null,null,2]]\n";
@@ -921,7 +921,7 @@ let client_with_server_children () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
+      "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\",1]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
        Content\"},null,null,2],[\"$\",\"$L1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
        Inside Client\"},null,null,1]},null,null,2]]\n";
@@ -1170,7 +1170,7 @@ let client_component_with_async_component () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ~children:async_component) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client.js\",[],\"Client\"]\n";
+      "1:I[\"./client.js\",[],\"Client\",1]\n";
       "0:[\"$\",\"$L1\",null,{\"children\":\"$L2\"},null,null,1]\n";
       "2:\"Async Component\"\n";
     ];
@@ -1266,8 +1266,8 @@ let nested_context () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./provider.js\",[],\"Provider\"]\n";
-      "2:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "1:I[\"./provider.js\",[],\"Provider\",1]\n";
+      "2:I[\"./consumer.js\",[],\"Consumer\",1]\n";
       "0:[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":null,\"children\":\"Hey \
        you\"},null,null,1],\"children\":[\"/me\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1],\"children\":[\"/about\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$L2\",null,{},null,null,2]]},null,null,1]\n";
     ];
@@ -1568,7 +1568,7 @@ let debug_client_component_props () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~debug:true ~filter_stack_frame:drop_all_frames app in
   assert_list_of_strings !output
     [
-      "1:I[\"./client.js\",[],\"Client\"]\n";
+      "1:I[\"./client.js\",[],\"Client\",1]\n";
       "2:{\"name\":\"InProp\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
       "0:D\"$2\"\n";
       "4:{\"name\":\"InList\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
@@ -1660,9 +1660,9 @@ let server_function_as_model_prop () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client.js\",[],\"Client\"]\n";
+      "1:I[\"./client.js\",[],\"Client\",1]\n";
       "2:{\"id\":\"action-id-123\",\"bound\":null}\n";
-      "0:[\"$\",\"$L1\",null,{\"onSubmit\":\"$F2\"},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"onSubmit\":\"$h2\"},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -1684,7 +1684,7 @@ let duplicate_client_component_deduplicates_ref () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client.js\",[],\"Client\"]\n";
+      "1:I[\"./client.js\",[],\"Client\",1]\n";
       "0:[[\"$\",\"$L1\",null,{},null,null,2],[\"$\",\"$L1\",null,{},null,null,2]]\n";
     ];
   Lwt.return ()
@@ -1705,7 +1705,7 @@ let keyed_duplicate_client_component_preserves_keys () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:I[\"./client.js\",[],\"Client\"]\n";
+      "1:I[\"./client.js\",[],\"Client\",1]\n";
       "0:[[\"$\",\"$L1\",\"first\",{},null,null,0],[\"$\",\"$L1\",\"second\",{},null,null,0]]\n";
     ];
   Lwt.return ()
@@ -1812,7 +1812,7 @@ let abort_settles_pending_promise_prop () =
   let%lwt () = render in
   assert_list_of_strings !output
     [
-      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\",1]\n";
       "0:[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,0]\n";
       dev_aborted_row 2;
     ];

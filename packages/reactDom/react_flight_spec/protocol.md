@@ -1,6 +1,6 @@
 # React Flight wire protocol notes
 
-Observed from `react-server-dom-webpack@19.1.0` with `NODE_ENV=production`
+Observed from `react-server-dom-webpack@19.1.10` with `NODE_ENV=production`
 (the prod wire format is the contract; dev adds debug rows and stacks on top).
 This file is kept honest by the fixtures: if a statement here disagrees with a
 committed `.flight` file, the fixture wins.
@@ -28,7 +28,7 @@ The spec therefore compares **rows**, never chunks.
 | tag | meaning |
 | --- | ------- |
 | *(none)* | model row: JSON value, possibly containing `$` references |
-| `I` | module import (client reference): `[id, chunks[], exportName]` as resolved through the client manifest |
+| `I` | module import (client reference): `[id, chunks[], exportName]` as resolved through the client manifest, with a fourth element `1` when the manifest marks the module `async` |
 | `E` | error: prod emits `{"digest": "..."}` only; dev adds `message`, `stack`, `env` |
 | `T` | raw text row, `<id>:T<hex-length>,<utf8 bytes>` (large/binary-ish strings) |
 | `H` | resource hint (see below); the only row kind with **no id**: `:H<kind><json>` |
@@ -91,7 +91,7 @@ Strings in a model position are special-cased when they start with `$`:
 | `$L<hex>` | *lazy* reference: row not ready yet, will stream later (e.g. Suspense content) |
 | `$@<hex>` | promise reference |
 | `$S<name>` | well-known symbol, e.g. `$Sreact.suspense` |
-| `$F<hex>` | server function reference |
+| `$h<hex>` | server function reference |
 | `$T...` | temporary reference |
 | `$D`, `$n`, `$i`, `$-0`, `$NaN`, `$Infinity`, `$-Infinity`, `$u` | typed scalars (date, bigint, undefined, negative zero, non-finite floats) |
 
@@ -133,7 +133,7 @@ follows the same gate on `~env`:
 | `1` | Static child position or a single server-component result |
 | `2` | Unvalidated, unkeyed member of a runtime collection |
 
-React 19.1.0's development Flight server changes unkeyed array members from
+React 19.1.10's development Flight server changes unkeyed array members from
 `0` to `2` during serialization. The development client preserves these states.
 A 4-tuple leaves `validated` undefined, which the development client treats as
 `0`, so it warns about unkeyed static siblings: correct key warnings need a
@@ -184,7 +184,7 @@ Observed from the `error_*` fixtures:
 ## Reply direction (client → server)
 
 Observed from `encodeReply` (the public wrapper over `processReply`) in
-`react-server-dom-webpack/client` 19.1.0. This is the body a client sends when
+`react-server-dom-webpack/client` 19.1.10. This is the body a client sends when
 calling a server function; srr decodes it with `ReactServerDOM.decodeReply`
 (string bodies) and `ReactServerDOM.decodeFormDataReply` (FormData bodies).
 Fixtures live under `reply/fixtures/*.reply` and are kept honest by
@@ -213,7 +213,7 @@ Fixtures live under `reply/fixtures/*.reply` and are kept honest by
 | `$W<hex>` | Set, outlined as `[v, …]` | `` `List `` |
 | `$K<hex>` | FormData; its entries are inlined into the outer form as `<id>_<name>` | consumed at the top level of args (entries returned as the residual FormData); decodes to `` `Null `` when nested |
 | `$B<hex>` | Blob/File, appended as a binary form entry | resolved to the entry bytes as `` `String `` |
-| `$F<hex>` | server reference, outlined as `{"id": …, "bound": …}` | the outlined object as `` `Assoc `` |
+| `$h<hex>` | server reference, outlined as `{"id": …, "bound": …}` | the outlined object as `` `Assoc `` |
 | `$T` | temporary reference — **no id**: the key is the object path, tracked out-of-band by the temporary reference set | resolver is called with the empty string |
 
 Numbers, booleans, `null`, plain strings, arrays and objects are plain JSON.

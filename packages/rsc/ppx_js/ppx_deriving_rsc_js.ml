@@ -137,10 +137,46 @@ module Of_rsc = struct
 
   let is_allow_any_constr vcs = vcs_attr_json_allow_any vcs
 
+  let derive_of_server_function derive callback x =
+    let loc = callback.ptyp_loc in
+    let rec parameters index t =
+      match t.ptyp_desc with
+      | Ptyp_arrow (label, _, rest) ->
+          let rest, response = parameters (index + 1) rest in
+          ((label, sprintf "argument%i" index) :: rest, response)
+      | _ -> ([], t)
+    in
+    match parameters 0 callback with
+    | (_ :: _ as parameters), [%type: [%t? response] Js.Promise.t] ->
+        let arguments =
+          pexp_array ~loc (List.map parameters ~f:(fun (_, name) -> [%expr Obj.repr [%e evar ~loc name]]))
+        in
+        let body =
+          [%expr
+            Js.Promise.then_
+              (fun response -> Js.Promise.resolve [%e derive response [%expr response]])
+              (RSC.Primitives.call_server_reference reference [%e arguments])]
+        in
+        let call =
+          List.fold_right parameters ~init:body ~f:(fun (label, name) body ->
+              pexp_fun ~loc label None (pvar ~loc name) body)
+        in
+        [%expr
+          let reference = [%e x] in
+          if Stdlib.( <> ) (Js.typeof reference) "function" then
+            RSC.of_rsc_error ~rsc:reference "expected a server function reference"
+          else RSC.Primitives.cached_server_function reference (fun () -> { Runtime.id = ""; call = [%e call] })]
+    | _ ->
+        [%expr
+          [%ocaml.error
+            "server-reason-react: the callback type of Runtime.server_function must be written inline as an arrow type \
+             returning Js.Promise.t, for example Runtime.server_function(unit => Js.Promise.t(string))"]]
+
   let deriving : Ppx_deriving_tools.deriving =
     deriving_of () ~name:"of_rsc"
       ~of_t:(fun ~loc -> [%type: RSC.t])
       ~is_allow_any_constr ~derive_of_tuple ~derive_of_record ~derive_of_variant ~derive_of_variant_case
+      ~derive_of_server_function
 end
 
 module To_rsc = struct

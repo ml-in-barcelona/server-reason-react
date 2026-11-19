@@ -15,6 +15,7 @@ const controlsOnly = process.argv.includes("--controls-only");
 const filter = process.env.FLIGHT_KEY_CASE;
 const missingKey = /Each child in a list should have a unique ["']key["'] prop/;
 const duplicateKey = /Encountered two children with the same key/;
+const reactVersion = "19.1.10";
 await mkdir(artifacts, { recursive: true });
 
 const native = controlsOnly ? [] : JSON.parse(execFileSync(
@@ -69,7 +70,7 @@ for (const environment of ["development", "production"]) {
     alias: {
       react: path.join(spec, "node_modules/react"),
       "react-dom": path.join(spec, "node_modules/react-dom"),
-      "@pedrobslisboa/react-client": path.join(spec, "node_modules/@pedrobslisboa/react-client"),
+      "react-server-dom-webpack": path.join(spec, "node_modules/react-server-dom-webpack"),
     },
     metafile: true,
   });
@@ -78,14 +79,14 @@ for (const environment of ["development", "production"]) {
     .map((name) => path.resolve(name).split(`${path.sep}react${path.sep}`)[0]));
   assert.equal(reactRoots.size, 1, `Exactly one React copy in ${environment}`);
   const reactPackage = JSON.parse(await readFile(path.join(spec, "node_modules/react/package.json"), "utf8"));
-  assert.equal(reactPackage.version, "19.1.0");
-  for (const dependency of ["react-dom", "@pedrobslisboa/react-client"]) {
-    assert.equal(JSON.parse(await readFile(path.join(spec, "node_modules", dependency, "package.json"), "utf8")).version, "19.1.0");
+  assert.equal(reactPackage.version, reactVersion);
+  for (const dependency of ["react-dom", "react-server-dom-webpack"]) {
+    assert.equal(JSON.parse(await readFile(path.join(spec, "node_modules", dependency, "package.json"), "utf8")).version, reactVersion);
   }
   bundles.set(environment, result.outputFiles[0].text);
   await writeFile(path.join(artifacts, `${environment}.js`), result.outputFiles[0].text);
   await writeFile(path.join(artifacts, `${environment}.meta.json`), JSON.stringify(result.metafile, null, 2));
-  console.log(`${environment}: one React 19.1.0 copy; shipped Flight adapter bundled`);
+  console.log(`${environment}: one React ${reactVersion} copy; shipped Flight adapter bundled`);
 }
 
 function control(name, state, missing) {
@@ -98,7 +99,7 @@ function control(name, state, missing) {
 
 const controls = [
   { name: "plain-react-unkeyed", env: "control", plain: true, text: "ab", missing: true },
-  control("legacy-four-field-static", undefined, true),
+  { ...control("legacy-four-field-static", undefined, true), error: { development: "decode" } },
   control("unvalidated-zero", 0, true),
   control("hardcoded-one-hides-missing-key", 1, false),
   control("missing-key-two", 2, true),
@@ -154,6 +155,7 @@ async function runCase(environment, fixture) {
   const id = fixture.env === "control" ? "control" : String(native.indexOf(fixture));
   const url = `${origin}/${environment}/${id}/index.html`;
   const label = `${environment}/${fixture.env}/${fixture.name}`;
+  const expectedError = typeof fixture.error === "string" ? fixture.error : fixture.error?.[environment];
   let observed;
   try {
     await page.goto(url, { waitUntil: "commit" });
@@ -170,7 +172,7 @@ async function runCase(environment, fixture) {
     } else if (!fixture.plain) {
       await page.evaluate(() => window.releaseFlightTest());
     }
-    if (fixture.error) {
+    if (expectedError) {
       await page.waitForFunction(() => window.flightTest.renderErrors.length > 0);
     } else {
       await page.waitForFunction((text) =>
@@ -193,14 +195,14 @@ async function runCase(environment, fixture) {
     }
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     observed = await page.evaluate(() => window.flightTest);
-    assert.equal(observed.version, "19.1.0");
+    assert.equal(observed.version, reactVersion);
     assert.deepEqual(pageErrors, [], "Uncaught browser errors");
     assert.deepEqual(observed.recoverableErrors, [], "Hydration/recoverable errors");
-    if (fixture.error === "decode") assert.ok(observed.decodeErrors.length > 0, "Decode control must fail in decoding");
+    if (expectedError === "decode") assert.ok(observed.decodeErrors.length > 0, "Decode control must fail in decoding");
     else assert.deepEqual(observed.decodeErrors, [], "Flight decoding errors");
-    if (fixture.error) assert.ok(observed.renderErrors.length > 0, "Negative control must reach error handler");
+    if (expectedError) assert.ok(observed.renderErrors.length > 0, "Negative control must reach error handler");
     else assert.deepEqual(observed.renderErrors, [], "React rendering errors");
-    if (!fixture.error) {
+    if (!expectedError) {
       const missing = observed.console.filter(({ text }) => missingKey.test(text));
       const duplicate = observed.console.filter(({ text }) => duplicateKey.test(text));
       const unexpected = observed.console.filter(({ text }) => !missingKey.test(text) && !duplicateKey.test(text));
