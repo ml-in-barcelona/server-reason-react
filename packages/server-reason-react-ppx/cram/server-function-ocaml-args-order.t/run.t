@@ -12,7 +12,7 @@
   $ dune build
 
   $ ../dune-describe-pp.sh input.ml | grep -E 'join.call|"(first|second|sep)"'
-                              "first" "string"
-                              "second" "int"
-                              "sep" "string"
-                  (join.call first second ~sep) |>
+                                 "first" "string"
+                                 "second" "int"
+                                 "sep" "string"
+                   (join.call first second ~sep) |>

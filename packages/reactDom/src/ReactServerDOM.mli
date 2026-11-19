@@ -59,11 +59,26 @@ type server_function =
   | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.model_value Lwt.t)
   | Body of (Yojson.Basic.t array -> React.model_value Lwt.t)
 
+(** Decode the arguments of a server function call from an untrusted request.
+
+    [max_bytes] (default 1048576) limits the byte length of each JSON text that is parsed: the body for [decodeReply];
+    the root entry and each outlined entry for [decodeFormDataReply]. Blob ([$B]) entries are not parsed and are not
+    limited. [max_depth] (default 512) limits the nesting of arrays and objects, counted from the root argument array
+    and across outlined references. Both limits are checked before the JSON is parsed, so an oversized or deep payload
+    costs one linear scan. A payload over a limit returns [Error], with a message that starts with ["decodeReply:"],
+    like every other decode error. Limit the HTTP body size in the server as well. *)
+
 val decodeReply :
-  ?temporaryReferences:(string -> Yojson.Basic.t option) -> string -> (Yojson.Basic.t array, string) result
+  ?temporaryReferences:(string -> Yojson.Basic.t option) ->
+  ?max_depth:int ->
+  ?max_bytes:int ->
+  string ->
+  (Yojson.Basic.t array, string) result
 
 val decodeFormDataReply :
   ?temporaryReferences:(string -> Yojson.Basic.t option) ->
+  ?max_depth:int ->
+  ?max_bytes:int ->
   Js.FormData.t ->
   (Yojson.Basic.t array * Js.FormData.t, string) result
 

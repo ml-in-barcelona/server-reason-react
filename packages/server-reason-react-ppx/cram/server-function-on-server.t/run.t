@@ -33,54 +33,85 @@
             FunctionReferences.register(
               "244965410",
               Body(
-                args => {
-                  let name =
-                    try(
-                      Melange_json.Primitives.string_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "name",
-                            "string",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    }
-                  and age =
-                    try(
-                      Melange_json.Primitives.int_of_json(
-                        Stdlib.Array.unsafe_get(args, 1),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "age",
-                            "int",
-                            Stdlib.Array.unsafe_get(args, 1)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withLabelledArg.call(~name, ~age)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 2 || length > 2) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withLabelledArg",
+                                "2",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let name =
+                        try(
+                          Melange_json.Primitives.string_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "name",
+                                "string",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        }
+                      and age =
+                        try(
+                          Melange_json.Primitives.int_of_json(
+                            Stdlib.Array.unsafe_get(args, 1),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "age",
+                                "int",
+                                Stdlib.Array.unsafe_get(args, 1)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withLabelledArg.call(~name, ~age)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -98,58 +129,89 @@
             FunctionReferences.register(
               "150260642",
               Body(
-                args => {
-                  let name =
-                    try(
-                      (
-                        Melange_json.Primitives.option_of_json(
-                          Melange_json.Primitives.string_of_json,
-                        )
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "name",
-                            "string option",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    }
-                  and age =
-                    try(
-                      Melange_json.Primitives.int_of_json(
-                        Stdlib.Array.unsafe_get(args, 1),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "age",
-                            "int",
-                            Stdlib.Array.unsafe_get(args, 1)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withLabelledArgAndUnlabeledArg.call(~name?, age)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 2 || length > 2) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withLabelledArgAndUnlabeledArg",
+                                "2",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let name =
+                        try(
+                          (
+                            Melange_json.Primitives.option_of_json(
+                              Melange_json.Primitives.string_of_json,
+                            )
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "name",
+                                "string option",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        }
+                      and age =
+                        try(
+                          Melange_json.Primitives.int_of_json(
+                            Stdlib.Array.unsafe_get(args, 1),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "age",
+                                "int",
+                                Stdlib.Array.unsafe_get(args, 1)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withLabelledArgAndUnlabeledArg.call(~name?, age)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -172,39 +234,65 @@
             FunctionReferences.register(
               "72909839",
               Body(
-                args => {
-                  let name =
-                    try(
-                      (
-                        Melange_json.Primitives.option_of_json(
-                          Melange_json.Primitives.string_of_json,
-                        )
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "name",
-                            "string option",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withOptionalArg.call(~name?, ())
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 2) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withOptionalArg",
+                                "1 to 2",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let name =
+                        try(
+                          (
+                            Melange_json.Primitives.option_of_json(
+                              Melange_json.Primitives.string_of_json,
+                            )
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "name",
+                                "string option",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withOptionalArg.call(~name?, ())
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -220,39 +308,65 @@
             FunctionReferences.register(
               "1038516267",
               Body(
-                args => {
-                  let name =
-                    try(
-                      (
-                        Melange_json.Primitives.option_of_json(
-                          Melange_json.Primitives.string_of_json,
-                        )
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "name",
-                            "string option",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withOptionalDefaultArg.call(~name?, ())
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 2) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withOptionalDefaultArg",
+                                "1 to 2",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let name =
+                        try(
+                          (
+                            Melange_json.Primitives.option_of_json(
+                              Melange_json.Primitives.string_of_json,
+                            )
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "name",
+                                "string option",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withOptionalDefaultArg.call(~name?, ())
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -270,54 +384,85 @@
             FunctionReferences.register(
               "543207864",
               Body(
-                args => {
-                  let name =
-                    try(
-                      Melange_json.Primitives.string_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "name",
-                            "string",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    }
-                  and age =
-                    try(
-                      Melange_json.Primitives.int_of_json(
-                        Stdlib.Array.unsafe_get(args, 1),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "age",
-                            "int",
-                            Stdlib.Array.unsafe_get(args, 1)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withUnlabeledArg.call(name, age)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 2 || length > 2) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withUnlabeledArg",
+                                "2",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let name =
+                        try(
+                          Melange_json.Primitives.string_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "name",
+                                "string",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        }
+                      and age =
+                        try(
+                          Melange_json.Primitives.int_of_json(
+                            Stdlib.Array.unsafe_get(args, 1),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "age",
+                                "int",
+                                Stdlib.Array.unsafe_get(args, 1)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withUnlabeledArg.call(name, age)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -337,6 +482,11 @@
                          RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
                   },
               ),
@@ -377,6 +527,11 @@
                          RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
                   },
               ),
@@ -405,35 +560,61 @@
             FunctionReferences.register(
               "762631116",
               FormData(
-                (args, formData) => {
-                  let country =
-                    try(
-                      Melange_json.Primitives.string_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "country",
-                            "string",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                (args, formData) =>
                   try(
-                    withFormDataArgs.call(country, formData)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withFormDataArgs",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let country =
+                        try(
+                          Melange_json.Primitives.string_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "country",
+                                "string",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withFormDataArgs.call(country, formData)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -460,38 +641,64 @@
             FunctionReferences.register(
               "305946000",
               FormData(
-                (args, formData) => {
-                  let country =
-                    try(
-                      Melange_json.Primitives.string_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "country",
-                            "string",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                (args, formData) =>
                   try(
-                    withFormDataLabelledAndUnlabeledArgs.call(
-                      country,
-                      ~formData,
-                    )
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withFormDataLabelledAndUnlabeledArgs",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let country =
+                        try(
+                          Melange_json.Primitives.string_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "country",
+                                "string",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withFormDataLabelledAndUnlabeledArgs.call(
+                        country,
+                        ~formData,
+                      )
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -518,38 +725,64 @@
             FunctionReferences.register(
               "836441764",
               FormData(
-                (args, formData) => {
-                  let country =
-                    try(
-                      Melange_json.Primitives.string_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "country",
-                            "string",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                (args, formData) =>
                   try(
-                    withFormDataLabelledAndLabelledArgs.call(
-                      ~country,
-                      ~formData,
-                    )
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withFormDataLabelledAndLabelledArgs",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let country =
+                        try(
+                          Melange_json.Primitives.string_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "country",
+                                "string",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withFormDataLabelledAndLabelledArgs.call(
+                        ~country,
+                        ~formData,
+                      )
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -576,38 +809,64 @@
             FunctionReferences.register(
               "1042320905",
               FormData(
-                (args, formData) => {
-                  let country =
-                    try(
-                      Melange_json.Primitives.string_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "country",
-                            "string",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                (args, formData) =>
                   try(
-                    withFormDataUnlabelledAndLabelledArgs.call(
-                      ~country,
-                      formData,
-                    )
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withFormDataUnlabelledAndLabelledArgs",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let country =
+                        try(
+                          Melange_json.Primitives.string_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "country",
+                                "string",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withFormDataUnlabelledAndLabelledArgs.call(
+                        ~country,
+                        formData,
+                      )
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -634,35 +893,61 @@
             FunctionReferences.register(
               "271541692",
               FormData(
-                (args, formData) => {
-                  let country =
-                    try(
-                      Melange_json.Primitives.string_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "country",
-                            "string",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                (args, formData) =>
                   try(
-                    withFormDataAndArgsDifferentOrder.call(formData, country)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withFormDataAndArgsDifferentOrder",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let country =
+                        try(
+                          Melange_json.Primitives.string_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "country",
+                                "string",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withFormDataAndArgsDifferentOrder.call(formData, country)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -680,54 +965,85 @@
             FunctionReferences.register(
               "311524135",
               Body(
-                args => {
-                  let name =
-                    try(
-                      Melange_json.Primitives.string_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "name",
-                            "string",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    }
-                  and age =
-                    try(
-                      Melange_json.Primitives.int_of_json(
-                        Stdlib.Array.unsafe_get(args, 1),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "age",
-                            "int",
-                            Stdlib.Array.unsafe_get(args, 1)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withReturnTypeOnSeparateLine.call(~name, ~age)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 2 || length > 2) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withReturnTypeOnSeparateLine",
+                                "2",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let name =
+                        try(
+                          Melange_json.Primitives.string_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "name",
+                                "string",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        }
+                      and age =
+                        try(
+                          Melange_json.Primitives.int_of_json(
+                            Stdlib.Array.unsafe_get(args, 1),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "age",
+                                "int",
+                                Stdlib.Array.unsafe_get(args, 1)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withReturnTypeOnSeparateLine.call(~name, ~age)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -743,47 +1059,74 @@
             FunctionReferences.register(
               "730655028",
               Body(
-                args => {
-                  let letter =
-                    try(
-                      (
-                        json => {
-                          let s = Melange_json.Primitives.string_of_json(json);
-                          if (String.length(s) == 1) {
-                            s.[0];
-                          } else {
-                            Melange_json.of_json_error(
-                              ~json,
-                              "expected a single-character string",
-                            );
-                          };
-                        }
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "letter",
-                            "char",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withCharArg.call(~letter)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withCharArg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let letter =
+                        try(
+                          (
+                            json => {
+                              let s =
+                                Melange_json.Primitives.string_of_json(json);
+                              if (String.length(s) == 1) {
+                                s.[0];
+                              } else {
+                                Melange_json.of_json_error(
+                                  ~json,
+                                  "expected a single-character string",
+                                );
+                              };
+                            }
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "letter",
+                                "char",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withCharArg.call(~letter)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -802,40 +1145,66 @@
             FunctionReferences.register(
               "290632052",
               Body(
-                args => {
-                  let result =
-                    try(
-                      (
-                        Melange_json.Primitives.result_of_json(
-                          Melange_json.Primitives.string_of_json,
-                          Melange_json.Primitives.string_of_json,
-                        )
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "result",
-                            "(string, string) result",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withResultArg.call(~result)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withResultArg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let result =
+                        try(
+                          (
+                            Melange_json.Primitives.result_of_json(
+                              Melange_json.Primitives.string_of_json,
+                              Melange_json.Primitives.string_of_json,
+                            )
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "result",
+                                "(string, string) result",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withResultArg.call(~result)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -856,48 +1225,74 @@
             FunctionReferences.register(
               "868487122",
               Body(
-                args => {
-                  let pair =
-                    try(
-                      (
-                        json =>
-                          switch (json) {
-                          | `List([t0, t1]) => (
-                              Melange_json.Primitives.string_of_json(t0),
-                              Melange_json.Primitives.int_of_json(t1),
-                            )
-                          | _ =>
-                            Melange_json.of_json_error(
-                              ~json,
-                              "expected a JSON array of length 2",
-                            )
-                          }
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "pair",
-                            "(string * int)",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withTuple2Arg.call(~pair)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withTuple2Arg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let pair =
+                        try(
+                          (
+                            json =>
+                              switch (json) {
+                              | `List([t0, t1]) => (
+                                  Melange_json.Primitives.string_of_json(t0),
+                                  Melange_json.Primitives.int_of_json(t1),
+                                )
+                              | _ =>
+                                Melange_json.of_json_error(
+                                  ~json,
+                                  "expected a JSON array of length 2",
+                                )
+                              }
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "pair",
+                                "(string * int)",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withTuple2Arg.call(~pair)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -916,68 +1311,94 @@
             FunctionReferences.register(
               "593992612",
               Body(
-                args => {
-                  let data =
-                    try(
-                      (
-                        json =>
-                          switch (json) {
-                          | `List([t0, t1, t2, t3, t4]) => (
-                              Melange_json.Primitives.string_of_json(t0),
-                              Melange_json.Primitives.int_of_json(t1),
-                              Melange_json.Primitives.float_of_json(t2),
-                              Melange_json.Primitives.bool_of_json(t3),
-                              (
-                                json => {
-                                  let s =
-                                    Melange_json.Primitives.string_of_json(
-                                      json,
-                                    );
-                                  if (String.length(s) == 1) {
-                                    s.[0];
-                                  } else {
-                                    Melange_json.of_json_error(
-                                      ~json,
-                                      "expected a single-character string",
-                                    );
-                                  };
-                                }
-                              )(
-                                t4,
-                              ),
-                            )
-                          | _ =>
-                            Melange_json.of_json_error(
-                              ~json,
-                              "expected a JSON array of length 5",
-                            )
-                          }
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "data",
-                            "(string * int * float * bool * char)",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withTuple5Arg.call(~data)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withTuple5Arg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let data =
+                        try(
+                          (
+                            json =>
+                              switch (json) {
+                              | `List([t0, t1, t2, t3, t4]) => (
+                                  Melange_json.Primitives.string_of_json(t0),
+                                  Melange_json.Primitives.int_of_json(t1),
+                                  Melange_json.Primitives.float_of_json(t2),
+                                  Melange_json.Primitives.bool_of_json(t3),
+                                  (
+                                    json => {
+                                      let s =
+                                        Melange_json.Primitives.string_of_json(
+                                          json,
+                                        );
+                                      if (String.length(s) == 1) {
+                                        s.[0];
+                                      } else {
+                                        Melange_json.of_json_error(
+                                          ~json,
+                                          "expected a single-character string",
+                                        );
+                                      };
+                                    }
+                                  )(
+                                    t4,
+                                  ),
+                                )
+                              | _ =>
+                                Melange_json.of_json_error(
+                                  ~json,
+                                  "expected a JSON array of length 5",
+                                )
+                              }
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "data",
+                                "(string * int * float * bool * char)",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withTuple5Arg.call(~data)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -996,69 +1417,95 @@
             FunctionReferences.register(
               "825335486",
               Body(
-                args => {
-                  let data =
-                    try(
-                      (
-                        json =>
-                          switch (json) {
-                          | `List([t0, t1, t2, t3, t4, t5]) => (
-                              Melange_json.Primitives.string_of_json(t0),
-                              Melange_json.Primitives.int_of_json(t1),
-                              Melange_json.Primitives.float_of_json(t2),
-                              Melange_json.Primitives.bool_of_json(t3),
-                              (
-                                json => {
-                                  let s =
-                                    Melange_json.Primitives.string_of_json(
-                                      json,
-                                    );
-                                  if (String.length(s) == 1) {
-                                    s.[0];
-                                  } else {
-                                    Melange_json.of_json_error(
-                                      ~json,
-                                      "expected a single-character string",
-                                    );
-                                  };
-                                }
-                              )(
-                                t4,
-                              ),
-                              Melange_json.Primitives.int64_of_json(t5),
-                            )
-                          | _ =>
-                            Melange_json.of_json_error(
-                              ~json,
-                              "expected a JSON array of length 6",
-                            )
-                          }
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "data",
-                            "(string * int * float * bool * char * int64)",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withTuple6Arg.call(~data)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withTuple6Arg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let data =
+                        try(
+                          (
+                            json =>
+                              switch (json) {
+                              | `List([t0, t1, t2, t3, t4, t5]) => (
+                                  Melange_json.Primitives.string_of_json(t0),
+                                  Melange_json.Primitives.int_of_json(t1),
+                                  Melange_json.Primitives.float_of_json(t2),
+                                  Melange_json.Primitives.bool_of_json(t3),
+                                  (
+                                    json => {
+                                      let s =
+                                        Melange_json.Primitives.string_of_json(
+                                          json,
+                                        );
+                                      if (String.length(s) == 1) {
+                                        s.[0];
+                                      } else {
+                                        Melange_json.of_json_error(
+                                          ~json,
+                                          "expected a single-character string",
+                                        );
+                                      };
+                                    }
+                                  )(
+                                    t4,
+                                  ),
+                                  Melange_json.Primitives.int64_of_json(t5),
+                                )
+                              | _ =>
+                                Melange_json.of_json_error(
+                                  ~json,
+                                  "expected a JSON array of length 6",
+                                )
+                              }
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "data",
+                                "(string * int * float * bool * char * int64)",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withTuple6Arg.call(~data)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -1073,35 +1520,61 @@
             FunctionReferences.register(
               "992749241",
               Body(
-                args => {
-                  let flag =
-                    try(
-                      Melange_json.Primitives.bool_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "flag",
-                            "bool",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withBoolArg.call(~flag)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withBoolArg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let flag =
+                        try(
+                          Melange_json.Primitives.bool_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "flag",
+                                "bool",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withBoolArg.call(~flag)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -1117,35 +1590,61 @@
             FunctionReferences.register(
               "204801789",
               Body(
-                args => {
-                  let score =
-                    try(
-                      Melange_json.Primitives.float_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "score",
-                            "float",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withFloatArg.call(~score)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withFloatArg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let score =
+                        try(
+                          Melange_json.Primitives.float_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "score",
+                                "float",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withFloatArg.call(~score)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -1160,35 +1659,61 @@
             FunctionReferences.register(
               "161188939",
               Body(
-                args => {
-                  let big =
-                    try(
-                      Melange_json.Primitives.int64_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "big",
-                            "int64",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withInt64Arg.call(~big)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withInt64Arg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let big =
+                        try(
+                          Melange_json.Primitives.int64_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "big",
+                                "int64",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withInt64Arg.call(~big)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -1204,39 +1729,65 @@
             FunctionReferences.register(
               "704022741",
               Body(
-                args => {
-                  let names =
-                    try(
-                      (
-                        Melange_json.Primitives.list_of_json(
-                          Melange_json.Primitives.string_of_json,
-                        )
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "names",
-                            "string list",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withListArg.call(~names)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withListArg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let names =
+                        try(
+                          (
+                            Melange_json.Primitives.list_of_json(
+                              Melange_json.Primitives.string_of_json,
+                            )
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "names",
+                                "string list",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withListArg.call(~names)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -1252,39 +1803,65 @@
             FunctionReferences.register(
               "979987442",
               Body(
-                args => {
-                  let ids =
-                    try(
-                      (
-                        Melange_json.Primitives.array_of_json(
-                          Melange_json.Primitives.int_of_json,
-                        )
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "ids",
-                            "int array",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withArrayArg.call(~ids)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withArrayArg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let ids =
+                        try(
+                          (
+                            Melange_json.Primitives.array_of_json(
+                              Melange_json.Primitives.int_of_json,
+                            )
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "ids",
+                                "int array",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withArrayArg.call(~ids)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -1303,39 +1880,65 @@
             FunctionReferences.register(
               "114809194",
               Body(
-                args => {
-                  let count =
-                    try(
-                      (
-                        Melange_json.Primitives.option_of_json(
-                          Melange_json.Primitives.int_of_json,
-                        )
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "count",
-                            "int option",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withOptionIntArg.call(~count?, ())
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 2) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withOptionIntArg",
+                                "1 to 2",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let count =
+                        try(
+                          (
+                            Melange_json.Primitives.option_of_json(
+                              Melange_json.Primitives.int_of_json,
+                            )
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "count",
+                                "int option",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withOptionIntArg.call(~count?, ())
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -1354,41 +1957,67 @@
             FunctionReferences.register(
               "986464429",
               Body(
-                args => {
-                  let items =
-                    try(
-                      (
-                        Melange_json.Primitives.list_of_json(
-                          Melange_json.Primitives.option_of_json(
-                            Melange_json.Primitives.string_of_json,
-                          ),
-                        )
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "items",
-                            "string option list",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withNestedListOptionArg.call(~items)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withNestedListOptionArg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let items =
+                        try(
+                          (
+                            Melange_json.Primitives.list_of_json(
+                              Melange_json.Primitives.option_of_json(
+                                Melange_json.Primitives.string_of_json,
+                              ),
+                            )
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "items",
+                                "string option list",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withNestedListOptionArg.call(~items)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -1407,42 +2036,68 @@
             FunctionReferences.register(
               "575616680",
               Body(
-                args => {
-                  let data =
-                    try(
-                      (
-                        Melange_json.Primitives.result_of_json(
-                          Melange_json.Primitives.list_of_json(
-                            Melange_json.Primitives.int_of_json,
-                          ),
-                          Melange_json.Primitives.string_of_json,
-                        )
-                      )(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "data",
-                            "(int list, string) result",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                args =>
                   try(
-                    withNestedResultListArg.call(~data)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withNestedResultListArg",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let data =
+                        try(
+                          (
+                            Melange_json.Primitives.result_of_json(
+                              Melange_json.Primitives.list_of_json(
+                                Melange_json.Primitives.int_of_json,
+                              ),
+                              Melange_json.Primitives.string_of_json,
+                            )
+                          )(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "data",
+                                "(int list, string) result",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withNestedResultListArg.call(~data)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };
@@ -1473,6 +2128,11 @@
                          RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
                   },
               ),
@@ -1500,35 +2160,61 @@
             FunctionReferences.register(
               "297264227",
               FormData(
-                (args, fd) => {
-                  let country =
-                    try(
-                      Melange_json.Primitives.string_of_json(
-                        Stdlib.Array.unsafe_get(args, 0),
-                      )
-                    ) {
-                    | _ =>
-                      Stdlib.raise(
-                        Invalid_argument(
-                          Stdlib.Printf.sprintf(
-                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                            "country",
-                            "string",
-                            Stdlib.Array.unsafe_get(args, 0)
-                            |> Yojson.Basic.to_string,
-                          ),
-                        ),
-                      )
-                    };
+                (args, fd) =>
                   try(
-                    withFormDataNamedFdAndArgs.call(country, fd)
-                    |> Lwt.map(response =>
-                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
-                       )
+                    {
+                      {
+                        let length = Stdlib.Array.length(args);
+                        if (length < 1 || length > 1) {
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: server function '%s' expects %s arguments, received %d",
+                                "withFormDataNamedFdAndArgs",
+                                "1",
+                                length,
+                              ),
+                            ),
+                          );
+                        };
+                      };
+                      let country =
+                        try(
+                          Melange_json.Primitives.string_of_json(
+                            Stdlib.Array.unsafe_get(args, 0),
+                          )
+                        ) {
+                        | (
+                            Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                            Stdlib.Sys.Break
+                          ) as e =>
+                          Stdlib.raise(e)
+                        | _ =>
+                          Stdlib.raise(
+                            Invalid_argument(
+                              Stdlib.Printf.sprintf(
+                                "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                                "country",
+                                "string",
+                                Stdlib.Array.unsafe_get(args, 0)
+                                |> Yojson.Basic.to_string,
+                              ),
+                            ),
+                          )
+                        };
+                      withFormDataNamedFdAndArgs.call(country, fd)
+                      |> Lwt.map(response =>
+                           RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                         );
+                    }
                   ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
                   | e => Lwt.fail(e)
-                  };
-                },
+                  },
               ),
             );
           };

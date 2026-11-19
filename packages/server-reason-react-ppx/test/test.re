@@ -815,7 +815,22 @@ module FunctionReferences: ReactServerDOM.FunctionReferences = {
   let get = Stdlib.Hashtbl.find_opt(registry);
 };
 
+module FatalDecode = {
+  type t = int;
+  let of_json = _ => Stdlib.raise(Stack_overflow);
+};
+
 module ServerFunction = {
+  [@react.server.function]
+  let withFatalDecode = (~value: FatalDecode.t): Js.Promise.t(int) => {
+    Lwt.return(value);
+  };
+
+  [@react.server.function]
+  let withOptionalAndUnit = (~name: string="Lola", ()): Js.Promise.t(string) => {
+    Lwt.return(name);
+  };
+
   [@react.server.function]
   let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
     Lwt.return(
@@ -885,23 +900,124 @@ let server_function_reference = () => {
   };
 };
 
-let server_function_reference_args_error = () => {
-  switch (
-    FunctionReferences.get(ServerFunction.simpleResponse.id)
-    |> (
-      fun
-      | Some(Body(handler)) => handler([|`String("John"), `String("30")|])
-      | _ => assert(false)
+let expect_rejection = (promise, expected) =>
+  switch (promise()) {
+  | exception exn =>
+    Alcotest.failf(
+      "Expected a rejected promise, got a synchronous exception: %s",
+      Stdlib.Printexc.to_string(exn),
     )
-  ) {
-  | _ => Alcotest.fail("Expected Invalid_argument")
-  | exception (Invalid_argument(error)) =>
-    assert_string(
-      error,
-      "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
-    );
-    Lwt.return_unit;
+  | promise =>
+    Lwt.try_bind(
+      () => promise,
+      _ => Alcotest.fail("Expected a rejected promise"),
+      fun
+      | Invalid_argument(error) => {
+          assert_string(error, expected);
+          Lwt.return_unit;
+        }
+      | exn =>
+        Alcotest.failf(
+          "Expected Invalid_argument, got %s",
+          Stdlib.Printexc.to_string(exn),
+        ),
+    )
   };
+
+let body_handler = id =>
+  switch (FunctionReferences.get(id)) {
+  | Some(Body(handler)) => handler
+  | _ => assert(false)
+  };
+
+let form_data_handler = id =>
+  switch (FunctionReferences.get(id)) {
+  | Some(FormData(handler)) => handler
+  | _ => assert(false)
+  };
+
+let server_function_reference_args_error = () =>
+  expect_rejection(
+    () =>
+      body_handler(
+        ServerFunction.simpleResponse.id,
+        [|`String("John"), `String("30")|],
+      ),
+    "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
+  );
+
+let server_function_reference_too_few_args = () =>
+  expect_rejection(
+    () =>
+      body_handler(ServerFunction.simpleResponse.id, [|`String("John")|]),
+    "server-reason-react: server function 'simpleResponse' expects 2 arguments, received 1",
+  );
+
+let server_function_reference_no_args = () =>
+  expect_rejection(
+    () => body_handler(ServerFunction.simpleResponse.id, [||]),
+    "server-reason-react: server function 'simpleResponse' expects 2 arguments, received 0",
+  );
+
+let server_function_reference_too_many_args = () =>
+  expect_rejection(
+    () =>
+      body_handler(
+        ServerFunction.simpleResponse.id,
+        [|`String("John"), `Int(30), `Int(1)|],
+      ),
+    "server-reason-react: server function 'simpleResponse' expects 2 arguments, received 3",
+  );
+
+let server_function_reference_form_data_too_few_args = () =>
+  expect_rejection(
+    () =>
+      form_data_handler(
+        ServerFunction.withFormDataAndArgs.id,
+        [||],
+        Js.FormData.make(),
+      ),
+    "server-reason-react: server function 'withFormDataAndArgs' expects 1 arguments, received 0",
+  );
+
+let server_function_reference_unit_arg_is_optional_on_the_wire = () => {
+  let%lwt with_unit =
+    body_handler(
+      ServerFunction.withOptionalAndUnit.id,
+      [|`String("John"), `Null|],
+    );
+  let%lwt without_unit =
+    body_handler(
+      ServerFunction.withOptionalAndUnit.id,
+      [|`String("John")|],
+    );
+  switch (with_unit, without_unit) {
+  | (React.Model.Json(a), React.Model.Json(b)) =>
+    assert_string(Melange_json.Primitives.string_of_json(a), "John");
+    assert_string(Melange_json.Primitives.string_of_json(b), "John");
+    expect_rejection(
+      () =>
+        body_handler(
+          ServerFunction.withOptionalAndUnit.id,
+          [|`String("John"), `Null, `Null|],
+        ),
+      "server-reason-react: server function 'withOptionalAndUnit' expects 1 to 2 arguments, received 3",
+    );
+  | _ => Stdlib.failwith("Expected a JSON response")
+  };
+};
+
+let server_function_reference_fatal_decode_error_is_not_caught = () => {
+  switch (body_handler(ServerFunction.withFatalDecode.id, [|`Int(1)|])) {
+  | exception Stack_overflow => ()
+  | exception exn =>
+    Alcotest.failf(
+      "Expected Stack_overflow, got %s",
+      Stdlib.Printexc.to_string(exn),
+    )
+  | _ => Alcotest.fail("Expected Stack_overflow to propagate")
+  };
+  Lwt.return_unit;
 };
 
 let server_function_reference_form_data = () => {
@@ -1536,6 +1652,30 @@ Alcotest_lwt.run(
     test_lwt(
       "server_function_reference_args_error",
       server_function_reference_args_error,
+    ),
+    test_lwt(
+      "server_function_reference_too_few_args",
+      server_function_reference_too_few_args,
+    ),
+    test_lwt(
+      "server_function_reference_no_args",
+      server_function_reference_no_args,
+    ),
+    test_lwt(
+      "server_function_reference_too_many_args",
+      server_function_reference_too_many_args,
+    ),
+    test_lwt(
+      "server_function_reference_form_data_too_few_args",
+      server_function_reference_form_data_too_few_args,
+    ),
+    test_lwt(
+      "server_function_reference_unit_arg_is_optional_on_the_wire",
+      server_function_reference_unit_arg_is_optional_on_the_wire,
+    ),
+    test_lwt(
+      "server_function_reference_fatal_decode_error_is_not_caught",
+      server_function_reference_fatal_decode_error_is_not_caught,
     ),
     test_lwt(
       "server_function_reference_form_data",

@@ -19,4 +19,5 @@
    -shared-folder-prefix=/
    server-reason-react.melange_ppx
    server-reason-react.rsc-native.ppx
+   melange-json-native.ppx
    lwt_ppx)))
