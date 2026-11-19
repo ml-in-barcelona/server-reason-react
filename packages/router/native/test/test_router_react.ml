@@ -38,7 +38,7 @@ let matches_client_parsing () =
 let empty_search () = Alcotest.check search_values "values" [] (render_search "")
 
 let invalid_search () =
-  Alcotest.check search_values "malformed" [] (render_search "?q=%zz");
+  Alcotest.check search_values "malformed" [ ("a", [ "1" ]) ] (render_search "?a=1&q=%zz&b=%FF");
   Alcotest.check search_values "too long" [] (render_search ("?q=" ^ String.make 8190 'a'))
 
 let requires_provider () =

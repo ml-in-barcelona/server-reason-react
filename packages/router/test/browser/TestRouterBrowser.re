@@ -545,6 +545,41 @@ List.iter(
   ],
 );
 
+let badSearch = [
+  ("page", ["nope"]),
+  ("n", ["1", "x", "3", ""]),
+  ("o", ["nope"]),
+  ("r", ["nope"]),
+];
+let parseInt = RouterRuntime.Search.parseInt;
+expect(
+  "a bad optional search value was not read as None",
+  RouterRuntime.Search.optional(~name="o", ~parse=parseInt, badSearch) == None,
+);
+expect(
+  "a bad defaulted search value did not fall back to the default",
+  RouterRuntime.Search.default(
+    ~name="page",
+    ~parse=parseInt,
+    ~fallback=1,
+    badSearch,
+  )
+  == 1,
+);
+expect(
+  "bad repeated search values were not skipped",
+  RouterRuntime.Search.many(~name="n", ~parse=parseInt, badSearch) == [1, 3],
+);
+expect(
+  "a bad required search value was accepted",
+  switch (
+    RouterRuntime.Search.required(~name="r", ~parse=parseInt, badSearch)
+  ) {
+  | _ => false
+  | exception (Invalid_argument(_)) => true
+  },
+);
+
 let sameSearch = (current, next) => RouterSearch.unchanged(~current, ~next);
 expect(
   "a plus-encoded space counted as a search change",
@@ -1492,8 +1527,6 @@ switch (
       search =>
         switch (RouterSearch.parse(search)) {
         | Ok(values) => Ok(values)
-        | Error(RouterSearchParse.MalformedEscape(raw)) =>
-          Error("malformed " ++ raw)
         | Error(RouterSearchParse.QueryTooLong) => Error("too long")
         },
     ~encode=Js.Global.encodeURIComponent,
@@ -1512,15 +1545,22 @@ expect(
   == Ok([("q", ["caf" ++ Js.String.fromCharCode(0xe9)])]),
 );
 expect(
-  "a lone surrogate in a raw search was accepted",
-  Result.is_error(
-    RouterSearch.parse("?q=" ++ Js.String.fromCharCode(0xd800)),
-  ),
+  "a lone surrogate in a raw search was kept",
+  RouterSearch.parse("?a=1&q=" ++ Js.String.fromCharCode(0xd800))
+  == Ok([("a", ["1"])]),
 );
 expect(
   "a shallow pop to an unreadable search stayed on the client",
-  RouterPolicy.popKind(~search="?text=%FF", RouterRuntime.Navigation.Shallow)
+  RouterPolicy.popKind(
+    ~search="?text=" ++ String.make(8190, 'a'),
+    RouterRuntime.Navigation.Shallow,
+  )
   == RouterRuntime.Navigation.Content,
+);
+expect(
+  "a shallow pop to a search with a malformed pair went to the server",
+  RouterPolicy.popKind(~search="?text=%FF", RouterRuntime.Navigation.Shallow)
+  == RouterRuntime.Navigation.Shallow,
 );
 expect(
   "a hash-only pop on a page with an unreadable search went to the server",

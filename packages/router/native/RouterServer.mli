@@ -68,7 +68,7 @@ end
     distinguish one, optional, and many parameters without reparsing the URL. *)
 module Search : sig
   type t
-  type error = MalformedEscape of string | QueryTooLong
+  type error = QueryTooLong
 
   val parse : string -> (t, error) result
   val values : t -> string -> string list

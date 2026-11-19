@@ -283,7 +283,7 @@ end
 
 module Search = struct
   type t = (string * string list) list
-  type error = RouterQuery.error = MalformedEscape of string | QueryTooLong
+  type error = RouterQuery.error = QueryTooLong
 
   let parse = RouterQuery.parse
   let values search name = match List.assoc_opt name search with Some values -> values | None -> []
@@ -317,22 +317,15 @@ module Decode = struct
     | [] -> Error (RouterRuntime.Error.InvalidSearchParameter { name })
 
   let searchOptional ~input ~name ~parse =
-    match Search.values input.Input.search name with
-    | value :: _ -> Result.map Option.some (parse_search ~name ~parse value)
-    | [] -> Ok None
+    match Search.values input.Input.search name with value :: _ -> Ok (Result.to_option (parse value)) | [] -> Ok None
 
   let searchDefault ~input ~name ~parse ~fallback =
-    match Search.values input.Input.search name with value :: _ -> parse_search ~name ~parse value | [] -> Ok fallback
+    match Search.values input.Input.search name with
+    | value :: _ -> Ok (Result.value (parse value) ~default:fallback)
+    | [] -> Ok fallback
 
   let searchMany ~input ~name ~parse =
-    let rec loop decoded = function
-      | [] -> Ok (List.rev decoded)
-      | value :: values -> (
-          match parse_search ~name ~parse value with
-          | Ok value -> loop (value :: decoded) values
-          | Error error -> Error error)
-    in
-    loop [] (Search.values input.Input.search name)
+    Ok (List.filter_map (fun value -> Result.to_option (parse value)) (Search.values input.Input.search name))
 end
 
 let redirect_location destination =

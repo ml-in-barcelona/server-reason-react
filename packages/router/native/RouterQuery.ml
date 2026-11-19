@@ -45,6 +45,6 @@ module Percent = struct
         Ok (decode_valid plus value stop decoded first (first - start))
 end
 
-type error = RouterSearchParse.error = MalformedEscape of string | QueryTooLong
+type error = RouterSearchParse.error = QueryTooLong
 
 let parse search = RouterSearchParse.parse ~text:Fun.id ~slice:Percent.slice search

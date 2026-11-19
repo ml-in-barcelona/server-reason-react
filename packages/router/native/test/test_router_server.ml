@@ -284,9 +284,13 @@ let decoded_search () =
   | Error _ -> Alcotest.fail "expected decoded search"
 
 let malformed_search () =
-  match RouterServer.Search.parse "filter=%ZZ" with
-  | Error (MalformedEscape "%ZZ") -> ()
-  | _ -> Alcotest.fail "expected malformed search"
+  match RouterServer.Search.parse "?a=1&filter=%ZZ&b=2&%ZZ=x&t=1&t=ab%4&t=%&t=2" with
+  | Ok search ->
+      Alcotest.(check (list (pair string (list string))))
+        "pairs"
+        [ ("a", [ "1" ]); ("b", [ "2" ]); ("t", [ "1"; "2" ]) ]
+        (RouterServer.Search.unknown search ~owned:[])
+  | Error _ -> Alcotest.fail "expected malformed pairs to be dropped"
 
 let oversized_search () =
   match RouterServer.Search.parse (String.make 8193 'x') with
@@ -305,9 +309,13 @@ let search_skips_empty_pairs () =
 let invalid_utf8_search () =
   List.iter
     (fun search ->
-      match RouterServer.Search.parse search with
-      | Error (MalformedEscape _) -> ()
-      | _ -> Alcotest.failf "expected %S to be rejected" search)
+      match RouterServer.Search.parse ("a=1&" ^ search) with
+      | Ok parsed ->
+          Alcotest.(check (list (pair string (list string))))
+            search
+            [ ("a", [ "1" ]) ]
+            (RouterServer.Search.unknown parsed ~owned:[])
+      | Error _ -> Alcotest.failf "expected %S to be dropped" search)
     [ "q=%FF"; "q=%C3"; "%C3=1"; "q=\xff"; "q=%ED%A0%80"; "q=%C0%80"; "q=%E0%80%80"; "q=%F4%90%80%80"; "q=%E2%82" ];
   List.iter
     (fun (search, expected) ->
@@ -321,6 +329,34 @@ let invalid_utf8_search () =
       ("q=%EF%BF%BF", "\xEF\xBF\xBF");
       ("q=%F4%8F%BF%BF", "\xF4\x8F\xBF\xBF");
     ]
+
+let search_input query =
+  match RouterServer.Search.parse query with
+  | Ok search -> RouterServer.Input.forSearch search
+  | Error _ -> Alcotest.failf "expected %S to parse" query
+
+let search_result = Alcotest.(result (option int) reject)
+
+let search_decoders_by_kind () =
+  let parse = RouterRuntime.Search.parseInt in
+  let input = search_input "?page=nope&n=1&n=x&n=3&n=&o=nope" in
+  let check_error label = function
+    | Error (RouterRuntime.Error.InvalidSearchParameter { name }) -> Alcotest.(check string) label "r" name
+    | Ok _ | Error _ -> Alcotest.failf "%s: expected InvalidSearchParameter" label
+  in
+  Alcotest.check search_result "optional" (Ok None) (RouterServer.Decode.searchOptional ~input ~name:"o" ~parse);
+  Alcotest.(check (result int reject))
+    "default" (Ok 1)
+    (RouterServer.Decode.searchDefault ~input ~name:"page" ~parse ~fallback:1);
+  Alcotest.(check (result (list int) reject))
+    "many"
+    (Ok [ 1; 3 ])
+    (RouterServer.Decode.searchMany ~input ~name:"n" ~parse);
+  check_error "required missing" (RouterServer.Decode.searchRequired ~input ~name:"r" ~parse);
+  check_error "required bad" (RouterServer.Decode.searchRequired ~input:(search_input "?r=nope") ~name:"r" ~parse);
+  Alcotest.(check (result int reject))
+    "required good" (Ok 4)
+    (RouterServer.Decode.searchRequired ~input:(search_input "?r=4") ~name:"r" ~parse)
 
 let base_path_matches_segments () =
   let strip ~basePath pathname = RouterServer.Path.stripBasePath ~basePath pathname in
@@ -1076,6 +1112,13 @@ let adapter_document_reply () =
       Alcotest.(check int) "one meta" 1 (count_occurrences ~needle:"<meta name=\"description\"" html)
   | Empty | Model _ -> Alcotest.fail "expected html"
 
+let adapter_document_malformed_search_reply () =
+  List.iter
+    (fun search ->
+      let reply = adapter_reply ~search ~kind:Document "/app/item" in
+      Alcotest.(check int) search 200 reply.status)
+    [ "?q=%zz"; "?q=%FF"; "?a=1&q=%&b=2" ]
+
 let adapter_document_invalid_search_reply () =
   List.iter
     (fun search ->
@@ -1086,7 +1129,7 @@ let adapter_document_invalid_search_reply () =
           let html, _subscribe = Lwt_main.run (ReactServerDOM.render_html ~skipRoot:false element) in
           Alcotest.(check bool) "document" true (contains ~needle:"<body>" html)
       | Empty | Model _ -> Alcotest.fail "expected html")
-    [ "?q=%zz"; "?q=%FF"; "?q=" ^ String.make 8190 'a' ]
+    [ "?q=" ^ String.make 8190 'a' ]
 
 let adapter_rsc_reply () =
   let reply = adapter_reply ~kind:Rsc "/app/item" in
@@ -1534,6 +1577,7 @@ let () =
           test "oversized search" oversized_search;
           test "search skips empty pairs" search_skips_empty_pairs;
           test "invalid UTF-8 search" invalid_utf8_search;
+          test "search decoders by kind" search_decoders_by_kind;
           test "base path matches segments" base_path_matches_segments;
           test "engine matches lower-case base path escapes" engine_matches_lower_case_base_path_escapes;
           test "loader sequence" loader_sequence;
@@ -1577,6 +1621,7 @@ let () =
           test "default boundary renders text" default_boundary_renders_text;
           test "server base path validation" server_base_path_validation;
           test "adapter document reply" adapter_document_reply;
+          test "adapter document malformed search reply" adapter_document_malformed_search_reply;
           test "adapter document invalid search reply" adapter_document_invalid_search_reply;
           test "adapter rsc reply" adapter_rsc_reply;
           test "adapter reload required reply" adapter_reload_required_reply;

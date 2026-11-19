@@ -658,35 +658,23 @@ check("a script URL in Router-Redirect is refused", async ({ page, origin }) => 
   return `header ${JSON.stringify(response.headers()["router-redirect"])}, script did not run, URL unchanged`;
 });
 
-check("a shallow entry with an unreadable search asks the server", async ({ page, net, origin }) => {
-  const statuses = [];
-  page.on("response", (response) => {
-    const url = new URL(response.url());
-    if (url.pathname === "/demo/router/e2e" && url.search === "?text=%FF" && response.headers()["router-response"]) {
-      statuses.push(response.status());
-    }
-  });
+check("a shallow entry with a malformed pair stays on the client", async ({ page, net, origin }) => {
   await page.goto(`${origin}/demo/router/e2e`);
   await ready(page, "#e2e-page");
   await page.evaluate(() => history.pushState(history.state, "", "/demo/router/e2e?text=%FF"));
   await page.evaluate(() => history.back());
   await page.waitForFunction(() => location.search === "");
   const mark = net.mark();
-  const answered = page.waitForResponse(
-    (response) => new URL(response.url()).search === "?text=%FF" && response.headers()["router-response"] !== undefined,
-  );
   await page.evaluate(() => history.forward());
-  await answered;
-  await page.waitForFunction(() => !document.querySelector("#e2e-page"));
-  const text = (await page.innerText("main")).trim().slice(0, 120);
-  const asked = net.since(mark).filter((r) => r.rsc && !r.prefetch && r.url === "/demo/router/e2e?text=%FF").length;
+  await page.waitForFunction(() => location.search === "?text=%FF");
+  await absenceWindow(page);
+  const asked = navigations(net.since(mark), "/demo/router/e2e?text=%FF").length;
+  const kept = (await page.$("#e2e-page")) !== null;
   const documentResponse = await page.goto(`${origin}/demo/router/e2e?text=%FF`);
-  const documentText = (await page.innerText("main")).trim().slice(0, 120);
-  assert.equal(asked, 1, "the client read the search without asking the server");
-  assert.deepEqual(statuses, [400]);
-  assert.equal(documentResponse.status(), 400);
-  assert.equal(text, documentText, "the client shows another page than a document load");
-  return `navigation requests ${asked}, status ${JSON.stringify(statuses)}, page ${JSON.stringify(text)}, same as the document load (status ${documentResponse.status()})`;
+  assert.equal(asked, 0, "the client asked the server");
+  assert.ok(kept, "the client left the page");
+  assert.equal(documentResponse.status(), 200);
+  return `navigation requests ${asked}, page kept, document load status ${documentResponse.status()}`;
 });
 
 const server = await startServer();

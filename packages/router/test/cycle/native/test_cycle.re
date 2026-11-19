@@ -391,7 +391,7 @@ let testGeneratedLoaderShortCircuit = () => {
   };
 };
 
-let testGeneratedSearchDecodeError = () => {
+let testGeneratedBadDefaultSearch = () => {
   WorkspaceLoader.reset();
   let search =
     switch (RouterServer.Search.parse("?page=nope")) {
@@ -406,14 +406,21 @@ let testGeneratedSearchDecodeError = () => {
   ) {
   | Ok(Some(matched)) =>
     switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
-    | Error(RouterRuntime.Error.InvalidSearchParameter({ name: "page" })) =>
+    | Ok(prepared) =>
+      ignore(
+        Lwt_main.run(
+          RouterServer.Execution.run(
+            RouterServer.Endpoint.execution(prepared),
+          ),
+        ),
+      );
       Alcotest.check(
         Alcotest.list(Alcotest.string),
-        "loaders skipped",
-        [],
+        "loaders read the default page",
+        ["workspace", "note:7:1"],
         WorkspaceLoader.events(),
-      )
-    | _ => Alcotest.fail("expected typed search error")
+      );
+    | Error(_) => Alcotest.fail("expected the default for a bad value")
     }
   | _ => Alcotest.fail("expected generated endpoint")
   };
@@ -700,13 +707,13 @@ let testNestedSearchDecodeError = () => {
   };
 };
 
-let testInvalidRootSearchBoundary = () => {
+let testBadRootSearchRendersPage = () => {
   WorkspaceLoader.reset();
   Attachments.reset();
   switch (
     runEngine(
       ~pathname="/fixture/workspaces/7/notes/42",
-      ~search="?page=nope",
+      ~search="?page=nope&searchText=%FF&filter=open",
       (),
     )
   ) {
@@ -719,31 +726,19 @@ let testInvalidRootSearchBoundary = () => {
     Alcotest.check(
       Alcotest.int,
       "status",
-      400,
+      200,
       RouterRuntime.Status.toInt(response.resolved.status),
     );
     Alcotest.check(
       Alcotest.bool,
-      "boundary",
-      true,
-      Option.is_some(response.resolved.element),
-    );
-    Alcotest.check(
-      Alcotest.bool,
-      "root invalid-search fallback",
-      true,
+      "root invalid-search fallback skipped",
+      false,
       List.mem("invalid-search", Attachments.events()),
     );
     Alcotest.check(
-      Alcotest.bool,
-      "nested boundary skipped",
-      false,
-      List.mem("workspace-error", Attachments.events()),
-    );
-    Alcotest.check(
       Alcotest.list(Alcotest.string),
-      "loaders skipped",
-      [],
+      "loaders read the default page",
+      ["workspace", "note:7:1"],
       WorkspaceLoader.events(),
     );
   };
@@ -1238,9 +1233,9 @@ let () =
             testGeneratedLoaderShortCircuit,
           ),
           Alcotest.test_case(
-            "generated search decode error",
+            "generated bad default search",
             `Quick,
-            testGeneratedSearchDecodeError,
+            testGeneratedBadDefaultSearch,
           ),
           Alcotest.test_case(
             "RSC full response",
@@ -1268,9 +1263,9 @@ let () =
             testNestedSearchDecodeError,
           ),
           Alcotest.test_case(
-            "invalid root search boundary",
+            "bad root search renders the page",
             `Quick,
-            testInvalidRootSearchBoundary,
+            testBadRootSearchRendersPage,
           ),
           Alcotest.test_case("engine redirect", `Quick, testEngineRedirect),
           Alcotest.test_case(

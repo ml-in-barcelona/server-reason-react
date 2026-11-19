@@ -276,6 +276,12 @@ A route or redirect sees the root parameters as well as its own. Canonical
 URLs omit values that equal their declared default. A required root search
 parameter together with a root [~error] boundary also requires [~invalidSearch].
 
+A value that its parser rejects is ignored, on the server and on the client:
+[optional] reads [None], [default] reads its default, and [many] skips the
+value. [optional] and [default] read only the first value of a name. Only a
+[required] parameter that is missing or rejected makes the request fail with
+[InvalidSearchParameter], which answers 400.
+
 The field name is the query key, so a key must be a valid record label.
 
 {3 The search record}
@@ -334,15 +340,14 @@ the same search values on both sides:
   skipped.
 - A pair splits at its first [=]. A pair without [=] has the value [""].
 - [+] is a space and [%2B] is a plus. Hex digits may be upper or lower case.
-- A [%] not followed by two hex digits, or escapes that do not decode to valid
-  UTF-8 (such as [%FF], overlong forms or encoded surrogates), make the whole
-  query invalid.
+- A pair with a [%] not followed by two hex digits, or with escapes that do
+  not decode to valid UTF-8 (such as [%FF], overlong forms or encoded
+  surrogates), is dropped. The other pairs are read.
 - A name keeps all its values in order. Names keep the order of their first
   appearance.
 - A query longer than 8192 bytes is invalid.
 
-The server answers an invalid query with status 400 and the [~invalidSearch]
-boundary, or the root error page when there is none. When Back or Forward reaches an entry whose query is invalid,
+The server answers an invalid query with status 400. When Back or Forward reaches an entry whose query is invalid,
 for example after a [history.pushState] by other code, the client does not
 read it: it asks the server, and shows the same page as a document load.
 
@@ -886,10 +891,10 @@ package.
   match. [/app] matches [/app] and [/app/x] but not [/apple], and
   [/m%c3%bcnchen] matches the base path [/m%C3%BCnchen]. The base path itself
   must be written in canonical form, without a trailing slash.
-- Search: empty pairs, as in [?a=1&&b=2&], are ignored. A key or value that is
-  not valid UTF-8 after percent-decoding, such as [?q=%FF], makes the search
-  invalid, the same as a malformed escape: the response is 400 with
-  [InvalidSearchParameter].
+- Search: empty pairs, as in [?a=1&&b=2&], are ignored. A pair with a
+  malformed escape, or a key or value that is not valid UTF-8 after
+  percent-decoding, such as [?q=%FF], is dropped. A query longer than 8192
+  bytes answers 400 with [InvalidSearchParameter].
 - Methods: [Adapter.methodReply ~allow method_] decides a method before
   [Server.run]. [allow] lists the methods the adapter serves at the router's
   paths. [OPTIONS] answers 204 and a method outside [allow] answers 405, both

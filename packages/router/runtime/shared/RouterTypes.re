@@ -576,18 +576,19 @@ module Search = {
 
   let optional = (~name, ~parse, search) =>
     switch (values(name, search)) {
-    | [value, ..._] => Some(parseOne(~name, ~parse, value))
+    | [value, ..._] => Result.to_option(parse(value))
     | [] => None
     };
 
   let default = (~name, ~parse, ~fallback, search) =>
     switch (values(name, search)) {
-    | [value, ..._] => parseOne(~name, ~parse, value)
+    | [value, ..._] => Result.value(parse(value), ~default=fallback)
     | [] => fallback
     };
 
   let many = (~name, ~parse, search) =>
-    values(name, search) |> List.map(value => parseOne(~name, ~parse, value));
+    values(name, search)
+    |> List.filter_map(value => Result.to_option(parse(value)));
 
   let update = (~owned, ~values, search) =>
     List.filter(((name, _)) => !List.mem(name, owned), search)
