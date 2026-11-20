@@ -3,6 +3,7 @@ Router.make(
   ~error=Pages.AppError,
   ~interceptLinks=false,
   ~viewTransitions=true,
+  ~context=string,
   [
     Router.route(Docs, ~page=Pages.Docs, ~path="/docs/:rest?<string...>"),
     Router.route(
@@ -14,6 +15,14 @@ Router.make(
       DocsApi,
       ~page=Pages.DocsApi,
       ~path="/docs/api/:name<string>",
+    ),
+    Router.route(
+      Account,
+      ~page=Pages.Account,
+      ~path="/account",
+      ~loader=Pages.AccountLoader,
+      ~metadata=Pages.AccountMetadata.make,
+      ~headers=Pages.AccountHeaders.make,
     ),
     Router.route(Help, ~page=Pages.Help, ~path="/help/:lang?<string>"),
     Router.route(

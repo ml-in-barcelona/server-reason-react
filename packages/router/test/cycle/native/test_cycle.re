@@ -141,6 +141,33 @@ let testCustomScalarRejectsSlash = () => {
   Alcotest.check(Alcotest.bool, "slash rejected", true, rejected);
 };
 
+let testRouteSearch = () => {
+  let committed: RouterRuntime.Navigation.committed = {
+    location: {
+      pathname: "/fixture/workspaces/7/search",
+      search: "?page=two&view=4&filter=open&searchText=a%20b&other=1",
+      hash: "",
+      key: "search",
+    },
+    matches: [],
+    layouts: [],
+    revision: "r",
+  };
+  Alcotest.check(
+    Alcotest.string,
+    "root and route fields, bad page falls back",
+    "1|a b|open|4",
+    ReactDOM.renderToStaticMarkup(
+      RouterReact.locationScope(
+        ~committed,
+        ~children=
+          Attachments.SearchProbe.make(Attachments.SearchProbe.makeProps()),
+        (),
+      ),
+    ),
+  );
+};
+
 let testGeneratedLink = () => {
   let link =
     <Router.Note
@@ -1212,6 +1239,7 @@ let () =
             testCustomScalarRejectsSlash,
           ),
           Alcotest.test_case("generated link", `Quick, testGeneratedLink),
+          Alcotest.test_case("route search", `Quick, testRouteSearch),
           Alcotest.test_case(
             "generated endpoint",
             `Quick,

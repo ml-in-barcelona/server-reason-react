@@ -236,57 +236,64 @@ end
     execution. Keeping them together ensures response state, patch planning, and loader execution use the same decoded
     parameters. *)
 module Endpoint : sig
-  type ('result, 'error) t
-  type ('result, 'error) prepared
+  type ('result, 'error, 'context) t
+  type ('result, 'error, 'context) prepared
 
   val make :
     id:string ->
     path:string ->
     activeRoutes:(string * string list) list ->
     fingerprint:string ->
-    decode:(Input.t -> (('result, 'error) prepared, 'error RouterRuntime.Error.t) result) ->
-    ('result, 'error) t
+    decode:(Input.t -> (('result, 'error, 'context) prepared, 'error RouterRuntime.Error.t) result) ->
+    ('result, 'error, 'context) t
 
-  val prepared : branch:Branch.t -> execution:(unit -> ('result, 'error) Execution.t) -> ('result, 'error) prepared
-  (** [execution] is a thunk so inspecting a candidate branch never starts its loaders. *)
+  val prepared :
+    branch:Branch.t -> execution:('context -> ('result, 'error) Execution.t) -> ('result, 'error, 'context) prepared
+  (** [execution] is a function so inspecting a candidate branch never starts its loaders. It receives the request
+      context given to {!ServerEngine.runWithContext}, or [()]. *)
 
   val recovered :
     branch:Branch.t ->
     activeRoutes:string list ->
-    execution:(unit -> ('result, 'error) Execution.t) ->
-    ('result, 'error) prepared
+    execution:('context -> ('result, 'error) Execution.t) ->
+    ('result, 'error, 'context) prepared
   (** Builds a decode-failure preparation whose response exposes only the listed successfully decoded active routes. *)
 
-  val withPrefetch : ('result, 'error) t -> RouterRuntime.PrefetchLevel.t -> ('result, 'error) t
+  val withPrefetch : ('result, 'error, 'context) t -> RouterRuntime.PrefetchLevel.t -> ('result, 'error, 'context) t
   (** Sets the route's prefetch level. {!make} gives [Intent]. *)
 
-  val prefetch : ('result, 'error) t -> RouterRuntime.PrefetchLevel.t
-  val branch : ('result, 'error) prepared -> Branch.t
-  val execution : ('result, 'error) prepared -> ('result, 'error) Execution.t
-  val route : ('result, 'error) t -> Route.t
+  val prefetch : ('result, 'error, 'context) t -> RouterRuntime.PrefetchLevel.t
+  val branch : ('result, 'error, 'context) prepared -> Branch.t
+  val execution : ('result, 'error, unit) prepared -> ('result, 'error) Execution.t
+  val executionWithContext : ('result, 'error, 'context) prepared -> context:'context -> ('result, 'error) Execution.t
+  val route : ('result, 'error, 'context) t -> Route.t
 end
 
 module EndpointRegistry : sig
-  type ('result, 'error) t
-  type ('result, 'error) matched
+  type ('result, 'error, 'context) t
+  type ('result, 'error, 'context) matched
 
-  val make : ('result, 'error) Endpoint.t list -> (('result, 'error) t, Registry.error) result
-  val makeExn : ('result, 'error) Endpoint.t list -> ('result, 'error) t
-  val find : ('result, 'error) t -> pathname:string -> (('result, 'error) matched option, Match.error) result
+  val make : ('result, 'error, 'context) Endpoint.t list -> (('result, 'error, 'context) t, Registry.error) result
+  val makeExn : ('result, 'error, 'context) Endpoint.t list -> ('result, 'error, 'context) t
+
+  val find :
+    ('result, 'error, 'context) t -> pathname:string -> (('result, 'error, 'context) matched option, Match.error) result
 
   val decode :
-    ('result, 'error) matched ->
+    ('result, 'error, 'context) matched ->
     search:Search.t ->
-    (('result, 'error) Endpoint.prepared, 'error RouterRuntime.Error.t) result
+    (('result, 'error, 'context) Endpoint.prepared, 'error RouterRuntime.Error.t) result
 
-  val route : ('result, 'error) matched -> Route.t
-  val parameters : ('result, 'error) matched -> (string * string) list
-  val prefetch : ('result, 'error) matched -> RouterRuntime.PrefetchLevel.t
+  val route : ('result, 'error, 'context) matched -> Route.t
+  val parameters : ('result, 'error, 'context) matched -> (string * string) list
+  val prefetch : ('result, 'error, 'context) matched -> RouterRuntime.PrefetchLevel.t
 
   val matches :
-    ('result, 'error) matched -> ('result, 'error) Endpoint.prepared -> RouterRuntime.Navigation.matched list
+    ('result, 'error, 'context) matched ->
+    ('result, 'error, 'context) Endpoint.prepared ->
+    RouterRuntime.Navigation.matched list
 
-  val fingerprint : ('result, 'error) t -> string
+  val fingerprint : ('result, 'error, 'context) t -> string
   (** A stable digest of generated endpoint fingerprints, used to detect a client whose route definitions no longer
       agree with the server. *)
 end
@@ -347,7 +354,7 @@ module ServerEngine : sig
             loader ran. *)
 
   val run :
-    registry:(('view, 'error) Plan.t, 'error) EndpointRegistry.t ->
+    registry:(('view, 'error) Plan.t, 'error, unit) EndpointRegistry.t ->
     basePath:string ->
     trailingSlash:TrailingSlash.t ->
     fallback:(search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
@@ -373,15 +380,33 @@ module ServerEngine : sig
       [revision] names the deployed build in full and patch responses. The client commits it and sends it back as the
       base revision of its next navigation; a patch whose base revision is not the committed one is a full load. The
       default is the constant [""], for an application that does not track deploys. *)
+
+  val runWithContext :
+    registry:(('view, 'error) Plan.t, 'error, 'context) EndpointRegistry.t ->
+    basePath:string ->
+    trailingSlash:TrailingSlash.t ->
+    fallback:(context:'context -> search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
+    applicationStatus:('error -> RouterRuntime.Status.t) ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    protocolVersion:int ->
+    ?prefetch:RouterRuntime.PrefetchLevel.t ->
+    ?actionError:'error RouterRuntime.Error.t ->
+    context:'context ->
+    request ->
+    ('view, 'error) outcome Lwt.t
+  (** {!run} for a registry with a request context, for example the signed-in session. Every route execution and
+      [fallback] receive [context], and generated routes pass it to loaders, [~metadata] and [~headers] as [~context].
+  *)
 end
 
 (** Configured facade shared by the HTTP adapter and the generated client root. *)
 module Server : sig
-  type ('view, 'error) t
+  type ('view, 'error, 'context) t
 
   val make :
     basePath:string ->
-    registry:(('view, 'error) Plan.t, 'error) EndpointRegistry.t ->
+    registry:(('view, 'error) Plan.t, 'error, unit) EndpointRegistry.t ->
     ?trailingSlash:TrailingSlash.t ->
     fallback:(search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
     applicationStatus:('error -> RouterRuntime.Status.t) ->
@@ -389,21 +414,34 @@ module Server : sig
     ?interceptLinks:bool ->
     ?viewTransitions:bool ->
     unit ->
-    ('view, 'error) t
+    ('view, 'error, unit) t
   (** [trailingSlash] defaults to {!TrailingSlash.Redirect}. [interceptLinks] (default [true]) and [viewTransitions]
       (default [false]) are passed to the client [Provider] by {!clientRoot} and {!clientRootWithCache}. *)
 
-  val basePath : ('view, 'error) t -> string
-  val protocolVersion : ('view, 'error) t -> int
-  val fingerprint : ('view, 'error) t -> string
+  val makeWithContext :
+    basePath:string ->
+    registry:(('view, 'error) Plan.t, 'error, 'context) EndpointRegistry.t ->
+    ?trailingSlash:TrailingSlash.t ->
+    fallback:(context:'context -> search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
+    applicationStatus:('error -> RouterRuntime.Status.t) ->
+    ?protocolVersion:int ->
+    ?interceptLinks:bool ->
+    ?viewTransitions:bool ->
+    unit ->
+    ('view, 'error, 'context) t
+  (** {!make} for a registry with a request context. Run it with {!runWithContext}. *)
 
-  val routes : ('view, 'error) t -> string array
+  val basePath : ('view, 'error, 'context) t -> string
+  val protocolVersion : ('view, 'error, 'context) t -> int
+  val fingerprint : ('view, 'error, 'context) t -> string
+
+  val routes : ('view, 'error, 'context) t -> string array
   (** Every concrete route path, optional segments expanded, without the base path, in registry order. The client parses
       each with [RouterPattern.parse] and matches links with [RouterPattern.matchesPath ~basePath], so a base path that
       is not valid route syntax, such as [/a%20b], still works. *)
 
   val clientRoot :
-    (React.element, 'error) t ->
+    (React.element, 'error, 'context) t ->
     initial:RouterRuntime.Navigation.committed ->
     metadata:React.element ->
     children:React.element ->
@@ -411,7 +449,7 @@ module Server : sig
   (** The client root with the client's default page cache (30 pages). *)
 
   val clientRootWithCache :
-    (React.element, 'error) t ->
+    (React.element, 'error, 'context) t ->
     pageCacheCapacity:int ->
     initial:RouterRuntime.Navigation.committed ->
     metadata:React.element ->
@@ -419,7 +457,7 @@ module Server : sig
     React.element
 
   val clientRootWith :
-    (React.element, 'error) t ->
+    (React.element, 'error, 'context) t ->
     make:
       (initial:RouterRuntime.Navigation.committed ->
       protocolVersion:int ->
@@ -455,7 +493,7 @@ module Adapter : sig
       and is also sent to the client in navigation responses. *)
 
   val document_element :
-    (React.element, 'error) Server.t ->
+    (React.element, 'error, 'context) Server.t ->
     ?pageCacheCapacity:int ->
     document:(head:React.element -> React.element -> React.element) ->
     (React.element, 'error) ServerEngine.full ->
@@ -512,7 +550,7 @@ module Adapter : sig
       sends the headers, and must treat [None] as a failed function. *)
 
   val formActionReply :
-    (React.element, 'error) Server.t ->
+    (React.element, 'error, unit) Server.t ->
     diagnosticId:(exn -> string) ->
     ?revision:(unit -> string) ->
     target:string ->
@@ -529,8 +567,22 @@ module Adapter : sig
         slash, the reply is a 303 to that location: a reply to a [POST] is never 307 or 308, so the browser never posts
         the form again. An unsafe location (see {!redirectLocation}) gives 500 instead of a redirect. *)
 
+  val formActionReplyWithContext :
+    (React.element, 'error, 'context) Server.t ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    target:string ->
+    ?pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    context:'context ->
+    ServerEngine.request ->
+    formAction ->
+    reply Lwt.t
+  (** {!formActionReply} for a server with a request context. A failed function renders the page through
+      {!runWithContext}. *)
+
   val reply :
-    (React.element, 'error) Server.t ->
+    (React.element, 'error, 'context) Server.t ->
     target:string ->
     ?pageCacheCapacity:int ->
     document:(head:React.element -> React.element -> React.element) ->
@@ -549,7 +601,7 @@ module Adapter : sig
 end
 
 val run :
-  ('view, 'error) Server.t ->
+  ('view, 'error, unit) Server.t ->
   diagnosticId:(exn -> string) ->
   ?revision:(unit -> string) ->
   ?prefetch:RouterRuntime.PrefetchLevel.t ->
@@ -558,6 +610,18 @@ val run :
   ('view, 'error) ServerEngine.outcome Lwt.t
 (** Runs {!ServerEngine.run} with the configuration of [server]. [revision] defaults to the constant [""] (see
     {!ServerEngine.run}). *)
+
+val runWithContext :
+  ('view, 'error, 'context) Server.t ->
+  diagnosticId:(exn -> string) ->
+  ?revision:(unit -> string) ->
+  ?prefetch:RouterRuntime.PrefetchLevel.t ->
+  ?actionError:'error RouterRuntime.Error.t ->
+  context:'context ->
+  ServerEngine.request ->
+  ('view, 'error) ServerEngine.outcome Lwt.t
+(** {!run} for a server made from a manifest that declares [~context]: loaders, [~metadata] and [~headers] receive
+    [context]. *)
 
 val statusOfError :
   application:('error -> RouterRuntime.Status.t) -> 'error RouterRuntime.Error.t -> RouterRuntime.Status.t

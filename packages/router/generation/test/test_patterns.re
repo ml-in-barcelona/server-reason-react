@@ -23,7 +23,7 @@ let resolve = (~query="", pathname) => {
       switch (
         Lwt_main.run(
           RouterServer.Execution.run(
-            RouterServer.Endpoint.execution(prepared),
+            RouterServer.Endpoint.executionWithContext(prepared, ~context=""),
           ),
         )
       ) {
@@ -436,10 +436,11 @@ let testActionErrorBoundary = () => {
   let render = pathname => {
     let outcome =
       Lwt_main.run(
-        RouterServer.run(
+        RouterServer.runWithContext(
           RouterRegistry.server,
           ~diagnosticId=_ => "diagnostic",
           ~actionError=RouterRuntime.Error.Internal({ diagnosticId: "d" }),
+          ~context="",
           {
             pathname,
             search: "",
@@ -467,6 +468,51 @@ let testActionErrorBoundary = () => {
   Alcotest.check(string, "root boundary", "", html);
 };
 
+let testLoaderContext = () => {
+  let outcome =
+    Lwt_main.run(
+      RouterServer.runWithContext(
+        RouterRegistry.server,
+        ~diagnosticId=_ => "diagnostic",
+        ~context="ada",
+        {
+          pathname: "/site/account",
+          search: "",
+          hash: "",
+          kind: RouterServer.ServerEngine.Document,
+          navigation: None,
+        },
+      ),
+    );
+  switch (outcome) {
+  | RouterServer.ServerEngine.Full(full) =>
+    Alcotest.check(
+      string,
+      "loader",
+      "viewer:ada",
+      ReactDOM.renderToStaticMarkup(
+        RouterServer.Plan.resolvedElement(full.resolved),
+      ),
+    );
+    Alcotest.check(
+      Alcotest.option(string),
+      "metadata",
+      Some("account:ada"),
+      full.resolved.metadata.title,
+    );
+    Alcotest.check(
+      Alcotest.option(string),
+      "headers",
+      Some("ada"),
+      List.assoc_opt(
+        "X-Viewer",
+        RouterRuntime.Headers.toList(full.resolved.headers),
+      ),
+    );
+  | _ => Alcotest.fail("expected a full response")
+  };
+};
+
 let () =
   Alcotest.run(
     "router path patterns",
@@ -492,6 +538,16 @@ let () =
       ),
       ("hash", [Alcotest.test_case("href", `Quick, testHash)]),
       ("search", [Alcotest.test_case("record", `Quick, testSearchRecord)]),
+      (
+        "context",
+        [
+          Alcotest.test_case(
+            "loader, metadata, headers",
+            `Quick,
+            testLoaderContext,
+          ),
+        ],
+      ),
       (
         "form action",
         [

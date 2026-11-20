@@ -454,7 +454,61 @@ parameter.
   type redirect_2_search
   ~search:routeSearch
 
+A route that adds search parameters to the root ones gets its own
+`useSearch`. It decodes the root fields and its own, and its update owns both.
+A route without its own parameters shares the root record and hook.
+
+  $ server-reason-react.router-gen --mode handles --source route-search.ml < route-search.ml > RouteSearch.ml
+  $ server-reason-react.router-gen --mode interface --source route-search.ml < route-search.ml > RouteSearch.mli
+  $ ocamlc -c RouteSearch.mli
+  $ ocamlc -c RouteSearch.ml
+  $ tr -s ' \n' ' ' < RouteSearch.mli | grep -Eo 'module [A-Za-z]+ : sig|type (nonrec )?search = [^}]*}|val useSearch : unit -> \(search'
+  type search = { q: string option }
+  val useSearch : unit -> (search
+  module Home : sig
+  type nonrec search = search = { q: string option }
+  module Results : sig
+  type search = { q: string option ; page: int }
+  val useSearch : unit -> (search
+  $ grep -Eo '~owned:\[[^]]*\]' RouteSearch.ml
+  ~owned:["q"]
+  ~owned:["q"; "page"]
+  $ ocamlc -c route_search_use.ml
+
   $ server-reason-react.router-gen --mode registry --source duplicate-search.ml < duplicate-search.ml
   File "duplicate-search.ml", line 2, characters 4-93:
   Error: router: duplicate search parameter page
+  [2]
+
+`~context` on Router.make declares the type of the request context. Every
+loader, `~metadata` and `~headers` receives it as `~context`. Executions take
+it as their argument, the fallback takes `~context`, and the registry builds
+the server with `Server.makeWithContext`, so `RouterServer.runWithContext
+~context` reaches them. A redirect ignores it.
+
+  $ server-reason-react.router-gen --mode registry --source context.ml < context.ml | tr -s ' \n' ' ' | grep -Eo '(fun |~context:)\([_a-z]+ : [A-Za-z.]+\)|[A-Za-z]+\.[a-z]+ ~context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c
+        2 NoteHeaders.make ~context
+        1 NoteLoader.load ~context
+        6 RootMetadata.make ~context
+        1 RouterServer.Server.makeWithContext
+        1 fun (_ : Session.t)
+        2 fun (context : Session.t)
+        1 ~context:(context : Session.t)
+
+Without `~context`, executions take `()`, nothing mentions a context, and the
+registry uses `Server.make`, so `RouterServer.run` runs it.
+
+  $ server-reason-react.router-gen --mode registry --source loader-label.ml < loader-label.ml | tr -s ' \n' ' ' | grep -Eo '~execution:\(fun [^-]*->|context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c
+        1 RouterServer.Server.make
+        1 ~execution:(fun () ->
+
+`~context` belongs to Router.make only, and reserves the label `context`.
+
+  $ server-reason-react.router-gen --mode handles --source context-group.ml < context-group.ml
+  File "context-group.ml", line 2, characters 41-50:
+  Error: router: Router.group cannot declare ~context; declare it on Router.make
+  [2]
+  $ server-reason-react.router-gen --mode handles --source context-label.ml < context-label.ml
+  File "context-label.ml", line 1, characters 47-106:
+  Error: router: branch input label context conflicts with a generated router argument
   [2]

@@ -417,7 +417,7 @@ let rejected_loader_uses_nearest_boundary () =
     | RouterRuntime.Error.Internal { diagnosticId } -> name ^ ":" ^ diagnosticId
     | _ -> name ^ ":wrong-error"
   in
-  let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+  let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
     RouterServer.Endpoint.make ~id:"root" ~path:"/" ~activeRoutes:[] ~fingerprint:"root" ~decode:(fun _ ->
         Ok
           (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
@@ -863,7 +863,7 @@ let typed_endpoint_decode_error () =
   | _ -> Alcotest.fail "expected endpoint match"
 
 let run_trailing_slash_engine ~trailingSlash ~basePath ~pathname ?(search = "") () =
-  let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+  let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
     RouterServer.Endpoint.make ~id:"notes" ~path:"/notes" ~activeRoutes:[] ~fingerprint:"notes" ~decode:(fun _ ->
         Ok
           (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
@@ -879,7 +879,7 @@ let run_trailing_slash_engine ~trailingSlash ~basePath ~pathname ?(search = "") 
        { pathname; search; hash = ""; kind = Document; navigation = None })
 
 let run_redirect_engine ~kind execution =
-  let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+  let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
     RouterServer.Endpoint.make ~id:"old" ~path:"/old" ~activeRoutes:[] ~fingerprint:"old" ~decode:(fun _ ->
         Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution))
   in
@@ -999,7 +999,7 @@ let default_boundary_renders_text () =
     (render (RouterRuntime.Error.Application "secret detail"))
 
 let server_base_path_validation () =
-  let endpoint : ((unit, unit) RouterServer.Plan.t, unit) RouterServer.Endpoint.t =
+  let endpoint : ((unit, unit) RouterServer.Plan.t, unit, unit) RouterServer.Endpoint.t =
     RouterServer.Endpoint.make ~id:"root" ~path:"/" ~activeRoutes:[] ~fingerprint:"root" ~decode:(fun _ ->
         Ok
           (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
@@ -1312,7 +1312,7 @@ let adapter_method_replies () =
   check "get" 405
 
 let prefetch_registry ran =
-  let endpoint ~id ?prefetch () : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+  let endpoint ~id ?prefetch () : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
     let endpoint =
       RouterServer.Endpoint.make ~id ~path:("/" ^ id) ~activeRoutes:[] ~fingerprint:id ~decode:(fun _ ->
           Ok
@@ -1417,7 +1417,7 @@ let adapter_refused_prefetch_reply () =
   Alcotest.(check bool) "empty body" true (refused.body = RouterServer.Adapter.Empty)
 
 let client_routes_exclude_base_path () =
-  let endpoint path : ((React.element, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+  let endpoint path : ((React.element, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
     RouterServer.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
         Ok
           (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
@@ -1463,7 +1463,7 @@ let action_error_renders_after_loaders () =
             RouterServer.Plan.failure ~scopes:[] ~error ~errorBoundary:(fun _ -> "boundary") ())
       else page
     in
-    let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+    let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
       RouterServer.Endpoint.make ~id:"page" ~path:"/page" ~activeRoutes:[] ~fingerprint:"page" ~decode:(fun _ ->
           Ok
             (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
@@ -1501,7 +1501,7 @@ let action_error_renders_after_loaders () =
 
 let unsafe_redirects_are_internal_errors () =
   let run target =
-    let endpoint : ((string, string) RouterServer.Plan.t, string) RouterServer.Endpoint.t =
+    let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
       RouterServer.Endpoint.make ~id:"go" ~path:"/go" ~activeRoutes:[] ~fingerprint:"go" ~decode:(fun _ ->
           Ok
             (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->

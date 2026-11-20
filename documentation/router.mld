@@ -91,6 +91,9 @@ each module:
 - [~error] resolves a boundary component, at the root as on groups and routes.
 - [~errorStatus], on [Router.make] only, is a function from an application
   error to a [Router.Status.t]. Without it, an application error answers 500.
+- [~context], on [Router.make] only, names the type of the request context
+  that loaders, [~metadata] and [~headers] receive. See "Request context"
+  under "Loaders".
 - [~metadata] and [~headers] are plain functions, not modules.
 
 {2 Prefetch levels}
@@ -598,6 +601,24 @@ let (search, updateSearch) = Router.useSearch();
 let onChange = value => updateSearch({...search, text: Some(value)}) |> ignore;
 ]}
 
+A route that adds its own search parameters also has
+[Router.Route.useSearch]. It returns the route's record, with the root fields
+and the route's own, decoded from the current URL with the same rules as the
+server: a value that its parser rejects reads as [None] for an [optional]
+parameter and as the default for a [default] one. Its update function owns
+both sets of names:
+
+{[
+let (search, updateSearch) = Router.Results.useSearch();
+
+let next = () => updateSearch({...search, page: search.page + 1}) |> ignore;
+]}
+
+It reads the current URL whichever route is active, so call it from the
+route's own components. A route without its own parameters shares
+[Router.search] and [Router.useSearch]. On the server, both hooks read the
+location the page renders for.
+
 Search updates are {e shallow}. They update the URL and client state
 synchronously and never contact the server. When server-rendered content
 depends on a search value, navigate to a destination carrying the new value
@@ -722,31 +743,51 @@ A patch still runs every loader on the matched branch, not only the loaders
 of the scopes it sends. Child loaders receive the results of their ancestors,
 so the server cannot skip an ancestor loader.
 
-Loaders read request-local data, such as a session or a request id, from
-the request the adapter holds. [DreamRouter.routes] holds the Dream request
-for the whole response, including the streamed body, and
-[DreamRouter.request ()] returns it in loaders, [~metadata], [~headers] and
-server components. Lwt copies this storage into every callback when the
-callback is registered, so each loader reads its own request after any wait,
-also when requests run at the same time. Outside a request it returns [None].
+Keep loaders for fast validation, redirects, and route-level not-found
+decisions; stream slow data from async server components inside the route
+elements instead.
+
+{2 Request context}
+
+Loaders read request-local data, such as the signed-in session, from the
+request context. [~context] on [Router.make] names its type:
 
 {[
-let load = (~id as _, ()) =>
-  switch (DreamRouter.request()) {
-  | Some(request) => findSession(request)
-  | None => Lwt.return(Router.Loader.NotFound)
-  };
+Router.make(~basePath="/admin", ~context=Session.t, ...)
 ]}
+
+Every loader, [~metadata] and [~headers] then receives [~context] before its
+other inputs. Pages, layouts and boundaries do not.
+
+{[
+module BillingLoader = {
+  let load = (~context: Session.t, ~search as _, ()) =>
+    Billing.fetchAccount(context.userId)
+    |> Lwt.map(account => Router.Loader.Data(account));
+};
+]}
+
+The generated [RouterRegistry.server] then comes from
+[RouterServer.Server.makeWithContext]. The adapter builds the context once per
+request and runs the server with [RouterServer.runWithContext ~context]
+instead of [RouterServer.run]. [DreamRouter.routesWithContext ~context] takes
+a function from the Dream request. Without [~context] on [Router.make],
+nothing changes: the generated code passes no context, and the adapter calls
+[RouterServer.run] and [DreamRouter.routes].
+
+Server components render after [RouterServer.run] returns, so they cannot
+receive the context. They read request-local data from the request the
+adapter holds. [DreamRouter.routes] holds the Dream request for the whole
+response, including the streamed body, and [DreamRouter.request ()] returns
+it. Lwt copies this storage into every callback when the callback is
+registered, so each component reads its own request after any wait, also
+when requests run at the same time. Outside a request it returns [None].
 
 An adapter for another server does the same: it sets an [Lwt.key] with
 [Lwt.with_value] around the {e whole} handler, including the streaming
 response, not only [RouterServer.run]. A streaming body, for example the callback
 of [Dream.stream], runs after the handler returns, so a key set only around
 [RouterServer.run] is empty there.
-
-Keep loaders for fast validation, redirects, and route-level not-found
-decisions; stream slow data from async server components inside the route
-elements instead.
 
 {1 Error handling}
 
@@ -788,8 +829,8 @@ shows error details. [DreamRouter] uses it.
 
 [~metadata] and [~headers] resolve per scope on every response, including
 patches, and merge from the root down. Like loaders, they receive the decoded
-path parameters, the search record, and ancestor loader results, and return
-[Lwt] promises:
+path parameters, the search record, ancestor loader results and, when the
+manifest declares it, [~context]. They return [Lwt] promises:
 
 {[
 module NoteMetadata = {
@@ -839,9 +880,11 @@ it. Use one of them.
 The native generator emits [RouterRegistry.server], a configured
 [RouterServer.Server.t]. A native HTTP adapter builds a
 [RouterServer.ServerEngine.request] from the request location and router
-navigation headers, then calls [RouterServer.run]. The adapter maps the
-resulting full, patch, redirect, permanent-redirect, or reload-required outcome
-to its HTTP server and streams render data through [ReactServerDOM].
+navigation headers, then calls [RouterServer.run], or
+[RouterServer.runWithContext] when the manifest declares [~context]. The
+adapter maps the resulting full, patch, redirect, permanent-redirect, or
+reload-required outcome to its HTTP server and streams render data through
+[ReactServerDOM].
 
 [RouterServer.Adapter] holds the parts that do not depend on a server, so an
 adapter only parses the request and writes the reply:

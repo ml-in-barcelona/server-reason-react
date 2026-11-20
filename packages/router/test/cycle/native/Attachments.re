@@ -154,6 +154,24 @@ module ActiveRouteProbe = {
     };
 };
 
+module SearchProbe = {
+  [@react.component]
+  let make = () => {
+    let (search, _updateSearch) = Router.SearchResults.useSearch();
+    React.string(
+      String.concat(
+        "|",
+        [
+          Int.to_string(search.page),
+          Option.value(search.searchText, ~default="-"),
+          Option.value(search.filter, ~default="-"),
+          NoteId.to_string(search.view),
+        ],
+      ),
+    );
+  };
+};
+
 module NoteMetadata = {
   let make =
       (
