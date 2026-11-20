@@ -1,0 +1,46 @@
+(melange.emit
+ (target wire_js)
+ (modules WireFunctions ReactServerDOMEsbuild WireClient)
+ (module_systems
+  (commonjs js))
+ (runtime_deps wire_runtime.js)
+ (libraries
+  server-reason-react.runtime
+  server-reason-react.rsc
+  melange-json
+  melange.js)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   -shared-folder-prefix=wire/js/
+   server-reason-react.rsc.ppx
+   melange-json.ppx
+   melange.ppx)))
+
+(rule
+ (target replies.json)
+ (deps
+  (alias melange)
+  encode.cjs
+  wire_js/packages/server-reason-react-ppx/test/wire/js/wire_runtime.js
+  (source_tree ../../../../../demo/client/node_modules/react)
+  (source_tree ../../../../../demo/client/node_modules/react-dom)
+  (source_tree
+   ../../../../../demo/client/node_modules/react-server-dom-webpack))
+ (action
+  (with-stdout-to
+   %{target}
+   (setenv
+    NODE_ENV
+    production
+    (setenv
+     NODE_PATH
+     %{workspace_root}/demo/client/node_modules
+     (run
+      node
+      encode.cjs
+      wire_js/packages/server-reason-react-ppx/test/wire/js/WireClient.js))))))
+
+(copy_files
+ (files ../shared/*.re))

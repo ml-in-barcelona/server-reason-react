@@ -12,6 +12,7 @@
   melange.belt
   melange.js
   melange-fetch
+  melange-json
   melange.dom
   server-reason-react.url_js
   server-reason-react.rsc)

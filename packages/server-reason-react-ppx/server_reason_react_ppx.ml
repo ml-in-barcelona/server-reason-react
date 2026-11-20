@@ -1235,38 +1235,77 @@ let string_of_core_type (core_type : core_type) =
   Astlib.Pprintast.core_type formatter core_type;
   Format.flush_str_formatter ()
 
-let rec make_json_decoder ~loc (core_type : core_type) =
+let unsendable_argument_type (core_type : core_type) =
   match core_type with
-  | [%type: string] -> [%expr Melange_json.Primitives.string_of_json]
-  | [%type: bool] -> [%expr Melange_json.Primitives.bool_of_json]
-  | [%type: int] -> [%expr Melange_json.Primitives.int_of_json]
-  | [%type: float] -> [%expr Melange_json.Primitives.float_of_json]
-  | [%type: int64] -> [%expr Melange_json.Primitives.int64_of_json]
-  | [%type: char] ->
-      [%expr
-        fun json ->
-          let s = Melange_json.Primitives.string_of_json json in
-          if String.length s = 1 then String.get s 0
-          else Melange_json.of_json_error ~json "expected a single-character string"]
-  | [%type: unit] -> [%expr Melange_json.Primitives.unit_of_json]
-  | [%type: [%t? inner_type] option] ->
-      let decode = make_json_decoder ~loc inner_type in
-      [%expr Melange_json.Primitives.option_of_json [%e decode]]
-  | [%type: [%t? inner_type] list] ->
-      let decode = make_json_decoder ~loc inner_type in
-      [%expr Melange_json.Primitives.list_of_json [%e decode]]
-  | [%type: [%t? inner_type] array] ->
-      let decode = make_json_decoder ~loc inner_type in
-      [%expr Melange_json.Primitives.array_of_json [%e decode]]
-  | [%type: ([%t? ok_type], [%t? err_type]) result] ->
-      let decode_ok = make_json_decoder ~loc ok_type in
-      let decode_err = make_json_decoder ~loc err_type in
-      [%expr Melange_json.Primitives.result_of_json [%e decode_ok] [%e decode_err]]
-  | { ptyp_desc = Ptyp_tuple elements; _ } -> make_tuple_json_decoder ~loc elements
-  | type_ -> (
-      match type_.ptyp_desc with
-      | Ptyp_arrow (_, _, _) -> [%expr fun json -> (json : [%t type_])]
-      | _ -> [%expr [%of_json: [%t type_]]])
+  | { ptyp_desc = Ptyp_arrow _; _ } ->
+      Some
+        "server-reason-react: server function arguments can't be functions. Only data that has a JSON encoding can be \
+         sent from the client."
+  | [%type: [%t? _] option option] ->
+      Some
+        "server-reason-react: server function arguments can't be nested options: None and Some(None) have the same \
+         JSON encoding. Use a variant instead."
+  | [%type: unit option] | [%type: Js.Json.t option] ->
+      Some
+        "server-reason-react: server function arguments can't be option(unit) or option(Js.Json.t): None and Some(_) \
+         have the same JSON encoding (null). Use a variant instead."
+  | [%type: Js.Date.t] ->
+      Some
+        "server-reason-react: server function arguments can't be Js.Date.t. Send a float (Js.Date.getTime) or a string \
+         instead."
+  | [%type: Js.FormData.t] ->
+      Some
+        "server-reason-react: Js.FormData.t can only be a direct argument of a server function, not inside another \
+         type."
+  | { ptyp_desc = Ptyp_var _ | Ptyp_any; _ } ->
+      Some "server-reason-react: server function arguments need a concrete type, not a type variable."
+  | { ptyp_desc = Ptyp_object _; _ } | [%type: [%t? _] Js.t] ->
+      Some
+        "server-reason-react: server function arguments can't be JS objects. Use a record with [@@deriving json] \
+         instead."
+  | _ -> None
+
+let unsendable_argument_error (core_type : core_type) =
+  match unsendable_argument_type core_type with
+  | Some msg ->
+      let loc = core_type.ptyp_loc in
+      Some [%expr [%ocaml.error [%e estring ~loc msg]]]
+  | None -> None
+
+let rec make_json_decoder ~loc (core_type : core_type) =
+  match unsendable_argument_error core_type with
+  | Some error -> error
+  | None -> (
+      match core_type with
+      | [%type: string] -> [%expr Melange_json.Primitives.string_of_json]
+      | [%type: bool] -> [%expr Melange_json.Primitives.bool_of_json]
+      | [%type: int] -> [%expr Melange_json.Primitives.int_of_json]
+      | [%type: float] -> [%expr Melange_json.Primitives.float_of_json]
+      | [%type: int64] -> [%expr Melange_json.Primitives.int64_of_json]
+      | [%type: char] ->
+          [%expr
+            fun json ->
+              let code = Melange_json.Primitives.int_of_json json in
+              if code >= 0 && code <= 255 then Stdlib.Char.chr code
+              else Melange_json.of_json_error ~json "expected a char code from 0 to 255"]
+      | [%type: unit] -> [%expr Melange_json.Primitives.unit_of_json]
+      | [%type: [%t? inner_type] option] ->
+          let decode = make_json_decoder ~loc inner_type in
+          [%expr Melange_json.Primitives.option_of_json [%e decode]]
+      | [%type: [%t? inner_type] list] ->
+          let decode = make_json_decoder ~loc inner_type in
+          [%expr Melange_json.Primitives.list_of_json [%e decode]]
+      | [%type: [%t? inner_type] array] ->
+          let decode = make_json_decoder ~loc inner_type in
+          [%expr Melange_json.Primitives.array_of_json [%e decode]]
+      | [%type: ([%t? ok_type], [%t? err_type]) result] ->
+          let decode_ok = make_json_decoder ~loc ok_type in
+          let decode_err = make_json_decoder ~loc err_type in
+          [%expr Melange_json.Primitives.result_of_json [%e decode_ok] [%e decode_err]]
+      | { ptyp_desc = Ptyp_tuple elements; _ } -> make_tuple_json_decoder ~loc elements
+      | type_ ->
+          let loc = type_.ptyp_loc in
+          [%expr [%of_json: [%t type_]]])
 
 and make_tuple_json_decoder ~loc types =
   let n = List.length types in
@@ -1286,6 +1325,39 @@ and make_tuple_json_decoder ~loc types =
       match json with
       | [%p match_pat] -> [%e tuple_expr]
       | _ -> Melange_json.of_json_error ~json [%e estring ~loc error_msg]]
+
+let rec make_json_encoder ~loc (core_type : core_type) =
+  match unsendable_argument_error core_type with
+  | Some error -> error
+  | None -> (
+      match core_type with
+      | [%type: string] -> [%expr Melange_json.Primitives.string_to_json]
+      | [%type: bool] -> [%expr Melange_json.Primitives.bool_to_json]
+      | [%type: int] -> [%expr Melange_json.Primitives.int_to_json]
+      | [%type: float] -> [%expr Melange_json.Primitives.float_to_json]
+      | [%type: int64] -> [%expr Melange_json.Primitives.int64_to_json]
+      | [%type: char] -> [%expr fun c -> Melange_json.Primitives.int_to_json (Stdlib.Char.code c)]
+      | [%type: unit] -> [%expr fun () -> Js.Json.null]
+      | [%type: [%t? inner_type] option] ->
+          [%expr Melange_json.Primitives.option_to_json [%e make_json_encoder ~loc inner_type]]
+      | [%type: [%t? inner_type] list] ->
+          [%expr Melange_json.Primitives.list_to_json [%e make_json_encoder ~loc inner_type]]
+      | [%type: [%t? inner_type] array] ->
+          [%expr Melange_json.Primitives.array_to_json [%e make_json_encoder ~loc inner_type]]
+      | [%type: ([%t? ok_type], [%t? err_type]) result] ->
+          [%expr
+            Melange_json.Primitives.result_to_json [%e make_json_encoder ~loc ok_type]
+              [%e make_json_encoder ~loc err_type]]
+      | { ptyp_desc = Ptyp_tuple elements; _ } ->
+          let vars = List.mapi ~f:(fun i _ -> Printf.sprintf "t%d" i) elements in
+          let pattern = ppat_tuple ~loc (List.map ~f:(fun v -> ppat_var ~loc { txt = v; loc }) vars) in
+          let encoded =
+            List.map2 ~f:(fun element v -> [%expr [%e make_json_encoder ~loc element] [%e evar ~loc v]]) elements vars
+          in
+          [%expr fun [%p pattern] -> Js.Json.array [%e pexp_array ~loc encoded]]
+      | type_ ->
+          let loc = type_.ptyp_loc in
+          [%expr [%to_json: [%t type_]]])
 
 let make_of_json_argument ~loc (core_type : core_type) prop = [%expr [%e make_json_decoder ~loc core_type] [%e prop]]
 
@@ -1442,7 +1514,7 @@ module ServerFunction = struct
         | _ -> { expr with pexp_desc = Pexp_function (params, constraint_, Pfunction_body fn) })
     | _ -> fn
 
-  let generate_id ~loc name =
+  let generate_id ~loc ~nested_module_names name =
     let file_path = loc.loc_start.pos_fname in
     let replacement =
       match shared_folder_prefix.contents with
@@ -1452,9 +1524,19 @@ module ServerFunction = struct
       | None -> raise_errorf ~loc "Found a server.function without -shared-folder-prefix argument. Provide one."
     in
     (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-    let file_path = Str.replace_first (Str.regexp replacement) "" file_path in
-    let hash = Printf.sprintf "%s_%s_%d" name file_path loc.loc_start.pos_lnum |> Hashtbl.hash |> string_of_int in
-    hash
+    let file_path = Str.replace_first (Str.regexp replacement) "" file_path |> Filename.remove_extension in
+    String.concat "." (file_path :: nested_module_names) ^ "#" ^ name
+
+  let wire_id path_id = String.sub (Digest.to_hex (Digest.string path_id)) 0 16
+  let seen_ids : (string, unit) Hashtbl.t = Hashtbl.create 16
+
+  let check_unique_id ~loc id =
+    if Hashtbl.mem seen_ids id then
+      raise_errorf ~loc
+        "server-reason-react: duplicate server function id %S. Two server functions in the same module have the same \
+         name; rename one of them."
+        id
+    else Hashtbl.add seen_ids id ()
 
   let get_arg_details (arg : arg_label * expression option * pattern) =
     let arg_label, default, pattern = arg in
@@ -1463,7 +1545,7 @@ module ServerFunction = struct
     | Ppat_construct ({ txt = Lident "()"; loc }, None) -> Ok (Nolabel, None, [%type: unit])
     | Ppat_constraint (pattern, core_type) -> (
         let loc = pattern.ppat_loc in
-        let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
+        let arg_label = match (arg_label, default) with Optional label, Some _ -> Labelled label | _ -> arg_label in
         match pattern.ppat_desc with
         | Ppat_var { txt = label; _ } -> Ok (arg_label, Some label, core_type)
         | _ -> Error (loc, "server-reason-react: server function arguments must have a name"))
@@ -1486,19 +1568,18 @@ module ServerFunction = struct
     | _ ->
         [%expr [%ocaml.error "server-reason-react: server functions must have a return type annotation (Js.Promise.t)"]]
 
-  let map_arguments_to_expressions ~loc args =
-    List.map
-      ~f:(fun arg ->
-        match arg with
-        | Ok (arg_label, Some arg_name, _) -> (arg_label, [%expr [%e evar ~loc arg_name]])
-        | Ok (arg_label, _, [%type: unit]) -> (arg_label, [%expr ()])
-        | Ok _ ->
-            ( Nolabel,
-              [%expr
-                [%ocaml.error
-                  "server-reason-react: invalid argument, it must have a argument with name and type annotation"]] )
-        | Error (loc, msg) -> (Nolabel, [%expr [%ocaml.error [%e estring ~loc msg]]]))
-      args
+  let argument_to_expression ~loc arg =
+    match arg with
+    | Ok (arg_label, Some arg_name, _) -> (arg_label, [%expr [%e evar ~loc arg_name]])
+    | Ok (arg_label, _, [%type: unit]) -> (arg_label, [%expr ()])
+    | Ok _ ->
+        ( Nolabel,
+          [%expr
+            [%ocaml.error
+              "server-reason-react: invalid argument, it must have a argument with name and type annotation"]] )
+    | Error (loc, msg) -> (Nolabel, [%expr [%ocaml.error [%e estring ~loc msg]]])
+
+  let map_arguments_to_expressions ~loc args = List.map ~f:(argument_to_expression ~loc) args
 
   let reject_into_promise ~loc expr =
     [%expr
@@ -1521,7 +1602,7 @@ module ServerFunction = struct
 
   let decode_arguments_vb ~loc args_to_decode =
     args_to_decode
-    |> List.mapi ~f:(fun i (_, label, core_type) ->
+    |> List.map ~f:(fun (i, label, core_type) ->
         let core_type_string = string_of_core_type core_type in
         let of_json = make_of_json_argument ~loc core_type [%expr Stdlib.Array.unsafe_get args [%e eint ~loc i]] in
         value_binding ~loc
@@ -1546,32 +1627,25 @@ module ServerFunction = struct
     let response_expr = pexp_apply ~loc [%expr [%e evar ~loc function_name].call] apply_args in
 
     let encoded_response_expr = encode_function_response ~loc ~response_expr ~core_type in
-    let args_to_decode =
-      List.filter_map
-        ~f:(fun arg ->
-          match arg with
-          | Ok (_, _, [%type: Js.FormData.t]) -> None
-          | Ok (arg_label, Some arg_name, core_type) -> Some (arg_label, arg_name, core_type)
-          | Ok _ -> None
-          | Error _ -> None)
-        args
-    in
-
     let args, formData =
       List.partition_map
         ~f:(fun arg ->
           match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
         args
     in
+    let args_to_decode =
+      List.filter_map
+        (List.mapi ~f:(fun i arg -> (i, arg)) args)
+        ~f:(fun (i, arg) ->
+          match arg with Ok (_, Some arg_name, core_type) -> Some (i, arg_name, core_type) | Ok _ | Error _ -> None)
+    in
 
     let body_expr =
-      match args_to_decode with
+      match List.rev args_to_decode with
       | [] -> reject_into_promise ~loc encoded_response_expr
-      | args_to_decode ->
+      | (last_index, _, _) :: _ ->
           let decoded_expr = decode_arguments_vb ~loc args_to_decode in
-          let check =
-            check_arguments_length ~loc ~function_name ~min:(List.length args_to_decode) ~max:(List.length args)
-          in
+          let check = check_arguments_length ~loc ~function_name ~min:(last_index + 1) ~max:(List.length args) in
           reject_into_promise ~loc
             (pexp_sequence ~loc check (pexp_let ~loc Nonrecursive decoded_expr encoded_response_expr))
     in
@@ -1588,13 +1662,15 @@ module ServerFunction = struct
   let create_server_function_record ~loc id expression =
     [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }]
 
-  let rewrite_native_function ~vb ~rec_flag structure_item =
+  let rewrite_native_function ~nested_module_names ~vb ~rec_flag structure_item =
     let loc = structure_item.pstr_loc in
     let function_name = get_function_name vb in
     let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
     let base_fn = vb.pvb_expr in
     let return_core_type = get_response_type base_fn in
-    let id = generate_id ~loc:vb.pvb_loc function_name in
+    let path_id = generate_id ~loc:vb.pvb_loc ~nested_module_names function_name in
+    check_unique_id ~loc:vb.pvb_loc path_id;
+    let id = wire_id path_id in
     let server_function_record_vb =
       value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat ~expr:(create_server_function_record ~loc:vb.pvb_loc id base_fn)
     in
@@ -1614,9 +1690,16 @@ module ServerFunction = struct
     | _ ->
         [%expr [%ocaml.error "server-reason-react: server functions must have a return type annotation (Js.Promise.t)"]]
 
+  let encode_client_argument ~loc arg =
+    match arg with
+    | Ok (_, Some arg_name, [%type: Js.FormData.t]) -> evar ~loc arg_name
+    | Ok (_, Some arg_name, core_type) -> [%expr [%e make_json_encoder ~loc core_type] [%e evar ~loc arg_name]]
+    | Ok (_, None, [%type: unit]) -> [%expr Js.Json.null]
+    | Ok _ | Error _ -> snd (argument_to_expression ~loc arg)
+
   let create_client_function ~loc ~return_core_type id args =
     let decode_response = response_of_rsc ~loc return_core_type in
-    let apply_args = map_arguments_to_expressions ~loc args |> List.map ~f:(fun (_, expr) -> (Nolabel, expr)) in
+    let apply_args = List.map ~f:(fun arg -> (Nolabel, encode_client_argument ~loc arg)) args in
     let fn =
       [%expr
         let action = ReactServerDOMEsbuild.createServerReference [%e estring ~loc id] in
@@ -1632,7 +1715,9 @@ module ServerFunction = struct
     let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
     let base_fn = vb.pvb_expr in
     let return_core_type = get_response_type base_fn in
-    let id = generate_id ~loc:vb.pvb_loc function_name in
+    let path_id = generate_id ~loc:vb.pvb_loc ~nested_module_names function_name in
+    check_unique_id ~loc:vb.pvb_loc path_id;
+    let id = wire_id path_id in
     let server_function_record_vb =
       value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat
         ~expr:
@@ -1642,14 +1727,7 @@ module ServerFunction = struct
 
     let loc = structure_item.pstr_loc in
     let module_name = String.concat "." nested_module_names in
-    let _, formData =
-      List.partition_map
-        ~f:(fun arg ->
-          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
-        args
-    in
-    let functionToCall = match formData with [] -> function_name | _ -> Printf.sprintf "%s.call" function_name in
-    let comment = Printf.sprintf "// extract-server-function %s %s %s" id functionToCall module_name in
+    let comment = Printf.sprintf "// extract-server-function %s %s %s" id function_name module_name in
     let raw = estring ~loc comment in
     let extract_client_raw = [%stri [%%raw [%e raw]]] in
     [%stri
@@ -1689,7 +1767,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
                  "server-reason-react: server functions don't support recursive bindings yet. If you need it, please \
                   open an issue on %s"
                  issues_url)]]]
-      else ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
+      else ServerFunction.rewrite_native_function ~nested_module_names ~vb ~rec_flag structure_item
   | Pstr_value (rec_flag, value_bindings) -> (
       try
         let rewrite_component_binding vb =
@@ -1963,5 +2041,8 @@ let () =
          shared_folder_prefix := Some prefix))
     ~doc:"prefix of shared folder, used to replace the it in the file path";
 
-  Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:traverse#structure
+  Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx"
+    ~preprocess_impl:(fun ctx structure ->
+      Hashtbl.reset ServerFunction.seen_ids;
+      traverse#structure ctx structure)
     ~preprocess_intf:traverse#signature

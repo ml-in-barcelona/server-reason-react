@@ -22,7 +22,7 @@
   
   include {
             let withLabelledArg = {
-              Runtime.id: "244965410",
+              Runtime.id: "d795178b8ec4e7eb",
               call: (~name: string, ~age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -31,7 +31,7 @@
               ),
             };
             FunctionReferences.register(
-              "244965410",
+              "d795178b8ec4e7eb",
               Body(
                 args =>
                   try(
@@ -142,7 +142,7 @@
   
   include {
             let withLabelledArgAndUnlabeledArg = {
-              Runtime.id: "150260642",
+              Runtime.id: "cc16d8dfbb02c5f1",
               call: (~name: string="Lola", age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -151,7 +151,7 @@
               ),
             };
             FunctionReferences.register(
-              "150260642",
+              "cc16d8dfbb02c5f1",
               Body(
                 args =>
                   try(
@@ -173,11 +173,7 @@
                       };
                       let name =
                         try(
-                          (
-                            Melange_json.Primitives.option_of_json(
-                              Melange_json.Primitives.string_of_json,
-                            )
-                          )(
+                          Melange_json.Primitives.string_of_json(
                             Stdlib.Array.unsafe_get(args, 0),
                           )
                         ) {
@@ -192,7 +188,7 @@
                               Stdlib.Printf.sprintf(
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
-                                "string option",
+                                "string",
                                 {
                                   let received =
                                     Yojson.Basic.to_string(
@@ -247,7 +243,7 @@
                             ),
                           )
                         };
-                      withLabelledArgAndUnlabeledArg.call(~name?, age)
+                      withLabelledArgAndUnlabeledArg.call(~name, age)
                       |> Lwt.map(response =>
                            RSC.to_model(RSC.Primitives.string_to_rsc(response))
                          );
@@ -266,7 +262,7 @@
   
   include {
             let withOptionalArg = {
-              Runtime.id: "72909839",
+              Runtime.id: "759127163477eddf",
               call: (~name: option(string)=?, ()) => (
                 {
                   let name =
@@ -280,7 +276,7 @@
               ),
             };
             FunctionReferences.register(
-              "72909839",
+              "759127163477eddf",
               Body(
                 args =>
                   try(
@@ -359,14 +355,14 @@
   
   include {
             let withOptionalDefaultArg = {
-              Runtime.id: "1038516267",
+              Runtime.id: "e14a2f3233911fed",
               call: (~name: string="Lola", ()) => (
                 Lwt.return(Printf.sprintf("Hello, %s", name)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "1038516267",
+              "e14a2f3233911fed",
               Body(
                 args =>
                   try(
@@ -388,11 +384,7 @@
                       };
                       let name =
                         try(
-                          (
-                            Melange_json.Primitives.option_of_json(
-                              Melange_json.Primitives.string_of_json,
-                            )
-                          )(
+                          Melange_json.Primitives.string_of_json(
                             Stdlib.Array.unsafe_get(args, 0),
                           )
                         ) {
@@ -407,7 +399,7 @@
                               Stdlib.Printf.sprintf(
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
-                                "string option",
+                                "string",
                                 {
                                   let received =
                                     Yojson.Basic.to_string(
@@ -426,7 +418,7 @@
                             ),
                           )
                         };
-                      withOptionalDefaultArg.call(~name?, ())
+                      withOptionalDefaultArg.call(~name, ())
                       |> Lwt.map(response =>
                            RSC.to_model(RSC.Primitives.string_to_rsc(response))
                          );
@@ -445,7 +437,7 @@
   
   include {
             let withUnlabeledArg = {
-              Runtime.id: "543207864",
+              Runtime.id: "4609c752f0fd4336",
               call: (name: string, age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -454,7 +446,7 @@
               ),
             };
             FunctionReferences.register(
-              "543207864",
+              "4609c752f0fd4336",
               Body(
                 args =>
                   try(
@@ -565,11 +557,11 @@
   
   include {
             let withNoArgs = {
-              Runtime.id: "376840710",
+              Runtime.id: "35bf61b207c3c325",
               call: () => (Lwt.return("Hello, world!"): Js.Promise.t(string)),
             };
             FunctionReferences.register(
-              "376840710",
+              "35bf61b207c3c325",
               Body(
                 args =>
                   try(
@@ -591,7 +583,7 @@
   
   include {
             let withFormData = {
-              Runtime.id: "519042066",
+              Runtime.id: "7aaca06c4b5d839b",
               call: (formData: Js.FormData.t) => (
                 {
                   let name =
@@ -614,7 +606,7 @@
               ),
             };
             FunctionReferences.register(
-              "519042066",
+              "7aaca06c4b5d839b",
               FormData(
                 (_, formData) =>
                   try(
@@ -636,7 +628,7 @@
   
   include {
             let withFormDataArgs = {
-              Runtime.id: "762631116",
+              Runtime.id: "bdba0def36cec354",
               call: (country: string, formData: Js.FormData.t) => (
                 {
                   let name =
@@ -654,7 +646,7 @@
               ),
             };
             FunctionReferences.register(
-              "762631116",
+              "bdba0def36cec354",
               FormData(
                 (args, formData) =>
                   try(
@@ -729,7 +721,7 @@
   
   include {
             let withFormDataLabelledAndUnlabeledArgs = {
-              Runtime.id: "305946000",
+              Runtime.id: "ca4d6249058d6f72",
               call: (country: string, ~formData: Js.FormData.t) => (
                 {
                   let name =
@@ -747,7 +739,7 @@
               ),
             };
             FunctionReferences.register(
-              "305946000",
+              "ca4d6249058d6f72",
               FormData(
                 (args, formData) =>
                   try(
@@ -825,7 +817,7 @@
   
   include {
             let withFormDataLabelledAndLabelledArgs = {
-              Runtime.id: "836441764",
+              Runtime.id: "35124443a9ca3e46",
               call: (~country: string, ~formData: Js.FormData.t) => (
                 {
                   let name =
@@ -843,7 +835,7 @@
               ),
             };
             FunctionReferences.register(
-              "836441764",
+              "35124443a9ca3e46",
               FormData(
                 (args, formData) =>
                   try(
@@ -921,7 +913,7 @@
   
   include {
             let withFormDataUnlabelledAndLabelledArgs = {
-              Runtime.id: "1042320905",
+              Runtime.id: "fb8fe6f5361d83d2",
               call: (~country: string, formData: Js.FormData.t) => (
                 {
                   let name =
@@ -939,7 +931,7 @@
               ),
             };
             FunctionReferences.register(
-              "1042320905",
+              "fb8fe6f5361d83d2",
               FormData(
                 (args, formData) =>
                   try(
@@ -1017,7 +1009,7 @@
   
   include {
             let withFormDataAndArgsDifferentOrder = {
-              Runtime.id: "271541692",
+              Runtime.id: "79fae9670eeb9c1b",
               call: (formData: Js.FormData.t, country: string) => (
                 {
                   let name =
@@ -1035,7 +1027,7 @@
               ),
             };
             FunctionReferences.register(
-              "271541692",
+              "79fae9670eeb9c1b",
               FormData(
                 (args, formData) =>
                   try(
@@ -1110,7 +1102,7 @@
   
   include {
             let withReturnTypeOnSeparateLine = {
-              Runtime.id: "311524135",
+              Runtime.id: "c0983d541835b2f6",
               call: (~name: string, ~age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -1119,7 +1111,7 @@
               ),
             };
             FunctionReferences.register(
-              "311524135",
+              "c0983d541835b2f6",
               Body(
                 args =>
                   try(
@@ -1230,14 +1222,14 @@
   
   include {
             let withCharArg = {
-              Runtime.id: "730655028",
+              Runtime.id: "e9af9d26b2b5a532",
               call: (~letter: char) => (
                 Js.Promise.resolve(String.make(1, letter)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "730655028",
+              "e9af9d26b2b5a532",
               Body(
                 args =>
                   try(
@@ -1261,14 +1253,14 @@
                         try(
                           (
                             json => {
-                              let s =
-                                Melange_json.Primitives.string_of_json(json);
-                              if (String.length(s) == 1) {
-                                s.[0];
+                              let code =
+                                Melange_json.Primitives.int_of_json(json);
+                              if (code >= 0 && code <= 255) {
+                                Stdlib.Char.chr(code);
                               } else {
                                 Melange_json.of_json_error(
                                   ~json,
-                                  "expected a single-character string",
+                                  "expected a char code from 0 to 255",
                                 );
                               };
                             }
@@ -1325,7 +1317,7 @@
   
   include {
             let withResultArg = {
-              Runtime.id: "290632052",
+              Runtime.id: "d2e977839904ede6",
               call: (~result: result(string, string)) => (
                 switch (result) {
                 | Ok(s) => Js.Promise.resolve(s)
@@ -1335,7 +1327,7 @@
               ),
             };
             FunctionReferences.register(
-              "290632052",
+              "d2e977839904ede6",
               Body(
                 args =>
                   try(
@@ -1415,7 +1407,7 @@
   
   include {
             let withTuple2Arg = {
-              Runtime.id: "868487122",
+              Runtime.id: "14eaed19bdbca8ed",
               call: (~pair: (string, int)) => (
                 {
                   let (name, age) = pair;
@@ -1427,7 +1419,7 @@
               ),
             };
             FunctionReferences.register(
-              "868487122",
+              "14eaed19bdbca8ed",
               Body(
                 args =>
                   try(
@@ -1515,7 +1507,7 @@
   
   include {
             let withTuple5Arg = {
-              Runtime.id: "593992612",
+              Runtime.id: "c3b3fb50d5709f8e",
               call: (~data: (string, int, float, bool, char)) => (
                 {
                   let (name, _age, _score, _active, _letter) = data;
@@ -1525,7 +1517,7 @@
               ),
             };
             FunctionReferences.register(
-              "593992612",
+              "c3b3fb50d5709f8e",
               Body(
                 args =>
                   try(
@@ -1557,16 +1549,16 @@
                                   Melange_json.Primitives.bool_of_json(t3),
                                   (
                                     json => {
-                                      let s =
-                                        Melange_json.Primitives.string_of_json(
+                                      let code =
+                                        Melange_json.Primitives.int_of_json(
                                           json,
                                         );
-                                      if (String.length(s) == 1) {
-                                        s.[0];
+                                      if (code >= 0 && code <= 255) {
+                                        Stdlib.Char.chr(code);
                                       } else {
                                         Melange_json.of_json_error(
                                           ~json,
-                                          "expected a single-character string",
+                                          "expected a char code from 0 to 255",
                                         );
                                       };
                                     }
@@ -1633,7 +1625,7 @@
   
   include {
             let withTuple6Arg = {
-              Runtime.id: "825335486",
+              Runtime.id: "c475ea7d2ed15c5f",
               call: (~data: (string, int, float, bool, char, int64)) => (
                 {
                   let (name, _age, _score, _active, _letter, _id) = data;
@@ -1643,7 +1635,7 @@
               ),
             };
             FunctionReferences.register(
-              "825335486",
+              "c475ea7d2ed15c5f",
               Body(
                 args =>
                   try(
@@ -1675,16 +1667,16 @@
                                   Melange_json.Primitives.bool_of_json(t3),
                                   (
                                     json => {
-                                      let s =
-                                        Melange_json.Primitives.string_of_json(
+                                      let code =
+                                        Melange_json.Primitives.int_of_json(
                                           json,
                                         );
-                                      if (String.length(s) == 1) {
-                                        s.[0];
+                                      if (code >= 0 && code <= 255) {
+                                        Stdlib.Char.chr(code);
                                       } else {
                                         Melange_json.of_json_error(
                                           ~json,
-                                          "expected a single-character string",
+                                          "expected a char code from 0 to 255",
                                         );
                                       };
                                     }
@@ -1752,13 +1744,13 @@
   
   include {
             let withBoolArg = {
-              Runtime.id: "992749241",
+              Runtime.id: "defad4fc0b6197d9",
               call: (~flag: bool) => (
                 Js.Promise.resolve(flag ? "yes" : "no"): Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "992749241",
+              "defad4fc0b6197d9",
               Body(
                 args =>
                   try(
@@ -1833,14 +1825,14 @@
   
   include {
             let withFloatArg = {
-              Runtime.id: "204801789",
+              Runtime.id: "3a71c568a9f76459",
               call: (~score: float) => (
                 Js.Promise.resolve(Js.Float.toString(score)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "204801789",
+              "3a71c568a9f76459",
               Body(
                 args =>
                   try(
@@ -1915,13 +1907,13 @@
   
   include {
             let withInt64Arg = {
-              Runtime.id: "161188939",
+              Runtime.id: "57b533d2311c9a24",
               call: (~big: int64) => (
                 Js.Promise.resolve(Int64.to_string(big)): Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "161188939",
+              "57b533d2311c9a24",
               Body(
                 args =>
                   try(
@@ -1996,14 +1988,14 @@
   
   include {
             let withListArg = {
-              Runtime.id: "704022741",
+              Runtime.id: "af9277acf0958e63",
               call: (~names: list(string)) => (
                 Js.Promise.resolve(String.concat(", ", names)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "704022741",
+              "af9277acf0958e63",
               Body(
                 args =>
                   try(
@@ -2082,14 +2074,14 @@
   
   include {
             let withArrayArg = {
-              Runtime.id: "979987442",
+              Runtime.id: "d37c239ff74d84c5",
               call: (~ids: array(int)) => (
                 Js.Promise.resolve(string_of_int(Array.length(ids))):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "979987442",
+              "d37c239ff74d84c5",
               Body(
                 args =>
                   try(
@@ -2168,7 +2160,7 @@
   
   include {
             let withOptionIntArg = {
-              Runtime.id: "114809194",
+              Runtime.id: "3e6320f309237d93",
               call: (~count: option(int)=?, ()) => (
                 switch (count) {
                 | Some(n) => Js.Promise.resolve(string_of_int(n))
@@ -2178,7 +2170,7 @@
               ),
             };
             FunctionReferences.register(
-              "114809194",
+              "3e6320f309237d93",
               Body(
                 args =>
                   try(
@@ -2257,7 +2249,7 @@
   
   include {
             let withNestedListOptionArg = {
-              Runtime.id: "986464429",
+              Runtime.id: "e546234bdc88e0eb",
               call: (~items: list(option(string))) => (
                 {
                   let _ = items;
@@ -2267,7 +2259,7 @@
               ),
             };
             FunctionReferences.register(
-              "986464429",
+              "e546234bdc88e0eb",
               Body(
                 args =>
                   try(
@@ -2348,7 +2340,7 @@
   
   include {
             let withNestedResultListArg = {
-              Runtime.id: "575616680",
+              Runtime.id: "bfa6480d6c0fab22",
               call: (~data: result(list(int), string)) => (
                 {
                   let _ = data;
@@ -2358,7 +2350,7 @@
               ),
             };
             FunctionReferences.register(
-              "575616680",
+              "bfa6480d6c0fab22",
               Body(
                 args =>
                   try(
@@ -2440,7 +2432,7 @@
   
   include {
             let withFormDataNamedFd = {
-              Runtime.id: "780970608",
+              Runtime.id: "4774b1f9a1189743",
               call: (fd: Js.FormData.t) => (
                 {
                   let name =
@@ -2455,7 +2447,7 @@
               ),
             };
             FunctionReferences.register(
-              "780970608",
+              "4774b1f9a1189743",
               FormData(
                 (_, fd) =>
                   try(
@@ -2477,7 +2469,7 @@
   
   include {
             let withFormDataNamedFdAndArgs = {
-              Runtime.id: "297264227",
+              Runtime.id: "2ff1173b01049e42",
               call: (country: string, fd: Js.FormData.t) => (
                 {
                   let name =
@@ -2494,7 +2486,7 @@
               ),
             };
             FunctionReferences.register(
-              "297264227",
+              "2ff1173b01049e42",
               FormData(
                 (args, fd) =>
                   try(

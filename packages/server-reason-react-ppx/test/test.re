@@ -832,6 +832,11 @@ module ServerFunction = {
   };
 
   [@react.server.function]
+  let withUnitBeforeArg = ((), ~count: int): Js.Promise.t(int) => {
+    Lwt.return(count);
+  };
+
+  [@react.server.function]
   let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
     Lwt.return(
       Stdlib.Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -1014,6 +1019,25 @@ let server_function_reference_unit_arg_is_optional_on_the_wire = () => {
           [|`String("John"), `Null, `Null|],
         ),
       "server-reason-react: server function 'withOptionalAndUnit' expects 1 to 2 arguments, received 3",
+    );
+  | _ => Stdlib.failwith("Expected a JSON response")
+  };
+};
+
+let server_function_reference_unit_before_arg_keeps_positions = () => {
+  let%lwt response =
+    body_handler(ServerFunction.withUnitBeforeArg.id, [|`Null, `Int(7)|]);
+  switch (response) {
+  | React.Model.Json(json) =>
+    Alcotest.check(
+      Alcotest.int,
+      "decodes count from position 1",
+      7,
+      Melange_json.Primitives.int_of_json(json),
+    );
+    expect_rejection(
+      () => body_handler(ServerFunction.withUnitBeforeArg.id, [|`Int(7)|]),
+      "server-reason-react: server function 'withUnitBeforeArg' expects 2 arguments, received 1",
     );
   | _ => Stdlib.failwith("Expected a JSON response")
   };
@@ -1688,6 +1712,10 @@ Alcotest_lwt.run(
     test_lwt(
       "server_function_reference_unit_arg_is_optional_on_the_wire",
       server_function_reference_unit_arg_is_optional_on_the_wire,
+    ),
+    test_lwt(
+      "server_function_reference_unit_before_arg_keeps_positions",
+      server_function_reference_unit_before_arg_keeps_positions,
     ),
     test_lwt(
       "server_function_reference_fatal_decode_error_is_not_caught",

@@ -26,16 +26,74 @@ let parse_server_function_line line =
         Ok ((if module_name = "" then None else Some (parse_module_name module_name)), function_name, id))
   with End_of_file | Scanf.Scan_failure _ -> Error "Invalid `extract-server-function` command format"
 
-let parse_manifest_item ~path line =
-  match (parse_client_component_line (String.trim line), parse_server_function_line (String.trim line)) with
-  | Ok (original_path, module_name), _ ->
-      Some (Client_component { compiled_js_path = path; original_path; module_name })
-  | _, Ok (module_name, function_name, id) ->
-      Some (Server_function { compiled_js_path = path; module_name; function_name; id })
-  | Error _, Error _ -> None
+let client_marker = "// extract-client"
+let server_function_marker = "// extract-server-function"
+let has_marker marker line = line = marker || String.starts_with ~prefix:(marker ^ " ") line
 
-let parse_manifest_data ~path content : manifest_item list =
-  content |> String.split_on_char '\n' |> List.filter_map ~f:(parse_manifest_item ~path)
+let parse_manifest_item ~path line =
+  let line = String.trim line in
+  let invalid message = Error (Printf.sprintf "%s: %s: %S" path message line) in
+  if has_marker server_function_marker line then
+    match parse_server_function_line line with
+    | Ok (module_name, function_name, id) when id <> "" && function_name <> "" ->
+        Ok (Some (Server_function { compiled_js_path = path; module_name; function_name; id }))
+    | Ok _ | Error _ -> invalid "invalid `extract-server-function` line"
+  else if has_marker client_marker line then
+    match parse_client_component_line line with
+    | Ok (original_path, module_name) when original_path <> "" ->
+        Ok (Some (Client_component { compiled_js_path = path; original_path; module_name }))
+    | Ok _ | Error _ -> invalid "invalid `extract-client` line"
+  else Ok None
+
+let parse_manifest_data ~path content =
+  String.split_on_char '\n' content
+  |> List.fold_left ~init:(Ok []) ~f:(fun acc line ->
+      match (acc, parse_manifest_item ~path line) with
+      | Error _, _ -> acc
+      | Ok _, Error message -> Error message
+      | Ok items, Ok None -> Ok items
+      | Ok items, Ok (Some item) -> Ok (item :: items))
+  |> Result.map List.rev
+
+let extension_rank path = match Filename.extension path with ".js" -> 0 | ".mjs" -> 1 | ".cjs" -> 2 | _ -> 3
+
+let item_key = function
+  | Client_component { original_path; module_name; _ } ->
+      "client " ^ original_path ^ "#" ^ Option.fold ~none:"" ~some:print_module_name module_name
+  | Server_function { id; _ } -> "server " ^ id
+
+let item_path = function
+  | Client_component { compiled_js_path; _ } | Server_function { compiled_js_path; _ } -> compiled_js_path
+
+let same_export a b =
+  match (a, b) with
+  | Client_component a, Client_component b -> a.module_name = b.module_name
+  | Server_function a, Server_function b -> a.module_name = b.module_name && a.function_name = b.function_name
+  | _ -> false
+
+let dedupe_manifest items =
+  let sorted =
+    List.stable_sort items ~cmp:(fun a b ->
+        compare (extension_rank (item_path a), item_path a) (extension_rank (item_path b), item_path b))
+  in
+  let seen = Hashtbl.create 64 in
+  List.fold_left sorted ~init:(Ok []) ~f:(fun acc item ->
+      match acc with
+      | Error _ -> acc
+      | Ok kept -> (
+          let key = item_key item in
+          match Hashtbl.find_opt seen key with
+          | None ->
+              Hashtbl.add seen key item;
+              Ok (item :: kept)
+          | Some first when same_export first item -> Ok kept
+          | Some first -> (
+              match item with
+              | Server_function { id; _ } ->
+                  Error
+                    (Printf.sprintf "duplicate server function id %S in %s and %s" id (item_path first) (item_path item))
+              | Client_component _ -> Ok (item :: kept))))
+  |> Result.map List.rev
 
 let render_manifest manifest =
   let register_client_modules =
@@ -74,10 +132,7 @@ window.__server_functions_manifest_map = window.__server_functions_manifest_map 
 %s|}
     (String.concat "\n" register_client_modules)
 
-(* TODO: Add parameter to allow users to configure the extension of the files *)
-let is_js_file path =
-  let ext = Filename.extension path in
-  ext = ".js" || ext = ".jsx"
+let is_js_file path = List.mem (Filename.extension path) ~set:[ ".js"; ".jsx"; ".mjs"; ".cjs" ]
 
 (* TODO: refactor path to be a Filepath, not a string *)
 let capture_all_client_modules_files_in_target path =
@@ -86,6 +141,7 @@ let capture_all_client_modules_files_in_target path =
       match Sys.is_directory path with
       | true ->
           let contents = Sys.readdir path in
+          Array.sort compare contents;
           Array.fold_left
             (fun acc entry ->
               let full_path = Filename.concat path entry in
@@ -97,7 +153,7 @@ let capture_all_client_modules_files_in_target path =
       | false ->
           if is_js_file path then
             match read_file path with
-            | Some content -> Ok (parse_manifest_data ~path content)
+            | Some content -> parse_manifest_data ~path content
             | None -> Error (Printf.sprintf "Failed to read file: %s" path)
           else Ok []
     with
@@ -111,20 +167,21 @@ let melange_target =
   Cmdliner.Arg.(required & pos 0 (some string) None & info [] ~docv:"MELANGE_TARGET" ~doc)
 
 let extract_modules target =
-  let current_dir = Sys.getcwd () in
-  let melange_target = Filename.concat current_dir target in
-  match capture_all_client_modules_files_in_target melange_target with
+  let melange_target = if Filename.is_relative target then Filename.concat (Sys.getcwd ()) target else target in
+  match Result.bind (capture_all_client_modules_files_in_target melange_target) dedupe_manifest with
   | Ok manifest ->
       print_endline (render_manifest manifest);
-      Ok ()
-  | Error msg -> Error (`Msg msg)
+      0
+  | Error msg ->
+      prerr_endline ("server-reason-react.extract_client_components: " ^ msg);
+      1
 
 let extract_cmd =
   let open Cmdliner in
   let doc = "Extract all client modules from a Melange target folder" in
   let sdocs = Manpage.s_common_options in
   let info = Cmd.info "extract-client-components" ~version:"1.0.0" ~doc ~sdocs in
-  let term = Term.(term_result (const extract_modules $ melange_target)) in
+  let term = Term.(const extract_modules $ melange_target) in
   Cmd.v info term
 
-let () = exit (Cmdliner.Cmd.eval extract_cmd)
+let () = exit (Cmdliner.Cmd.eval' extract_cmd)
