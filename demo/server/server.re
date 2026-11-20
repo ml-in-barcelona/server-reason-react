@@ -1,7 +1,21 @@
 let debug = Sys.getenv_opt("DEMO_ENV") == Some("development");
 
+let lookup = id => {
+  let entry = FunctionReferences.get(id);
+  switch (entry) {
+  | Some({
+      ReactServerDOM.name,
+      meta: { FunctionReferences.Meta.logCalls: true },
+      _,
+    }) =>
+    Dream.log("server function %s", name)
+  | _ => ()
+  };
+  entry;
+};
+
 let serverFunctionHandler =
-  DreamRouter.streamFunctionResponse(~debug, ~lookup=FunctionReferences.get);
+  DreamRouter.streamFunctionResponse(~debug, ~lookup);
 
 let getAndPost = (path, handler) =>
   Dream.scope(
@@ -56,7 +70,7 @@ let server =
            DreamRouter.routes(
              ~server=RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
-             ~lookup=FunctionReferences.get,
+             ~lookup,
              ~ssr=shouldSSR,
              ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
              ~document=
@@ -67,7 +81,7 @@ let server =
            DreamRouter.routes(
              ~server=Demo_hacker_news_router_native.RouterRegistry.server,
              ~actionHandler=serverFunctionHandler,
-             ~lookup=FunctionReferences.get,
+             ~lookup,
              ~ssr=shouldSSR,
              ~bootstrapModules=["/static/demo/RouterDemo.re.js"],
              ~pageCacheCapacity=32,

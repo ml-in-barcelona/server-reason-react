@@ -1,9 +1,15 @@
-module FunctionReferences: ReactServerDOM.FunctionReferences = {
-  type t = Hashtbl.t(string, ReactServerDOM.server_function);
+module Meta = {
+  type t =
+    | Public
+    | Admin;
+  let default = Public;
+};
 
-  let registry = Hashtbl.create(10);
-  let register = Hashtbl.add(registry);
-  let get = Hashtbl.find_opt(registry);
+module FunctionReferences = ReactServerDOM.FunctionReferences.Make(Meta);
+
+[@react.server.function Meta.Admin]
+let withMeta = (): Js.Promise.t(string) => {
+  Lwt.return("ok");
 };
 
 [@react.server.function]

@@ -807,13 +807,12 @@ let multiple_contexts = () => {
   );
 };
 
-module FunctionReferences: ReactServerDOM.FunctionReferences = {
-  type t = Stdlib.Hashtbl.t(string, ReactServerDOM.server_function);
-
-  let registry = Stdlib.Hashtbl.create(10);
-  let register = Stdlib.Hashtbl.add(registry);
-  let get = Stdlib.Hashtbl.find_opt(registry);
+module Meta = {
+  type t = {permission: string};
+  let default = { permission: "public" };
 };
+
+module FunctionReferences = ReactServerDOM.FunctionReferences.Make(Meta);
 
 module FatalDecode = {
   type t = int;
@@ -821,6 +820,11 @@ module FatalDecode = {
 };
 
 module ServerFunction = {
+  [@react.server.function { Meta.permission: "admin" }]
+  let withMeta = (): Js.Promise.t(string) => {
+    Lwt.return("ok");
+  };
+
   [@react.server.function]
   let withFatalDecode = (~value: FatalDecode.t): Js.Promise.t(int) => {
     Lwt.return(value);
@@ -890,7 +894,8 @@ let server_function_reference = () => {
     FunctionReferences.get(ServerFunction.simpleResponse.id)
     |> (
       fun
-      | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
+      | Some({ ReactServerDOM.handler: Body(handler), _ }) =>
+        handler([|`String("John"), `Int(30)|])
       | _ => assert(false)
     );
 
@@ -931,13 +936,13 @@ let expect_rejection = (promise, expected) =>
 
 let body_handler = id =>
   switch (FunctionReferences.get(id)) {
-  | Some(Body(handler)) => handler
+  | Some({ ReactServerDOM.handler: Body(handler), _ }) => handler
   | _ => assert(false)
   };
 
 let form_data_handler = id =>
   switch (FunctionReferences.get(id)) {
-  | Some(FormData(handler)) => handler
+  | Some({ ReactServerDOM.handler: FormData(handler), _ }) => handler
   | _ => assert(false)
   };
 
@@ -1061,7 +1066,7 @@ let server_function_reference_form_data = () => {
     FunctionReferences.get(ServerFunction.withFormData.id)
     |> (
       fun
-      | Some(FormData(handler)) => {
+      | Some({ ReactServerDOM.handler: FormData(handler), _ }) => {
           let form_data = Js.FormData.make();
           Js.FormData.append(form_data, "name", `String("John"));
           Js.FormData.append(form_data, "age", `String("30"));
@@ -1086,7 +1091,7 @@ let server_function_reference_form_data_and_args = () => {
     FunctionReferences.get(ServerFunction.withFormDataAndArgs.id)
     |> (
       fun
-      | Some(FormData(handler)) => {
+      | Some({ ReactServerDOM.handler: FormData(handler), _ }) => {
           let form_data = Js.FormData.make();
           Js.FormData.append(form_data, "name", `String("John"));
           handler([|`String("Developer")|], form_data);
@@ -1104,6 +1109,47 @@ let server_function_reference_form_data_and_args = () => {
   | _ => Stdlib.failwith("Expected a JSON response")
   };
 };
+
+let server_function_entry_has_name_and_meta = () =>
+  switch (FunctionReferences.get(ServerFunction.withMeta.id)) {
+  | Some({ ReactServerDOM.id, name, meta, _ }) =>
+    assert_string(id, ServerFunction.withMeta.id);
+    assert_string(
+      name,
+      "packages/server-reason-react-ppx/test/test.ServerFunction#withMeta",
+    );
+    assert_string(meta.Meta.permission, "admin");
+  | None => Alcotest.fail("withMeta is not registered")
+  };
+
+let server_function_entry_without_payload_has_default_meta = () =>
+  switch (FunctionReferences.get(ServerFunction.simpleResponse.id)) {
+  | Some({ ReactServerDOM.meta, _ }) =>
+    assert_string(meta.Meta.permission, "public")
+  | None => Alcotest.fail("simpleResponse is not registered")
+  };
+
+let server_function_register_duplicate_id_raises = () =>
+  switch (
+    FunctionReferences.register(
+      ~id=ServerFunction.withMeta.id,
+      ~name="Other#withMeta",
+      ~meta=Meta.default,
+      Body(_ => Lwt.return(React.Model.Json(`Null))),
+    )
+  ) {
+  | () => Alcotest.fail("Expected Invalid_argument")
+  | exception (Invalid_argument(message)) =>
+    assert_string(
+      message,
+      Stdlib.Printf.sprintf(
+        "FunctionReferences.register: server functions %S and %S have the same id %S",
+        "packages/server-reason-react-ppx/test/test.ServerFunction#withMeta",
+        "Other#withMeta",
+        ServerFunction.withMeta.id,
+      ),
+    )
+  };
 
 /* Text-separator protocol: renderToString must delimit adjacent text nodes
    with <!-- --> so hydration can split the merged text nodes back apart
@@ -1728,6 +1774,18 @@ Alcotest_lwt.run(
     test_lwt(
       "server_function_reference_form_data_and_args",
       server_function_reference_form_data_and_args,
+    ),
+    test(
+      "server_function_entry_has_name_and_meta",
+      server_function_entry_has_name_and_meta,
+    ),
+    test(
+      "server_function_entry_without_payload_has_default_meta",
+      server_function_entry_without_payload_has_default_meta,
+    ),
+    test(
+      "server_function_register_duplicate_id_raises",
+      server_function_register_duplicate_id_raises,
     ),
   ],
 );

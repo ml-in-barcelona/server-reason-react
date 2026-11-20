@@ -1,5 +1,6 @@
-type t = Hashtbl.t(string, ReactServerDOM.server_function);
+module Meta = {
+  type t = {logCalls: bool};
+  let default = { logCalls: false };
+};
 
-let registry = Hashtbl.create(10);
-let register = Hashtbl.add(registry);
-let get = Hashtbl.find_opt(registry);
+include ReactServerDOM.FunctionReferences.Make(Meta);

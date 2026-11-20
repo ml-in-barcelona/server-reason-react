@@ -78,7 +78,7 @@ let dispatch_handler ~lookup actionId dispatch =
   | Ok actionId -> (
       match lookup actionId with
       | None -> Lwt.fail_with ("Action " ^ actionId ^ " is not registered")
-      | Some handler -> dispatch actionId handler)
+      | Some { ReactServerDOM.handler; _ } -> dispatch actionId handler)
 
 let dreamFormDataToJs formData =
   let formDataJs = Js.FormData.make () in
@@ -115,7 +115,7 @@ let handleNoJsFormRequest ~lookup formDataJs =
   | Some (actionId, userFormData) -> (
       match lookup actionId with
       | None -> Lwt.fail_with ("Action " ^ actionId ^ " is not registered")
-      | Some handler -> (
+      | Some { ReactServerDOM.handler; _ } -> (
           match handler with
           | ReactServerDOM.FormData handler -> handler [||] userFormData
           | ReactServerDOM.Body handler -> handler [||]))

@@ -987,6 +987,72 @@ let act_with_error () =
     ];
   Lwt.return ()
 
+let counting_on_error result =
+  let calls = ref [] in
+  let on_error exn =
+    calls := Printexc.to_string exn :: !calls;
+    result ()
+  in
+  (calls, on_error)
+
+let assert_calls calls expected = assert_list_of_strings !calls expected
+
+let act_on_error_sets_digest_in_dev () =
+  let output, subscribe = capture_stream () in
+  let calls, onError = counting_on_error (fun () -> Some "log-42") in
+  let%lwt () = ReactServerDOM.create_action_response ~env:`Dev ~onError ~subscribe (Lwt.fail (Failure "Error")) in
+  assert_list_of_strings !output
+    [
+      "0:\"$Z1\"\n";
+      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"log-42\"}\n";
+    ];
+  assert_calls calls [ "Failure(\"Error\")" ];
+  Lwt.return ()
+
+let act_on_error_sets_digest_in_prod () =
+  let output, subscribe = capture_stream () in
+  let calls, onError = counting_on_error (fun () -> Some "log-42") in
+  let%lwt () = ReactServerDOM.create_action_response ~onError ~subscribe (Lwt.fail (Failure "Error")) in
+  assert_list_of_strings !output [ "0:\"$Z1\"\n"; "1:E{\"digest\":\"log-42\"}\n" ];
+  assert_calls calls [ "Failure(\"Error\")" ];
+  Lwt.return ()
+
+let act_on_error_none_keeps_random_digest () =
+  let output, subscribe = capture_stream () in
+  let calls, onError = counting_on_error (fun () -> None) in
+  let%lwt () = ReactServerDOM.create_action_response ~onError ~subscribe (Lwt.fail (Failure "Error")) in
+  assert_list_of_strings (List.map replace_uuids !output) [ "0:\"$Z1\"\n"; "1:E{\"digest\":\"<uuid>\"}\n" ];
+  assert_calls calls [ "Failure(\"Error\")" ];
+  Lwt.return ()
+
+let act_raising_on_error_keeps_random_digest () =
+  let output, subscribe = capture_stream () in
+  let calls, onError = counting_on_error (fun () -> failwith "logger down") in
+  let%lwt () = ReactServerDOM.create_action_response ~onError ~subscribe (Lwt.fail (Failure "Error")) in
+  assert_list_of_strings (List.map replace_uuids !output) [ "0:\"$Z1\"\n"; "1:E{\"digest\":\"<uuid>\"}\n" ];
+  assert_calls calls [ "Failure(\"Error\")" ];
+  Lwt.return ()
+
+let render_on_error_sets_digest () =
+  let app () = React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "secret")) in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let calls, onError = counting_on_error (fun () -> Some "log-7") in
+  let%lwt () = ReactServerDOM.render_model ~env:`Prod ~onError ~subscribe main in
+  assert_list_of_strings !output [ "0:E{\"digest\":\"log-7\"}\n" ];
+  assert_calls calls [ "Failure(\"secret\")" ];
+  Lwt.return ()
+
+let render_on_error_none_keeps_empty_digest () =
+  let app () = React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "secret")) in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let calls, onError = counting_on_error (fun () -> None) in
+  let%lwt () = ReactServerDOM.render_model ~env:`Prod ~onError ~subscribe main in
+  assert_list_of_strings !output [ "0:E{\"digest\":\"\"}\n" ];
+  assert_calls calls [ "Failure(\"secret\")" ];
+  Lwt.return ()
+
 (* Test that simulates the streamFunctionResponse pattern:
    a failing server function's error is serialized into the RSC stream
    (not swallowed or re-raised as an HTTP 500). *)
@@ -2063,6 +2129,30 @@ let act_abort_cancels_pending_action () =
   assert_list_of_strings !output [ dev_aborted_row 0 ];
   Lwt.return ()
 
+let abort_does_not_call_on_error () =
+  let task_promise, _canceled = cancel_probe () in
+  let abort, resolve_abort = Lwt.wait () in
+  let output, subscribe = capture_stream () in
+  let calls, onError = counting_on_error (fun () -> Some "log") in
+  let render = ReactServerDOM.render_model ~env:`Dev ~subscribe ~abort ~onError (cancelable_component task_promise) in
+  Lwt.wakeup_later resolve_abort ();
+  let%lwt () = render in
+  assert_list_of_strings !output [ dev_aborted_row 0 ];
+  assert_calls calls [];
+  Lwt.return ()
+
+let act_abort_does_not_call_on_error () =
+  let response, _canceled = cancel_probe () in
+  let abort, resolve_abort = Lwt.wait () in
+  let output, subscribe = capture_stream () in
+  let calls, onError = counting_on_error (fun () -> Some "log") in
+  let render = ReactServerDOM.create_action_response ~env:`Dev ~subscribe ~abort ~onError response in
+  Lwt.wakeup_later resolve_abort ();
+  let%lwt () = render in
+  assert_list_of_strings !output [ dev_aborted_row 0 ];
+  assert_calls calls [];
+  Lwt.return ()
+
 let tests =
   [
     test "null_element" null_element;
@@ -2144,6 +2234,14 @@ let tests =
     test "client_with_promise_already_failed_props" client_with_promise_already_failed_props;
     test "server_function_as_model_prop" server_function_as_model_prop;
     test "error_in_prod_hides_message" error_in_prod_hides_message;
+    test "act_on_error_sets_digest_in_dev" act_on_error_sets_digest_in_dev;
+    test "act_on_error_sets_digest_in_prod" act_on_error_sets_digest_in_prod;
+    test "act_on_error_none_keeps_random_digest" act_on_error_none_keeps_random_digest;
+    test "act_raising_on_error_keeps_random_digest" act_raising_on_error_keeps_random_digest;
+    test "render_on_error_sets_digest" render_on_error_sets_digest;
+    test "render_on_error_none_keeps_empty_digest" render_on_error_none_keeps_empty_digest;
+    test "abort_does_not_call_on_error" abort_does_not_call_on_error;
+    test "act_abort_does_not_call_on_error" act_abort_does_not_call_on_error;
     test "duplicate_client_component_deduplicates_ref" duplicate_client_component_deduplicates_ref;
     test "flight_hints_emit_h_rows" flight_hints_emit_h_rows;
     test "abort_settles_pending_root" abort_settles_pending_root;

@@ -10,14 +10,14 @@
   > EOF
 
   $ dune build
-  File "input.re", lines 10-16, characters 0-1:
-  10 | [@react.server.function]
-  11 | let withTwoFormData =
-  12 |     (country: string, a: Js.FormData.t, b: Js.FormData.t)
-  13 |     : Js.Promise.t(string) => {
-  14 |   let _ = (a, b);
-  15 |   Lwt.return(country);
-  16 | }.
+  File "input.re", lines 8-14, characters 0-1:
+   8 | [@react.server.function]
+   9 | let withTwoFormData =
+  10 |     (country: string, a: Js.FormData.t, b: Js.FormData.t)
+  11 |     : Js.Promise.t(string) => {
+  12 |   let _ = (a, b);
+  13 |   Lwt.return(country);
+  14 | }.
   Error: server-reason-react: server functions must have only one FormData
          argument
   [1]

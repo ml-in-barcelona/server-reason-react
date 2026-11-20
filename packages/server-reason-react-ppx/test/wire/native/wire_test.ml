@@ -19,11 +19,11 @@ let call reply =
   let result =
     match (FunctionReferences.get id, reply |> member "body", reply |> member "form") with
     | None, _, _ -> Error "not registered on the server"
-    | Some (ReactServerDOM.Body handler), `String body, _ -> (
+    | Some { ReactServerDOM.handler = Body handler; _ }, `String body, _ -> (
         match ReactServerDOM.decodeReply body with
         | Ok args -> force (try handler args with exn -> Lwt.fail exn)
         | Error message -> Error message)
-    | Some (ReactServerDOM.FormData handler), _, `List entries -> (
+    | Some { ReactServerDOM.handler = FormData handler; _ }, _, `List entries -> (
         match ReactServerDOM.decodeFormDataReply (form_data entries) with
         | Ok (args, form) -> force (try handler args form with exn -> Lwt.fail exn)
         | Error message -> Error message)
@@ -40,8 +40,6 @@ let () =
   let results = List.map call replies in
   let reply_ids = List.map (fun reply -> Yojson.Basic.Util.(reply |> member "id" |> to_string)) replies in
   List.iter (function Ok _ -> () | Error message -> print_endline ("FAIL " ^ message)) results;
-  let missing =
-    Hashtbl.fold (fun id _ acc -> if List.mem id reply_ids then acc else id :: acc) FunctionReferences.registry []
-  in
+  let missing = List.filter (fun id -> not (List.mem id reply_ids)) !FunctionReferences.ids in
   List.iter (fun id -> print_endline ("FAIL " ^ id ^ ": no client call reached it")) missing;
   if List.exists Result.is_error results || missing <> [] then exit 1

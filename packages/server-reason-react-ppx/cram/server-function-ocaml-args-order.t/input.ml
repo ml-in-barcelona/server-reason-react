@@ -1,10 +1,8 @@
-module FunctionReferences : ReactServerDOM.FunctionReferences = struct
-  type t = (string, ReactServerDOM.server_function) Hashtbl.t
+module FunctionReferences = ReactServerDOM.FunctionReferences.Make (struct
+  type t = unit
 
-  let registry = Hashtbl.create 10
-  let register = Hashtbl.add registry
-  let get = Hashtbl.find_opt registry
-end
+  let default = ()
+end)
 
 let join =
  fun (first : string) (second : int) ~(sep : string) : string Js.Promise.t ->

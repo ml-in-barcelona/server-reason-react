@@ -1622,7 +1622,17 @@ module ServerFunction = struct
                              Stdlib.( ^ ) (Stdlib.String.sub received 0 200) "..."
                            else received)))])
 
-  let create_function_reference_registration ~loc ~id ~function_name ~args ~core_type =
+  let meta_expression vb =
+    match List.find_opt ~f:(fun attr -> hasAttr attr react_dot_server_dot_function) vb.pvb_attributes with
+    | None | Some { attr_payload = PStr []; _ } -> Ok None
+    | Some { attr_payload = PStr [ { pstr_desc = Pstr_eval (expr, []); _ } ]; _ } -> Ok (Some expr)
+    | Some { attr_loc; _ } ->
+        Error
+          ( attr_loc,
+            "server-reason-react: the payload of [@react.server.function] must be one expression of type \
+             FunctionReferences.meta, for example [@react.server.function Admin]" )
+
+  let create_function_reference_registration ~loc ~id ~name ~meta ~function_name ~args ~core_type =
     let apply_args = map_arguments_to_expressions ~loc args in
     let response_expr = pexp_apply ~loc [%expr [%e evar ~loc function_name].call] apply_args in
 
@@ -1649,14 +1659,17 @@ module ServerFunction = struct
           reject_into_promise ~loc
             (pexp_sequence ~loc check (pexp_let ~loc Nonrecursive decoded_expr encoded_response_expr))
     in
+    let meta = match meta with Some meta -> meta | None -> [%expr FunctionReferences.default_meta] in
+    let register handler =
+      [%stri
+        FunctionReferences.register ~id:[%e estring ~loc id] ~name:[%e estring ~loc name] ~meta:[%e meta] [%e handler]]
+    in
     match (formData, args) with
-    | [], _ -> [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
-    | [ Ok (_, Some name, _) ], args ->
-        let form_data = ppat_var ~loc { txt = name; loc } in
+    | [], _ -> register [%expr Body (fun args -> [%e body_expr])]
+    | [ Ok (_, Some form_data_name, _) ], args ->
+        let form_data = ppat_var ~loc { txt = form_data_name; loc } in
         let args_pat = match args with [] -> [%pat? _] | _ -> [%pat? args] in
-        [%stri
-          FunctionReferences.register [%e estring ~loc id]
-            (FormData (fun [%p args_pat] [%p form_data] -> [%e body_expr]))]
+        register [%expr FormData (fun [%p args_pat] [%p form_data] -> [%e body_expr])]
     | _ -> [%stri [%ocaml.error "server-reason-react: server functions must have only one FormData argument"]]
 
   let create_server_function_record ~loc id expression =
@@ -1671,17 +1684,20 @@ module ServerFunction = struct
     let path_id = generate_id ~loc:vb.pvb_loc ~nested_module_names function_name in
     check_unique_id ~loc:vb.pvb_loc path_id;
     let id = wire_id path_id in
-    let server_function_record_vb =
-      value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat ~expr:(create_server_function_record ~loc:vb.pvb_loc id base_fn)
-    in
-    let stri =
-      [%stri
-        include struct
-          [%%i pstr_value ~loc rec_flag [ server_function_record_vb ]]
-          [%%i create_function_reference_registration ~loc ~id ~function_name ~args ~core_type:return_core_type]
-        end]
-    in
-    stri
+    match meta_expression vb with
+    | Error (loc, message) -> pstr_extension ~loc (Location.error_extensionf ~loc "%s" message) []
+    | Ok meta ->
+        let server_function_record_vb =
+          value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat ~expr:(create_server_function_record ~loc:vb.pvb_loc id base_fn)
+        in
+        [%stri
+          include struct
+            [%%i pstr_value ~loc rec_flag [ server_function_record_vb ]]
+
+            [%%i
+            create_function_reference_registration ~loc ~id ~name:path_id ~meta ~function_name ~args
+              ~core_type:return_core_type]
+          end]
 
   let response_of_rsc ~loc core_type response =
     match core_type with
@@ -1730,11 +1746,14 @@ module ServerFunction = struct
     let comment = Printf.sprintf "// extract-server-function %s %s %s" id function_name module_name in
     let raw = estring ~loc comment in
     let extract_client_raw = [%stri [%%raw [%e raw]]] in
-    [%stri
-      include struct
-        [%%i extract_client_raw]
-        [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ server_function_record_vb ]]
-      end]
+    match meta_expression vb with
+    | Error (loc, message) -> pstr_extension ~loc (Location.error_extensionf ~loc "%s" message) []
+    | Ok _ ->
+        [%stri
+          include struct
+            [%%i extract_client_raw]
+            [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ server_function_record_vb ]]
+          end]
 end
 
 let rewrite_structure_item ~nested_module_names structure_item =

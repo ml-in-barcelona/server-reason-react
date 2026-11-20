@@ -38,7 +38,7 @@ let mk_suspense ?key ?fallback ?children () = React.Suspense.make ?key (React.Su
 let mk_context context ~value ~children () =
   React.Context.provider context (React.Context.makeProps ~value ~children ())
 
-let assert_html element ?(disable_backtrace = false) ?(env = `Dev) ?debug ?filter_stack_frame ?(shell = "")
+let assert_html element ?(disable_backtrace = false) ?(env = `Dev) ?debug ?filter_stack_frame ?onError ?(shell = "")
     assertion_list =
   let begin_html = "<!DOCTYPE html><html><head></head><body></body>" in
   let script_html =
@@ -59,7 +59,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
   let prev = Printexc.backtrace_status () in
   if disable_backtrace then Printexc.record_backtrace false else ();
   let%lwt html, subscribe =
-    ReactServerDOM.render_html ~progressive_chunk_size:1 ~env ?debug ?filter_stack_frame element
+    ReactServerDOM.render_html ~progressive_chunk_size:1 ~env ?debug ?filter_stack_frame ?onError element
   in
   let%lwt () =
     subscribe (fun element ->
@@ -759,6 +759,29 @@ let server_suspense_with_async_error_after_flush () =
          data-payload='2:E{\"message\":\"Failure(\\\"boom\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
          '>window.srr_stream.push()</script><script>%s;$RX(\"B:2\",\"\",\"Switched to client rendering because the \
          server rendering errored:\\n\\nFailure(\\\"boom\\\")\")</script>"
+        rx_definition;
+    ]
+
+let server_suspense_async_error_digest_from_on_error () =
+  let failing =
+    React.Async_component
+      ( "failing",
+        fun () ->
+          let%lwt () = sleep ~ms:1 in
+          Lwt.fail (Failure "boom") )
+  in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:failing () in
+  assert_html app ~env:`Prod
+    ~onError:(fun _ -> Some "log-9")
+    ~shell:
+      "<!--$?--><template id=\"B:2\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"}]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
+      Printf.sprintf
+        "<script data-payload='2:E{\"digest\":\"log-9\"}\n\
+         '>window.srr_stream.push()</script><script>%s;$RX(\"B:2\",\"log-9\")</script>"
         rx_definition;
     ]
 
@@ -2032,6 +2055,7 @@ let tests =
     test "writer_subtree_with_client_component" writer_subtree_with_client_component;
     test "client_with_error_without_suspense" client_with_error_without_suspense;
     test "client_with_error_under_server_suspense" client_with_error_under_server_suspense;
+    test "server_suspense_async_error_digest_from_on_error" server_suspense_async_error_digest_from_on_error;
     test "server_suspense_with_async_error_after_flush" server_suspense_with_async_error_after_flush;
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;

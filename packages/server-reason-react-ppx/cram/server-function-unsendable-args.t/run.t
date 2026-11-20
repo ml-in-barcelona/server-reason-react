@@ -13,7 +13,10 @@ name the problem. A named type without a JSON deriver is reported at the type.
   > EOF
 
   $ cat > FunctionReferences.re << EOF
-  > let register = (_id: string, _handler: ReactServerDOM.server_function) => ();
+  > include ReactServerDOM.FunctionReferences.Make({
+  >   type t = unit;
+  >   let default = ();
+  > });
   > EOF
 
   $ cat > FunctionArg.re << EOF

@@ -1122,7 +1122,7 @@ module Adapter = struct
     | Some (actionId, userFormData) -> (
         match lookup actionId with
         | None -> Lwt.return_none
-        | Some handler ->
+        | Some { ReactServerDOM.handler; _ } ->
             Lwt.catch
               (fun () ->
                 let model =

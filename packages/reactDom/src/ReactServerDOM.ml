@@ -40,6 +40,16 @@ let generate_uuid () =
     (0x8000 lor Random.State.int uuid_rng 0x3FFF)
     (Random.State.int uuid_rng 0xFFFF) (Random.State.int uuid_rng 0xFFFF) (Random.State.int uuid_rng 0xFFFF)
 
+let on_error_digest ?on_error ~default exn =
+  match on_error with
+  | None -> default ()
+  | Some on_error -> (
+      match on_error exn with
+      | Some digest -> digest
+      | None -> default ()
+      | exception ((Out_of_memory | Stack_overflow | Sys.Break) as fatal) -> raise fatal
+      | exception _ -> default ())
+
 let default_filter_stack_frame filename _function_name = filename <> ""
 
 let capture_component_stack ~filter_stack_frame =
@@ -147,6 +157,7 @@ module Stream = struct
        after the regular model chunks of the same flush cycle. Stored in
        reverse order of deferral. *)
     mutable deferred_rows : (unit -> unit) list;
+    on_error : (exn -> string option) option;
   }
 
   (* Closing is idempotent and pushes are guarded on [lifecycle]: async work that completes after an abort/timeout
@@ -333,7 +344,7 @@ module Stream = struct
     close context;
     List.iter (fun task -> Lwt.cancel task.promise) tasks
 
-  let make ?(initial_index = 0) ?(root_pending = false) () =
+  let make ?(initial_index = 0) ?(root_pending = false) ?on_error () =
     let stream, push_raw, close_raw = Push_stream.make () in
     let pending_hints = Queue.create () in
     let drain_hints () =
@@ -364,6 +375,7 @@ module Stream = struct
         written_promises = [];
         written_server_references = [];
         deferred_rows = [];
+        on_error;
       } )
 end
 
@@ -479,10 +491,16 @@ module Model = struct
     *)
     | false -> `Assoc [ ("digest", `String digest) ]
 
-  let exn_to_error exn =
+  let error_digest ~(context : _ Stream.t) ~default exn =
+    match context.lifecycle with
+    | Open -> on_error_digest ?on_error:context.on_error ~default exn
+    | Aborting | Closed -> default ()
+
+  let exn_to_error ~context exn =
     let message = Printexc.to_string exn in
     let stack = create_stack_trace () in
-    { React.message; stack; env = "Server"; digest = "" }
+    let digest = error_digest ~context ~default:(fun () -> "") exn in
+    { React.message; stack; env = "Server"; digest }
 
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
@@ -773,7 +791,7 @@ module Model = struct
           in
           let render_error exn =
             React.current_tree_context := saved_ctx;
-            to_chunk (Error (env, exn_to_error exn))
+            to_chunk (Error (env, exn_to_error ~context exn))
           in
           let rec retry replayed =
             React.reset_component_id_state saved_ctx;
@@ -797,7 +815,7 @@ module Model = struct
               `String (lazy_value index)
           | exception exn ->
               React.current_tree_context := saved_ctx;
-              let error = exn_to_error exn in
+              let error = exn_to_error ~context exn in
               (* A sync throw below the task root is outlined ("$L<id>"); the E row flushes after the row being serialized *)
               let index = Stream.push_deferred ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index))
@@ -813,7 +831,7 @@ module Model = struct
           match Lwt.state promise with
           | Fail exn ->
               React.current_tree_context := saved_ctx;
-              let error = exn_to_error exn in
+              let error = exn_to_error ~context exn in
               let index = Stream.push_deferred ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index)
           | Return element ->
@@ -836,7 +854,7 @@ module Model = struct
                   Lwt.return result
                 with exn ->
                   React.current_tree_context := saved_ctx;
-                  let error = exn_to_error exn in
+                  let error = exn_to_error ~context exn in
                   Lwt.return (to_chunk (Error (env, error)))
               in
               let index = Stream.push_async (fun () -> promise) ~context in
@@ -900,7 +918,7 @@ module Model = struct
                           (value_to_model value)
                       with
                       | payload -> to_chunk (Value payload) index
-                      | exception exn -> to_chunk (Error (env, exn_to_error exn)) index)
+                      | exception exn -> to_chunk (Error (env, exn_to_error ~context exn)) index)
               | Sleep ->
                   let promise =
                     try%lwt
@@ -911,12 +929,12 @@ module Model = struct
                       in
                       Lwt.return (to_chunk (Value payload))
                     with exn ->
-                      let error = exn_to_error exn in
+                      let error = exn_to_error ~context exn in
                       Lwt.return (to_chunk (Error (env, error)))
                   in
                   Stream.push_async (fun () -> promise) ~context
               | Fail exn ->
-                  let error = exn_to_error exn in
+                  let error = exn_to_error ~context exn in
                   Stream.push_deferred ~context (to_chunk (Error (env, error)))
             in
             Stream.remember_written_promise ~context written_key index;
@@ -1030,10 +1048,10 @@ module Model = struct
   let push_root_task ?debug ?filter_stack_frame ~context ~env model =
     Stream.push_async ~context (fun () ->
         try%lwt
-          let%lwt model = model in
+          let%lwt model = model context in
           let%lwt payload = model_to_root_payload ?debug ?filter_stack_frame ~context ~to_chunk ~env model in
           Lwt.return (to_chunk (Value payload))
-        with exn -> Lwt.return (to_chunk (Error (env, exn_to_error exn))))
+        with exn -> Lwt.return (to_chunk (Error (env, exn_to_error ~context exn))))
 
   let hint_sink ~context { Flight_hints.dedup_key; code; payload } =
     Stream.push_hint ~context ~dedup_key (hint_to_chunk code payload)
@@ -1072,8 +1090,8 @@ module Model = struct
     let abort = match abort with None -> [] | Some abort -> [ abort_signal_trigger abort ] in
     timeout @ abort
 
-  let run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort:abort_signal model =
-    let stream, context = Stream.make () in
+  let run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort:abort_signal ?onError model =
+    let stream, context = Stream.make ?on_error:onError () in
     Flight_hints.with_sink (hint_sink ~context) (fun () ->
         (* The root task must be registered before the trigger can fire: an already-resolved abort signal settles it
            as an error row instead of closing an empty stream. *)
@@ -1109,29 +1127,31 @@ module Model = struct
                 stop_watching ();
                 Lwt.reraise exn))
 
-  let render ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort ?identifier_prefix model =
+  let render ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort ?onError ?identifier_prefix
+      model =
     React.reset_id_rendering ?prefix:identifier_prefix ();
-    run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort (Lwt.return model)
+    run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort ?onError (fun _ -> Lwt.return model)
 
-  let create_action_response ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort response =
+  let create_action_response ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort ?onError
+      response =
     (* The action promise is the stream's root task, so the deadline bounds a hung action. Ordinary rejection stays
        an outlined error value (root `0:"$Z1"` plus `1:E`), not a root `0:E` row. An abort settles the root with the
        abort reason before it cancels [response]; the error value this catch builds from that cancellation is dropped
        by the lifecycle guards. *)
-    let root =
+    let root digest =
       try%lwt response
       with exn ->
         let message = Printexc.to_string exn in
         let stack = create_stack_trace () in
-        let digest = generate_uuid () in
+        let digest = digest exn in
         Lwt.return (React.Model.Error { message; stack; env = "Server"; digest })
     in
-    let run root = run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort root in
+    let run root = run_stream ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort ?onError root in
     match (subscribe, timeout, abort) with
     | None, None, None ->
-        let%lwt root = root in
-        run (Lwt.return root)
-    | _ -> run root
+        let%lwt root = root (on_error_digest ?on_error:onError ~default:generate_uuid) in
+        run (fun _ -> Lwt.return root)
+    | _ -> run (fun context -> root (error_digest ~context ~default:generate_uuid))
 end
 
 let script ?nonce attributes children =
@@ -1162,12 +1182,13 @@ let rx_function_definition = Fizz_instructions.client_render_boundary
 let client_render_abort_message reason =
   "Switched to client rendering because the server rendering aborted due to:\n\n" ^ abort_message reason
 
-let client_render_boundary_to_chunk ?nonce ~env ~message ~include_definition index =
+let client_render_boundary_to_chunk ?nonce ?(digest = "") ~env ~message ~include_definition index =
+  let digest = Html.escape_for_inline_script digest in
   let rx_call =
     (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
     match env with
-    | `Prod -> Printf.sprintf {|$RX("B:%x","")|} index
-    | `Dev -> Printf.sprintf {|$RX("B:%x","","%s")|} index (Html.escape_for_inline_script message)
+    | `Prod -> Printf.sprintf {|$RX("B:%x","%s")|} index digest
+    | `Dev -> Printf.sprintf {|$RX("B:%x","%s","%s")|} index digest (Html.escape_for_inline_script message)
   in
   script ?nonce [] [ Html.raw (if include_definition then rx_function_definition ^ ";" ^ rx_call else rx_call) ]
 
@@ -1557,12 +1578,12 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
                 in
                 Lwt.return to_chunk
               with exn ->
-                let error = Model.exn_to_error exn in
+                let error = Model.exn_to_error ~context exn in
                 let to_chunk index =
                   Html.list
                     [
                       model_to_chunk ?nonce:fiber.nonce (Error (fiber.env, error)) index;
-                      client_render_boundary_to_chunk ?nonce:fiber.nonce ~env:fiber.env
+                      client_render_boundary_to_chunk ?nonce:fiber.nonce ~digest:error.digest ~env:fiber.env
                         ~message:(client_render_error_message exn)
                         ~include_definition:(Stream.take_rx_definition context) index;
                     ]
@@ -1582,7 +1603,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) ~debug_info ~(site : Key_valid
       with exn ->
         settle (Lwt.return false);
         let context = fiber.context in
-        let error = Model.exn_to_error exn in
+        let error = Model.exn_to_error ~context exn in
         let to_chunk index =
           Html.list
             [
@@ -1874,8 +1895,8 @@ let create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScr
   ]
 
 let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame)
-    ?timeout ?abort ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent ?bootstrapScripts
-    ?bootstrapModules ?nonce ?identifier_prefix element =
+    ?timeout ?abort ?onError ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent
+    ?bootstrapScripts ?bootstrapModules ?nonce ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
   React.Cache.with_request_cache_async (fun () ->
       let progressive_chunk_size = max 1 progressive_chunk_size in
@@ -1889,7 +1910,7 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
          as we don't push_async it to the stream, root_pending starts true.
          Similar on how react does: https://github.com/facebook/react/blob/7d9f876cbc7e9363092e60436704cf8ae435b969/packages/react-server/src/ReactFizzServer.js#L572-L581
          *)
-      let stream, context = Stream.make ~initial_index:1 ~root_pending:true () in
+      let stream, context = Stream.make ~initial_index:1 ~root_pending:true ?on_error:onError () in
       let hint_sink { Flight_hints.dedup_key; code; payload } =
         Stream.push_hint ~context ~dedup_key (hint_row_to_html_chunk ?nonce code payload)
       in
@@ -1989,16 +2010,16 @@ let render_html ?(skipRoot = false) ?(env = `Prod) ?(debug = false) ?(filter_sta
       in
       Lwt.return (Html.to_string html, subscribe))
 
-let render_model_value ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort model =
+let render_model_value ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort ?onError model =
   React.Cache.with_request_cache_async (fun () ->
-      Model.render ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort model)
+      Model.render ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort ?onError model)
 
-let render_model ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort model =
-  render_model_value ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort (React.Model.Element model)
+let render_model ?(env = `Prod) ?(debug = false) ?filter_stack_frame ?subscribe ?timeout ?abort ?onError model =
+  render_model_value ~env ~debug ?filter_stack_frame ?subscribe ?timeout ?abort ?onError (React.Model.Element model)
 
-let create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?abort response =
+let create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?abort ?onError response =
   React.Cache.with_request_cache_async (fun () ->
-      Model.create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?abort response)
+      Model.create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?abort ?onError response)
 
 (* Reply decoding: deserialize client-to-server action arguments. Handles React's special $-prefixed string encoding from processReply/encodeReply.
    Reference: https://github.com/facebook/react/blob/main/packages/react-server/src/ReactFlightReplyServer.js
@@ -2333,10 +2354,35 @@ type server_function =
   | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.model_value Lwt.t)
   | Body of (Yojson.Basic.t array -> React.model_value Lwt.t)
 
-module type FunctionReferences = sig
-  type t
+type 'meta server_function_entry = { id : string; name : string; meta : 'meta; handler : server_function }
 
-  val registry : t
-  val register : string -> server_function -> unit
-  val get : string -> server_function option
+module type FunctionReferences = sig
+  type meta
+
+  val default_meta : meta
+  val register : id:string -> name:string -> meta:meta -> server_function -> unit
+  val get : string -> meta server_function_entry option
+end
+
+module FunctionReferences = struct
+  module Make (Meta : sig
+    type t
+
+    val default : t
+  end) : FunctionReferences with type meta = Meta.t = struct
+    type meta = Meta.t
+
+    let default_meta = Meta.default
+    let registry : (string, meta server_function_entry) Hashtbl.t = Hashtbl.create 64
+
+    let register ~id ~name ~meta handler =
+      match Hashtbl.find_opt registry id with
+      | Some existing ->
+          invalid_arg
+            (Printf.sprintf "FunctionReferences.register: server functions %S and %S have the same id %S" existing.name
+               name id)
+      | None -> Hashtbl.replace registry id { id; name; meta; handler }
+
+    let get id = Hashtbl.find_opt registry id
+  end
 end

@@ -12,13 +12,42 @@
   $ dune build
 
   $ ../dune-describe-pp.sh input.re
-  module FunctionReferences: ReactServerDOM.FunctionReferences = {
-    type t = Hashtbl.t(string, ReactServerDOM.server_function);
-  
-    let registry = Hashtbl.create(10);
-    let register = Hashtbl.add(registry);
-    let get = Hashtbl.find_opt(registry);
+  module Meta = {
+    type t =
+      | Public
+      | Admin;
+    let default = Public;
   };
+  
+  module FunctionReferences = ReactServerDOM.FunctionReferences.Make(Meta);
+  
+  include {
+            let withMeta = {
+              Runtime.id: "adaf631a1f7346c7",
+              call: () => (Lwt.return("ok"): Js.Promise.t(string)),
+            };
+            FunctionReferences.register(
+              ~id="adaf631a1f7346c7",
+              ~name="input#withMeta",
+              ~meta=Meta.Admin,
+              Body(
+                args =>
+                  try(
+                    withMeta.call()
+                    |> Lwt.map(response =>
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
+                       )
+                  ) {
+                  | (
+                      Stdlib.Out_of_memory | Stdlib.Stack_overflow |
+                      Stdlib.Sys.Break
+                    ) as e =>
+                    Stdlib.raise(e)
+                  | e => Lwt.fail(e)
+                  },
+              ),
+            );
+          };
   
   include {
             let withLabelledArg = {
@@ -31,7 +60,9 @@
               ),
             };
             FunctionReferences.register(
-              "d795178b8ec4e7eb",
+              ~id="d795178b8ec4e7eb",
+              ~name="input#withLabelledArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -151,7 +182,9 @@
               ),
             };
             FunctionReferences.register(
-              "cc16d8dfbb02c5f1",
+              ~id="cc16d8dfbb02c5f1",
+              ~name="input#withLabelledArgAndUnlabeledArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -276,7 +309,9 @@
               ),
             };
             FunctionReferences.register(
-              "759127163477eddf",
+              ~id="759127163477eddf",
+              ~name="input#withOptionalArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -362,7 +397,9 @@
               ),
             };
             FunctionReferences.register(
-              "e14a2f3233911fed",
+              ~id="e14a2f3233911fed",
+              ~name="input#withOptionalDefaultArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -446,7 +483,9 @@
               ),
             };
             FunctionReferences.register(
-              "4609c752f0fd4336",
+              ~id="4609c752f0fd4336",
+              ~name="input#withUnlabeledArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -561,7 +600,9 @@
               call: () => (Lwt.return("Hello, world!"): Js.Promise.t(string)),
             };
             FunctionReferences.register(
-              "35bf61b207c3c325",
+              ~id="35bf61b207c3c325",
+              ~name="input#withNoArgs",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -606,7 +647,9 @@
               ),
             };
             FunctionReferences.register(
-              "7aaca06c4b5d839b",
+              ~id="7aaca06c4b5d839b",
+              ~name="input#withFormData",
+              ~meta=FunctionReferences.default_meta,
               FormData(
                 (_, formData) =>
                   try(
@@ -646,7 +689,9 @@
               ),
             };
             FunctionReferences.register(
-              "bdba0def36cec354",
+              ~id="bdba0def36cec354",
+              ~name="input#withFormDataArgs",
+              ~meta=FunctionReferences.default_meta,
               FormData(
                 (args, formData) =>
                   try(
@@ -739,7 +784,9 @@
               ),
             };
             FunctionReferences.register(
-              "ca4d6249058d6f72",
+              ~id="ca4d6249058d6f72",
+              ~name="input#withFormDataLabelledAndUnlabeledArgs",
+              ~meta=FunctionReferences.default_meta,
               FormData(
                 (args, formData) =>
                   try(
@@ -835,7 +882,9 @@
               ),
             };
             FunctionReferences.register(
-              "35124443a9ca3e46",
+              ~id="35124443a9ca3e46",
+              ~name="input#withFormDataLabelledAndLabelledArgs",
+              ~meta=FunctionReferences.default_meta,
               FormData(
                 (args, formData) =>
                   try(
@@ -931,7 +980,9 @@
               ),
             };
             FunctionReferences.register(
-              "fb8fe6f5361d83d2",
+              ~id="fb8fe6f5361d83d2",
+              ~name="input#withFormDataUnlabelledAndLabelledArgs",
+              ~meta=FunctionReferences.default_meta,
               FormData(
                 (args, formData) =>
                   try(
@@ -1027,7 +1078,9 @@
               ),
             };
             FunctionReferences.register(
-              "79fae9670eeb9c1b",
+              ~id="79fae9670eeb9c1b",
+              ~name="input#withFormDataAndArgsDifferentOrder",
+              ~meta=FunctionReferences.default_meta,
               FormData(
                 (args, formData) =>
                   try(
@@ -1111,7 +1164,9 @@
               ),
             };
             FunctionReferences.register(
-              "c0983d541835b2f6",
+              ~id="c0983d541835b2f6",
+              ~name="input#withReturnTypeOnSeparateLine",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -1229,7 +1284,9 @@
               ),
             };
             FunctionReferences.register(
-              "e9af9d26b2b5a532",
+              ~id="e9af9d26b2b5a532",
+              ~name="input#withCharArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -1327,7 +1384,9 @@
               ),
             };
             FunctionReferences.register(
-              "d2e977839904ede6",
+              ~id="d2e977839904ede6",
+              ~name="input#withResultArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -1419,7 +1478,9 @@
               ),
             };
             FunctionReferences.register(
-              "14eaed19bdbca8ed",
+              ~id="14eaed19bdbca8ed",
+              ~name="input#withTuple2Arg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -1517,7 +1578,9 @@
               ),
             };
             FunctionReferences.register(
-              "c3b3fb50d5709f8e",
+              ~id="c3b3fb50d5709f8e",
+              ~name="input#withTuple5Arg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -1635,7 +1698,9 @@
               ),
             };
             FunctionReferences.register(
-              "c475ea7d2ed15c5f",
+              ~id="c475ea7d2ed15c5f",
+              ~name="input#withTuple6Arg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -1750,7 +1815,9 @@
               ),
             };
             FunctionReferences.register(
-              "defad4fc0b6197d9",
+              ~id="defad4fc0b6197d9",
+              ~name="input#withBoolArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -1832,7 +1899,9 @@
               ),
             };
             FunctionReferences.register(
-              "3a71c568a9f76459",
+              ~id="3a71c568a9f76459",
+              ~name="input#withFloatArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -1913,7 +1982,9 @@
               ),
             };
             FunctionReferences.register(
-              "57b533d2311c9a24",
+              ~id="57b533d2311c9a24",
+              ~name="input#withInt64Arg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -1995,7 +2066,9 @@
               ),
             };
             FunctionReferences.register(
-              "af9277acf0958e63",
+              ~id="af9277acf0958e63",
+              ~name="input#withListArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -2081,7 +2154,9 @@
               ),
             };
             FunctionReferences.register(
-              "d37c239ff74d84c5",
+              ~id="d37c239ff74d84c5",
+              ~name="input#withArrayArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -2170,7 +2245,9 @@
               ),
             };
             FunctionReferences.register(
-              "3e6320f309237d93",
+              ~id="3e6320f309237d93",
+              ~name="input#withOptionIntArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -2259,7 +2336,9 @@
               ),
             };
             FunctionReferences.register(
-              "e546234bdc88e0eb",
+              ~id="e546234bdc88e0eb",
+              ~name="input#withNestedListOptionArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -2350,7 +2429,9 @@
               ),
             };
             FunctionReferences.register(
-              "bfa6480d6c0fab22",
+              ~id="bfa6480d6c0fab22",
+              ~name="input#withNestedResultListArg",
+              ~meta=FunctionReferences.default_meta,
               Body(
                 args =>
                   try(
@@ -2447,7 +2528,9 @@
               ),
             };
             FunctionReferences.register(
-              "4774b1f9a1189743",
+              ~id="4774b1f9a1189743",
+              ~name="input#withFormDataNamedFd",
+              ~meta=FunctionReferences.default_meta,
               FormData(
                 (_, fd) =>
                   try(
@@ -2486,7 +2569,9 @@
               ),
             };
             FunctionReferences.register(
-              "2ff1173b01049e42",
+              ~id="2ff1173b01049e42",
+              ~name="input#withFormDataNamedFdAndArgs",
+              ~meta=FunctionReferences.default_meta,
               FormData(
                 (args, fd) =>
                   try(

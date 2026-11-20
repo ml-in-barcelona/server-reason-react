@@ -7,7 +7,14 @@
 
     With [~env:`Dev], all render functions emit element key-validation metadata. Static child positions have state [1],
     unkeyed dynamic members have state [2], and other unvalidated elements have state [0]. The default [env] is [`Prod]:
-    React's four-field element tuples without this metadata, and redacted error messages and stacks. *)
+    React's four-field element tuples without this metadata, and redacted error messages and stacks.
+
+    [onError] is called once for each error that the render turns into an error row: an exception from a component, a
+    rejected promise, or a failed server function in [create_action_response]. [Some digest] sets the digest of that
+    error, which is sent in [`Prod] too and lets the host find its log entry. With [None], no [onError], or an [onError]
+    that raises, the digest is empty, except in [create_action_response], where the rejection of the server function
+    gets a random digest. Out_of_memory, Stack_overflow and Sys.Break raised by [onError] are re-raised. A timeout or an
+    abort does not call [onError]. *)
 
 val render_html :
   ?skipRoot:bool ->
@@ -16,6 +23,7 @@ val render_html :
   ?filter_stack_frame:(string -> string -> bool) ->
   ?timeout:float ->
   ?abort:unit Lwt.t ->
+  ?onError:(exn -> string option) ->
   ?progressive_chunk_size:int ->
   ?bootstrapScriptContent:string ->
   ?bootstrapScripts:string list ->
@@ -32,6 +40,7 @@ val render_model :
   ?subscribe:(string -> unit Lwt.t) ->
   ?timeout:float ->
   ?abort:unit Lwt.t ->
+  ?onError:(exn -> string option) ->
   React.element ->
   unit Lwt.t
 
@@ -42,6 +51,7 @@ val render_model_value :
   ?subscribe:(string -> unit Lwt.t) ->
   ?timeout:float ->
   ?abort:unit Lwt.t ->
+  ?onError:(exn -> string option) ->
   React.model_value ->
   unit Lwt.t
 
@@ -52,6 +62,7 @@ val create_action_response :
   ?subscribe:(string -> unit Lwt.t) ->
   ?timeout:float ->
   ?abort:unit Lwt.t ->
+  ?onError:(exn -> string option) ->
   React.model_value Lwt.t ->
   unit Lwt.t
 
@@ -91,10 +102,40 @@ val decodeFormDataReply :
 
 val decodeAction : Js.FormData.t -> (string * Js.FormData.t) option
 
-module type FunctionReferences = sig
-  type t
+type 'meta server_function_entry = {
+  id : string;  (** The wire id that the client sends. *)
+  name : string;  (** The path id [<path>[.Modules]#<name>] of the function in the source. *)
+  meta : 'meta;  (** The payload of [[@react.server.function <meta>]], or the default meta. *)
+  handler : server_function;
+}
 
-  val registry : t
-  val register : string -> server_function -> unit
-  val get : string -> server_function option
+(** The module that the application names [FunctionReferences]. The ppx calls
+    [FunctionReferences.register ~id ~name ~meta handler] for each [[@react.server.function]], and passes
+    [FunctionReferences.default_meta] as [meta] when the attribute has no payload. A payload must have the type [meta].
+
+    Registration happens when the module that defines the server function is initialised. The linker drops a module of a
+    library that nothing references, and then its ids are not registered. Link the libraries that define server
+    functions with [(link_flags (-linkall))] in the executable, or reference each such module from the executable.
+
+    The host gets the entry of a call with [get] and can check its [meta] (for example, permissions) before it calls
+    [handler]. Every registered function can be called over HTTP unless the host rejects it. *)
+module type FunctionReferences = sig
+  type meta
+
+  val default_meta : meta
+
+  val register : id:string -> name:string -> meta:meta -> server_function -> unit
+  (** Raises [Invalid_argument] when [id] is already registered. The message names both functions. *)
+
+  val get : string -> meta server_function_entry option
+end
+
+module FunctionReferences : sig
+  (** A registry for server functions. An application defines its module [FunctionReferences] as
+      [include ReactServerDOM.FunctionReferences.Make (Meta)]. *)
+  module Make (Meta : sig
+    type t
+
+    val default : t
+  end) : FunctionReferences with type meta = Meta.t
 end

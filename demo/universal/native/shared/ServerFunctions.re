@@ -1,5 +1,5 @@
 module Notes = {
-  [@react.server.function]
+  [@react.server.function { FunctionReferences.Meta.logCalls: true }]
   let create = (~title: string, ~content: string): Js.Promise.t(Note.t) => {
     let note = DB.createNote(~title, ~content);
     let%lwt response =

@@ -1,4 +1,5 @@
 let test title fn = Alcotest.test_case title `Quick fn
+let entries handlers id = Option.map (fun handler -> { ReactServerDOM.id; name = id; meta = (); handler }) (handlers id)
 let fallback ~search:_ ~error = RouterServer.Plan.failure ~scopes:[] ~error ()
 
 let contains ~needle value =
@@ -181,7 +182,8 @@ let action_timeout_bounds_execution () =
   let action, _resolve_action = Lwt.task () in
   let canceled = ref false in
   Lwt.on_cancel action (fun () -> canceled := true);
-  let lookup = function
+  let lookup =
+    entries @@ function
     | "hang" ->
         Some
           (ReactServerDOM.Body
@@ -207,7 +209,8 @@ let action_timeout_bounds_execution () =
     "timeout row" "0:E{\"message\":\"The render timed out.\",\"stack\":null,\"env\":\"Server\",\"digest\":\"\"}\n" body
 
 let successful_action_preserves_cookie_and_wire_output () =
-  let lookup = function
+  let lookup =
+    entries @@ function
     | "save" ->
         Some
           (ReactServerDOM.Body
@@ -231,7 +234,8 @@ let successful_action_preserves_cookie_and_wire_output () =
   Alcotest.(check string) "wire output" "0:\"Saved\"\n" body
 
 let rejected_action_discards_cookie_and_streams_error () =
-  let lookup = function
+  let lookup =
+    entries @@ function
     | "reject" ->
         Some
           (ReactServerDOM.Body
@@ -631,7 +635,8 @@ let form_fixture () =
   let actions = ref 0 in
   let failures = ref 0 in
   let handled_bodies = ref [] in
-  let lookup = function
+  let lookup =
+    entries @@ function
     | "save" ->
         Some
           (ReactServerDOM.FormData
@@ -731,7 +736,8 @@ let page_cache_can_be_turned_off () =
   Alcotest.(check bool) "cache off" true (contains ~needle:{|"pageCacheCapacity":0,|} body)
 
 let js_action_redirect_sets_header () =
-  let lookup = function
+  let lookup =
+    entries @@ function
     | "go" ->
         Some
           (ReactServerDOM.Body
@@ -820,7 +826,8 @@ let no_js_form_unsafe_redirect_is_refused () =
   Alcotest.(check (option string)) "no location" None (location response)
 
 let js_action_unsafe_redirect_is_refused () =
-  let lookup = function
+  let lookup =
+    entries @@ function
     | "go" ->
         Some
           (ReactServerDOM.Body

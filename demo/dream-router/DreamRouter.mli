@@ -78,7 +78,7 @@ val createFromRequest :
 val streamFunctionResponse :
   ?debug:bool ->
   ?timeout:float ->
-  lookup:(string -> ReactServerDOM.server_function option) ->
+  lookup:(string -> 'meta ReactServerDOM.server_function_entry option) ->
   Dream.request ->
   Dream.response Lwt.t
 (** Handle a server function POST request.
@@ -90,13 +90,13 @@ val streamFunctionResponse :
 
     @param debug enable action-response logging (default: false)
     @param timeout maximum action execution and response streaming time in seconds (default: 30)
-    @param lookup maps an action ID to a registered {!ReactServerDOM.server_function}
+    @param lookup maps an action ID to its {!ReactServerDOM.server_function_entry}
     @param request current Dream request *)
 
 val routes :
   server:(React.element, 'error) RouterServer.Server.t ->
   actionHandler:(Dream.request -> Dream.response Lwt.t) ->
-  ?lookup:(string -> ReactServerDOM.server_function option) ->
+  ?lookup:(string -> 'meta ReactServerDOM.server_function_entry option) ->
   ?diagnosticId:(exn -> string) ->
   ?revision:(unit -> string) ->
   ?ssr:(Dream.request -> bool) ->
@@ -116,11 +116,11 @@ val routes :
     @param server generated router server
     @param actionHandler server-function POST handler
     @param lookup
-      maps an action ID to a registered {!ReactServerDOM.server_function}. With it, a page form posted without
-      JavaScript (multipart, no [ACTION_ID] header) runs its server function here and answers 303 to the page, 303 to
-      the destination given to {!RouterServer.Action.redirect}, or the page rendered with its nearest error boundary
-      when the function fails (see {!RouterServer.Adapter.formActionReply}). Cookies set by a failed function are
-      dropped. Other [POST]s go to [actionHandler]. Without it, every [POST] goes to [actionHandler]
+      maps an action ID to its {!ReactServerDOM.server_function_entry}. With it, a page form posted without JavaScript
+      (multipart, no [ACTION_ID] header) runs its server function here and answers 303 to the page, 303 to the
+      destination given to {!RouterServer.Action.redirect}, or the page rendered with its nearest error boundary when
+      the function fails (see {!RouterServer.Adapter.formActionReply}). Cookies set by a failed function are dropped.
+      Other [POST]s go to [actionHandler]. Without it, every [POST] goes to [actionHandler]
     @param diagnosticId
       produce a safe identifier for an internal exception (default: 12 random bytes from {!Dream.random}, base64url)
     @param revision produce the revision attached to a successful response (default: as [diagnosticId])

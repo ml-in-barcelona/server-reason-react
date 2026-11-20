@@ -498,7 +498,7 @@ module Adapter : sig
     | Failed of exn
 
   val runFormAction :
-    lookup:(string -> ReactServerDOM.server_function option) -> Js.FormData.t -> formAction option Lwt.t
+    lookup:(string -> 'meta ReactServerDOM.server_function_entry option) -> Js.FormData.t -> formAction option Lwt.t
   (** Runs the server function named by the [$ACTION_ID_<id>] field of a form posted without JavaScript, with the rest
       of the form. [None] when the form names no registered server function. Fatal exceptions are re-raised. The server
       function's result is not used: a page without JavaScript cannot show it. *)
