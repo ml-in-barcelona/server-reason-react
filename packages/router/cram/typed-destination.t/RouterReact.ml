@@ -1,6 +1,7 @@
 type navigate =
   ?history:RouterRuntime.Navigation.historyAction ->
   ?revalidate:bool ->
+  ?resetScroll:bool ->
   RouterRuntime.destination ->
   RouterRuntime.Navigation.Result.t Js.Promise.t
 type updateHash =
@@ -10,9 +11,9 @@ type updateHash =
   RouterRuntime.Navigation.Result.t
 
 module Link = struct
-  let createElement ~destination:_ ?className:_ ?target:_ ?download:_ ?ariaCurrent:_ ?history:_ ?revalidate:_ ~children:_ () = ()
+  let createElement ~destination:_ ?className:_ ?target:_ ?download:_ ?ariaCurrent:_ ?history:_ ?revalidate:_ ?resetScroll:_ ~children:_ () = ()
 end
-let navigate ?history:_ ?revalidate:_ _destination = failwith "not used"
+let navigate ?history:_ ?revalidate:_ ?resetScroll:_ _destination = failwith "not used"
 let updateHash ~hash:_ ?history:_ () = failwith "not used"
 let useNavigation () = (navigate, RouterRuntime.Navigation.Idle)
 let useCurrentRoute () = None

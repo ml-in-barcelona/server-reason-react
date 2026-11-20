@@ -8,6 +8,7 @@ type navigate =
   (
     ~history: Navigation.historyAction=?,
     ~revalidate: bool=?,
+    ~resetScroll: bool=?,
     RouterRuntime.destination
   ) =>
   Js.Promise.t(navigationResult);
@@ -63,7 +64,7 @@ type model = {
   metadata: React.element,
   element: React.element,
   patchOperation: RouterOutlet.operation,
-  restore: option((Navigation.historyAction, string, string)),
+  restore: option((Navigation.historyAction, string, string, bool)),
 };
 
 type activeRequest = {
@@ -345,7 +346,7 @@ module Provider = {
       };
     let focusElement = element =>
       element |> DOM.Element.unsafeAsHtmlElement |> DOM.HtmlElement.focus;
-    let restoreLocation = (~kind, action, hash, key) => {
+    let restoreLocation = (~kind, ~resetScroll, action, hash, key) => {
       let window = DOM.window;
       let document = DOM.Window.document(window);
       let saved =
@@ -354,7 +355,7 @@ module Provider = {
         | Navigation.Push
         | Navigation.Replace => None
         };
-      switch (RouterPolicy.scrollFor(~kind, ~saved, hash)) {
+      switch (RouterPolicy.scrollFor(~kind, ~resetScroll, ~saved, hash)) {
       | RouterPolicy.ScrollTo(x, y) => DOM.Window.scrollTo(x, y, window)
       | RouterPolicy.Fragment(id) =>
         switch (DOM.Document.getElementById(id, document)) {
@@ -464,7 +465,7 @@ module Provider = {
       switch (kind, action) {
       | (Navigation.HashOnly, _)
       | (Navigation.Shallow, Navigation.Pop) =>
-        restoreLocation(~kind, action, location.hash, key)
+        restoreLocation(~kind, ~resetScroll=true, action, location.hash, key)
       | (Navigation.Shallow, Navigation.Push | Navigation.Replace)
       | (Navigation.Content, _) => ()
       };
@@ -514,7 +515,13 @@ module Provider = {
       };
     };
     let rec navigateTarget =
-            (~action, ~revalidate=false, ~redirects=0, target) => {
+            (
+              ~action,
+              ~revalidate=false,
+              ~resetScroll=true,
+              ~redirects=0,
+              target,
+            ) => {
       abortActiveRequest();
       let startedIn = RouterNavigationCache.generation(cache);
       let current = modelRef.current;
@@ -646,7 +653,10 @@ module Provider = {
             metadata,
             element,
             patchOperation,
-            restore: Some(prepared.restore),
+            restore: {
+              let (action, hash, key) = prepared.restore;
+              Some((action, hash, key, resetScroll));
+            },
           };
           currentLayers.current =
             RouterNavigationCache.invalidatedSince(
@@ -786,6 +796,7 @@ module Provider = {
                      navigateTarget(
                        ~action,
                        ~revalidate,
+                       ~resetScroll,
                        ~redirects=redirects + 1,
                        url,
                      )
@@ -945,11 +956,17 @@ module Provider = {
       } else {
         run();
       };
-    let guardedNavigate = (~action, ~revalidate, target) =>
+    let guardedNavigate = (~action, ~revalidate, ~resetScroll=true, target) =>
       guarded(~action, ~target, () =>
-        navigateTarget(~action, ~revalidate, target)
+        navigateTarget(~action, ~revalidate, ~resetScroll, target)
       );
-    let navigate = (~history=Navigation.Push, ~revalidate=false, destination) => {
+    let navigate =
+        (
+          ~history=Navigation.Push,
+          ~revalidate=false,
+          ~resetScroll=true,
+          destination,
+        ) => {
       let target = RouterRuntime.href(destination);
       switch (
         RouterPolicy.hashOnlyTarget(
@@ -964,7 +981,8 @@ module Provider = {
         guarded(~action=history, ~target, () =>
           Js.Promise.resolve(updateHash(~hash, ~history, ()))
         )
-      | None => guardedNavigate(~action=history, ~revalidate, target)
+      | None =>
+        guardedNavigate(~action=history, ~revalidate, ~resetScroll, target)
       };
     };
     let (prefetcher, _) =
@@ -1398,8 +1416,14 @@ module Provider = {
                   contentIdentity.current,
                 ) =>
           restoredContentIdentity.current = contentIdentity.current;
-          let (action, hash, key) = restore;
-          restoreLocation(~kind=Navigation.Content, action, hash, key);
+          let (action, hash, key, resetScroll) = restore;
+          restoreLocation(
+            ~kind=Navigation.Content,
+            ~resetScroll,
+            action,
+            hash,
+            key,
+          );
           Option.iter(RouterAnnouncer.announce, announcer.current);
         | Some(_)
         | None => ()
@@ -1522,6 +1546,7 @@ module Link = {
         ~onMouseEnter=?,
         ~history=Navigation.Push,
         ~revalidate=false,
+        ~resetScroll=true,
         ~children,
       ) => {
     let value = useContextValue();
@@ -1558,7 +1583,8 @@ module Link = {
         );
       if (plainClick) {
         React.Event.Mouse.preventDefault(event);
-        let _ = value.navigate(~history, ~revalidate, destination);
+        let _ =
+          value.navigate(~history, ~revalidate, ~resetScroll, destination);
         ();
       };
     };

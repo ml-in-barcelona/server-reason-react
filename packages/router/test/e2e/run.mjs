@@ -249,6 +249,24 @@ check("reload paints the saved scroll position on its first frame", async ({ pag
   return `first frame ${firstFrame}, settled ${settled}`;
 });
 
+check("navigate with resetScroll=false keeps the scroll position", async ({ page, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#refresh-in-place");
+  await scrollTo(page, 1500);
+  const response = page.waitForResponse(
+    (r) => new URL(r.url()).pathname === "/demo/router/e2e" && r.request().headers()["router-prefetch"] === undefined,
+  );
+  await page.evaluate(() => document.querySelector("#refresh-in-place").click());
+  await response;
+  await absenceWindow(page);
+  const kept = Math.round(await scrollY(page));
+  await page.evaluate(() => document.querySelector(".link-self").click());
+  const reset = await waitForScroll(page, 0);
+  assert.equal(kept, 1500, "the navigation reset the scroll position");
+  assert.equal(reset, 0, "a default navigation did not scroll to the top");
+  return `resetScroll=false ${kept}, default ${reset}`;
+});
+
 check("redirect is followed on the client", async ({ page, net, origin }) => {
   await page.goto(`${origin}/demo/router/e2e`);
   await ready(page, "#navigate-redirect");

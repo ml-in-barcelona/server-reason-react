@@ -3,6 +3,7 @@ type navigate =
   (
     ~history: RouterRuntime.Navigation.historyAction=?,
     ~revalidate: bool=?,
+    ~resetScroll: bool=?,
     RouterRuntime.destination
   ) =>
   Js.Promise.t(navigationResult);
@@ -28,12 +29,14 @@ module Link = {
         ~ariaCurrent as _=?,
         ~history as _=?,
         ~revalidate as _=?,
+        ~resetScroll as _=?,
         ~children,
         (),
       ) => children;
   let make = children => children;
 };
-let navigate: navigate = (~history as _=?, ~revalidate as _=?, _destination) =>
+let navigate: navigate =
+    (~history as _=?, ~revalidate as _=?, ~resetScroll as _=?, _destination) =>
   assert(false);
 let updateSearch: updateSearch =
     (~owned as _, ~values as _, ~history as _=?, ()) =>
