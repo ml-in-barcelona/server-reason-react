@@ -39,6 +39,22 @@ let rejected =
   };
 expect("a non-function decoded as a server function", rejected);
 
+let encodeRejected =
+  switch (
+    [%to_rsc:
+      Runtime.server_function(
+        (~name: string, ~age: int, ~greeting: string=?, unit) =>
+        Js.Promise.t(int64),
+      )
+    ](
+      greet,
+    )
+  ) {
+  | _ => false
+  | exception (RSC.Of_rsc_error(_)) => true
+  };
+expect("a server function was encoded on the client", encodeRejected);
+
 let _ =
   greet.call(~name="Lola", ~age=20, ())
   |> Js.Promise.then_(response => {

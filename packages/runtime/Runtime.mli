@@ -9,11 +9,11 @@ exception Impossible_in_ssr of string
 val fail_impossible_action_in_ssr : string -> 'a
 
 type 'callback server_function = { id : string; call : 'callback }
-(** Type for server actions contract.
+(** A server function.
 
-    The 'callback function must to be uncurried as we don't know the amount of arguments.
+    - [id]: the server function ID. Only the server uses it. On the client it is [""].
+    - [call]: the function to call.
 
-    - [id]: Server Function ID, this will be used on server only
-    - [call]: The Server function implementation
+    Write the callback type inline as an arrow type that returns [Js.Promise.t].
 
-    E.g. React.server_function(. ~name: string, ~age: int) => Js.Promise.t(string) *)
+    E.g. [Runtime.server_function((~name: string, ~age: int) => Js.Promise.t(string))] *)
