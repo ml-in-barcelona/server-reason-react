@@ -23,6 +23,31 @@ module DocsApi = {
   let make = (~name: string) => React.string("api:" ++ name);
 };
 
+module AccountLoader = {
+  let load = (~context: string, ()) =>
+    Lwt.return(RouterRuntime.Loader.Data("viewer:" ++ context));
+};
+
+module AccountMetadata = {
+  let make = (~context: string, ~accountLoader as _, ()) =>
+    Lwt.return(
+      RouterRuntime.Metadata.make(~title="account:" ++ context, ()),
+    );
+};
+
+module AccountHeaders = {
+  let make = (~context: string, ~accountLoader as _, ()) =>
+    switch (RouterRuntime.Headers.make([("X-Viewer", context)])) {
+    | Ok(headers) => Lwt.return(headers)
+    | Error(_) => assert(false)
+    };
+};
+
+module Account = {
+  [@react.component]
+  let make = (~accountLoader: string) => React.string(accountLoader);
+};
+
 let language = lang => Option.value(lang, ~default="-");
 
 module Help = {

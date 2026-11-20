@@ -571,18 +571,18 @@ module Plan = struct
 end
 
 module Endpoint = struct
-  type ('result, 'error) prepared = {
+  type ('result, 'error, 'context) prepared = {
     branch : Branch.t;
     active_routes : string list option;
-    execution : unit -> ('result, 'error) Execution.t;
+    execution : 'context -> ('result, 'error) Execution.t;
   }
 
-  type ('result, 'error) t = {
+  type ('result, 'error, 'context) t = {
     route : Route.t;
     active_routes : (string * string list) list;
     fingerprint : string;
     prefetch : RouterRuntime.PrefetchLevel.t;
-    decode : Input.t -> (('result, 'error) prepared, 'error RouterRuntime.Error.t) result;
+    decode : Input.t -> (('result, 'error, 'context) prepared, 'error RouterRuntime.Error.t) result;
   }
 
   let make ~id ~path ~activeRoutes ~fingerprint ~decode =
@@ -593,22 +593,26 @@ module Endpoint = struct
   let recovered ~branch ~activeRoutes ~execution = { branch; active_routes = Some activeRoutes; execution }
   let route endpoint = endpoint.route
   let active_routes endpoint = endpoint.active_routes
-  let prepared_active_routes (prepared : ('result, 'error) prepared) = prepared.active_routes
+  let prepared_active_routes (prepared : ('result, 'error, 'context) prepared) = prepared.active_routes
   let decode endpoint = endpoint.decode
   let branch prepared = prepared.branch
+  let executionWithContext prepared ~context = prepared.execution context
   let execution prepared = prepared.execution ()
   let fingerprint endpoint = endpoint.fingerprint
   let prefetch endpoint = endpoint.prefetch
 end
 
 module EndpointRegistry = struct
-  type ('result, 'error) t = {
+  type ('result, 'error, 'context) t = {
     raw : Registry.t;
-    endpoints_by_id : (string, ('result, 'error) Endpoint.t) Hashtbl.t;
+    endpoints_by_id : (string, ('result, 'error, 'context) Endpoint.t) Hashtbl.t;
     fingerprint : string;
   }
 
-  type ('result, 'error) matched = { endpoint : ('result, 'error) Endpoint.t; parameters : (string * string) list }
+  type ('result, 'error, 'context) matched = {
+    endpoint : ('result, 'error, 'context) Endpoint.t;
+    parameters : (string * string) list;
+  }
 
   let make endpoints =
     match Registry.make (List.map Endpoint.route endpoints) with
@@ -724,8 +728,8 @@ module ServerEngine = struct
     | Some prefetch -> RouterRuntime.PrefetchLevel.compare prefetch (EndpointRegistry.prefetch matched) > 0
     | None -> false
 
-  let run ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId ?(revision = fun () -> "")
-      ~protocolVersion ?prefetch ?actionError request =
+  let runWithContext ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId
+      ?(revision = fun () -> "") ~protocolVersion ?prefetch ?actionError ~context request =
     let fingerprint = EndpointRegistry.fingerprint registry in
     let canonical_url = request.pathname ^ request.search ^ request.hash in
     let full ~matches ~layouts plan =
@@ -748,7 +752,7 @@ module ServerEngine = struct
             })
         (Plan.resolve plan ~applicationStatus)
     in
-    let fail ?(search = empty_search) error = full ~matches:[] ~layouts:[] (fallback ~search ~error) in
+    let fail ?(search = empty_search) error = full ~matches:[] ~layouts:[] (fallback ~context ~search ~error) in
     let expected_registry = string_of_int protocolVersion ^ "." ^ fingerprint in
     let registry_mismatch =
       match (request.kind, request.navigation) with
@@ -825,7 +829,7 @@ module ServerEngine = struct
                         | Error error -> fail ~search error
                         | Ok prepared ->
                             let target_branch = Endpoint.branch prepared in
-                            let execution = Endpoint.execution prepared in
+                            let execution = Endpoint.executionWithContext prepared ~context in
                             let matches = EndpointRegistry.matches matched prepared in
                             let layouts = Branch.layouts target_branch in
                             Lwt.bind (Execution.run ~diagnosticId execution) (function
@@ -916,14 +920,20 @@ module ServerEngine = struct
             (fun () -> fail error)
             (fun fallback_error ->
               if fatal_exception fallback_error then Lwt.fail fallback_error else blank_internal error))
+
+  let run ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId ?revision ~protocolVersion
+      ?prefetch ?actionError request =
+    runWithContext ~registry ~basePath ~trailingSlash
+      ~fallback:(fun ~context:() -> fallback)
+      ~applicationStatus ~diagnosticId ?revision ~protocolVersion ?prefetch ?actionError ~context:() request
 end
 
 module Server = struct
-  type ('view, 'error) t = {
+  type ('view, 'error, 'context) t = {
     base_path : string;
-    registry : (('view, 'error) Plan.t, 'error) EndpointRegistry.t;
+    registry : (('view, 'error) Plan.t, 'error, 'context) EndpointRegistry.t;
     trailing_slash : TrailingSlash.t;
-    fallback : search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t;
+    fallback : context:'context -> search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t;
     application_status : 'error -> RouterRuntime.Status.t;
     protocol_version : int;
     routes : string array;
@@ -936,7 +946,7 @@ module Server = struct
     |> List.fold_left (fun paths path -> if List.mem path paths then paths else path :: paths) []
     |> List.rev |> Array.of_list
 
-  let make ~basePath ~registry ?(trailingSlash = TrailingSlash.Redirect) ~fallback ~applicationStatus
+  let makeWithContext ~basePath ~registry ?(trailingSlash = TrailingSlash.Redirect) ~fallback ~applicationStatus
       ?(protocolVersion = 2) ?(interceptLinks = true) ?(viewTransitions = false) () =
     if not (Path.validBasePath basePath) then invalid_arg ("invalid router base path " ^ basePath)
     else
@@ -951,6 +961,12 @@ module Server = struct
         intercept_links = interceptLinks;
         view_transitions = viewTransitions;
       }
+
+  let make ~basePath ~registry ?trailingSlash ~fallback ~applicationStatus ?protocolVersion ?interceptLinks
+      ?viewTransitions () =
+    makeWithContext ~basePath ~registry ?trailingSlash
+      ~fallback:(fun ~context:() -> fallback)
+      ~applicationStatus ?protocolVersion ?interceptLinks ?viewTransitions ()
 
   let routes server = Array.copy server.routes
   let basePath server = server.base_path
@@ -972,10 +988,13 @@ module Server = struct
   let clientRootWithCache server ~pageCacheCapacity = client_root ~pageCacheCapacity server
   let clientRoot server = client_root server
 
+  let runWithContext server ~diagnosticId ?revision ?prefetch ?actionError ~context request =
+    ServerEngine.runWithContext ~registry:server.registry ~basePath:server.base_path
+      ~trailingSlash:server.trailing_slash ~fallback:server.fallback ~applicationStatus:server.application_status
+      ~diagnosticId ?revision ~protocolVersion:server.protocol_version ?prefetch ?actionError ~context request
+
   let run server ~diagnosticId ?revision ?prefetch ?actionError request =
-    ServerEngine.run ~registry:server.registry ~basePath:server.base_path ~trailingSlash:server.trailing_slash
-      ~fallback:server.fallback ~applicationStatus:server.application_status ~diagnosticId ?revision
-      ~protocolVersion:server.protocol_version ?prefetch ?actionError request
+    runWithContext server ~diagnosticId ?revision ?prefetch ?actionError ~context:() request
 end
 
 module Action = struct
@@ -1198,7 +1217,7 @@ module Adapter = struct
         in
         { status; headers; body }
 
-  let formActionReply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document
+  let formActionReplyWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context
       (request : ServerEngine.request) = function
     | Completed ->
         Lwt.return
@@ -1220,8 +1239,14 @@ module Adapter = struct
                 | Some location -> see_other location
                 | None -> unsafe_redirect_reply)
             | outcome -> reply server ~target ?pageCacheCapacity ~document ~kind:Document outcome)
-          (Server.run server ~diagnosticId ?revision ~actionError { request with kind = Document; navigation = None })
+          (Server.runWithContext server ~diagnosticId ?revision ~actionError ~context
+             { request with kind = Document; navigation = None })
+
+  let formActionReply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document request action =
+    formActionReplyWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context:() request
+      action
 end
 
 let run = Server.run
+let runWithContext = Server.runWithContext
 let statusOfError = status_of_error

@@ -265,8 +265,8 @@ let engine_request ~kind request =
   in
   { RouterServer.ServerEngine.pathname; search; hash = ""; kind; navigation }
 
-let handler ~server ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = []) ?pageCacheCapacity
-    ~document =
+let handler ~server ~context ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = [])
+    ?pageCacheCapacity ~document =
  fun request ->
   match RouterServer.Adapter.methodReply ~allow (Dream.method_to_string (Dream.method_ request)) with
   | Some reply -> respond ~skipRoot:false ~bootstrapModules reply
@@ -284,7 +284,10 @@ let handler ~server ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(boot
             | RouterServer.ServerEngine.Rsc ->
                 Option.bind (Dream.header request "Router-Prefetch") RouterRuntime.PrefetchLevel.fromString
           in
-          let%lwt outcome = RouterServer.run server ~diagnosticId ~revision ?prefetch (engine_request ~kind request) in
+          let%lwt outcome =
+            RouterServer.runWithContext server ~diagnosticId ~revision ?prefetch ~context:(context request)
+              (engine_request ~kind request)
+          in
           let reply = RouterServer.Adapter.reply server ~target ?pageCacheCapacity ~document ~kind outcome in
           let reply = if Dream.method_ request = `HEAD then { reply with body = Empty } else reply in
           respond ~skipRoot:(not (ssr request)) ~bootstrapModules reply)
@@ -296,7 +299,7 @@ let is_form_post request =
   | Some content_type -> String.starts_with content_type ~prefix:"multipart/form-data"
   | None -> false
 
-let form_handler ~server ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document
+let form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document
     ~actionHandler =
  fun request ->
   if not (is_form_post request) then actionHandler request
@@ -325,8 +328,8 @@ let form_handler ~server ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules 
             in
             with_render_context request (fun () ->
                 let%lwt reply =
-                  RouterServer.Adapter.formActionReply server ~diagnosticId ~revision ~target:(Dream.target request)
-                    ?pageCacheCapacity ~document
+                  RouterServer.Adapter.formActionReplyWithContext server ~diagnosticId ~revision
+                    ~target:(Dream.target request) ?pageCacheCapacity ~document ~context:(context request)
                     (engine_request ~kind:RouterServer.ServerEngine.Document request)
                     action
                 in
@@ -336,17 +339,17 @@ let form_handler ~server ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules 
 
 let random_id () = Dream.to_base64url (Dream.random 12)
 
-let routes ~server ~actionHandler ?lookup ?(diagnosticId = fun _ -> random_id ()) ?(revision = random_id)
-    ?(ssr = fun _request -> true) ?(bootstrapModules = []) ?pageCacheCapacity ~document () =
+let routesWithContext ~server ~context ~actionHandler ?lookup ?(diagnosticId = fun _ -> random_id ())
+    ?(revision = random_id) ?(ssr = fun _request -> true) ?(bootstrapModules = []) ?pageCacheCapacity ~document () =
   let basePath = RouterServer.Server.basePath server |> Dream.from_percent_encoded in
-  let handler = handler ~server ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document in
+  let handler = handler ~server ~context ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document in
   let wildcard = if String.equal basePath "/" then "/**" else basePath ^ "/**" in
   let actionHandler =
     match lookup with
     | None -> actionHandler
     | Some lookup ->
-        form_handler ~server ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document
-          ~actionHandler
+        form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity
+          ~document ~actionHandler
   in
   let actionHandler = Dream.origin_referrer_check actionHandler in
   [
@@ -355,3 +358,9 @@ let routes ~server ~actionHandler ?lookup ?(diagnosticId = fun _ -> random_id ()
     Dream.any basePath handler;
     Dream.any wildcard handler;
   ]
+
+let routes ~server ~actionHandler ?lookup ?diagnosticId ?revision ?ssr ?bootstrapModules ?pageCacheCapacity ~document ()
+    =
+  routesWithContext ~server
+    ~context:(fun _ -> ())
+    ~actionHandler ?lookup ?diagnosticId ?revision ?ssr ?bootstrapModules ?pageCacheCapacity ~document ()

@@ -458,3 +458,36 @@ parameter.
   File "duplicate-search.ml", line 2, characters 4-93:
   Error: router: duplicate search parameter page
   [2]
+
+`~context` on Router.make declares the type of the request context. Every
+loader, `~metadata` and `~headers` receives it as `~context`. Executions take
+it as their argument, the fallback takes `~context`, and the registry builds
+the server with `Server.makeWithContext`, so `RouterServer.runWithContext
+~context` reaches them. A redirect ignores it.
+
+  $ server-reason-react.router-gen --mode registry --source context.ml < context.ml | tr -s ' \n' ' ' | grep -Eo '(fun |~context:)\([_a-z]+ : [A-Za-z.]+\)|[A-Za-z]+\.[a-z]+ ~context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c
+        2 NoteHeaders.make ~context
+        1 NoteLoader.load ~context
+        6 RootMetadata.make ~context
+        1 RouterServer.Server.makeWithContext
+        1 fun (_ : Session.t)
+        2 fun (context : Session.t)
+        1 ~context:(context : Session.t)
+
+Without `~context`, executions take `()`, nothing mentions a context, and the
+registry uses `Server.make`, so `RouterServer.run` runs it.
+
+  $ server-reason-react.router-gen --mode registry --source loader-label.ml < loader-label.ml | tr -s ' \n' ' ' | grep -Eo '~execution:\(fun [^-]*->|context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c
+        1 RouterServer.Server.make
+        1 ~execution:(fun () ->
+
+`~context` belongs to Router.make only, and reserves the label `context`.
+
+  $ server-reason-react.router-gen --mode handles --source context-group.ml < context-group.ml
+  File "context-group.ml", line 2, characters 41-50:
+  Error: router: Router.group cannot declare ~context; declare it on Router.make
+  [2]
+  $ server-reason-react.router-gen --mode handles --source context-label.ml < context-label.ml
+  File "context-label.ml", line 1, characters 47-106:
+  Error: router: branch input label context conflicts with a generated router argument
+  [2]

@@ -8,7 +8,7 @@ let contains ~needle value =
   in
   loop 0
 
-let registry seen : ((React.element, string) RouterServer.Plan.t, string) RouterServer.EndpointRegistry.t =
+let registry seen : ((React.element, string) RouterServer.Plan.t, string, unit) RouterServer.EndpointRegistry.t =
   let endpoint =
     let metadata =
       RouterServer.Plan.Scope.make ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"Item" ())) ()
@@ -269,7 +269,7 @@ let registry_mismatch_returns_reload_required () =
   Alcotest.(check (option string)) "response kind" (Some "reload-required") (Dream.header response "Router-Response");
   Alcotest.(check (option string)) "endpoint skipped" None !seen
 
-let patch_registry () : ((React.element, string) RouterServer.Plan.t, string) RouterServer.EndpointRegistry.t =
+let patch_registry () : ((React.element, string) RouterServer.Plan.t, string, unit) RouterServer.EndpointRegistry.t =
   let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~reusable:true in
   let route_branch id = RouterServer.Branch.Scope.make ~id ~parameters:[] ~reusable:true in
   let root_scope =
@@ -512,6 +512,35 @@ let prefetch_above_route_level_is_refused () =
   Alcotest.(check (option string)) "level" (Some "intent") (Dream.header response "Router-Prefetch-Refused");
   Alcotest.(check (option string)) "vary" (Some "Accept, Router-Prefetch") (Dream.header response "Vary");
   Alcotest.(check string) "body" "" (Lwt_main.run (Dream.body response))
+
+let loaders_read_the_context () =
+  let endpoint =
+    RouterServer.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
+        Ok
+          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun context ->
+               RouterServer.Execution.load
+                 (fun () -> Lwt.return (RouterRuntime.Loader.Data context))
+                 (fun viewer ->
+                   RouterServer.Execution.done_
+                     (RouterServer.Plan.success ~scopes:[] ~page:(React.string ("viewer:" ^ viewer)))))))
+  in
+  let server =
+    RouterServer.Server.makeWithContext ~basePath:"/app"
+      ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
+      ~fallback:(fun ~context:_ ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+      ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+      ()
+  in
+  let router =
+    Dream.router
+      (DreamRouter.routesWithContext ~server
+         ~context:(fun request -> Option.value (Dream.header request "X-Viewer") ~default:"anonymous")
+         ~actionHandler:(fun _ -> Dream.empty `OK)
+         ~document ())
+  in
+  let body headers = Lwt_main.run (Lwt.bind (router (Dream.request ~target:"/app/item" ~headers "")) Dream.body) in
+  Alcotest.(check bool) "from the request" true (contains ~needle:"viewer:ada" (body [ ("X-Viewer", "ada") ]));
+  Alcotest.(check bool) "default" true (contains ~needle:"viewer:anonymous" (body []))
 
 let loaders_see_their_own_request () =
   let target () = match DreamRouter.request () with Some request -> Dream.target request | None -> "none" in
@@ -876,6 +905,7 @@ let () =
           test "prefetch matches navigation" prefetch_matches_navigation;
           test "prefetch above route level is refused" prefetch_above_route_level_is_refused;
           test "loaders see their own request" loaders_see_their_own_request;
+          test "loaders read the context" loaders_read_the_context;
           test "no-JS form post redirects to the page" no_js_form_post_redirects_to_the_page;
           test "no-JS form redirect follows the server function" no_js_form_redirect_follows_the_server_function;
           test "no-JS form failure renders the boundary" no_js_form_failure_renders_the_boundary;

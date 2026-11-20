@@ -84,6 +84,7 @@ type t = {
   view_transitions : bool option;
   error_status : expression option;
   invalid_search : expression option;
+  context : core_type option;
   root : group;
   loc : Location.t;
 }
@@ -348,9 +349,15 @@ let bool_argument label arguments =
   | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "false"; _ }, None); _ } -> Some false
   | Some expression -> error ~loc:expression.pexp_loc "~%s must be true or false" label
 
+let reject_context ~callee arguments =
+  match argument (Labelled "context") arguments with
+  | Some context -> error ~loc:context.pexp_loc "%s cannot declare ~context; declare it on Router.make" callee
+  | None -> ()
+
 let rec node_of_expression ~address expression =
   let callee, arguments = arguments expression in
   if is_identifier [ "Router"; "route" ] callee then
+    let () = reject_context ~callee:"Router.route" arguments in
     let () =
       validate_arguments ~loc:expression.pexp_loc
         ~allowed:([ "page"; "path"; "search"; "prefetch" ] @ attachment_labels)
@@ -373,6 +380,7 @@ let rec node_of_expression ~address expression =
     in
     Route { name; page; scope = scope ~id:("route:" ^ name) ~path arguments expression; loc = expression.pexp_loc }
   else if is_identifier [ "Router"; "group" ] callee then
+    let () = reject_context ~callee:"Router.group" arguments in
     let () =
       match argument (Labelled "search") arguments with
       | Some search ->
@@ -409,6 +417,7 @@ let rec node_of_expression ~address expression =
           }
     | _ -> error ~loc:expression.pexp_loc "group requires a child list"
   else if is_identifier [ "Router"; "redirect" ] callee then (
+    let () = reject_context ~callee:"Router.redirect" arguments in
     let () =
       validate_arguments ~loc:expression.pexp_loc
         ~allowed:[ "path"; "search"; "target"; "permanent" ]
@@ -534,8 +543,8 @@ let endpoints declaration =
       | None ->
           List.iter
             (fun label ->
-              if List.mem label generated_labels then
-                error ~loc "branch input label %s conflicts with a generated router argument" label)
+              if List.mem label generated_labels || (Option.is_some declaration.context && String.equal label "context")
+              then error ~loc "branch input label %s conflicts with a generated router argument" label)
             labels)
     endpoints;
   let routes = List.filter_map (function Page route -> Some route | RedirectTo _ -> None) endpoints in
@@ -606,7 +615,14 @@ let declaration_of_expression expression =
       validate_arguments ~loc:expression.pexp_loc
         ~allowed:
           ([
-             "basePath"; "trailingSlash"; "search"; "invalidSearch"; "interceptLinks"; "viewTransitions"; "errorStatus";
+             "basePath";
+             "trailingSlash";
+             "search";
+             "invalidSearch";
+             "interceptLinks";
+             "viewTransitions";
+             "errorStatus";
+             "context";
            ]
           @ attachment_labels)
         ~unlabelled:1 arguments
@@ -645,6 +661,10 @@ let declaration_of_expression expression =
         view_transitions = bool_argument "viewTransitions" arguments;
         error_status;
         invalid_search;
+        context =
+          Option.map
+            (fun context -> type_of_name ~loc:context.pexp_loc (type_name_of_expression context))
+            (argument (Labelled "context") arguments);
         root =
           {
             scope = root_scope;

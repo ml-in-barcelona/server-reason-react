@@ -84,6 +84,7 @@ type t = {
   view_transitions : bool option;
   error_status : expression option;
   invalid_search : expression option;
+  context : core_type option;
   root : group;
   loc : Location.t;
 }
