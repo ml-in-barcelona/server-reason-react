@@ -534,6 +534,22 @@ let testDocumentNotFoundResponse = () => {
       RouterRuntime.Headers.toList(response.resolved.headers)
       |> List.assoc("Content-Type"),
     );
+    Alcotest.check(
+      Alcotest.option(Alcotest.string),
+      "root metadata",
+      Some("Root"),
+      response.resolved.metadata.title,
+    );
+  };
+  switch (runEngine(~pathname="/fixture/missing", ())) {
+  | Full(response) =>
+    Alcotest.check(
+      Alcotest.option(Alcotest.string),
+      "root metadata on navigation",
+      Some("Root"),
+      response.resolved.metadata.title,
+    )
+  | _ => Alcotest.fail("expected full navigation response")
   };
 };
 
