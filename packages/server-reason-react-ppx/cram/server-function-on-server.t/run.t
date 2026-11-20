@@ -69,8 +69,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
                                 "string",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -93,8 +105,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "age",
                                 "int",
-                                Stdlib.Array.unsafe_get(args, 1)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 1),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -169,8 +193,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
                                 "string option",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -193,8 +229,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "age",
                                 "int",
-                                Stdlib.Array.unsafe_get(args, 1)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 1),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -274,8 +322,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
                                 "string option",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -348,8 +408,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
                                 "string option",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -420,8 +492,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
                                 "string",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -444,8 +528,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "age",
                                 "int",
-                                Stdlib.Array.unsafe_get(args, 1)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 1),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -596,8 +692,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "country",
                                 "string",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -677,8 +785,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "country",
                                 "string",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -761,8 +881,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "country",
                                 "string",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -845,8 +977,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "country",
                                 "string",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -929,8 +1073,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "country",
                                 "string",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1001,8 +1157,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
                                 "string",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1025,8 +1193,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "age",
                                 "int",
-                                Stdlib.Array.unsafe_get(args, 1)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 1),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1108,8 +1288,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "letter",
                                 "char",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1186,8 +1378,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "result",
                                 "(string, string) result",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1274,8 +1478,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "pair",
                                 "(string * int)",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1380,8 +1596,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "data",
                                 "(string * int * float * bool * char)",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1487,8 +1715,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "data",
                                 "(string * int * float * bool * char * int64)",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1556,8 +1796,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "flag",
                                 "bool",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1626,8 +1878,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "score",
                                 "float",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1695,8 +1959,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "big",
                                 "int64",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1769,8 +2045,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "names",
                                 "string list",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1843,8 +2131,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "ids",
                                 "int array",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1920,8 +2220,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "count",
                                 "int option",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -1999,8 +2311,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "items",
                                 "string option list",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -2079,8 +2403,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "data",
                                 "(int list, string) result",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )
@@ -2196,8 +2532,20 @@
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "country",
                                 "string",
-                                Stdlib.Array.unsafe_get(args, 0)
-                                |> Yojson.Basic.to_string,
+                                {
+                                  let received =
+                                    Yojson.Basic.to_string(
+                                      Stdlib.Array.unsafe_get(args, 0),
+                                    );
+                                  if (Stdlib.String.length(received) > 200) {
+                                    Stdlib.(++)(
+                                      Stdlib.String.sub(received, 0, 200),
+                                      "...",
+                                    );
+                                  } else {
+                                    received;
+                                  };
+                                },
                               ),
                             ),
                           )

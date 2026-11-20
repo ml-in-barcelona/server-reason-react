@@ -2095,9 +2095,10 @@ let map_result f list =
 type decode_ctx = {
   formData : Js.FormData.t option;
   temporaryReferences : (string -> json option) option;
-  resolving : string list;
-  decoded : (string, json * int) Hashtbl.t;
+  resolving : (string, unit) Hashtbl.t;
+  decoded : (string, json * int * int) Hashtbl.t;
   deepest : int ref;
+  values : int ref;
   depth : int;
   max_depth : int;
   max_bytes : int;
@@ -2116,16 +2117,24 @@ let resolve_temporary_reference ctx id =
   | None -> Error "decodeReply: Temporary Reference ($T) requires a temporaryReferences resolver"
 
 (* Recursively decode a JSON value, resolving $-prefixed special strings. When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved by looking up the corresponding FormData entry and recursively decoding it. *)
+let too_deep ctx = Error (Printf.sprintf "decodeReply: payload nesting is deeper than %d" ctx.max_depth)
+
 let enter ctx =
   let depth = ctx.depth + 1 in
   if depth > !(ctx.deepest) then ctx.deepest := depth;
   { ctx with depth }
 
+let count_values ctx count =
+  ctx.values := !(ctx.values) + count;
+  if !(ctx.values) > ctx.max_bytes then
+    Error (Printf.sprintf "decodeReply: payload expands to more than %d values" ctx.max_bytes)
+  else Ok ()
+
 let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
+  let* () = count_values ctx 1 in
   match json with
   | `String value when String.length value >= 2 && String.get value 0 = '$' -> decode_prefixed_value ctx value
-  | (`List _ | `Assoc _) when ctx.depth >= ctx.max_depth ->
-      Error (Printf.sprintf "decodeReply: payload nesting is deeper than %d" ctx.max_depth)
+  | (`List _ | `Assoc _) when ctx.depth >= ctx.max_depth -> too_deep ctx
   | `List items -> decode_list (enter ctx) items
   | `Assoc pairs -> decode_assoc (enter ctx) pairs
   | other -> Ok other
@@ -2177,26 +2186,30 @@ and decode_assoc ctx pairs =
   in
   Ok (`Assoc pairs)
 
-(* The cycle check keys on the decimal FormData key, not the hex id, so alternate hex spellings of the same entry (e.g. "1" vs "01") cannot evade the guard. A cached entry stores how many levels it nests below its reference, so a reuse at a deeper position still respects max_depth. *)
+(* The cycle check keys on the decimal FormData key, not the hex id, so alternate hex spellings of the same entry (e.g. "1" vs "01") cannot evade the guard. Each hop into an entry is one level of depth. A cached entry stores how many levels it nests below its reference and how many values it expands to, so a reuse still counts against max_depth and the value limit. *)
 and resolve_and_decode_outlined ctx fd hex_id =
   let entry_key = Option.value (hex_to_formdata_key hex_id) ~default:hex_id in
-  if List.mem entry_key ctx.resolving then
+  if Hashtbl.mem ctx.resolving entry_key then
     Error (Printf.sprintf "decodeReply: cyclic reference to outlined entry %s" entry_key)
   else
     match Hashtbl.find_opt ctx.decoded entry_key with
-    | Some (_, height) when ctx.depth + height > ctx.max_depth ->
-        Error (Printf.sprintf "decodeReply: payload nesting is deeper than %d" ctx.max_depth)
-    | Some (decoded, height) ->
+    | Some (_, height, _) when ctx.depth + height > ctx.max_depth -> too_deep ctx
+    | Some (decoded, height, values) ->
         if ctx.depth + height > !(ctx.deepest) then ctx.deepest := ctx.depth + height;
+        let* () = count_values ctx values in
         Ok decoded
+    | None when ctx.depth >= ctx.max_depth -> too_deep ctx
     | None ->
         let* resolved = resolve_from_formdata ~max_depth:ctx.max_depth ~max_bytes:ctx.max_bytes fd hex_id in
         let outer_deepest = !(ctx.deepest) in
+        let values_before = !(ctx.values) in
         ctx.deepest := ctx.depth;
-        let* decoded = decode_value { ctx with resolving = entry_key :: ctx.resolving } resolved in
+        Hashtbl.replace ctx.resolving entry_key ();
+        let* decoded = decode_value (enter ctx) resolved in
+        Hashtbl.remove ctx.resolving entry_key;
         let height = !(ctx.deepest) - ctx.depth in
         ctx.deepest := max outer_deepest !(ctx.deepest);
-        Hashtbl.replace ctx.decoded entry_key (decoded, height);
+        Hashtbl.replace ctx.decoded entry_key (decoded, height, !(ctx.values) - values_before);
         Ok decoded
 
 and resolve_outlined ctx type_name hex_id =
@@ -2236,9 +2249,10 @@ let decode_context ~max_depth ~max_bytes ~formData ~temporaryReferences =
   {
     formData;
     temporaryReferences;
-    resolving = [];
+    resolving = Hashtbl.create 8;
     decoded = Hashtbl.create 8;
     deepest = ref 1;
+    values = ref 0;
     depth = 1;
     max_depth;
     max_bytes;

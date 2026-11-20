@@ -63,10 +63,17 @@ type server_function =
 
     [max_bytes] (default 1048576) limits the byte length of each JSON text that is parsed: the body for [decodeReply];
     the root entry and each outlined entry for [decodeFormDataReply]. Blob ([$B]) entries are not parsed and are not
-    limited. [max_depth] (default 512) limits the nesting of arrays and objects, counted from the root argument array
-    and across outlined references. Both limits are checked before the JSON is parsed, so an oversized or deep payload
-    costs one linear scan. A payload over a limit returns [Error], with a message that starts with ["decodeReply:"],
-    like every other decode error. Limit the HTTP body size in the server as well. *)
+    limited. A text with a ['/'] outside a string, such as a comment, is rejected.
+
+    [max_depth] (default 512) limits nesting. The root argument array is level 1, and each array, object and reference
+    to an outlined entry adds one level. Byte size and nesting inside one text are checked before the text is parsed.
+
+    The decoded arguments may hold at most [max_bytes] JSON values in total. An outlined entry that is referenced more
+    than once counts once for each reference, so a small payload cannot expand to a huge value.
+
+    A payload over a limit returns [Error], with a message that starts with ["decodeReply:"], like every other decode
+    error. To accept larger payloads, pass a larger [~max_bytes] (and [~max_depth] if needed), and limit the HTTP body
+    size in the server as well. *)
 
 val decodeReply :
   ?temporaryReferences:(string -> Yojson.Basic.t option) ->
