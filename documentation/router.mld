@@ -154,7 +154,9 @@ generator reports a conflict at the route that uses the label.
 Search parameters are fields of one [search] record, not labelled arguments,
 so these names do not apply to them: a search parameter can be called
 [target], [error], [input] or [hash]. Search parameter names must be unique
-within a branch, and a path parameter may share a name with one.
+within a branch, and a path parameter may share a name with one. A search
+parameter also has a URL key, its name unless [~key] gives another one. URL
+keys must be unique within a branch too, root parameters included.
 
 {2 Path syntax}
 
@@ -285,7 +287,23 @@ value. [optional] and [default] read only the first value of a name. Only a
 [required] parameter that is missing or rejected makes the request fail with
 [InvalidSearchParameter], which answers 400.
 
-The field name is the query key, so a key must be a valid record label.
+The field name is the query key. When the key is not a valid record label,
+or a different name reads better in code, give it with [~key]. The record
+field, the constructor argument and the code keep the label. URLs, decoders
+and [useSearch] updates use the key:
+
+{[
+~search={
+  infoPage: Router.Search.optional(~key="info-page", string),
+  kind: Router.Search.default(~key="type", string, "all"),
+}
+]}
+
+[required], [optional], [default] and [many] all take [~key]. It is a
+non-empty string literal that is valid UTF-8. Two parameters of one branch
+cannot share a key, so [~key="target"] on [siteTarget] next to a [target]
+field without [~key] is an error. Names are sorted by key in URLs, and a key
+change changes the registry fingerprint.
 
 {3 The search record}
 

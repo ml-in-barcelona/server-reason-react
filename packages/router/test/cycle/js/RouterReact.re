@@ -35,12 +35,17 @@ module Link = {
 };
 let navigate: navigate = (~history as _=?, ~revalidate as _=?, _destination) =>
   assert(false);
-let updateSearch: updateSearch =
-    (~owned as _, ~values as _, ~history as _=?, ()) =>
-  assert(false);
+let searchValues: ref(list((string, list(string)))) = ref([]);
+let searchUpdates:
+  ref(list((list(string), list((string, list(string)))))) =
+  ref([]);
+let updateSearch: updateSearch = (~owned, ~values, ~history as _=?, ()) => {
+  searchUpdates := [(owned, values), ...searchUpdates^];
+  RouterRuntime.Navigation.Result.Canceled;
+};
 let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>
   assert(false);
 let useNavigation = () => (navigate, RouterRuntime.Navigation.Idle);
 let useCurrentRoute = () => None;
-let useSearch = () => ([], updateSearch);
+let useSearch = () => (searchValues^, updateSearch);
 let useUpdateHash = () => updateHash;

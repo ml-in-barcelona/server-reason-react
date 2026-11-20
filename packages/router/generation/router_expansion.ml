@@ -473,9 +473,7 @@ let search_decoder ~loc (search : Router_declaration.search) =
     | Many -> "RouterRuntime.Search.many"
   in
   let arguments =
-    [
-      (Labelled "name", B.estring ~loc search.name); (Labelled "parse", B.pexp_ident ~loc { txt = search.parser; loc });
-    ]
+    [ (Labelled "name", B.estring ~loc search.key); (Labelled "parse", B.pexp_ident ~loc { txt = search.parser; loc }) ]
     @ (match search.kind with Default fallback -> [ (Labelled "fallback", fallback) ] | _ -> [])
     @ [ (Nolabel, B.evar ~loc "values") ]
   in
@@ -493,7 +491,7 @@ let search_values_expression ~loc record search =
   let entry (search : Router_declaration.search) =
     let value = B.pexp_field ~loc record { txt = Longident.Lident search.name; loc } in
     let print value = B.pexp_apply ~loc (B.pexp_ident ~loc { txt = search.to_string; loc }) [ (Nolabel, value) ] in
-    let pair values = B.elist ~loc [ B.pexp_tuple ~loc [ B.estring ~loc search.name; values ] ] in
+    let pair values = B.elist ~loc [ B.pexp_tuple ~loc [ B.estring ~loc search.key; values ] ] in
     match search.kind with
     | Required -> pair (B.elist ~loc [ print value ])
     | Optional ->
@@ -592,7 +590,7 @@ let use_search_structure ~loc ~values search =
          (B.pexp_apply ~loc (B.evar ~loc "updateSearch")
             [
               ( Labelled "owned",
-                B.elist ~loc (List.map (fun (item : Router_declaration.search) -> B.estring ~loc item.name) search) );
+                B.elist ~loc (List.map (fun (item : Router_declaration.search) -> B.estring ~loc item.key) search) );
               (Labelled "values", values);
               (Optional "history", B.evar ~loc "history");
               (Nolabel, unit_expression ~loc);
@@ -924,7 +922,7 @@ let native_search_decoder ~loc (search : Router_declaration.search) =
   let arguments =
     [
       (Labelled "input", B.evar ~loc "input");
-      (Labelled "name", B.estring ~loc search.name);
+      (Labelled "name", B.estring ~loc search.key);
       (Labelled "parse", B.pexp_ident ~loc { txt = search.parser; loc });
     ]
     @ match search.kind with Default fallback -> [ (Labelled "fallback", fallback) ] | _ -> []
@@ -1264,6 +1262,10 @@ let search_kind_part (search : Router_declaration.search) =
   | Many -> "many"
   | Default fallback -> "default:" ^ expression_string fallback
 
+let search_part (search : Router_declaration.search) =
+  let key = if String.equal search.key search.name then "" else ":key:" ^ search.key in
+  "search:" ^ search.name ^ key ^ ":" ^ type_string search.typ ^ ":" ^ search_kind_part search
+
 let fingerprint_parts (route : Router_declaration.route) =
   let route_parts = [ "route:" ^ route.name; "path:" ^ route.path ] in
   let parameter_parts =
@@ -1272,12 +1274,7 @@ let fingerprint_parts (route : Router_declaration.route) =
         "parameter:" ^ parameter.name ^ ":" ^ type_string parameter.typ)
       route.parameters
   in
-  let search_parts =
-    List.map
-      (fun (search : Router_declaration.search) ->
-        "search:" ^ search.name ^ ":" ^ type_string search.typ ^ ":" ^ search_kind_part search)
-      route.search
-  in
+  let search_parts = List.map (fun (search : Router_declaration.search) -> search_part search) route.search in
   let scope_parts =
     List.concat_map
       (fun (scope : Router_declaration.scope) ->
@@ -1436,12 +1433,7 @@ let redirect_endpoint ~context ~base_path ~invalid_search ~root_search (redirect
         "parameter:" ^ parameter.name ^ ":" ^ type_string parameter.typ)
       redirect.parameters
   in
-  let search_parts =
-    List.map
-      (fun (search : Router_declaration.search) ->
-        "search:" ^ search.name ^ ":" ^ type_string search.typ ^ ":" ^ search_kind_part search)
-      redirect.search
-  in
+  let search_parts = List.map (fun (search : Router_declaration.search) -> search_part search) redirect.search in
   let fingerprint =
     [
       "basePath:" ^ base_path;

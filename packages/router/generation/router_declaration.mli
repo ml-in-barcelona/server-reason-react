@@ -16,6 +16,7 @@ type search_kind = Required | Optional | Default of expression | Many
 
 type search = {
   name : string;
+  key : string;
   typ : core_type;
   parser : Longident.t;
   to_string : Longident.t;

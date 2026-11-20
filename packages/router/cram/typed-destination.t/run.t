@@ -512,3 +512,91 @@ registry uses `Server.make`, so `RouterServer.run` runs it.
   File "context-label.ml", line 1, characters 47-106:
   Error: router: branch input label context conflicts with a generated router argument
   [2]
+
+`~key` gives a search parameter a URL key other than its field name. The
+record field and the constructor argument keep the label; the query string,
+the decoders, the `useSearch` update and the registry use the key. Labels and
+keys are separate names, so a key can be an OCaml keyword, contain a dash, or
+equal another field's label.
+
+  $ server-reason-react.router-gen --mode handles --source search-key-alias.ml < search-key-alias.ml > SearchKeyAlias.ml
+  $ server-reason-react.router-gen --mode interface --source search-key-alias.ml < search-key-alias.ml > SearchKeyAlias.mli
+  $ ocamlc -c SearchKeyAlias.mli
+  $ ocamlc -c SearchKeyAlias.ml
+  $ ocamlc -c search_key_alias_use.ml
+  $ tr -s ' \n' ' ' < SearchKeyAlias.mli | grep -Eo 'type (nonrec )?search = [^}]*}|val search :( [?a-zA-Z]+:[a-zA-Z ]+ ->)* unit -> search'
+  type search = { infoPage: string option }
+  type search = { infoPage: string option ; siteTarget: string option ; target: string ; kind: string ; tags: int list }
+  val search : ?infoPage:string -> ?siteTarget:string -> ?target:string -> kind:string -> ?tags:int list -> unit -> search
+  $ tr -s ' \n' ' ' < SearchKeyAlias.ml | grep -Eo '~name:"[^"]*"|\("[^"]*", *\[|~owned:\[[^]]*\]' | sort | uniq -c
+        3 ("info-page", [
+        1 ("site", [
+        1 ("target", [
+        1 ("type", [
+        4 ~name:"info-page"
+        2 ~name:"site"
+        2 ~name:"tag"
+        2 ~name:"target"
+        2 ~name:"type"
+        1 ~owned:["info-page"; "target"; "site"; "type"; "tag"]
+        1 ~owned:["info-page"]
+  $ server-reason-react.router-gen --mode registry --source search-key-alias.ml < search-key-alias.ml | tr -s ' \n' ' ' | grep -Eo 'search(Required|Optional|Default|Many) ~input ~name:"[^"]*"|[a-zA-Z.]+ = search_[0-9]+' | sort | uniq -c
+        1 Router.Inspector.kind = search_2
+        1 Router.Inspector.siteTarget = search_0
+        1 Router.Inspector.tags = search_3
+        1 Router.Inspector.target = search_1
+        3 Router.infoPage = search_0
+        1 oldTarget = search_0
+        1 searchDefault ~input ~name:"site"
+        1 searchMany ~input ~name:"tag"
+        3 searchOptional ~input ~name:"info-page"
+        2 searchOptional ~input ~name:"target"
+        1 searchRequired ~input ~name:"type"
+
+A key changes the registry fingerprint.
+
+  $ server-reason-react.router-gen --mode registry --source search-key-alias-plain.ml < search-key-alias-plain.ml | grep -o 'fingerprint:"[0-9a-f]*"' > plain.txt
+  $ server-reason-react.router-gen --mode registry --source search-key-alias-keyed.ml < search-key-alias-keyed.ml | grep -o 'fingerprint:"[0-9a-f]*"' > keyed.txt
+  $ cmp -s plain.txt keyed.txt
+  [1]
+  $ wc -l < plain.txt
+  1
+
+Two parameters of one branch cannot share a URL key, whether it comes from a
+label or from `~key`, and whether the root or the route declares it.
+
+  $ server-reason-react.router-gen --mode handles --source duplicate-search-key.ml < duplicate-search-key.ml
+  File "duplicate-search-key.ml", line 4, characters 74-80:
+  Error: router: duplicate search key "target", used by siteTarget and target
+  [2]
+  $ server-reason-react.router-gen --mode handles --source duplicate-root-search-key.ml < duplicate-root-search-key.ml
+  File "duplicate-root-search-key.ml", line 2, characters 58-62:
+  Error: router: duplicate search key "info-page", used by infoPage and page
+  [2]
+
+A key is a non-empty, valid UTF-8 string literal. The constructors take no
+other labelled argument.
+
+  $ server-reason-react.router-gen --mode handles --source empty-search-key.ml < empty-search-key.ml
+  File "empty-search-key.ml", line 1, characters 114-116:
+  Error: router: search key must not be empty
+  [2]
+  $ server-reason-react.router-gen --mode handles --source invalid-search-key.ml < invalid-search-key.ml
+  File "invalid-search-key.ml", line 2, characters 90-96:
+  Error: router: search key "\255" is not valid UTF-8
+  [2]
+  $ server-reason-react.router-gen --mode handles --source search-key-expression.ml < search-key-expression.ml
+  File "search-key-expression.ml", line 4, characters 110-113:
+  Error: router: ~key takes a string literal, for example ~key:"info-page"
+  [2]
+  $ server-reason-react.router-gen --mode handles --source unknown-search-argument.ml < unknown-search-argument.ml
+  File "unknown-search-argument.ml", line 2, characters 62-104:
+  Error: router: unknown router argument ~kye
+  [2]
+
+Without `~key`, a keyword is not a field name, so a query key such as `type`
+needs `~key:"type"` on another label, as in `search-key-alias.ml`.
+
+  $ server-reason-react.router-gen --mode handles --source keyword-search-key.ml < keyword-search-key.ml 2>&1 | head -2
+  File "keyword-search-key.ml", line 1, characters 82-86:
+  Error: Syntax error

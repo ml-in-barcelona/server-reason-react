@@ -90,6 +90,22 @@ module Inspector = {
     );
 };
 
+module Support = {
+  [@react.component]
+  let make = (~search: Router.Support.search) =>
+    React.string(
+      String.concat(
+        "|",
+        [
+          language(search.infoPage),
+          string_of_int(search.resourcesProjectId),
+          language(search.alpha),
+          String.concat(",", search.zone),
+        ],
+      ),
+    );
+};
+
 module Settings = {
   [@react.component]
   let make = () => React.string("Settings");

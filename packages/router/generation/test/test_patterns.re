@@ -432,6 +432,82 @@ let testClientOptions = () => {
   );
 };
 
+let renderPage = (~search, pathname) =>
+  switch (
+    Lwt_main.run(
+      RouterServer.runWithContext(
+        RouterRegistry.server,
+        ~diagnosticId=_ => "diagnostic",
+        ~context="",
+        {
+          pathname,
+          search,
+          hash: "",
+          kind: RouterServer.ServerEngine.Document,
+          navigation: None,
+        },
+      ),
+    )
+  ) {
+  | RouterServer.ServerEngine.Full(full) =>
+    ReactDOM.renderToStaticMarkup(
+      RouterServer.Plan.resolvedElement(full.resolved),
+    )
+  | _ => Alcotest.fail("expected a full response for " ++ pathname)
+  };
+
+let testSearchKey = () => {
+  Alcotest.check(
+    string,
+    "href writes keys sorted by key",
+    "/site/support?a-zone=w&info-page=x&resources-projectId=7&z=q",
+    Router.Support.href(
+      ~search={
+        infoPage: Some("x"),
+        resourcesProjectId: 7,
+        alpha: Some("q"),
+        zone: ["w"],
+      },
+      (),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "default omitted",
+    "/site/support?info-page=x",
+    Router.Support.href(
+      ~search=Router.Support.search(~infoPage="x", ()),
+      (),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "server decodes keys into labels",
+    "x|7|q|w",
+    renderPage(
+      ~search="?info-page=x&resources-projectId=7&z=q&a-zone=w",
+      "/site/support",
+    ),
+  );
+  Alcotest.check(
+    string,
+    "labels are not keys",
+    "-|0|-|",
+    renderPage(
+      ~search="?infoPage=x&resourcesProjectId=7&alpha=q&zone=w",
+      "/site/support",
+    ),
+  );
+  let record =
+    Router.Support.search(~infoPage="x", ~resourcesProjectId=3, ());
+  Alcotest.(check(bool))(
+    "rsc round trip",
+    true,
+    Router.Support.search_of_rsc(Router.Support.search_to_rsc(record))
+    == record,
+  );
+};
+
 let testActionErrorBoundary = () => {
   let render = pathname => {
     let outcome =
@@ -537,7 +613,13 @@ let () =
         ],
       ),
       ("hash", [Alcotest.test_case("href", `Quick, testHash)]),
-      ("search", [Alcotest.test_case("record", `Quick, testSearchRecord)]),
+      (
+        "search",
+        [
+          Alcotest.test_case("record", `Quick, testSearchRecord),
+          Alcotest.test_case("key", `Quick, testSearchKey),
+        ],
+      ),
       (
         "context",
         [

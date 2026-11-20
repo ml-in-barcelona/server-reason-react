@@ -42,3 +42,15 @@ let elements = [
     {React.string("constructor")}
   </Router.Inspector>,
 ];
+
+module SupportSearch = {
+  [@react.component]
+  let make = (~onSearch) => {
+    let (search, updateSearch) = Router.Support.useSearch();
+    onSearch(search, updateSearch);
+    React.null;
+  };
+};
+
+let renderSupportSearch = onSearch =>
+  ReactDOMServer.renderToString(<SupportSearch onSearch />);

@@ -79,6 +79,18 @@ Router.make(
         pattern: Router.Search.optional(string),
       },
     ),
+    Router.route(
+      Support,
+      ~page=Pages.Support,
+      ~path="/support",
+      ~search={
+        infoPage: Router.Search.optional(~key="info-page", string),
+        resourcesProjectId:
+          Router.Search.default(~key="resources-projectId", int, 0),
+        alpha: Router.Search.optional(~key="z", string),
+        zone: Router.Search.many(~key="a-zone", string),
+      },
+    ),
     Router.redirect(
       ~path="/old-inspector",
       ~search={ site: Router.Search.optional(string) },

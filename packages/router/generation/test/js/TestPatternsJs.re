@@ -51,6 +51,60 @@ expect(
   string_of_int(List.length(SearchJsx.elements)),
 );
 
+RouterReact.searchValues :=
+  [
+    ("info-page", ["x"]),
+    ("infoPage", ["label"]),
+    ("resources-projectId", ["7"]),
+    ("a-zone", ["w"]),
+  ];
+let supportSearch = ref(None);
+SearchJsx.renderSupportSearch((search, update) =>
+  supportSearch := Some((search, update))
+)
+|> ignore;
+switch (supportSearch^) {
+| None => failwith("Support.useSearch did not render")
+| Some((search, update)) =>
+  expect(
+    "useSearch reads key",
+    "x",
+    Option.value(search.infoPage, ~default="-"),
+  );
+  expect(
+    "useSearch reads default key",
+    "7",
+    string_of_int(search.resourcesProjectId),
+  );
+  expect("useSearch reads many key", "w", String.concat(",", search.zone));
+  update({
+    ...search,
+    infoPage: Some("y"),
+    alpha: Some("q"),
+  })
+  |> ignore;
+  let describe = values =>
+    values
+    |> List.map(((name, values)) =>
+         name ++ "=" ++ String.concat(",", values)
+       )
+    |> String.concat("&");
+  switch (RouterReact.searchUpdates^) {
+  | [(owned, values)] =>
+    expect(
+      "useSearch owns keys",
+      "info-page resources-projectId z a-zone",
+      String.concat(" ", owned),
+    );
+    expect(
+      "useSearch writes keys",
+      "info-page=y&resources-projectId=7&z=q&a-zone=w",
+      describe(values),
+    );
+  | _ => failwith("expected one search update")
+  };
+};
+
 let level = destination =>
   RouterRuntime.PrefetchLevel.toString(
     RouterRuntime.prefetchLevel(destination),

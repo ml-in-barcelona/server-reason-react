@@ -16,6 +16,7 @@ type search_kind = Required | Optional | Default of expression | Many
 
 type search = {
   name : string;
+  key : string;
   typ : core_type;
   parser : Longident.t;
   to_string : Longident.t;
@@ -219,28 +220,43 @@ let validate_arguments ~loc ~allowed ~unlabelled arguments =
   if List.length (unlabelled_arguments arguments) <> unlabelled then
     error ~loc "expected %d unlabelled router argument(s)" unlabelled
 
-let search_kind expression =
+let search_kind ~name expression =
   let callee, arguments = arguments expression in
   let values = unlabelled_arguments arguments in
-  let kind, type_expression =
+  let kind, type_expression, unlabelled =
     if is_identifier [ "Router"; "Search"; "required" ] callee then
       match values with
-      | [ typ ] -> (Required, typ)
+      | [ typ ] -> (Required, typ, 1)
       | _ -> error ~loc:expression.pexp_loc "Search.required expects one type"
     else if is_identifier [ "Router"; "Search"; "optional" ] callee then
       match values with
-      | [ typ ] -> (Optional, typ)
+      | [ typ ] -> (Optional, typ, 1)
       | _ -> error ~loc:expression.pexp_loc "Search.optional expects one type"
     else if is_identifier [ "Router"; "Search"; "default" ] callee then
       match values with
-      | [ typ; default ] -> (Default default, typ)
+      | [ typ; default ] -> (Default default, typ, 2)
       | _ -> error ~loc:expression.pexp_loc "Search.default expects a type and default"
     else if is_identifier [ "Router"; "Search"; "many" ] callee then
-      match values with [ typ ] -> (Many, typ) | _ -> error ~loc:expression.pexp_loc "Search.many expects one type"
+      match values with [ typ ] -> (Many, typ, 1) | _ -> error ~loc:expression.pexp_loc "Search.many expects one type"
     else error ~loc:expression.pexp_loc "unknown search schema constructor"
+  in
+  validate_arguments ~loc:expression.pexp_loc ~allowed:[ "key" ] ~unlabelled arguments;
+  let key =
+    match argument (Labelled "key") arguments with
+    | None -> name
+    | Some key_expression ->
+        let key =
+          match key_expression.pexp_desc with
+          | Pexp_constant (Pconst_string (key, _, _)) -> key
+          | _ -> error ~loc:key_expression.pexp_loc "~key takes a string literal, for example ~key:\"info-page\""
+        in
+        if String.equal key "" then error ~loc:key_expression.pexp_loc "search key must not be empty";
+        if not (RouterUtf8.valid key) then error ~loc:key_expression.pexp_loc "search key %S is not valid UTF-8" key;
+        key
   in
   let type_name = type_name_of_expression type_expression in
   ( kind,
+    key,
     type_of_name ~loc:type_expression.pexp_loc type_name,
     parser_of_type ~loc:type_expression.pexp_loc type_name,
     to_string_of_type ~loc:type_expression.pexp_loc type_name )
@@ -255,8 +271,8 @@ let search_of_expression expression =
             | name :: _ -> name
             | [] -> error ~loc "search field needs a name"
           in
-          let kind, typ, parser, to_string = search_kind value in
-          { name; typ; parser; to_string; kind; loc })
+          let kind, key, typ, parser, to_string = search_kind ~name value in
+          { name; key; typ; parser; to_string; kind; loc })
         fields
   | _ -> error ~loc:expression.pexp_loc "~search must be a record schema"
 
@@ -536,6 +552,13 @@ let endpoints declaration =
       in
       (match duplicate (List.map (fun (search : search) -> search.name) search) with
       | Some name -> error ~loc "duplicate search parameter %s" name
+      | None -> ());
+      (match duplicate (List.map (fun (search : search) -> search.key) search) with
+      | Some key ->
+          let search = List.filter (fun (search : search) -> String.equal search.key key) search in
+          let labels = List.map (fun (search : search) -> search.name) search in
+          let loc = match List.rev search with last :: _ -> last.loc | [] -> loc in
+          error ~loc "duplicate search key %S, used by %s" key (String.concat " and " labels)
       | None -> ());
       let labels = List.map (fun (parameter : parameter) -> parameter.name) parameters @ loader_labels in
       match duplicate labels with
