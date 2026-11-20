@@ -526,7 +526,9 @@ The router saves the scroll position of an entry when a navigation leaves it,
 including [updateSearch], [updateHash] and the page unload. Positions are kept
 in [sessionStorage] for the 100 most recent entries, so Back and Forward
 restore them after a reload or a full page load. When [sessionStorage] is not
-available, the positions last until the page unloads. Back and Forward restore
+available, the positions last until the page unloads. On [pagehide] the router
+hands scroll restoration back to the browser, so a reload paints the saved
+position before the router hydrates. Back and Forward restore
 the saved position for content, search-only and hash-only entries. Without a
 saved position, a hash scrolls to and focuses its element; otherwise a content
 navigation focuses [#router-focus-root] when it exists and scrolls to the top.
