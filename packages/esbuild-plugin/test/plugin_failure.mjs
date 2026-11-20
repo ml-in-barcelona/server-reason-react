@@ -10,9 +10,8 @@ const esbuild = createRequire(import.meta.url)(path.resolve(process.argv[2]));
 const root = mkdtempSync(path.join(tmpdir(), "esbuild-plugin-"));
 const target = path.join(root, "target");
 mkdirSync(target);
-const serverFunction = "// extract-server-function Actions#save save\nexports.save = {};\n";
-writeFileSync(path.join(target, "A.js"), serverFunction);
-writeFileSync(path.join(target, "B.js"), serverFunction);
+writeFileSync(path.join(target, "A.js"), "// extract-server-function 1234 save\nexports.save = {};\n");
+writeFileSync(path.join(target, "B.js"), "// extract-server-function 1234 remove\nexports.remove = {};\n");
 const entry = path.join(root, "entry.js");
 writeFileSync(entry, "console.log(1);\n");
 
@@ -25,6 +24,6 @@ const build = esbuild.build({
 
 await assert.rejects(build, (error) => {
   assert.equal(error.errors.length, 1);
-  assert.match(error.errors[0].text, /duplicate server function id "Actions#save"/);
+  assert.match(error.errors[0].text, /exit status 1/);
   return true;
 });

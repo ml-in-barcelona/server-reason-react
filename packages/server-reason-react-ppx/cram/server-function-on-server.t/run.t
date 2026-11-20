@@ -22,7 +22,7 @@
   
   include {
             let withLabelledArg = {
-              Runtime.id: "input#withLabelledArg",
+              Runtime.id: "d795178b8ec4e7eb",
               call: (~name: string, ~age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -31,7 +31,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withLabelledArg",
+              "d795178b8ec4e7eb",
               Body(
                 args =>
                   try(
@@ -118,7 +118,7 @@
   
   include {
             let withLabelledArgAndUnlabeledArg = {
-              Runtime.id: "input#withLabelledArgAndUnlabeledArg",
+              Runtime.id: "cc16d8dfbb02c5f1",
               call: (~name: string="Lola", age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -127,7 +127,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withLabelledArgAndUnlabeledArg",
+              "cc16d8dfbb02c5f1",
               Body(
                 args =>
                   try(
@@ -149,11 +149,7 @@
                       };
                       let name =
                         try(
-                          (
-                            Melange_json.Primitives.option_of_json(
-                              Melange_json.Primitives.string_of_json,
-                            )
-                          )(
+                          Melange_json.Primitives.string_of_json(
                             Stdlib.Array.unsafe_get(args, 0),
                           )
                         ) {
@@ -168,7 +164,7 @@
                               Stdlib.Printf.sprintf(
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
-                                "string option",
+                                "string",
                                 Stdlib.Array.unsafe_get(args, 0)
                                 |> Yojson.Basic.to_string,
                               ),
@@ -199,7 +195,7 @@
                             ),
                           )
                         };
-                      withLabelledArgAndUnlabeledArg.call(~name?, age)
+                      withLabelledArgAndUnlabeledArg.call(~name, age)
                       |> Lwt.map(response =>
                            RSC.to_model(RSC.Primitives.string_to_rsc(response))
                          );
@@ -218,7 +214,7 @@
   
   include {
             let withOptionalArg = {
-              Runtime.id: "input#withOptionalArg",
+              Runtime.id: "759127163477eddf",
               call: (~name: option(string)=?, ()) => (
                 {
                   let name =
@@ -232,7 +228,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withOptionalArg",
+              "759127163477eddf",
               Body(
                 args =>
                   try(
@@ -299,14 +295,14 @@
   
   include {
             let withOptionalDefaultArg = {
-              Runtime.id: "input#withOptionalDefaultArg",
+              Runtime.id: "e14a2f3233911fed",
               call: (~name: string="Lola", ()) => (
                 Lwt.return(Printf.sprintf("Hello, %s", name)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "input#withOptionalDefaultArg",
+              "e14a2f3233911fed",
               Body(
                 args =>
                   try(
@@ -328,11 +324,7 @@
                       };
                       let name =
                         try(
-                          (
-                            Melange_json.Primitives.option_of_json(
-                              Melange_json.Primitives.string_of_json,
-                            )
-                          )(
+                          Melange_json.Primitives.string_of_json(
                             Stdlib.Array.unsafe_get(args, 0),
                           )
                         ) {
@@ -347,14 +339,14 @@
                               Stdlib.Printf.sprintf(
                                 "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                                 "name",
-                                "string option",
+                                "string",
                                 Stdlib.Array.unsafe_get(args, 0)
                                 |> Yojson.Basic.to_string,
                               ),
                             ),
                           )
                         };
-                      withOptionalDefaultArg.call(~name?, ())
+                      withOptionalDefaultArg.call(~name, ())
                       |> Lwt.map(response =>
                            RSC.to_model(RSC.Primitives.string_to_rsc(response))
                          );
@@ -373,7 +365,7 @@
   
   include {
             let withUnlabeledArg = {
-              Runtime.id: "input#withUnlabeledArg",
+              Runtime.id: "4609c752f0fd4336",
               call: (name: string, age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -382,7 +374,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withUnlabeledArg",
+              "4609c752f0fd4336",
               Body(
                 args =>
                   try(
@@ -469,11 +461,11 @@
   
   include {
             let withNoArgs = {
-              Runtime.id: "input#withNoArgs",
+              Runtime.id: "35bf61b207c3c325",
               call: () => (Lwt.return("Hello, world!"): Js.Promise.t(string)),
             };
             FunctionReferences.register(
-              "input#withNoArgs",
+              "35bf61b207c3c325",
               Body(
                 args =>
                   try(
@@ -495,7 +487,7 @@
   
   include {
             let withFormData = {
-              Runtime.id: "input#withFormData",
+              Runtime.id: "7aaca06c4b5d839b",
               call: (formData: Js.FormData.t) => (
                 {
                   let name =
@@ -518,7 +510,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withFormData",
+              "7aaca06c4b5d839b",
               FormData(
                 (_, formData) =>
                   try(
@@ -540,7 +532,7 @@
   
   include {
             let withFormDataArgs = {
-              Runtime.id: "input#withFormDataArgs",
+              Runtime.id: "bdba0def36cec354",
               call: (country: string, formData: Js.FormData.t) => (
                 {
                   let name =
@@ -558,7 +550,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withFormDataArgs",
+              "bdba0def36cec354",
               FormData(
                 (args, formData) =>
                   try(
@@ -621,7 +613,7 @@
   
   include {
             let withFormDataLabelledAndUnlabeledArgs = {
-              Runtime.id: "input#withFormDataLabelledAndUnlabeledArgs",
+              Runtime.id: "ca4d6249058d6f72",
               call: (country: string, ~formData: Js.FormData.t) => (
                 {
                   let name =
@@ -639,7 +631,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withFormDataLabelledAndUnlabeledArgs",
+              "ca4d6249058d6f72",
               FormData(
                 (args, formData) =>
                   try(
@@ -705,7 +697,7 @@
   
   include {
             let withFormDataLabelledAndLabelledArgs = {
-              Runtime.id: "input#withFormDataLabelledAndLabelledArgs",
+              Runtime.id: "35124443a9ca3e46",
               call: (~country: string, ~formData: Js.FormData.t) => (
                 {
                   let name =
@@ -723,7 +715,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withFormDataLabelledAndLabelledArgs",
+              "35124443a9ca3e46",
               FormData(
                 (args, formData) =>
                   try(
@@ -789,7 +781,7 @@
   
   include {
             let withFormDataUnlabelledAndLabelledArgs = {
-              Runtime.id: "input#withFormDataUnlabelledAndLabelledArgs",
+              Runtime.id: "fb8fe6f5361d83d2",
               call: (~country: string, formData: Js.FormData.t) => (
                 {
                   let name =
@@ -807,7 +799,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withFormDataUnlabelledAndLabelledArgs",
+              "fb8fe6f5361d83d2",
               FormData(
                 (args, formData) =>
                   try(
@@ -873,7 +865,7 @@
   
   include {
             let withFormDataAndArgsDifferentOrder = {
-              Runtime.id: "input#withFormDataAndArgsDifferentOrder",
+              Runtime.id: "79fae9670eeb9c1b",
               call: (formData: Js.FormData.t, country: string) => (
                 {
                   let name =
@@ -891,7 +883,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withFormDataAndArgsDifferentOrder",
+              "79fae9670eeb9c1b",
               FormData(
                 (args, formData) =>
                   try(
@@ -954,7 +946,7 @@
   
   include {
             let withReturnTypeOnSeparateLine = {
-              Runtime.id: "input#withReturnTypeOnSeparateLine",
+              Runtime.id: "c0983d541835b2f6",
               call: (~name: string, ~age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -963,7 +955,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withReturnTypeOnSeparateLine",
+              "c0983d541835b2f6",
               Body(
                 args =>
                   try(
@@ -1050,14 +1042,14 @@
   
   include {
             let withCharArg = {
-              Runtime.id: "input#withCharArg",
+              Runtime.id: "e9af9d26b2b5a532",
               call: (~letter: char) => (
                 Js.Promise.resolve(String.make(1, letter)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "input#withCharArg",
+              "e9af9d26b2b5a532",
               Body(
                 args =>
                   try(
@@ -1133,7 +1125,7 @@
   
   include {
             let withResultArg = {
-              Runtime.id: "input#withResultArg",
+              Runtime.id: "d2e977839904ede6",
               call: (~result: result(string, string)) => (
                 switch (result) {
                 | Ok(s) => Js.Promise.resolve(s)
@@ -1143,7 +1135,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withResultArg",
+              "d2e977839904ede6",
               Body(
                 args =>
                   try(
@@ -1211,7 +1203,7 @@
   
   include {
             let withTuple2Arg = {
-              Runtime.id: "input#withTuple2Arg",
+              Runtime.id: "14eaed19bdbca8ed",
               call: (~pair: (string, int)) => (
                 {
                   let (name, age) = pair;
@@ -1223,7 +1215,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withTuple2Arg",
+              "14eaed19bdbca8ed",
               Body(
                 args =>
                   try(
@@ -1299,7 +1291,7 @@
   
   include {
             let withTuple5Arg = {
-              Runtime.id: "input#withTuple5Arg",
+              Runtime.id: "c3b3fb50d5709f8e",
               call: (~data: (string, int, float, bool, char)) => (
                 {
                   let (name, _age, _score, _active, _letter) = data;
@@ -1309,7 +1301,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withTuple5Arg",
+              "c3b3fb50d5709f8e",
               Body(
                 args =>
                   try(
@@ -1405,7 +1397,7 @@
   
   include {
             let withTuple6Arg = {
-              Runtime.id: "input#withTuple6Arg",
+              Runtime.id: "c475ea7d2ed15c5f",
               call: (~data: (string, int, float, bool, char, int64)) => (
                 {
                   let (name, _age, _score, _active, _letter, _id) = data;
@@ -1415,7 +1407,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withTuple6Arg",
+              "c475ea7d2ed15c5f",
               Body(
                 args =>
                   try(
@@ -1512,13 +1504,13 @@
   
   include {
             let withBoolArg = {
-              Runtime.id: "input#withBoolArg",
+              Runtime.id: "defad4fc0b6197d9",
               call: (~flag: bool) => (
                 Js.Promise.resolve(flag ? "yes" : "no"): Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "input#withBoolArg",
+              "defad4fc0b6197d9",
               Body(
                 args =>
                   try(
@@ -1581,14 +1573,14 @@
   
   include {
             let withFloatArg = {
-              Runtime.id: "input#withFloatArg",
+              Runtime.id: "3a71c568a9f76459",
               call: (~score: float) => (
                 Js.Promise.resolve(Js.Float.toString(score)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "input#withFloatArg",
+              "3a71c568a9f76459",
               Body(
                 args =>
                   try(
@@ -1651,13 +1643,13 @@
   
   include {
             let withInt64Arg = {
-              Runtime.id: "input#withInt64Arg",
+              Runtime.id: "57b533d2311c9a24",
               call: (~big: int64) => (
                 Js.Promise.resolve(Int64.to_string(big)): Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "input#withInt64Arg",
+              "57b533d2311c9a24",
               Body(
                 args =>
                   try(
@@ -1720,14 +1712,14 @@
   
   include {
             let withListArg = {
-              Runtime.id: "input#withListArg",
+              Runtime.id: "af9277acf0958e63",
               call: (~names: list(string)) => (
                 Js.Promise.resolve(String.concat(", ", names)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "input#withListArg",
+              "af9277acf0958e63",
               Body(
                 args =>
                   try(
@@ -1794,14 +1786,14 @@
   
   include {
             let withArrayArg = {
-              Runtime.id: "input#withArrayArg",
+              Runtime.id: "d37c239ff74d84c5",
               call: (~ids: array(int)) => (
                 Js.Promise.resolve(string_of_int(Array.length(ids))):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "input#withArrayArg",
+              "d37c239ff74d84c5",
               Body(
                 args =>
                   try(
@@ -1868,7 +1860,7 @@
   
   include {
             let withOptionIntArg = {
-              Runtime.id: "input#withOptionIntArg",
+              Runtime.id: "3e6320f309237d93",
               call: (~count: option(int)=?, ()) => (
                 switch (count) {
                 | Some(n) => Js.Promise.resolve(string_of_int(n))
@@ -1878,7 +1870,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withOptionIntArg",
+              "3e6320f309237d93",
               Body(
                 args =>
                   try(
@@ -1945,7 +1937,7 @@
   
   include {
             let withNestedListOptionArg = {
-              Runtime.id: "input#withNestedListOptionArg",
+              Runtime.id: "e546234bdc88e0eb",
               call: (~items: list(option(string))) => (
                 {
                   let _ = items;
@@ -1955,7 +1947,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withNestedListOptionArg",
+              "e546234bdc88e0eb",
               Body(
                 args =>
                   try(
@@ -2024,7 +2016,7 @@
   
   include {
             let withNestedResultListArg = {
-              Runtime.id: "input#withNestedResultListArg",
+              Runtime.id: "bfa6480d6c0fab22",
               call: (~data: result(list(int), string)) => (
                 {
                   let _ = data;
@@ -2034,7 +2026,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withNestedResultListArg",
+              "bfa6480d6c0fab22",
               Body(
                 args =>
                   try(
@@ -2104,7 +2096,7 @@
   
   include {
             let withFormDataNamedFd = {
-              Runtime.id: "input#withFormDataNamedFd",
+              Runtime.id: "4774b1f9a1189743",
               call: (fd: Js.FormData.t) => (
                 {
                   let name =
@@ -2119,7 +2111,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withFormDataNamedFd",
+              "4774b1f9a1189743",
               FormData(
                 (_, fd) =>
                   try(
@@ -2141,7 +2133,7 @@
   
   include {
             let withFormDataNamedFdAndArgs = {
-              Runtime.id: "input#withFormDataNamedFdAndArgs",
+              Runtime.id: "2ff1173b01049e42",
               call: (country: string, fd: Js.FormData.t) => (
                 {
                   let name =
@@ -2158,7 +2150,7 @@
               ),
             };
             FunctionReferences.register(
-              "input#withFormDataNamedFdAndArgs",
+              "2ff1173b01049e42",
               FormData(
                 (args, fd) =>
                   try(

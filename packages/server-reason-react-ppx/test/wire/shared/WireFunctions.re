@@ -19,6 +19,9 @@ type tone = [
   | `Cold(int)
 ];
 
+[@deriving json]
+type maybe = option(int);
+
 module Expected = {
   let string = {js|$1 café "quoted"|js} ++ "\n";
   let int = (-42);
@@ -128,3 +131,7 @@ let sendForm = (prefix: string, formData: Js.FormData.t): Js.Promise.t(bool) =>
     (prefix, Js.FormData.get(formData, "name")),
     (Expected.string, `String("Ada")),
   );
+
+[@react.server.function]
+let sendDefaultAlias = (~x: maybe=Some(5), ()): Js.Promise.t(bool) =>
+  check(x, None);

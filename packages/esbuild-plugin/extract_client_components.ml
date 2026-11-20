@@ -28,16 +28,17 @@ let parse_server_function_line line =
 
 let client_marker = "// extract-client"
 let server_function_marker = "// extract-server-function"
+let has_marker marker line = line = marker || String.starts_with ~prefix:(marker ^ " ") line
 
 let parse_manifest_item ~path line =
   let line = String.trim line in
   let invalid message = Error (Printf.sprintf "%s: %s: %S" path message line) in
-  if String.starts_with ~prefix:server_function_marker line then
+  if has_marker server_function_marker line then
     match parse_server_function_line line with
     | Ok (module_name, function_name, id) when id <> "" && function_name <> "" ->
         Ok (Some (Server_function { compiled_js_path = path; module_name; function_name; id }))
     | Ok _ | Error _ -> invalid "invalid `extract-server-function` line"
-  else if String.starts_with ~prefix:client_marker line then
+  else if has_marker client_marker line then
     match parse_client_component_line line with
     | Ok (original_path, module_name) when original_path <> "" ->
         Ok (Some (Client_component { compiled_js_path = path; original_path; module_name }))
@@ -72,7 +73,8 @@ let same_export a b =
 
 let dedupe_manifest items =
   let sorted =
-    List.stable_sort items ~cmp:(fun a b -> compare (extension_rank (item_path a)) (extension_rank (item_path b)))
+    List.stable_sort items ~cmp:(fun a b ->
+        compare (extension_rank (item_path a), item_path a) (extension_rank (item_path b), item_path b))
   in
   let seen = Hashtbl.create 64 in
   List.fold_left sorted ~init:(Ok []) ~f:(fun acc item ->
@@ -84,10 +86,7 @@ let dedupe_manifest items =
           | None ->
               Hashtbl.add seen key item;
               Ok (item :: kept)
-          | Some first
-            when same_export first item
-                 && Filename.remove_extension (item_path first) = Filename.remove_extension (item_path item) ->
-              Ok kept
+          | Some first when same_export first item -> Ok kept
           | Some first -> (
               match item with
               | Server_function { id; _ } ->

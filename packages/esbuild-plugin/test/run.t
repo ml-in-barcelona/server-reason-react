@@ -34,13 +34,31 @@ module systems is registered once
   window.__server_functions_manifest_map["1234-4567"] = require("$TESTCASE_ROOT/./esm/ServerFunction.mjs").serverFunction
   window.__server_functions_manifest_map["7654-3210"] = require("$TESTCASE_ROOT/./esm/ServerFunction.mjs").WithModule.serverFunctionWithModule
 
-Two server functions with the same id fail the extraction
+The same function in two emit folders is registered once, from the first path
+  $ mkdir -p twice/a twice/b
+  $ cp ServerFunction.js twice/a/ServerFunction.js
+  $ cp ServerFunction.js twice/b/ServerFunction.js
+  $ server-reason-react.extract_client_components ./twice
+  window.__client_manifest_map = window.__client_manifest_map || {};
+  window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};
+  window.__server_functions_manifest_map["1234-4567"] = require("$TESTCASE_ROOT/./twice/a/ServerFunction.js").serverFunction
+  window.__server_functions_manifest_map["7654-3210"] = require("$TESTCASE_ROOT/./twice/a/ServerFunction.js").WithModule.serverFunctionWithModule
+
+Two different functions with the same id fail the extraction
   $ mkdir duplicate
-  $ cp ServerFunction.js duplicate/A.js
-  $ cp ServerFunction.js duplicate/B.js
+  $ echo '// extract-server-function 1234-4567 serverFunction' > duplicate/A.js
+  $ echo '// extract-server-function 1234-4567 otherFunction' > duplicate/B.js
   $ server-reason-react.extract_client_components ./duplicate
   server-reason-react.extract_client_components: duplicate server function id "1234-4567" in $TESTCASE_ROOT/./duplicate/A.js and $TESTCASE_ROOT/./duplicate/B.js
   [1]
+
+A marker must be followed by a space or the end of the line
+  $ mkdir lookalike
+  $ printf '// extract-client-side helpers\n// extract-server-functions are listed below\n' > lookalike/Helpers.js
+  $ server-reason-react.extract_client_components ./lookalike
+  window.__client_manifest_map = window.__client_manifest_map || {};
+  window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};
+  
 
 A malformed marker fails the extraction
   $ mkdir malformed

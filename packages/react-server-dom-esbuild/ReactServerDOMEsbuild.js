@@ -157,20 +157,8 @@ const ID = 0;
 const NAME = 1;
 const BUNDLES = 2;
 
-/*
- * Bundler config — tells the Flight client how to resolve and load modules.
- *
- * These functions bridge between the abstract module references in the RSC
- * stream and the actual runtime modules available in the browser. In the
- * esbuild integration, client components and server functions are registered
- * in global manifest maps (`window.__client_manifest_map` and
- * `window.__server_functions_manifest_map`) by the esbuild build plugin.
- */
-/*
- * The manifest maps an id to the Melange record { id, call }. A client
- * component prop reads the record fields, and a form action must be a
- * function, so a reference resolves to a function that also has both fields.
- */
+/* React calls a form action as `action(formData)`, and a client component
+   reads the `id` and `call` fields of the Melange record. */
 const callableServerFunctions = new WeakMap();
 
 function callableServerFunction(serverFunction) {
@@ -184,6 +172,15 @@ function callableServerFunction(serverFunction) {
   return callable;
 }
 
+/*
+ * Bundler config — tells the Flight client how to resolve and load modules.
+ *
+ * These functions bridge between the abstract module references in the RSC
+ * stream and the actual runtime modules available in the browser. In the
+ * esbuild integration, client components and server functions are registered
+ * in global manifest maps (`window.__client_manifest_map` and
+ * `window.__server_functions_manifest_map`) by the esbuild build plugin.
+ */
 const ReactFlightClientConfigBundlerEsbuild = {
   /*
    * Called when the Flight client encounters a client module reference in the stream.

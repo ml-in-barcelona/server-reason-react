@@ -1525,15 +1525,9 @@ module ServerFunction = struct
     in
     (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
     let file_path = Str.replace_first (Str.regexp replacement) "" file_path |> Filename.remove_extension in
-    let id = String.concat "." (file_path :: nested_module_names) ^ "#" ^ name in
-    if String.exists (fun c -> c <= ' ' || c > '~') id then
-      raise_errorf ~loc
-        "server-reason-react: server function id \"%s\" has a space, a control character or a non-ASCII character. The \
-         id is sent in the ACTION_ID HTTP header, which only carries printable ASCII. Rename the file, its folders or \
-         its modules."
-        id;
-    id
+    String.concat "." (file_path :: nested_module_names) ^ "#" ^ name
 
+  let wire_id path_id = String.sub (Digest.to_hex (Digest.string path_id)) 0 16
   let seen_ids : (string, unit) Hashtbl.t = Hashtbl.create 16
 
   let check_unique_id ~loc id =
@@ -1551,18 +1545,9 @@ module ServerFunction = struct
     | Ppat_construct ({ txt = Lident "()"; loc }, None) -> Ok (Nolabel, None, [%type: unit])
     | Ppat_constraint (pattern, core_type) -> (
         let loc = pattern.ppat_loc in
-        let null_encoded =
-          match core_type with [%type: [%t? _] option] | [%type: unit] | [%type: Js.Json.t] -> true | _ -> false
-        in
-        let wrapped_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
+        let arg_label = match (arg_label, default) with Optional label, Some _ -> Labelled label | _ -> arg_label in
         match pattern.ppat_desc with
-        | Ppat_var _ when Option.is_some default && null_encoded ->
-            Error
-              ( core_type.ptyp_loc,
-                "server-reason-react: an optional argument with a default value can't have an option, unit or \
-                 Js.Json.t type: the client sends null for both a missing value and that value, so the server can't \
-                 tell them apart. Remove the default or use another type." )
-        | Ppat_var { txt = label; _ } -> Ok (arg_label, Some label, wrapped_type)
+        | Ppat_var { txt = label; _ } -> Ok (arg_label, Some label, core_type)
         | _ -> Error (loc, "server-reason-react: server function arguments must have a name"))
     | _ -> Error (loc, "server-reason-react: server function arguments must have type annotations")
 
@@ -1680,8 +1665,9 @@ module ServerFunction = struct
     let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
     let base_fn = vb.pvb_expr in
     let return_core_type = get_response_type base_fn in
-    let id = generate_id ~loc:vb.pvb_loc ~nested_module_names function_name in
-    check_unique_id ~loc:vb.pvb_loc id;
+    let path_id = generate_id ~loc:vb.pvb_loc ~nested_module_names function_name in
+    check_unique_id ~loc:vb.pvb_loc path_id;
+    let id = wire_id path_id in
     let server_function_record_vb =
       value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat ~expr:(create_server_function_record ~loc:vb.pvb_loc id base_fn)
     in
@@ -1701,12 +1687,10 @@ module ServerFunction = struct
     | _ ->
         [%expr [%ocaml.error "server-reason-react: server functions must have a return type annotation (Js.Promise.t)"]]
 
-  let encode_client_argument ~loc ((_, default, _), arg) =
+  let encode_client_argument ~loc arg =
     match arg with
     | Ok (_, Some arg_name, [%type: Js.FormData.t]) -> evar ~loc arg_name
-    | Ok (_, Some arg_name, core_type) ->
-        let value = match default with Some _ -> [%expr Some [%e evar ~loc arg_name]] | None -> evar ~loc arg_name in
-        [%expr [%e make_json_encoder ~loc core_type] [%e value]]
+    | Ok (_, Some arg_name, core_type) -> [%expr [%e make_json_encoder ~loc core_type] [%e evar ~loc arg_name]]
     | Ok (_, None, [%type: unit]) -> [%expr Js.Json.null]
     | Ok _ | Error _ -> snd (argument_to_expression ~loc arg)
 
@@ -1725,18 +1709,17 @@ module ServerFunction = struct
     let loc = structure_item.pstr_loc in
 
     let function_name = get_function_name vb in
-    let raw_args = get_arguments vb.pvb_expr |> List.rev in
-    let args = List.map ~f:get_arg_details raw_args in
+    let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
     let base_fn = vb.pvb_expr in
     let return_core_type = get_response_type base_fn in
-    let id = generate_id ~loc:vb.pvb_loc ~nested_module_names function_name in
-    check_unique_id ~loc:vb.pvb_loc id;
+    let path_id = generate_id ~loc:vb.pvb_loc ~nested_module_names function_name in
+    check_unique_id ~loc:vb.pvb_loc path_id;
+    let id = wire_id path_id in
     let server_function_record_vb =
       value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat
         ~expr:
           (create_server_function_record ~loc:vb.pvb_loc id
-             (last_expr_to_fn ~loc base_fn
-                (create_client_function ~loc ~return_core_type id (List.combine raw_args args))))
+             (last_expr_to_fn ~loc base_fn (create_client_function ~loc ~return_core_type id args)))
     in
 
     let loc = structure_item.pstr_loc in

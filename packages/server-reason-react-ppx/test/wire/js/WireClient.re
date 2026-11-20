@@ -22,3 +22,4 @@ let _ = sendInt64.call(Expected.int64);
 let _ = sendNested.call(Expected.nested);
 let _ = sendLabelled.call((), ~count=Expected.int, ~note="x", ());
 let _ = sendForm.call(Expected.string, makeForm());
+let _ = sendDefaultAlias.call(~x=None, ());

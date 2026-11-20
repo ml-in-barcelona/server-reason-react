@@ -77,29 +77,6 @@ name the problem. A named type without a JSON deriver is reported at the type.
   > };
   > EOF
 
-  $ cat > DefaultOption.re << EOF
-  > [@react.server.function]
-  > let run = (~x: option(int)=Some(5), ()): Js.Promise.t(int) => {
-  >   let _ = x;
-  >   Lwt.return(1);
-  > };
-  > EOF
-
-  $ mkdir -p démo
-  $ cat > démo/dune << EOF
-  > (library
-  >  (name non_ascii)
-  >  (libraries server-reason-react.react server-reason-react.runtime server-reason-react.reactDom server-reason-react.js melange-json-native server-reason-react.rsc-native lwt)
-  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=/ server-reason-react.melange_ppx server-reason-react.rsc-native.ppx melange-json-native.ppx)))
-  > EOF
-  $ cat > démo/FunctionReferences.re << EOF
-  > let register = (_id: string, _handler: ReactServerDOM.server_function) => ();
-  > EOF
-  $ cat > démo/NonAscii.re << EOF
-  > [@react.server.function]
-  > let run = (): Js.Promise.t(int) => Lwt.return(1);
-  > EOF
-
   $ cat > Duplicate.re << EOF
   > [@react.server.function]
   > let save = (): Js.Promise.t(string) => Lwt.return("first");
@@ -114,13 +91,6 @@ name the problem. A named type without a JSON deriver is reported at the type.
                       ^^^^^^^^^
   Error: server-reason-react: server function arguments can't be Js.Date.t.
          Send a float (Js.Date.getTime) or a string instead.
-  File "DefaultOption.re", line 2, characters 15-26:
-  2 | let run = (~x: option(int)=Some(5), ()): Js.Promise.t(int) => {
-                     ^^^^^^^^^^^
-  Error: server-reason-react: an optional argument with a default value can't
-         have an option, unit or Js.Json.t type: the client sends null for both
-         a missing value and that value, so the server can't tell them apart.
-         Remove the default or use another type.
   File "Duplicate.re", lines 4-5, characters 0-59:
   4 | [@react.server.function]
   5 | let save = (): Js.Promise.t(string) => Lwt.return("second").
@@ -164,11 +134,4 @@ name the problem. A named type without a JSON deriver is reported at the type.
   Error: server-reason-react: server function arguments can't be option(unit)
          or option(Js.Json.t): None and Some(_) have the same JSON encoding
          (null). Use a variant instead.
-  File "démo/NonAscii.re", lines 1-2, characters 0-48:
-  1 | [@react.server.function]
-  2 | let run = (): Js.Promise.t(int) => Lwt.return(1).
-  Error: server-reason-react: server function id "démo/NonAscii#run" has a
-         space, a control character or a non-ASCII character. The id is sent in
-         the ACTION_ID HTTP header, which only carries printable ASCII. Rename
-         the file, its folders or its modules.
   [1]
