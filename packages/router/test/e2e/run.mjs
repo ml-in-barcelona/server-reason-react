@@ -229,6 +229,26 @@ check("scroll restores on Back after a reload", async ({ page, origin }) => {
   return `Back after reload ${back}`;
 });
 
+check("reload paints the saved scroll position on its first frame", async ({ page, origin }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+  await page.addInitScript(() =>
+    requestAnimationFrame(() => {
+      window.__firstFrame = Math.round(window.scrollY);
+    }),
+  );
+  await page.goto(`${origin}/demo/router/e2e/long`);
+  await ready(page, ".long-back");
+  await scrollTo(page, 1500);
+  await page.reload();
+  await ready(page, ".long-back");
+  const firstFrame = await page.evaluate(() => window.__firstFrame);
+  const settled = await waitForScroll(page, 1500);
+  assert.equal(firstFrame, 1500, "the reload painted another position before restoring");
+  assert.equal(settled, 1500, "the reload did not keep the scroll position");
+  return `first frame ${firstFrame}, settled ${settled}`;
+});
+
 check("redirect is followed on the client", async ({ page, net, origin }) => {
   await page.goto(`${origin}/demo/router/e2e`);
   await ready(page, "#navigate-redirect");
