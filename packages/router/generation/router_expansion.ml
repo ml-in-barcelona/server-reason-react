@@ -606,7 +606,15 @@ let use_search_structure ~loc ~values search =
             ~pat:(B.ppat_tuple ~loc [ B.pvar ~loc "values"; B.pvar ~loc "updateSearch" ])
             ~expr:(B.pexp_apply ~loc (B.evar ~loc "RouterReact.useSearch") [ (Nolabel, unit_expression ~loc) ]);
         ]
-        (B.pexp_tuple ~loc [ search_of_values ~loc search; update ])
+        (B.pexp_tuple ~loc
+           [
+             search_of_values ~loc search;
+             B.pexp_apply ~loc (B.evar ~loc "React.useMemo1")
+               [
+                 (Nolabel, B.pexp_fun ~loc Nolabel None (B.punit ~loc) update);
+                 (Nolabel, B.pexp_array ~loc [ B.evar ~loc "updateSearch" ]);
+               ];
+           ])
     in
     B.pexp_constraint ~loc
       (B.pexp_fun ~loc Nolabel None (B.punit ~loc) body)

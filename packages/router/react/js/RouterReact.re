@@ -58,6 +58,13 @@ type contextValue = {
   blocked: option(RouterBlocker.request),
 };
 
+type actions = {
+  navigate,
+  invalidate: invalidation => unit,
+  updateSearch,
+  updateHash,
+};
+
 type model = {
   navigationState: Navigation.state,
   metadata: React.element,
@@ -948,24 +955,40 @@ module Provider = {
       guarded(~action, ~target, () =>
         navigateTarget(~action, ~revalidate, target)
       );
-    let navigate = (~history=Navigation.Push, ~revalidate=false, destination) => {
-      let target = RouterRuntime.href(destination);
-      switch (
-        RouterPolicy.hashOnlyTarget(
-          ~location=
-            Navigation.committed(modelRef.current.navigationState).location,
-          ~action=history,
-          ~revalidate,
-          target,
-        )
-      ) {
-      | Some(hash) =>
-        guarded(~action=history, ~target, () =>
-          Js.Promise.resolve(updateHash(~hash, ~history, ()))
-        )
-      | None => guardedNavigate(~action=history, ~revalidate, target)
+    let navigateUrl = (~action, ~revalidate, target) => {
+      let state = modelRef.current.navigationState;
+      let committed = Navigation.committed(state);
+      if (RouterPolicy.unchangedTarget(
+            ~location=committed.location,
+            ~status=Navigation.status(state),
+            ~action,
+            ~revalidate,
+            target,
+          )) {
+        Js.Promise.resolve(Navigation.Result.Committed(committed));
+      } else {
+        switch (
+          RouterPolicy.hashOnlyTarget(
+            ~location=committed.location,
+            ~action,
+            ~revalidate,
+            target,
+          )
+        ) {
+        | Some(hash) =>
+          guarded(~action, ~target, () =>
+            Js.Promise.resolve(updateHash(~hash, ~history=action, ()))
+          )
+        | None => guardedNavigate(~action, ~revalidate, target)
+        };
       };
     };
+    let navigate = (~history=Navigation.Push, ~revalidate=false, destination) =>
+      navigateUrl(
+        ~action=history,
+        ~revalidate,
+        RouterRuntime.href(destination),
+      );
     let (prefetcher, _) =
       React.useState(() => RouterPrefetch.make(~limit=4));
     let prefetchAborts = React.useRef([]);
@@ -1236,11 +1259,7 @@ module Provider = {
           | Some(url) when routed(url) =>
             preventDefault(event);
             let _ =
-              guardedNavigate(
-                ~action=Navigation.Push,
-                ~revalidate=false,
-                url,
-              );
+              navigateUrl(~action=Navigation.Push, ~revalidate=false, url);
             ();
           | Some(_)
           | None => ()
@@ -1409,6 +1428,31 @@ module Provider = {
       },
       [|Navigation.committed(model.navigationState)|],
     );
+    let latest =
+      React.useRef({
+        navigate,
+        invalidate,
+        updateSearch,
+        updateHash,
+      });
+    latest.current = {
+      navigate,
+      invalidate,
+      updateSearch,
+      updateHash,
+    };
+    let (stable, _) =
+      React.useState(() =>
+        {
+          navigate: (~history=?, ~revalidate=?, destination) =>
+            latest.current.navigate(~history?, ~revalidate?, destination),
+          invalidate: invalidation => latest.current.invalidate(invalidation),
+          updateSearch: (~owned, ~values, ~history=?, ()) =>
+            latest.current.updateSearch(~owned, ~values, ~history?, ()),
+          updateHash: (~hash, ~history=?, ()) =>
+            latest.current.updateHash(~hash, ~history?, ()),
+        }
+      );
     let committed = Navigation.committed(model.navigationState);
     React.createElement(
       RouterOutlet.provider,
@@ -1420,14 +1464,14 @@ module Provider = {
             {
               "value":
                 Some({
-                  navigate,
-                  invalidate,
+                  navigate: stable.navigate,
+                  invalidate: stable.invalidate,
                   navigation: Navigation.status(model.navigationState),
                   committed,
                   search:
                     RouterSearch.valuesFromString(committed.location.search),
-                  updateSearch,
-                  updateHash,
+                  updateSearch: stable.updateSearch,
+                  updateHash: stable.updateHash,
                   blockers,
                   blocked,
                 }),
@@ -1483,17 +1527,21 @@ let useBlocker = shouldBlock => {
     () => shouldBlock ? Some(RouterBlocker.retain(value.blockers)) : None,
     (shouldBlock, value.blockers),
   );
-  switch (value.blocked) {
-  | Some(request) when shouldBlock =>
-    Blocked({
-      target: request.target,
-      action: request.action,
-      proceed: () => RouterBlocker.proceed(value.blockers, request.id),
-      cancel: () => RouterBlocker.cancel(value.blockers, request.id),
-    })
-  | Some(_)
-  | None => Unblocked
-  };
+  let request = shouldBlock ? value.blocked : None;
+  React.useMemo2(
+    () =>
+      switch (request) {
+      | Some(request) =>
+        Blocked({
+          target: request.target,
+          action: request.action,
+          proceed: () => RouterBlocker.proceed(value.blockers, request.id),
+          cancel: () => RouterBlocker.cancel(value.blockers, request.id),
+        })
+      | None => Unblocked
+      },
+    (request, value.blockers),
+  );
 };
 
 module Link = {

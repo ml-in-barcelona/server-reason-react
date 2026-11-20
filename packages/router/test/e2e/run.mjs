@@ -484,6 +484,91 @@ check("hash-only navigate sends no request and scrolls to the fragment", async (
   return "requests: [], section at the top";
 });
 
+check("navigate to the current URL adds no entry and sends no request", async ({ page, net, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#navigate-current");
+  const length = await page.evaluate(() => history.length);
+  const mark = net.mark();
+  await page.click("#navigate-current");
+  await page.waitForFunction(() => document.querySelector("#navigate-result").textContent.startsWith("committed"));
+  const result = await page.textContent("#navigate-result");
+  await page.click(".link-self");
+  await page.click("#plain-self");
+  await absenceWindow(page);
+  const after = net.since(mark).filter((r) => (r.rsc && !r.prefetch) || r.document);
+  assert.equal(result, "committed /demo/router/e2e");
+  assert.deepEqual(after, [], "navigating to the current URL sent a request");
+  assert.equal(await page.evaluate(() => history.length), length, "navigating to the current URL added an entry");
+  assert.equal(page.url(), `${origin}/demo/router/e2e`);
+  return `navigate, Link and a plain anchor: ${result}, requests [], history +0`;
+});
+
+check("navigate to the current URL with revalidate navigates", async ({ page, net, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#navigate-current-revalidate");
+  const length = await page.evaluate(() => history.length);
+  const mark = net.mark();
+  await page.click("#navigate-current-revalidate");
+  await page.waitForFunction(() => document.querySelector("#navigate-result").textContent.startsWith("committed"));
+  const asked = navigations(net.since(mark), "/demo/router/e2e").length;
+  assert.equal(asked, 1, "expected one navigation request");
+  assert.equal(await page.evaluate(() => history.length), length + 1, "the navigation did not add one entry");
+  return `navigation requests ${asked}, history +1`;
+});
+
+check("navigate to the committed URL cancels a pending navigation", async ({ page, net, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#navigate-current");
+  let release;
+  const held = new Promise((resolve) => (release = resolve));
+  await page.route("**/demo/router/e2e/long", async (route) => {
+    if (route.request().headers()["router-prefetch"]) return route.continue();
+    await held;
+    await route.continue().catch(() => null);
+  });
+  const mark = net.mark();
+  const pending = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname === "/demo/router/e2e/long" && !request.headers()["router-prefetch"],
+  );
+  await page.evaluate(() => document.querySelector(".link-long").click());
+  await pending;
+  await page.evaluate(() => document.querySelector("#navigate-current").click());
+  await page.waitForFunction(() => document.querySelector("#navigate-result").textContent.startsWith("committed"));
+  release();
+  await absenceWindow(page);
+  const asked = navigations(net.since(mark), "/demo/router/e2e").length;
+  assert.equal(asked, 1, "navigating back to the committed URL did not run");
+  assert.equal(pathOf(page), "/demo/router/e2e");
+  assert.ok((await page.$("#e2e-long")) === null, "the pending navigation committed");
+  return `navigation requests to the committed URL ${asked}, stayed on the page`;
+});
+
+check("hook functions keep their identity across navigations and search updates", async ({ page, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#navigate-current-revalidate");
+  await page.click("#search-update");
+  await page.waitForURL(`${origin}/demo/router/e2e?text=identity`);
+  await page.click("#navigate-current-revalidate");
+  await page.waitForFunction(() => document.querySelector("#navigate-result").textContent.startsWith("committed"));
+  await page.click("#rerender");
+  await absenceWindow(page);
+  const mounted = await page.textContent("#hook-identity");
+  await page.click(".link-long");
+  await page.waitForSelector("#e2e-long");
+  await page.click(".layout-e2e");
+  await page.waitForSelector("#hook-identity");
+  await page.click("#toggle-blocker");
+  await page.click(".link-long");
+  await page.waitForFunction(() => document.querySelector("#blocker-state").textContent.startsWith("blocked"));
+  await page.click("#rerender");
+  await absenceWindow(page);
+  const remounted = await page.textContent("#hook-identity");
+  assert.equal(mounted, "stable", "after a search update and a navigation");
+  assert.equal(remounted, "stable", "after leaving the page, coming back and holding a navigation");
+  return `after a search update and a navigation: ${mounted}; after a remount and a held navigation: ${remounted}`;
+});
+
 check("server function invalidates the cache", async ({ page, net, origin }) => {
   await page.goto(`${origin}/demo/router/e2e`);
   await ready(page, 'a[href="/demo/router/0"]');

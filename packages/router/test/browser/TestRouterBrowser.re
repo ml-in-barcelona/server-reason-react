@@ -1000,6 +1000,88 @@ expect(
   == None,
 );
 
+let unchanged =
+    (
+      ~action=RouterRuntime.Navigation.Push,
+      ~revalidate=false,
+      ~status=RouterRuntime.Navigation.Idle,
+      href,
+    ) =>
+  RouterPolicy.unchangedTarget(
+    ~location=currentLocation,
+    ~status,
+    ~action,
+    ~revalidate,
+    href,
+  );
+expect(
+  "a push to the committed URL was not unchanged",
+  unchanged("/app/notes?q=a%20b&b=1#top"),
+);
+expect(
+  "a replace to the committed URL was not unchanged",
+  unchanged(
+    ~action=RouterRuntime.Navigation.Replace,
+    "/app/notes?b=1&q=a+b#top",
+  ),
+);
+expect(
+  "a navigation after a failed one to the committed URL was not unchanged",
+  unchanged(
+    ~status=
+      RouterRuntime.Navigation.Failed({
+        requestId: 1,
+        message: "failed",
+      }),
+    "/app/notes?b=1&q=a+b#top",
+  ),
+);
+expect(
+  "a revalidating navigation to the committed URL was unchanged",
+  !unchanged(~revalidate=true, "/app/notes?b=1&q=a+b#top"),
+);
+expect(
+  "a pop to the committed URL was unchanged",
+  !
+    unchanged(
+      ~action=RouterRuntime.Navigation.Pop,
+      "/app/notes?b=1&q=a+b#top",
+    ),
+);
+expect(
+  "a navigation to the committed URL during another navigation was unchanged",
+  !
+    unchanged(
+      ~status=
+        RouterRuntime.Navigation.Loading({
+          requestId: 2,
+          fromRevision: "r",
+          to_: {
+            ...currentLocation,
+            pathname: "/app/other",
+          },
+          action: RouterRuntime.Navigation.Push,
+        }),
+      "/app/notes?b=1&q=a+b#top",
+    ),
+);
+expect(
+  "a navigation without the committed hash was unchanged",
+  !unchanged("/app/notes?b=1&q=a+b"),
+);
+expect(
+  "a navigation to another hash was unchanged",
+  !unchanged("/app/notes?b=1&q=a+b#details"),
+);
+expect(
+  "a navigation to another search was unchanged",
+  !unchanged("/app/notes?b=2#top"),
+);
+expect(
+  "a navigation to another path was unchanged",
+  !unchanged("/app/other?b=1&q=a+b#top"),
+);
+
 expect(
   "a content navigation with a hash did not scroll to the fragment",
   RouterPolicy.scrollFor(

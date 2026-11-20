@@ -266,6 +266,26 @@ let hashOnlyTarget =
       ? Some(hash) : None;
   };
 
+let unchangedTarget =
+    (
+      ~location: RouterRuntime.Navigation.location,
+      ~status: RouterRuntime.Navigation.status,
+      ~action,
+      ~revalidate,
+      href,
+    ) =>
+  switch (action, status) {
+  | (RouterRuntime.Navigation.Pop, _)
+  | (_, RouterRuntime.Navigation.Loading(_)) => false
+  | (
+      RouterRuntime.Navigation.Push | RouterRuntime.Navigation.Replace,
+      RouterRuntime.Navigation.Idle | RouterRuntime.Navigation.Failed(_),
+    ) =>
+    !revalidate
+    && String.equal(hashOf(href), location.hash)
+    && isCurrent(~location, href)
+  };
+
 type scroll =
   | ScrollTo(float, float)
   | Fragment(string)

@@ -162,6 +162,9 @@ module E2e = {
   let make = (~search as _) =>
     <div className="flex flex-col gap-4 p-4" id="e2e-page">
       <h1> {React.string("Router checks")} </h1>
+      <a id="plain-self" href="/demo/router/e2e">
+        {React.string("Plain anchor to this page")}
+      </a>
       <a id="plain-route" href="/demo/router/e2e/long">
         {React.string("Plain anchor to a route")}
       </a>

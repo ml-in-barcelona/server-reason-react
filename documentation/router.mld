@@ -387,7 +387,11 @@ server does not include it.
 {2 Navigation}
 
 [Router.useNavigation] returns the imperative navigate function and the
-current navigation status:
+current navigation status. The navigate function is the same value for the
+provider's lifetime, so it is safe in [React.useCallback] or [React.useEffect]
+dependencies. So are the update functions of [useSearch], [useUpdateHash] and
+[useInvalidate]; a generated [useSearch] update function keeps its identity
+while its component stays mounted:
 
 {[
 let (navigate, status) = Router.useNavigation();
@@ -407,6 +411,13 @@ Navigating to a destination is a {e content} navigation. The client requests a
 Flight model and the server answers with a full model, or with a partial patch
 that reuses unchanged layouts. [~revalidate=true] forces a full response.
 [~history] selects [Push], [Replace], or [Pop].
+
+A [Push] or [Replace] to the committed URL (path, search in any order, and
+hash), without [~revalidate=true] and with no navigation in flight, does
+nothing: it adds no history entry, sends no request, and resolves to
+[Committed] with the committed location. The same holds for a [Link] or an
+intercepted click to the current page. While a navigation to another URL is
+in flight, a navigation to the committed URL runs and replaces it.
 
 A [Push] or [Replace] to a destination with the committed path and search and
 a non-empty hash, without [~revalidate=true], sends no request. It commits the
