@@ -8,6 +8,14 @@ let make = () => {
     navigate(Router.unsafeDestination("/demo/router/e2e/old")) |> ignore;
   let%melange_only onHash = _ =>
     navigate(Router.E2e.destination(~hash="section", ())) |> ignore;
+  let%melange_only onRefreshInPlace = _ =>
+    navigate(
+      ~history=Replace,
+      ~revalidate=true,
+      ~resetScroll=false,
+      Router.E2e.destination(),
+    )
+    |> ignore;
   let%melange_only onAction = _ => {
     setActionState("running");
     ServerFunctions.Notes.edit.call(
@@ -43,6 +51,9 @@ let make = () => {
     </button>
     <button id="navigate-hash" type_="button" onClick=onHash>
       {React.string("Navigate to the section")}
+    </button>
+    <button id="refresh-in-place" type_="button" onClick=onRefreshInPlace>
+      {React.string("Refresh in place")}
     </button>
     <button id="server-action" type_="button" onClick=onAction>
       {React.string("Run a server function")}

@@ -143,9 +143,10 @@ the generated helpers. Within one branch they must be unique. These labels
 belong to the generated API and cannot be used: [applicationStatus],
 [ariaCurrent], [basePath], [children], [className], [decodeError],
 [destination], [download], [error], [fallback], [hash], [history], [href],
-[input], [item], [make], [pattern], [registry], [revalidate], [routeSearch],
-[search], [target], [updateSearch], [unsafeDestination], [useNavigation],
-[useRoute], [useSearch], [useUpdateHash], [value], and [values]. The
+[input], [item], [make], [pattern], [registry], [resetScroll], [revalidate],
+[routeSearch], [search], [target], [updateSearch], [unsafeDestination],
+[useNavigation], [useRoute], [useSearch], [useUpdateHash], [value], and
+[values]. The
 generator reports a conflict at the route that uses the label.
 
 Search parameters are fields of one [search] record, not labelled arguments,
@@ -398,7 +399,11 @@ let isPending =
 Navigating to a destination is a {e content} navigation. The client requests a
 Flight model and the server answers with a full model, or with a partial patch
 that reuses unchanged layouts. [~revalidate=true] forces a full response.
-[~history] selects [Push], [Replace], or [Pop].
+[~history] selects [Push], [Replace], or [Pop]. [~resetScroll=false] keeps
+the scroll position and focus after a [Push] or [Replace], for a navigation
+that updates the page in place, such as a refresh after a server function or a
+change of filter. A hash in the destination still scrolls to its element, and
+the position of the entry it leaves is still saved for Back.
 
 A [Push] or [Replace] to a destination with the committed path and search and
 a non-empty hash, without [~revalidate=true], sends no request. It commits the
@@ -531,7 +536,8 @@ hands scroll restoration back to the browser, so a reload paints the saved
 position before the router hydrates. Back and Forward restore
 the saved position for content, search-only and hash-only entries. Without a
 saved position, a hash scrolls to and focuses its element; otherwise a content
-navigation focuses [#router-focus-root] when it exists and scrolls to the top.
+navigation focuses [#router-focus-root] when it exists and scrolls to the top,
+unless it was started with [~resetScroll=false].
 
 After each content navigation the provider writes the new [document.title]
 into a visually hidden [aria-live="polite"] region, so screen readers
@@ -620,6 +626,9 @@ is already prevented, the router does not navigate. On the server the link
 renders the same attributes and ignores both handlers. These props are on
 [RouterReact.Link] only: the generated per-route [Link]s do not
 take them, because they would clash with path parameters such as [id].
+Both kinds of [Link] take [~history], [~revalidate] and [~resetScroll] like
+[navigate]. A [Link] in a server component ignores them, because a click on it
+is handled like a plain anchor.
 
 A [Link] whose destination is the current location renders
 [aria-current="page"], unless [~ariaCurrent] is given. The destination is

@@ -470,6 +470,7 @@ let generated_labels =
     "make";
     "pattern";
     "registry";
+    "resetScroll";
     "revalidate";
     "routeSearch";
     "search";
