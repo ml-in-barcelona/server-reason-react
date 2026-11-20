@@ -2034,21 +2034,22 @@ let create_action_response ?env ?debug ?filter_stack_frame ?subscribe ?timeout ?
    React's processReply references use hex encoding, while FormData entries
    are keyed by the decimal representation of the part ID. *)
 let hex_to_formdata_key hex_id = Option.map string_of_int (int_of_string_opt ("0x" ^ hex_id))
+let ( let* ) = Result.bind
+let nesting_error max_depth = Error (Printf.sprintf "decodeReply: payload nesting is deeper than %d" max_depth)
 
 let check_reply_size ~max_depth ~max_bytes text =
   let length = String.length text in
-  let rec scan index depth in_string =
-    if index >= length then Ok ()
+  let rec scan i depth in_string =
+    if i >= length then Ok ()
     else
-      match (String.unsafe_get text index, in_string) with
-      | '\\', true -> scan (index + 2) depth true
-      | '"', _ -> scan (index + 1) depth (not in_string)
-      | ('[' | '{'), false ->
-          if depth >= max_depth then Error (Printf.sprintf "decodeReply: payload nesting is deeper than %d" max_depth)
-          else scan (index + 1) (depth + 1) false
-      | (']' | '}'), false -> scan (index + 1) (depth - 1) false
+      match (text.[i], in_string) with
+      | '\\', true -> scan (i + 2) depth true
+      | '"', _ -> scan (i + 1) depth (not in_string)
+      | ('[' | '{'), false when depth >= max_depth -> nesting_error max_depth
+      | ('[' | '{'), false -> scan (i + 1) (depth + 1) false
+      | (']' | '}'), false -> scan (i + 1) (depth - 1) false
       | '/', false -> Error "decodeReply: invalid JSON, '/' outside a string"
-      | _ -> scan (index + 1) depth in_string
+      | _ -> scan (i + 1) depth in_string
   in
   if length > max_bytes then
     Error (Printf.sprintf "decodeReply: payload is %d bytes, over the limit of %d" length max_bytes)
@@ -2060,13 +2061,11 @@ let resolve_from_formdata ~max_depth ~max_bytes formData hex_id =
   | Some key -> (
       try
         let (`String json_str) = Js.FormData.get formData key in
-        match check_reply_size ~max_depth ~max_bytes json_str with
-        | Error _ as error -> error
-        | Ok () -> (
-            match Yojson.Basic.from_string json_str with
-            | json -> Ok json
-            | exception Yojson.Json_error msg ->
-                Error (Printf.sprintf "decodeReply: invalid JSON in outlined entry %s: %s" key msg))
+        let* () = check_reply_size ~max_depth ~max_bytes json_str in
+        match Yojson.Basic.from_string json_str with
+        | json -> Ok json
+        | exception Yojson.Json_error msg ->
+            Error (Printf.sprintf "decodeReply: invalid JSON in outlined entry %s: %s" key msg)
       with Not_found -> Ok `Null)
   | None -> Ok `Null
 
@@ -2081,24 +2080,12 @@ let resolve_raw_from_formdata formData hex_id =
   | None -> Error (Printf.sprintf "decodeReply: Blob ($B) invalid hex ID: %s" hex_id)
 
 let unsupported name = Error (Printf.sprintf "decodeReply: %s is not supported" name)
-let ( let* ) = Result.bind
-
-let map_result f list =
-  let rec aux acc = function
-    | [] -> Ok (List.rev acc)
-    | x :: rest ->
-        let* v = f x in
-        aux (v :: acc) rest
-  in
-  aux [] list
 
 type decode_ctx = {
   formData : Js.FormData.t option;
   temporaryReferences : (string -> json option) option;
-  resolving : (string, unit) Hashtbl.t;
+  resolving : string list;
   decoded : (string, json * int * int) Hashtbl.t;
-  deepest : int ref;
-  values : int ref;
   depth : int;
   max_depth : int;
   max_bytes : int;
@@ -2116,52 +2103,63 @@ let resolve_temporary_reference ctx id =
           Error message)
   | None -> Error "decodeReply: Temporary Reference ($T) requires a temporaryReferences resolver"
 
+let leaf result = Result.map (fun json -> (json, 0, 0)) result
+
+let decode_all ctx decode items =
+  let rec go acc height count = function
+    | [] -> Ok (List.rev acc, height, count)
+    | item :: rest ->
+        let* value, item_height, item_count = decode item in
+        let count = count + item_count in
+        if count > ctx.max_bytes then
+          Error (Printf.sprintf "decodeReply: payload expands to more than %d values" ctx.max_bytes)
+        else go (value :: acc) (max height item_height) count rest
+  in
+  go [] 0 0 items
+
 (* Recursively decode a JSON value, resolving $-prefixed special strings. When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved by looking up the corresponding FormData entry and recursively decoding it. *)
-let too_deep ctx = Error (Printf.sprintf "decodeReply: payload nesting is deeper than %d" ctx.max_depth)
-
-let enter ctx =
-  let depth = ctx.depth + 1 in
-  if depth > !(ctx.deepest) then ctx.deepest := depth;
-  { ctx with depth }
-
-let count_values ctx count =
-  ctx.values := !(ctx.values) + count;
-  if !(ctx.values) > ctx.max_bytes then
-    Error (Printf.sprintf "decodeReply: payload expands to more than %d values" ctx.max_bytes)
-  else Ok ()
-
-let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
-  let* () = count_values ctx 1 in
+let rec decode_value (ctx : decode_ctx) (json : json) : (json * int * int, string) result =
+  let inner = { ctx with depth = ctx.depth + 1 } in
   match json with
-  | `String value when String.length value >= 2 && String.get value 0 = '$' -> decode_prefixed_value ctx value
-  | (`List _ | `Assoc _) when ctx.depth >= ctx.max_depth -> too_deep ctx
-  | `List items -> decode_list (enter ctx) items
-  | `Assoc pairs -> decode_assoc (enter ctx) pairs
-  | other -> Ok other
+  | `String value when String.length value >= 2 && String.get value 0 = '$' ->
+      let* value, height, count = decode_prefixed_value ctx value in
+      Ok (value, height, count + 1)
+  | (`List _ | `Assoc _) when ctx.depth >= ctx.max_depth -> nesting_error ctx.max_depth
+  | `List items ->
+      let* items, height, count = decode_all ctx (decode_value inner) items in
+      Ok (`List items, height + 1, count + 1)
+  | `Assoc pairs ->
+      let decode_pair (key, value) =
+        let* value, height, count = decode_value inner value in
+        Ok ((key, value), height, count)
+      in
+      let* pairs, height, count = decode_all ctx decode_pair pairs in
+      Ok (`Assoc pairs, height + 1, count + 1)
+  | other -> Ok (other, 0, 1)
 
 and decode_prefixed_value ctx value =
   let len = String.length value in
   let payload = String.sub value 2 (len - 2) in
   match String.get value 1 with
-  | '$' -> Ok (`String (String.sub value 1 (len - 1)))
-  | 'u' -> Ok `Null
-  | 'K' -> Ok `Null
-  | 'D' -> Ok (`String payload)
-  | 'n' -> Ok (`String payload)
-  | 'N' -> Ok (`Float Float.nan)
-  | 'I' -> Ok (`Float Float.infinity)
-  | '-' -> Ok (if String.equal value "$-0" then `Float (-0.) else `Float Float.neg_infinity)
+  | '$' -> leaf (Ok (`String (String.sub value 1 (len - 1))))
+  | 'u' -> leaf (Ok `Null)
+  | 'K' -> leaf (Ok `Null)
+  | 'D' -> leaf (Ok (`String payload))
+  | 'n' -> leaf (Ok (`String payload))
+  | 'N' -> leaf (Ok (`Float Float.nan))
+  | 'I' -> leaf (Ok (`Float Float.infinity))
+  | '-' -> leaf (Ok (if String.equal value "$-0" then `Float (-0.) else `Float Float.neg_infinity))
   | 'Q' -> decode_outlined_map ctx payload
   | 'W' -> resolve_outlined ctx "Set ($W)" payload
   | 'i' -> resolve_outlined ctx "Iterator ($i)" payload
   | 'F' -> resolve_outlined ctx "Server Reference ($F)" payload
-  | 'T' -> resolve_temporary_reference ctx payload
+  | 'T' -> leaf (resolve_temporary_reference ctx payload)
   | '@' -> unsupported "Promise ($@)"
   | ('A' | 'O' | 'o' | 'U' | 'S' | 's' | 'L' | 'l' | 'G' | 'g' | 'M' | 'm' | 'V') as prefix ->
       unsupported (Printf.sprintf "TypedArray/ArrayBuffer ($%c)" prefix)
   | 'B' -> (
       match ctx.formData with
-      | Some formData -> resolve_raw_from_formdata formData payload
+      | Some formData -> leaf (resolve_raw_from_formdata formData payload)
       | None -> Error "decodeReply: Blob ($B) requires FormData for resolution")
   | 'R' -> unsupported "ReadableStream ($R)"
   | 'r' -> unsupported "ReadableStream bytes ($r)"
@@ -2170,46 +2168,25 @@ and decode_prefixed_value ctx value =
   | _ -> (
       match ctx.formData with
       | Some formData -> resolve_and_decode_outlined ctx formData (String.sub value 1 (len - 1))
-      | None -> Ok `Null)
+      | None -> leaf (Ok `Null))
 
-and decode_list ctx items =
-  let* items = map_result (decode_value ctx) items in
-  Ok (`List items)
-
-and decode_assoc ctx pairs =
-  let* pairs =
-    map_result
-      (fun (key, value) ->
-        let* value = decode_value ctx value in
-        Ok (key, value))
-      pairs
-  in
-  Ok (`Assoc pairs)
-
-(* The cycle check keys on the decimal FormData key, not the hex id, so alternate hex spellings of the same entry (e.g. "1" vs "01") cannot evade the guard. Each hop into an entry is one level of depth. A cached entry stores how many levels it nests below its reference and how many values it expands to, so a reuse still counts against max_depth and the value limit. *)
+(* The cycle check keys on the decimal FormData key, not the hex id, so alternate hex spellings of the same entry (e.g. "1" vs "01") cannot evade the guard. A reference adds one level. The cache keeps the height and value count, so a reuse still counts against both limits. *)
 and resolve_and_decode_outlined ctx fd hex_id =
   let entry_key = Option.value (hex_to_formdata_key hex_id) ~default:hex_id in
-  if Hashtbl.mem ctx.resolving entry_key then
+  if List.mem entry_key ctx.resolving then
     Error (Printf.sprintf "decodeReply: cyclic reference to outlined entry %s" entry_key)
   else
     match Hashtbl.find_opt ctx.decoded entry_key with
-    | Some (_, height, _) when ctx.depth + height > ctx.max_depth -> too_deep ctx
-    | Some (decoded, height, values) ->
-        if ctx.depth + height > !(ctx.deepest) then ctx.deepest := ctx.depth + height;
-        let* () = count_values ctx values in
-        Ok decoded
-    | None when ctx.depth >= ctx.max_depth -> too_deep ctx
+    | Some (_, height, _) when ctx.depth + height > ctx.max_depth -> nesting_error ctx.max_depth
+    | Some decoded -> Ok decoded
+    | None when ctx.depth >= ctx.max_depth -> nesting_error ctx.max_depth
     | None ->
         let* resolved = resolve_from_formdata ~max_depth:ctx.max_depth ~max_bytes:ctx.max_bytes fd hex_id in
-        let outer_deepest = !(ctx.deepest) in
-        let values_before = !(ctx.values) in
-        ctx.deepest := ctx.depth;
-        Hashtbl.replace ctx.resolving entry_key ();
-        let* decoded = decode_value (enter ctx) resolved in
-        Hashtbl.remove ctx.resolving entry_key;
-        let height = !(ctx.deepest) - ctx.depth in
-        ctx.deepest := max outer_deepest !(ctx.deepest);
-        Hashtbl.replace ctx.decoded entry_key (decoded, height, !(ctx.values) - values_before);
+        let* value, height, count =
+          decode_value { ctx with depth = ctx.depth + 1; resolving = entry_key :: ctx.resolving } resolved
+        in
+        let decoded = (value, height + 1, count) in
+        Hashtbl.replace ctx.decoded entry_key decoded;
         Ok decoded
 
 and resolve_outlined ctx type_name hex_id =
@@ -2219,19 +2196,17 @@ and resolve_outlined ctx type_name hex_id =
 
 (* Maps are serialized as [[key, value], ...]. If all keys are strings, converts to Assoc for ergonomic use with Melange_json decoders. Otherwise preserves the List of pairs representation. *)
 and decode_outlined_map ctx hex_id =
-  match resolve_outlined ctx "Map ($Q)" hex_id with
-  | Error _ as err -> err
-  | Ok resolved -> (
-      match resolved with
-      | `List pairs ->
-          let all_string_keys, assoc_pairs =
-            List.fold_left
-              (fun (all_ok, acc) pair ->
-                match pair with `List [ `String k; v ] -> (all_ok, (k, v) :: acc) | _ -> (false, acc))
-              (true, []) pairs
-          in
-          Ok (if all_string_keys then `Assoc (List.rev assoc_pairs) else resolved)
-      | other -> Ok other)
+  let* resolved, height, count = resolve_outlined ctx "Map ($Q)" hex_id in
+  match resolved with
+  | `List pairs ->
+      let all_string_keys, assoc_pairs =
+        List.fold_left
+          (fun (all_ok, acc) pair ->
+            match pair with `List [ `String k; v ] -> (all_ok, (k, v) :: acc) | _ -> (false, acc))
+          (true, []) pairs
+      in
+      Ok ((if all_string_keys then `Assoc (List.rev assoc_pairs) else resolved), height, count)
+  | other -> Ok (other, height, count)
 
 let protect_reply_decode decode = try decode () with Stack_overflow -> Error "decodeReply: payload nesting too deep"
 
@@ -2246,20 +2221,10 @@ let default_max_depth = 512
 let default_max_bytes = 1_048_576
 
 let decode_context ~max_depth ~max_bytes ~formData ~temporaryReferences =
-  {
-    formData;
-    temporaryReferences;
-    resolving = Hashtbl.create 8;
-    decoded = Hashtbl.create 8;
-    deepest = ref 1;
-    values = ref 0;
-    depth = 1;
-    max_depth;
-    max_bytes;
-  }
+  { formData; temporaryReferences; resolving = []; decoded = Hashtbl.create 8; depth = 1; max_depth; max_bytes }
 
 let decode_arguments ctx arguments =
-  let* arguments = map_result (decode_value ctx) arguments in
+  let* arguments, _, _ = decode_all ctx (decode_value ctx) arguments in
   Ok (Array.of_list arguments)
 
 let decodeReply ?temporaryReferences ?(max_depth = default_max_depth) ?(max_bytes = default_max_bytes) body =

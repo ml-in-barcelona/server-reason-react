@@ -116,12 +116,8 @@ let _ =
      })
   |> Js.Promise.then_(error => {
        switch (error) {
-       | Some(
-           ReactServerDOMEsbuild.ServerCallFailed({
-             status: 500,
-             body: "database unavailable",
-           }),
-         ) =>
+       | Some(Failure(message))
+           when message == "fetchCallServer: 500 database unavailable" =>
          ()
        | Some(_) => failwith("a failed response rejected with another error")
        | None => failwith("a failed response resolved")

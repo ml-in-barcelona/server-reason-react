@@ -129,19 +129,10 @@ let onServerCallRedirect = listener => {
       List.filter(other => other !== listener, serverCallRedirectListeners^);
 };
 
-/** The rejection of a {!fetchCallServer} call whose response status is not
-    2xx. [body] is the response text. */
-
-exception
-  ServerCallFailed({
-    status: int,
-    body: string,
-  });
-
 /** A [callServer] that posts each call to [url] with the [ACTION_ID] header,
     decodes the Flight result, and reports a [Router-Redirect] header to the
-    {!onServerCallRedirect} listeners. A response with a status outside 2xx
-    rejects with {!ServerCallFailed} and is not decoded. */
+    {!onServerCallRedirect} listeners. A non-2xx response rejects with
+    [Failure("fetchCallServer: <status> <body>")]. */
 let fetchCallServer = (~url="/", ()): callServer =>
   (path, args) =>
     encodeReply(args)
@@ -165,10 +156,12 @@ let fetchCallServer = (~url="/", ()): callServer =>
            Fetch.Response.text(response)
            |> Js.Promise.then_(body =>
                 Js.Promise.reject(
-                  ServerCallFailed({
-                    status: Fetch.Response.status(response),
-                    body,
-                  }),
+                  Failure(
+                    "fetchCallServer: "
+                    ++ string_of_int(Fetch.Response.status(response))
+                    ++ " "
+                    ++ body,
+                  ),
                 )
               );
          } else {

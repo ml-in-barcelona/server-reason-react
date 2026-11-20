@@ -59,21 +59,13 @@ type server_function =
   | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.model_value Lwt.t)
   | Body of (Yojson.Basic.t array -> React.model_value Lwt.t)
 
-(** Decode the arguments of a server function call from an untrusted request.
+(** Decode the arguments of a server function call.
 
-    [max_bytes] (default 1048576) limits the byte length of each JSON text that is parsed: the body for [decodeReply];
-    the root entry and each outlined entry for [decodeFormDataReply]. Blob ([$B]) entries are not parsed and are not
-    limited. A text with a ['/'] outside a string, such as a comment, is rejected.
-
-    [max_depth] (default 512) limits nesting. The root argument array is level 1, and each array, object and reference
-    to an outlined entry adds one level. Byte size and nesting inside one text are checked before the text is parsed.
-
-    The decoded arguments may hold at most [max_bytes] JSON values in total. An outlined entry that is referenced more
-    than once counts once for each reference, so a small payload cannot expand to a huge value.
-
-    A payload over a limit returns [Error], with a message that starts with ["decodeReply:"], like every other decode
-    error. To accept larger payloads, pass a larger [~max_bytes] (and [~max_depth] if needed), and limit the HTTP body
-    size in the server as well. *)
+    [max_bytes] (default 1048576) limits each parsed JSON text (the body, or the FormData root and each outlined entry;
+    Blob entries are not limited) and the total number of decoded JSON values, where an outlined entry counts once per
+    reference. [max_depth] (default 512) limits nesting: the argument array is level 1, and each array, object and
+    outlined reference adds one level. A ['/'] outside a string is rejected. Over a limit, the result is
+    [Error "decodeReply: ..."]. *)
 
 val decodeReply :
   ?temporaryReferences:(string -> Yojson.Basic.t option) ->
