@@ -951,6 +951,18 @@ let server_function_reference_args_error = () =>
     "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
   );
 
+let server_function_reference_args_error_is_truncated = () =>
+  expect_rejection(
+    () =>
+      body_handler(
+        ServerFunction.simpleResponse.id,
+        [|`String("John"), `String(Stdlib.String.make(1000, 'a'))|],
+      ),
+    "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \""
+    ++ Stdlib.String.make(199, 'a')
+    ++ "...",
+  );
+
 let server_function_reference_too_few_args = () =>
   expect_rejection(
     () =>
@@ -1676,6 +1688,10 @@ Alcotest_lwt.run(
     test_lwt(
       "server_function_reference_args_error",
       server_function_reference_args_error,
+    ),
+    test_lwt(
+      "server_function_reference_args_error_is_truncated",
+      server_function_reference_args_error_is_truncated,
     ),
     test_lwt(
       "server_function_reference_too_few_args",

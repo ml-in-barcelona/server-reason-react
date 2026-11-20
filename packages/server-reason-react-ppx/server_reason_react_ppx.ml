@@ -1617,7 +1617,10 @@ module ServerFunction = struct
                        (Stdlib.Printf.sprintf
                           "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
                           [%e estring ~loc label] [%e estring ~loc core_type_string]
-                          (Stdlib.Array.unsafe_get args [%e eint ~loc i] |> Yojson.Basic.to_string)))])
+                          (let received = Yojson.Basic.to_string (Stdlib.Array.unsafe_get args [%e eint ~loc i]) in
+                           if Stdlib.String.length received > 200 then
+                             Stdlib.( ^ ) (Stdlib.String.sub received 0 200) "..."
+                           else received)))])
 
   let create_function_reference_registration ~loc ~id ~function_name ~args ~core_type =
     let apply_args = map_arguments_to_expressions ~loc args in
