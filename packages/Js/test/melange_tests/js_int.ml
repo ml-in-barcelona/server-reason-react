@@ -1,8 +1,3 @@
-(** Ported from Melange's test suite: jscomp/test/js_int_test.ml (melange 6.0.1-54).
-
-    Melange's ThrowAny cases map to [throws]: natively toExponential/toPrecision/toString raise Invalid_argument on
-    out-of-range digits/radix (see Js_int.mli), matching JS RangeError behaviour. *)
-
 open Helpers
 open Js.Int
 
@@ -10,9 +5,7 @@ let throws fn = match fn () with exception _ -> () | _ -> Alcotest.fail "expecte
 
 let tests =
   [
-    test "toExponential without digits" (fun () ->
-        (* melange js_int_test.ml; node: (123456).toExponential() = "1.23456e+5" *)
-        assert_string (Js.Int.toExponential 123456) "1.23456e+5");
+    test "toExponential without digits" (fun () -> assert_string (Js.Int.toExponential 123456) "1.23456e+5");
     test "toExponentialWithPrecision - digits:2" (fun () -> assert_string (toExponential 123456 ~digits:2) "1.23e+5");
     test "toExponentialWithPrecision - digits:4" (fun () -> assert_string (toExponential 123456 ~digits:4) "1.2346e+5");
     test "toExponentialWithPrecision - digits:20" (fun () ->

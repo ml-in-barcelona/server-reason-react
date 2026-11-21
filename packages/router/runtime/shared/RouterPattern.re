@@ -316,8 +316,6 @@ let isShapePrefixSegments = (prefix, pattern) => {
   loop(prefix, pattern);
 };
 
-/* Lexicographic (static count, finite shape) encoded as one int: a route
-   without a catch-all beats a catch-all route with the same static count. */
 let specificitySegments = segments => {
   let (statics, finite) =
     List.fold_left(
@@ -405,9 +403,6 @@ let render = (pattern, ~parameter, ~encodeStatic, ~encodeParameter) => {
   loop([], pattern);
 };
 
-/* Melange strings are UTF-16 and native strings are UTF-8 bytes; a quoted
-   [js] literal is the only way to tell them apart without a ppx, because the
-   generator compiles this file with none. */
 let unicodeStrings = String.length({js|é|js}) == 1;
 
 let utf8 = value =>

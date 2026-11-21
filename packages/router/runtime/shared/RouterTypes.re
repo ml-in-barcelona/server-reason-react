@@ -495,9 +495,6 @@ module Navigation = {
     };
 };
 
-/* A catch-all capture travels as one string. Percent decoding rejects encoded
-   slashes, so a decoded segment can never contain '/', which makes the join
-   reversible. */
 module CatchAll = {
   let parse = value => Ok(String.split_on_char('/', value));
 
@@ -528,8 +525,6 @@ module Search = {
   let defaultOptions = { history: Navigation.Replace };
 
   let parseString = value => Ok(value);
-  /* Plain decimal only: int_of_string_opt also takes 0x/0b/0o prefixes, `_` and `+`, and native ints are wider than
-     Melange's 32-bit ones, so the range is checked explicitly to behave the same on both. */
   let parseInt = value => {
     let length = String.length(value);
     let start = length > 0 && value.[0] == '-' ? 1 : 0;

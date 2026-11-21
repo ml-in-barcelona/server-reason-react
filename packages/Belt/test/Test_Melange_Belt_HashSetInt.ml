@@ -1,5 +1,3 @@
-(* Ported from melange jscomp/test/bs_hashset_int_test.ml *)
-
 module N = Belt.HashSet.Int
 module S = Belt.Set.Int
 module A = Belt.Array

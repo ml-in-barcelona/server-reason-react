@@ -1,5 +1,3 @@
-(** JavaScript Iterator API *)
-
 type 'a t
 type 'a value = { done_ : bool option; value : 'a option }
 

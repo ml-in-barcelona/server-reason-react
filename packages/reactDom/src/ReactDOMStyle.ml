@@ -346,8 +346,6 @@ let make
   ?(rubyMerge : string option)
   ?(rubyPosition : string option)
   () =
-  (* The order of addition matters since it will need to be the same order as the JS object defined in
-     https://github.com/reasonml/reason-react/blob/3327dc214905c4b2863b19807aaac375633645cf/src/dOMStyle.re *)
   let acc = [] in
   let acc = match azimuth with Some v -> ("azimuth", "azimuth", v) :: acc | None -> acc in
   let acc = match background with Some v -> ("background", "background", v) :: acc | None -> acc in
@@ -698,8 +696,6 @@ let write_to_buffer buf (styles : t) : unit =
   let rec loop first = function
     | [] -> ()
     | (k, _, v) :: rest ->
-        (* Skip empty values structurally, not with [==]: it must match the
-           PPX static fold. *)
         if String.length v = 0 then loop first rest
         else (
           if not first then Buffer.add_char buf ';';

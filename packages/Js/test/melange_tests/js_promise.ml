@@ -1,8 +1,3 @@
-(** Ported from Melange's test suite: jscomp/test/js_promise_basic_test.ml (melange 6.0.1-54).
-
-    Js.Promise.t is Lwt.t natively, so each promise chain is built with the Js.Promise API and awaited inside an
-    Alcotest_lwt test case. *)
-
 open Helpers
 open Js.Promise
 
@@ -11,8 +6,6 @@ let test_sync title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let ok cond = assert_true "expected true" cond
 let fail _ = assert false
 let h = resolve ()
-
-(* Melange uses [(function[@mel.open] Not_found -> 0)]; natively [Js.Promise.error] is [exn], so a plain match works. *)
 let assert_is_not_found (x : Js.Promise.error) = match x with Not_found -> h | _ -> assert false
 let is_not_found (error : exn) = match error with Not_found -> true | _ -> false
 let twop = resolve 2
@@ -85,7 +78,6 @@ let tests =
         let promises = [| p1; p2; p3 |] in
         all promises |> then_ fail
         |> catch (fun error ->
-            (* melange needs [Obj.magic error]; natively [error] is already [exn] *)
             ok (is_not_found error);
             h));
     test "raceTest" (fun () ->
@@ -111,11 +103,9 @@ let tests =
             assert_int a 2;
             assert_int b 3;
             Js.Promise.resolve ()));
-    (* Mt.from_promise_suites *)
     test "twop Eq(x, 2)" (fun () -> twop |> then_ (fun x -> resolve @@ assert_int x 2));
     test "twop Neq(x, 3)" (fun () -> twop |> then_ (fun x -> resolve @@ ok (x <> 3)));
     test_sync "race [||] stays pending like JS" (fun () ->
-        (* node: Promise.race([]) never settles *)
         match Lwt.state (Js.Promise.race [||]) with
         | Lwt.Sleep -> ()
         | _ -> Alcotest.fail "expected a forever-pending promise");
@@ -129,7 +119,6 @@ let tests =
         Lwt.wakeup resolve_slow "slow";
         assert_settled slow (Ok "slow"));
     test_sync "race of settled inputs picks the first in array order" (fun () ->
-        (* node: Promise.race([Promise.reject(e), Promise.resolve(1)]) rejects with e *)
         for _ = 1 to 100 do
           assert_settled (race [| reject Not_found; resolve 1 |]) (Error Not_found);
           assert_settled (race [| resolve 1; resolve 2; reject Not_found |]) (Ok 1)
@@ -149,7 +138,6 @@ let tests =
         in
         assert_settled p (Ok 1));
     test_sync "make rejects when the executor raises" (fun () ->
-        (* node: new Promise(() => { throw e }) rejects with e *)
         let p = make (fun ~resolve:_ ~reject:_ -> raise Not_found) in
         assert_settled p (Error Not_found));
     test_sync "make ignores a raise after resolve" (fun () ->
@@ -167,7 +155,6 @@ let tests =
         !saved 2;
         assert_settled p (Ok 1));
     test_sync "all2 rejects as soon as any input rejects" (fun () ->
-        (* node: Promise.all([pending, Promise.reject(e)]) rejects with e without waiting *)
         let a, resolve_a = Lwt.wait () in
         let b, resolve_b = Lwt.wait () in
         let p = all2 (a, b) in
@@ -237,17 +224,12 @@ let tests =
         Lwt.wakeup resolve_b 2;
         assert_settled p (Ok [| 1; 2; 3 |]));
     test_sync "all of settled rejections picks the first in array order" (fun () ->
-        (* node: Promise.all([Promise.reject(a), Promise.reject(b)]) rejects with a *)
         assert_settled (all [| resolve 1; reject Not_found; reject Exit |]) (Error Not_found));
-    test_sync "all [||] fulfils with [||]" (fun () ->
-        (* node: Promise.all([]) fulfils with [] *)
-        assert_settled (all [||]) (Ok [||]));
+    test_sync "all [||] fulfils with [||]" (fun () -> assert_settled (all [||]) (Ok [||]));
     test_sync "then_ turns a raising callback into a rejection" (fun () ->
-        (* node: Promise.resolve(1).then(() => { throw e }) rejects with e *)
         let p = resolve 1 |> then_ (fun _ -> raise Not_found) in
         assert_settled p (Error Not_found));
     test_sync "catch turns a raising handler into a rejection" (fun () ->
-        (* node: Promise.reject(a).catch(() => { throw b }) rejects with b *)
         let p = reject Not_found |> catch (fun _ -> raise Exit) in
         assert_settled p (Error Exit));
   ]

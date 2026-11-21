@@ -345,7 +345,6 @@
       uploadSection.style.display = 'none';
       results.classList.add('visible');
 
-      // Calculate summary stats
       const allResults = data.frameworks.flatMap(f =>
         f.scenarios.map(s => ({ ...s, framework: f.name }))
       );
@@ -353,7 +352,6 @@
       const nativeResults = allResults.filter(r => r.framework === 'dream-native');
       const jsResults = allResults.filter(r => r.framework !== 'dream-native');
 
-      // Stats grid
       const statsGrid = document.getElementById('statsGrid');
 
       const avgNativeRps = nativeResults.reduce((a, b) => a + b.requestsPerSec, 0) / nativeResults.length || 0;
@@ -383,17 +381,14 @@
         </div>
       `;
 
-      // Charts
       renderCharts(data);
 
-      // Table
       renderTable(data);
     }
 
     function renderCharts(data) {
       const scenarios = [...new Set(data.frameworks.flatMap(f => f.scenarios.map(s => s.key)))];
 
-      // RPS Chart
       const rpsCtx = document.getElementById('rpsChart').getContext('2d');
       if (rpsChart) rpsChart.destroy();
 
@@ -436,7 +431,6 @@
         },
       });
 
-      // Latency Chart
       const latencyCtx = document.getElementById('latencyChart').getContext('2d');
       if (latencyChart) latencyChart.destroy();
 
@@ -484,7 +478,6 @@
       const tbody = document.querySelector('#resultsTable tbody');
       tbody.innerHTML = '';
 
-      // Group by scenario to find winners
       const scenarioWinners = {};
       const scenarios = [...new Set(data.frameworks.flatMap(f => f.scenarios.map(s => s.key)))];
 
@@ -528,7 +521,6 @@
       });
     }
 
-    // Demo data for testing (remove in production)
     const demoData = {
       timestamp: new Date().toISOString(),
       frameworks: [
@@ -550,9 +542,6 @@
         },
       ],
     };
-
-    // Uncomment to auto-load demo data:
-    // renderResults(demoData);
   </script>
 </body>
 </html>

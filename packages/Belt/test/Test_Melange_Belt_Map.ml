@@ -1,5 +1,3 @@
-(* Ported from melange jscomp/test/bs_map_test.ml *)
-
 module M = Belt.Map.Int
 module A = Belt.Array
 

@@ -62,12 +62,7 @@ let peek q = match Js.nullToOption (first q) with None -> None | Some v -> Some 
 let peekUndefined q =
   match Js.nullToOption (first q) with None -> Js.undefined | Some v -> Js.Undefined.return (content v)
 
-let peekExn q =
-  match Js.nullToOption (first q) with
-  | None ->
-      (* Melange raises Not_found here *)
-      raise Stdlib.Not_found
-  | Some v -> content v
+let peekExn q = match Js.nullToOption (first q) with None -> raise Stdlib.Not_found | Some v -> content v
 
 let pop q =
   match Js.nullToOption (first q) with
@@ -84,9 +79,7 @@ let pop q =
 
 let popExn q =
   match Js.nullToOption (first q) with
-  | None ->
-      (* Melange raises Not_found here *)
-      raise Stdlib.Not_found
+  | None -> raise Stdlib.Not_found
   | Some x ->
       let next = next x in
       if next = Js.null then (

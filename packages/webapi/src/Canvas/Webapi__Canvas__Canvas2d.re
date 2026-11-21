@@ -1,11 +1,10 @@
-[@warning "-32"]; /* Since we tag with melange_only, there are 2 bindings that aren't used */
+[@warning "-32"];
 
-type t; /* Main type, representing the 2d canvas rendering context object */
+type t;
 type gradient;
 type pattern;
 type measureText;
 
-/* Sub-modules (and their interfaces) for string enum arguments: */
 module type CompositeType = {
   type t = pri string;
 
@@ -79,11 +78,9 @@ type style(_) =
   | Gradient: style(gradient)
   | Pattern: style(pattern);
 
-/* 2d Canvas API, following https://simon.html5.org/dump/html5-canvas-cheat-sheet.html */
 [@mel.send.pipe: t] external save: unit = "save";
 [@mel.send.pipe: t] external restore: unit = "restore";
 
-/* Transformation */
 [@mel.send.pipe: t] external scale: (~x: float, ~y: float) => unit = "scale";
 [@mel.send.pipe: t] external rotate: float => unit = "rotate";
 [@mel.send.pipe: t]
@@ -113,25 +110,19 @@ external setTransform:
   unit =
   "setTransform";
 
-/* Compositing */
 [@mel.set] external globalAlpha: (t, float) => unit = "globalAlpha";
 [@mel.set]
 external globalCompositeOperation: (t, Composite.t) => unit =
   "globalCompositeOperation";
 
-/* Line Styles */
 [@mel.set] external lineWidth: (t, float) => unit = "lineWidth";
 [@mel.set] external lineCap: (t, LineCap.t) => unit = "lineCap";
 [@mel.set] external lineJoin: (t, LineJoin.t) => unit = "lineJoin";
 [@mel.set] external miterLimit: (t, float) => unit = "miterLimit";
 
-/* Colors, Styles, and Shadows */
 [@mel.set] external setFillStyle: (t, 'a) => unit = "fillStyle";
 [@mel.set] external setStrokeStyle: (t, 'a) => unit = "strokeStyle";
 
-/* in re unused warnings
-   awaiting release of https://github.com/bloomberg/bucklescript/issues/1656
-   to just use [@@mel.set] directly with an ignored (style a) */
 let setStrokeStyle = (type a, ctx: t, _: style(a), v: a) =>
   setStrokeStyle(ctx, v);
 
@@ -169,7 +160,6 @@ let%melange_only strokeStyle = (ctx: t) => ctx |> strokeStyle |> reifyStyle;
 [@mel.set] external shadowBlur: (t, float) => unit = "shadowBlur";
 [@mel.set] external shadowColor: (t, string) => unit = "shadowColor";
 
-/* Gradients */
 [@mel.send.pipe: t]
 external createLinearGradient:
   (~x0: float, ~y0: float, ~x1: float, ~y1: float) => gradient =
@@ -195,7 +185,6 @@ external createPattern:
   pattern =
   "createPattern";
 
-/* Paths */
 [@mel.send.pipe: t] external beginPath: unit = "beginPath";
 [@mel.send.pipe: t] external closePath: unit = "closePath";
 [@mel.send.pipe: t] external fill: unit = "fill";
@@ -240,7 +229,6 @@ external rect: (~x: float, ~y: float, ~w: float, ~h: float) => unit = "rect";
 [@mel.send.pipe: t]
 external isPointInPath: (~x: float, ~y: float) => bool = "isPointInPath";
 
-/* Text */
 [@mel.set] external font: (t, string) => unit = "font";
 [@mel.set] external textAlign: (t, string) => unit = "textAlign";
 [@mel.set] external textBaseline: (t, string) => unit = "textBaseline";
@@ -254,7 +242,6 @@ external strokeText: (string, ~x: float, ~y: float, ~maxWidth: float=?) => unit 
 external measureText: string => measureText = "measureText";
 [@mel.get] external width: measureText => float = "width";
 
-/* Rectangles */
 [@mel.send.pipe: t]
 external fillRect: (~x: float, ~y: float, ~w: float, ~h: float) => unit =
   "fillRect";

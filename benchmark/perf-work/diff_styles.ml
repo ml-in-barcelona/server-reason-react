@@ -1,4 +1,3 @@
-(* Compare output of a known style, expected vs actual *)
 let () =
   let s =
     ReactDOM.Style.make ~backgroundColor:"#ffffff" ~padding:"16px" ~margin:"8px" ~borderRadius:"8px"

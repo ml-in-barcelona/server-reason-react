@@ -14,10 +14,6 @@ let _ = nodeName(node);
 let _ = nodeType(node);
 let _ = nodeValue(node);
 let _ = setNodeValue(node, Js.Null.return("foo"));
-/* Not supported yet
-   let _ = setNodeValue(node, "foo");
-   let _ = clearNodeValue(node);
-   */
 let _ = ownerDocument(node);
 let _ = parentNode(node);
 let _ = parentElement(node);
@@ -35,7 +31,6 @@ let _ = getRootNode(node);
 let _ = getRootNodeComposed(node);
 let _ = hasChildNodes(node);
 let _ = insertBefore(node2, node3, node);
-/***let _ = insertBefore(node2, None, node);*/
 let _ = isDefaultNamespace("http://...", node);
 let _ = isEqualNode(node2, node);
 let _ = isSameNode(node2, node);

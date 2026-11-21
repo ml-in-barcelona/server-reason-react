@@ -1,15 +1,8 @@
-(** Ported from Melange's test suite: jscomp/test/js_dict_test.ml (melange 6.0.1-54).
-
-    The [%obj] literal used to build the sample dict is replaced with [Js.Dict.fromList]. Order-dependent assertions on
-    [keys]/[entries]/[values] are compared order-insensitively: native iteration order is Hashtbl bucket order, not
-    insertion order. *)
-
 open Helpers
 open Js.Dict
 
 let obj () = fromList [ ("foo", 43); ("bar", 86) ]
 
-(* order-insensitive: native iteration order is Hashtbl bucket order *)
 let sorted a =
   let a = Stdlib.Array.copy a in
   Stdlib.Array.sort compare a;

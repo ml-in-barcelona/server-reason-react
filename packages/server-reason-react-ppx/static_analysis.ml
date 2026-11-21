@@ -1,33 +1,8 @@
 open Ppxlib
 
 type static_attr_value = Static_string of string | Static_int of int | Static_bool of bool
-
-(* [is_event] distinguishes real attributes from synthetic [Event] entries
-   whose [kind] has been coerced to [String] for downstream code that only
-   cares about the HTML serialization shape. Events must never be inlined
-   into a [Writer.emit] body because their runtime value is a function,
-   not a string.
-
-   See [React.Writer] (React.ml). *)
 type attr_render_info = { html_name : string; is_boolean : bool; kind : DomProps.attributeType; is_event : bool }
 
-(* A [static_part] is the unit of work inside a [React.Writer.emit] function:
-   either a pre-baked string or a hole that must be filled at render time.
-
-   [Dynamic_attr_slot] emits an attribute (possibly zero width) based on a
-   runtime expression. [~is_optional] distinguishes [?foo] (expression is an
-   [option]) from [foo={...}] (expression is the unwrapped value). The
-   emission side uses [kind] from [info] to pick the right runtime
-   serialization.
-
-   [Static_str] carries text-edge metadata so the emission side can place
-   the [<!-- -->] separators that [renderToString] requires between
-   adjacent text nodes (react-dom parity: hydration splits merged text
-   nodes at those comments). [starts_text]/[ends_text] say whether the
-   chunk begins/ends inside a text node rather than markup. A chunk with
-   empty [html] can still be text on both edges: an empty [React.string]
-   child participates in text-run tracking like the runtime renderer's
-   [Text ""] does. *)
 type static_part =
   | Static_str of { html : string; starts_text : bool; ends_text : bool }
   | Dynamic_string of expression
@@ -35,8 +10,6 @@ type static_part =
   | Dynamic_element of expression
   | Dynamic_attr_slot of { info : attr_render_info; expr : expression; is_optional : bool }
 
-(* Markup chunks (tags, attributes) never merge with a neighbouring text
-   node; text chunks (rendered text children) do. *)
 let static_markup html = Static_str { html; starts_text = false; ends_text = false }
 let static_text html = Static_str { html; starts_text = true; ends_text = true }
 
@@ -47,19 +20,10 @@ type parsed_attr =
 
 type attr_validation_result = Valid_attr of attr_render_info | Invalid_attr
 type attr_analysis_result = Ok of parsed_attr option | Invalid
-
-(* [attrs_analysis] carries either a pre-baked static attribute string or a
-   list of ordered parts mixing static runs with dynamic-attribute slots.
-   The list preserves source order so the emitted HTML is deterministic. *)
 type attrs_analysis = All_static of string | Mixed_attrs of static_part list | Validation_failed
 type children_analysis = No_children | All_static_children of string | Dynamic_children of static_part list
 type element_analysis = Fully_static of string | Needs_buffer of static_part list | Cannot_optimize
 
-(* Merge adjacent static chunks, except across a text→text boundary: those
-   two chunks must stay separate so the emission side can put the
-   mode-conditional [<!-- -->] separator between them ([renderToString]
-   emits it, [renderToStaticMarkup] doesn't, so it can't be baked into the
-   merged string). *)
 let rec coalesce_static_parts = function
   | Static_str a :: Static_str b :: rest when not (a.ends_text && b.starts_text) ->
       coalesce_static_parts
@@ -67,9 +31,6 @@ let rec coalesce_static_parts = function
   | x :: rest -> x :: coalesce_static_parts rest
   | [] -> []
 
-(* Wrap [Html.escape] to return a [string] since call sites here build
-   PPX-time strings. Runtime code paths keep using [Html.escape]/
-   [ReactDOM.escape_to_buffer] directly to avoid the intermediate string. *)
 let escape_html s =
   let buf = Buffer.create (String.length s) in
   Html.escape buf s;
@@ -166,32 +127,10 @@ let analyze_attribute ~tag_name (label, expr) : attr_analysis_result =
               | Some value -> Ok (Some (Static_attr (info, value)))
               | None -> Ok (Some (Dynamic_attr (info, expr))))))
 
-(* Attribute kinds whose runtime emission we know how to inline into a
-   [React.Writer.emit] body. [String], [Int], [Bool], and [BooleanishString] all
-   serialize to " name=\"value\"" (or nothing, for false booleans) via a
-   small, well-defined rule set mirroring [ReactDOM.write_attribute_to_buffer].
-   [Style] serializes via [ReactDOM.Style.to_string] followed by
-   HTML-escaping, exactly matching [ReactDOM.write_attribute_to_buffer]'s
-   [Style] case, so output is byte-identical.
-
-   [Action], [Ref], and [InnerHtml] have more complex semantics (variant
-   dispatch, DOM-ref handling, or children replacement). We leave those on
-   the variant-tree path by treating any such non-literal attribute as
-   forcing [Validation_failed], which collapses the element to
-   [Cannot_optimize]. *)
 let is_lowerable_kind = function
   | DomProps.String | DomProps.Int | DomProps.Bool | DomProps.BooleanishString | DomProps.Style -> true
-  (* [Float] stays on the variant-tree path: its HTML stringification
-     (JavaScript number formatting via [Js.Float.toString]) lives in
-     [ReactDOM.write_attribute_to_buffer], which is not addressable from
-     emitted user code without adding a dependency on the Js library. *)
   | DomProps.Float | DomProps.Action | DomProps.Ref | DomProps.InnerHtml -> false
 
-(* Kept in lock-step with [ReactDOM.is_react_custom_attribute] so the set is
-   audit-identical. In practice only ["suppressContentEditableWarning"] and
-   ["suppressHydrationWarning"] are load-bearing here: ["ref"] and ["key"]
-   are already filtered in [analyze_attribute], and ["dangerouslySetInnerHTML"]
-   has kind [InnerHtml] which [is_lowerable_kind] already rejects. *)
 let is_react_custom_attribute_name = function
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning" | "suppressHydrationWarning" -> true
   | _ -> false
@@ -199,25 +138,9 @@ let is_react_custom_attribute_name = function
 let attr_is_emittable (info : attr_render_info) =
   (not info.is_event) && is_lowerable_kind info.kind && not (is_react_custom_attribute_name info.html_name)
 
-(* Attributes the SSR runtime never renders: events
-   ([ReactDOM.write_attribute_to_buffer]'s [Event _ -> ()]) and React's
-   warning-suppression flags ([is_react_custom_attribute]). Skipping them at
-   analysis time instead of failing keeps the element on the static/Writer
-   fast path and also fixes a divergence where a literal
-   [suppressHydrationWarning=true] used to leak into prerendered HTML while
-   the runtime path omitted it. [InnerHtml] is excluded from the name check:
-   [dangerouslySetInnerHTML] replaces children and must keep forcing
-   [Cannot_optimize]. *)
 let attr_is_ignored_by_ssr (info : attr_render_info) =
   info.is_event || (is_react_custom_attribute_name info.html_name && info.kind <> DomProps.InnerHtml)
 
-(* Try to fold a [style] attribute to a compile-time string. After
-   [Style_rewrite] runs (bottom-up, before the JSX rewrite), a fully-literal
-   [ReactDOM.Style.make ~color:"red" ()] arrives here as the list literal
-   [("color", "color", "red") :: ([] : ...)]. When every key and value is a
-   string literal we replicate [ReactDOMStyle.write_to_buffer] exactly:
-   skip empty values, separate with ';', write [key ':' String.trim value],
-   no HTML escaping. *)
 let extract_static_style expr =
   let rec collect acc expr =
     match (strip_constraint expr).pexp_desc with
@@ -237,10 +160,6 @@ let extract_static_style expr =
   match collect [] expr with
   | None -> None
   | Some entries ->
-      (* Build the [key:value;…] body exactly like [ReactDOMStyle.write_to_buffer],
-         then HTML-escape it as a whole — mirroring [ReactDOM.write_attribute_to_buffer]'s
-         [Style] case ([Html.escape buf (Style.to_string styles)]) — so a quoted value
-         (e.g. a [font-family]) can't terminate the [style="…"] attribute early. *)
       let body = Buffer.create 64 in
       let first = ref true in
       List.iter
@@ -265,7 +184,6 @@ let analyze_attributes ~tag_name attrs =
   let has_dynamic = ref false in
   let flush_static () =
     if Buffer.length static_buf > 0 then begin
-      (* Attribute runs live inside the open tag: markup on both edges. *)
       parts := static_markup (Buffer.contents static_buf) :: !parts;
       Buffer.clear static_buf
     end
@@ -288,8 +206,6 @@ let analyze_attributes ~tag_name attrs =
             Buffer.add_string static_buf (render_static_attr_with_info info value);
             loop rest
         | Ok (Some (Dynamic_attr (info, expr))) when info.kind = DomProps.Style -> (
-            (* Fully-literal styles fold to a static string; anything else
-               becomes a Writer hole that calls the runtime serializer. *)
             match extract_static_style expr with
             | Some rendered ->
                 Buffer.add_string static_buf rendered;
@@ -312,10 +228,6 @@ let analyze_attributes ~tag_name attrs =
       Mixed_attrs (List.rev !parts)
   | `Ok -> All_static (Buffer.contents static_buf)
 
-(* Classify a child expression. Ordered so the cheapest and most-specific
-   extractors run first; the generic [Dynamic_element] is the fallback.
-   Sequential [match] avoids allocating a closure list per child (the
-   earlier [List.find_map] form allocated 8 thunks + 8 cons cells). *)
 let analyze_child (expr : expression) : static_part =
   match extract_react_text_literal expr with
   | Some s -> static_text (escape_html s)
@@ -326,21 +238,11 @@ let analyze_child (expr : expression) : static_part =
           match extract_react_int_literal expr with
           | Some i -> static_text (string_of_int i)
           | None -> (
-              (* [React.float] children stay on the variant-tree path
-                     ([Dynamic_element]): their HTML stringification is
-                     JavaScript number formatting ([Js.Float.toString], "2"
-                     not "2."), which lives in ReactDOM and is not
-                     addressable from emitted user code — same reasoning as
-                     [Float] attributes in [is_lowerable_kind]. *)
               match extract_react_string_arg expr with
               | Some e -> Dynamic_string e
               | None -> (
                   match extract_react_int_arg expr with Some e -> Dynamic_int e | None -> Dynamic_element expr))))
 
-(* Two consecutive parts that both touch a text edge need a [<!-- -->]
-   separator between them in [renderToString] output. Such a pair can't be
-   merged into a prerendered string (the separator is mode-dependent), so
-   children containing one are kept as parts and take the Writer tier. *)
 let has_adjacent_text parts =
   let rec loop = function
     | Static_str a :: (Static_str b :: _ as rest) -> (a.ends_text && b.starts_text) || loop rest
@@ -395,10 +297,6 @@ let analyze_element ~tag_name ~attrs ~children =
       in
       Needs_buffer (coalesce_static_parts parts)
   | Mixed_attrs attr_parts, All_static_children children_html ->
-      (* [All_static_children] guarantees no internal text→text adjacency,
-         and [mixed_attrs_parts] wraps the chunk between the ">" and
-         "</tag>" markup chunks, so its outer edges can never form a text
-         run with a neighbour: markup metadata is exact here. *)
       let parts =
         mixed_attrs_parts ~tag_name ~is_self_closing:false ~children_parts:[ static_markup children_html ] attr_parts
       in

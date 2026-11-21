@@ -1,9 +1,3 @@
-(** Ported from Melange's test suite: jscomp/test/js_global_test.ml (melange 6.0.1-54).
-
-    The setTimeout/setInterval cases are pure existence/sanity checks (create an id, clear it) which are safe to run
-    synchronously: native timer callbacks only fire under a running Lwt loop, and the Lwt-based behavioural timer suite
-    already lives in js_global_timers.ml, so it is not duplicated here. *)
-
 open Helpers
 open Js.Global
 

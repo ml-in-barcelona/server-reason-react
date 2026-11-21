@@ -1,6 +1,3 @@
-// Port of benchmark/scenarios/Dashboard.re
-// Purpose: admin/dashboard UI rendering
-
 import React from "react";
 import { cx } from "./cx.js";
 

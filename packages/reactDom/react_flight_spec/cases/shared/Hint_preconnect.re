@@ -1,6 +1,3 @@
-/* preconnect(href) without crossOrigin emits `:HC"<href>"` (the payload is a
-   bare JSON string; the [href, crossOrigin] tuple form only appears when
-   crossOrigin is a string). */
 module App = {
   [@react.component]
   let make = () => {

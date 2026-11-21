@@ -1,5 +1,3 @@
-(* Ported from melange jscomp/test/bs_sort_test.ml *)
-
 module S = Belt.SortArray
 module SI = Belt.SortArray.Int
 module R = Belt.Range
@@ -9,8 +7,6 @@ let cmp x y = x - y
 let range = inclusive_range
 let random_range = shuffled_range
 
-(* Native [makeUninitializedUnsafe] takes a filler value and
-   [truncateToLengthUnsafe] returns a fresh array instead of mutating. *)
 let unions xs ys =
   let len_x, len_y = (A.length xs, A.length ys) in
   let o = A.makeUninitializedUnsafe (len_x + len_y) 0 in
@@ -66,8 +62,6 @@ let suites =
             assert_bool true (S.isSorted [| 0 |] cmp);
             assert_bool true (S.isSorted [| 0; 1 |] cmp);
             assert_bool true (not @@ S.isSorted [| 1; 0 |] cmp));
-        (* skipped (melange-only): the [%time] instrumentation around the large
-           sorts; the sorting assertions themselves are kept below *)
         test "large stable sorts stay sorted" (fun () ->
             let u = random_range 0 1_000_000 in
             let u1 = A.copy u in
@@ -98,14 +92,12 @@ let suites =
             assert_int 3 (S.binarySearchBy [| 1; 2; 3; 4; 33; 35; 36 |] 4 cmp);
             let aa = range 0 1000 in
             assert_bool true (R.every 0 1000 (fun i -> S.binarySearchBy aa i cmp = i));
-            (* 0, 2, 4, ... 4000 *)
             let cc = A.map (range 0 2000) (fun x -> x * 2) in
             assert_int 2001 (lnot (S.binarySearchBy cc 5000 cmp));
             assert_int 0 (lnot (S.binarySearchBy cc (-1) cmp));
             assert_int 0 (S.binarySearchBy cc 0 cmp);
             assert_int 1 (lnot (S.binarySearchBy cc 1 cmp));
-            assert_bool true
-              (R.every 0 1999 (fun i -> lnot (S.binarySearchBy cc ((2 * i) + 1) cmp) = i + 1 (* 1, 3, 5, ... , 3999 *))));
+            assert_bool true (R.every 0 1999 (fun i -> lnot (S.binarySearchBy cc ((2 * i) + 1) cmp) = i + 1)));
         test "strictlySortedLength" (fun () ->
             assert_int 0 (S.strictlySortedLength [||] lt);
             assert_int 1 (S.strictlySortedLength [| 1 |] lt);

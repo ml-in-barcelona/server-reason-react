@@ -1,5 +1,3 @@
-(* Measure Style.make allocation after PPX rewrite. *)
-
 let bench label f =
   Gc.full_major ();
   Gc.compact ();

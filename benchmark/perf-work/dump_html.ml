@@ -1,9 +1,3 @@
-(* Dump HTML for byte-diff comparison across perf experiments.
-
-   Usage: dump_html.exe [scenario] [--string]
-   With no args, prints the list of scenarios. [--string] renders with
-   [renderToString] instead of [renderToStaticMarkup]. *)
-
 let scenarios : (string * (unit -> React.element)) list =
   let open Benchmark_scenarios in
   [

@@ -1,8 +1,3 @@
-/* Native implementation of the universal Spec seam.
-
-   The same interface is implemented for melange in ../js/Spec.re; case files
-   under cases/shared compile against both. Keep the two signatures in sync. */
-
 type prop = (string, React.model_value);
 
 let string = (name: string, value: string): prop => (
@@ -41,7 +36,6 @@ let promise_element =
   React.Model.Promise(value, resolved => React.Model.Element(resolved)),
 );
 
-/* Value-level constructors, for nesting inside array/object props. */
 type model = React.model_value;
 
 let model_string = (value: string): model =>
@@ -63,8 +57,6 @@ let object_ = (name: string, fields: list((string, model))): prop => (
   model_object(fields),
 );
 
-/* A server function reference. Created once and reused so that cases can
-   exercise React's per-reference dedup (writtenServerReferences). */
 type server_function = Runtime.server_function(unit => Js.Promise.t(unit));
 
 let server_function = (~id: string): server_function => {
@@ -80,10 +72,6 @@ let server_function_prop = (name: string, fn: server_function): prop => (
 let model_server_function = (fn: server_function): model =>
   React.Model.Function(fn);
 
-/* A <form> host element with a server function as its [action] prop. Typed
-   JSX cannot express this single-source (the native ppx takes a polymorphic
-   variant, reason-react a string), so both harnesses build the element
-   directly. */
 let form_with_action =
     (~action: server_function, children: React.element): React.element =>
   React.Lower_case_element({
@@ -93,7 +81,6 @@ let form_with_action =
     children: [children],
   });
 
-/* [client] is the SSR fallback, unused when rendering the model. */
 let client_component =
     (~importModule: string, ~importName: string, ~props: list(prop)=[], ())
     : React.element =>
@@ -111,8 +98,6 @@ let async_component =
 
 let delay = (~ms: int): Js.Promise.t(unit) =>
   Lwt_unix.sleep(Stdlib.float_of_int(ms) /. 1000.0);
-
-/* Resource hints, mirroring react-dom's flight-side API (see ../js/Spec.re). */
 
 let preload = (~href: string, ~as_: string, ()) =>
   ReactDOM.preload(~href, ~as_);

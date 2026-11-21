@@ -1,6 +1,3 @@
-(** Tests for Js.Exn accessors. Expected values follow JS Error semantics: [new Error("msg").message] is ["msg"],
-    [.name] is the constructor name (node REPL output). Melange's [asJsExn] returns [None] for non-JS exceptions. *)
-
 open Helpers
 
 let ok cond = assert_true "expected true" cond

@@ -1,11 +1,6 @@
 type ('a, 'b) t = ('a, 'b) result = Ok of 'a | Error of 'b
 
-let getExn = function
-  | Ok x -> x
-  | Error _ ->
-      (* Melange raises Not_found here *)
-      raise Stdlib.Not_found
-
+let getExn = function Ok x -> x | Error _ -> raise Stdlib.Not_found
 let mapWithDefaultU opt default f = match opt with Ok x -> f x | Error _ -> default
 let mapWithDefault opt default f = mapWithDefaultU opt default (fun x -> f x)
 let mapU opt f = match opt with Ok x -> Ok (f x) | Error y -> Error y

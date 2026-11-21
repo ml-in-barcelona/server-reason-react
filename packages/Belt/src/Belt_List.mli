@@ -211,10 +211,6 @@ val toArray : 'a t -> 'a array
     {[
       toArray [ 1; 2; 3 ] = [| 1; 2; 3 |]
     ]} *)
-(* type json = Js_json.t  *)
-
-(* val toJson : 'a t -> ('a -> json  [@bs]) -> json *)
-(* val fromJson : json -> (json -> 'a [@bs]) -> 'a t  *)
 
 val reverse : 'a t -> 'a t
 (** [reverse xs] returns a new list whose elements are those of [xs] in reverse order.

@@ -1,10 +1,10 @@
 type t = Dom.history;
-type state; /* TODO: should be "anything that can be serializable" apparently */
+type state;
 
 [@mel.get] external length: t => int = "length";
-[@mel.get] external scrollRestoration: t => bool = "scrollRestoration"; /* experimental */
+[@mel.get] external scrollRestoration: t => bool = "scrollRestoration";
 [@mel.set]
-external setScrollRestoration: (t, bool) => unit = "scrollRestoration"; /* experimental */
+external setScrollRestoration: (t, bool) => unit = "scrollRestoration";
 [@mel.get] external state: t => state = "state";
 
 [@mel.send.pipe: t] external back: unit = "back";

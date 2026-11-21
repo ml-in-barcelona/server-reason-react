@@ -8,11 +8,7 @@ include Webapi__Blob.Impl({
 
 [@text "{1 File class}"];
 
-/** @since 0.18.0 */
-[@mel.get]
-external lastModified: t => float = "lastModified";
-
-// [@mel.new] external make: ... = "File";
+[@mel.get] external lastModified: t => float = "lastModified";
 
 [@mel.get] external name: t => string = "name";
 

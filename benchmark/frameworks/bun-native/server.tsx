@@ -1,7 +1,3 @@
-/**
- * Bun Native + React SSR Benchmark Server
- */
-
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 import * as scenarios from "../shared/scenarios.jsx";

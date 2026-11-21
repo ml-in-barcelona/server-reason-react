@@ -1,8 +1,3 @@
-/*
- * Spec: https://html.spec.whatwg.org/multipage/input.html#the-input-element
- * MDN: https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement
- */
-
 module Impl = (T: {
                  type t;
                }) => {
@@ -30,7 +25,6 @@ module Impl = (T: {
   [@mel.set]
   external setFormTarget: (t_htmlInputElement, string) => unit = "formTarget";
 
-  /* Properties that apply to any type of input element that is not hidden */
   [@mel.get] external name: t_htmlInputElement => string = "name";
   [@mel.set] external setName: (t_htmlInputElement, string) => unit = "name";
   [@mel.get] external type_: t_htmlInputElement => string = "type";
@@ -55,7 +49,6 @@ module Impl = (T: {
   [@mel.get]
   external willValidate: t_htmlInputElement => bool = "willValidate";
 
-  /* Properties that apply only to elements of type "checkbox" or "radio" */
   [@mel.get] external checked: t_htmlInputElement => bool = "checked";
   [@mel.set]
   external setChecked: (t_htmlInputElement, bool) => unit = "checked";
@@ -70,7 +63,6 @@ module Impl = (T: {
   external setIndeterminate: (t_htmlInputElement, bool) => unit =
     "indeterminate";
 
-  /* Properties that apply only to elements of type "image" */
   [@mel.get] external alt: t_htmlInputElement => string = "alt";
   [@mel.set] external setAlt: (t_htmlInputElement, string) => unit = "alt";
   [@mel.get] external height: t_htmlInputElement => string = "height";
@@ -81,13 +73,10 @@ module Impl = (T: {
   [@mel.get] external width: t_htmlInputElement => string = "width";
   [@mel.set] external setWidth: (t_htmlInputElement, string) => unit = "width";
 
-  /* Properties that apply only to elements of type "file" */
   [@mel.get] external accept: t_htmlInputElement => string = "accept";
   [@mel.set]
   external setAccept: (t_htmlInputElement, string) => unit = "accept";
-  /* TODO: files: Returns/accepts a FileList object. */
 
-  /* Properties that apply only to text/number-containing or elements */
   [@mel.get]
   external autocomplete: t_htmlInputElement => string = "autocomplete";
   [@mel.set]
@@ -131,7 +120,6 @@ module Impl = (T: {
   external setSelectionDirection: (t_htmlInputElement, string) => unit =
     "selectionDirection";
 
-  /* Properties not yet categorized */
   [@mel.get]
   external defaultValue: t_htmlInputElement => string = "defaultValue";
   [@mel.set]
@@ -148,7 +136,6 @@ module Impl = (T: {
   [@mel.get] external multiple: t_htmlInputElement => bool = "multiple";
   [@mel.set]
   external setMultiple: (t_htmlInputElement, bool) => unit = "multiple";
-  /* TODO: files: FileList array. Returns the list of selected files. */
   [@mel.get]
   external labels: t_htmlInputElement => array(Dom.nodeList) = "labels";
   [@mel.get] external step: t_htmlInputElement => string = "step";

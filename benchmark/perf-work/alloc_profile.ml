@@ -1,29 +1,8 @@
-(* Allocation profiler for SSR rendering.
-
-   Uses [Gc.Memprof] to attribute minor/major-heap allocations to source
-   locations in the call stack. Output is an aggregated table: for each
-   scenario, list the top allocation sites by attributed sample count.
-
-   Usage:
-
-     dune build benchmark/perf-work/alloc_profile.exe
-     _build/default/benchmark/perf-work/alloc_profile.exe
-     _build/default/benchmark/perf-work/alloc_profile.exe --scenario wide500
-     _build/default/benchmark/perf-work/alloc_profile.exe --top 30
-
-   The sampling rate is tuned for ~100k samples per scenario. Raise
-   [--rate] for higher precision at the cost of runtime overhead. *)
-
 open Benchmark_scenarios
 
-(* A sample is keyed by a short textual rendering of its callstack. We
-   keep the top [callstack_depth] frames to avoid over-splitting (each
-   allocation in OCaml has a slightly different stack at the top because
-   of inlining decisions; trimming deep frames groups related sites). *)
 let callstack_depth = 6
 let default_sampling_rate = 1e-4
 
-(* Mutable aggregation table keyed by trimmed callstack string. *)
 module Site_table = Hashtbl.Make (struct
   type t = string
 

@@ -46,10 +46,6 @@ module Impl = (T: {
   let dispatchEvent = (_eventLike: Dom.event_like('a), _t: T.t): bool =>
     false;
 
-  /**
-   *  non-standard event-specific functions
-   */
-  /* UI */
   let addLoadEventListener = (_callback: Dom.event => unit, _t: T.t): unit =>
     ();
   let addLoadEventListenerWithOptions =
@@ -232,8 +228,6 @@ module Impl = (T: {
       (_callback: Dom.event => unit, _t: T.t): unit =>
     ();
 
-  /* Focus */
-
   let addBlurEventListener =
       (_callback: Dom.focusEvent => unit, _t: T.t): unit =>
     ();
@@ -385,8 +379,6 @@ module Impl = (T: {
   let removeFocusOutEventListenerUseCapture =
       (_callback: Dom.focusEvent => unit, _t: T.t): unit =>
     ();
-
-  /* Mouse */
 
   let addClickEventListener =
       (_callback: Dom.mouseEvent => unit, _t: T.t): unit =>
@@ -692,8 +684,6 @@ module Impl = (T: {
       (_callback: Dom.mouseEvent => unit, _t: T.t): unit =>
     ();
 
-  /* Wheel */
-
   let addWheelEventListener =
       (_callback: Dom.wheelEvent => unit, _t: T.t): unit =>
     ();
@@ -731,8 +721,6 @@ module Impl = (T: {
   let removeWheelEventListenerUseCapture =
       (_callback: Dom.wheelEvent => unit, _t: T.t): unit =>
     ();
-
-  /* Input */
 
   let addBeforeInputEventListener =
       (_callback: Dom.inputEvent => unit, _t: T.t): unit =>
@@ -809,8 +797,6 @@ module Impl = (T: {
   let removeInputEventListenerUseCapture =
       (_callback: Dom.inputEvent => unit, _t: T.t): unit =>
     ();
-
-  /* Keyboard */
 
   let addKeyDownEventListener =
       (_callback: Dom.keyboardEvent => unit, _t: T.t): unit =>
@@ -926,8 +912,6 @@ module Impl = (T: {
       (_callback: Dom.keyboardEvent => unit, _t: T.t): unit =>
     ();
 
-  /* Composition */
-
   let addCompositionStartEventListener =
       (_callback: Dom.compositionEvent => unit, _t: T.t): unit =>
     ();
@@ -1041,8 +1025,6 @@ module Impl = (T: {
   let removeCompositionEndEventListenerUseCapture =
       (_callback: Dom.compositionEvent => unit, _t: T.t): unit =>
     ();
-
-  /* Drag */
 
   let addDragEventListener = (_callback: Dom.dragEvent => unit, _t: T.t): unit =>
     ();
@@ -1346,8 +1328,6 @@ module Impl = (T: {
       (_callback: Dom.dragEvent => unit, _t: T.t): unit =>
     ();
 
-  /* Touch */
-
   let addTouchCancelEventListener =
       (_callback: Dom.touchEvent => unit, _t: T.t): unit =>
     ();
@@ -1499,8 +1479,6 @@ module Impl = (T: {
   let removeTouchStartEventListenerUseCapture =
       (_callback: Dom.touchEvent => unit, _t: T.t): unit =>
     ();
-
-  /* Animation */
 
   let addAnimationCancelEventListener =
       (_callback: Dom.animationEvent => unit, _t: T.t): unit =>

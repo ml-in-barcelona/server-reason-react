@@ -1,5 +1,3 @@
-(** Provide bindings for JS typed array *)
-
 module Uint16Array : sig
   type t
 end

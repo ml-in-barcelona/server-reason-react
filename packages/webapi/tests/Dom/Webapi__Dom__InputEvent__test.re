@@ -3,7 +3,6 @@ open InputEvent;
 
 let event = make("my-event");
 
-/* Event */
 let _ = bubbles(event);
 let _ = cancelable(event);
 let _ = composed(event);
@@ -19,10 +18,8 @@ preventDefault(event);
 stopImmediatePropagation(event);
 stopPropagation(event);
 
-/* UIEvent */
 let _ = detail(event);
 let _ = view(event);
 
-/* InputEvent */
 let _ = data(event);
 let _ = isComposing(event);

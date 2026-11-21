@@ -1,9 +1,5 @@
-(* Ported from melange/jscomp/test/bs_array_test.ml *)
-
 module A = Belt.Array
 module L = Belt.List
-
-(* skipped (melange-only): the Js.Array filter/mapi/reduce |. Js.log smoke test only checks console output *)
 
 let add x y = x + y
 
@@ -65,7 +61,6 @@ let suites =
         test "shuffle" (fun () ->
             let v = A.makeBy 3000 (fun i -> i) in
             let u = A.shuffle v in
-            (* unlikely to be equal *)
             assert_bool false (u = v);
             assert_int (A.length v) (A.length u);
             assert_array_unordered Alcotest.int v u;
@@ -281,6 +276,5 @@ let suites =
         test "getIndexBy" (fun () ->
             assert_option Alcotest.int (Some 1) (A.getIndexBy [| 1; 2; 3 |] (fun x -> x > 1));
             assert_option Alcotest.int None (A.getIndexBy [| 1; 2; 3 |] (fun x -> x > 3)));
-        (* skipped (documented divergence): Belt.Array.push is a no-op natively *)
       ] );
   ]

@@ -1,50 +1,27 @@
 #!/usr/bin/env node
 
-/**
- * Comprehensive Benchmark Runner
- *
- * Features:
- * - Multi-framework comparison
- * - Multiple scenario support
- * - Statistical analysis (mean, median, p99, stddev)
- * - Warmup runs
- * - JSON and markdown output
- * - Progress reporting
- */
-
 import { spawn, execSync } from "child_process";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { performance } from "perf_hooks";
 
-// ============================================================================
-// Configuration
-// ============================================================================
-
 const CONFIG = {
-  // Number of warmup requests before measuring
   warmupRequests: 100,
 
-  // Number of measurement requests
   measurementRequests: 1000,
 
-  // Concurrent connections for wrk
   wrkConnections: 100,
 
-  // Number of wrk threads
   wrkThreads: 4,
 
-  // Duration for wrk test (seconds)
   wrkDuration: 10,
 
-  // Delay between framework tests (ms)
   frameworkDelay: 2000,
 
-  // Output directory
   outputDir: "../results",
 };
 
 const FRAMEWORKS = [
-  { name: "dream-native", port: 3000, cmd: null }, // Manual start
+  { name: "dream-native", port: 3000, cmd: null },
   { name: "node-express", port: 3001, cmd: "npm run start:node-express", cwd: "../frameworks" },
   { name: "node-fastify", port: 3002, cmd: "npm run start:node-fastify", cwd: "../frameworks" },
   { name: "hono-node", port: 3003, cmd: "npm run start:hono-node", cwd: "../frameworks" },
@@ -54,29 +31,21 @@ const FRAMEWORKS = [
 ];
 
 const SCENARIOS = [
-  // Basic scenarios
   { key: "trivial", name: "Trivial", category: "basic" },
   { key: "shallow", name: "Shallow Tree", category: "basic" },
 
-  // Depth tests
   { key: "deep10", name: "Deep 10", category: "depth" },
   { key: "deep25", name: "Deep 25", category: "depth" },
   { key: "deep50", name: "Deep 50", category: "depth" },
 
-  // Width tests
   { key: "wide10", name: "Wide 10", category: "width" },
   { key: "wide100", name: "Wide 100", category: "width" },
   { key: "wide500", name: "Wide 500", category: "width" },
 
-  // Table tests
   { key: "table10", name: "Table 10", category: "table" },
   { key: "table100", name: "Table 100", category: "table" },
   { key: "table500", name: "Table 500", category: "table" },
 ];
-
-// ============================================================================
-// Utilities
-// ============================================================================
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -93,10 +62,6 @@ const formatLatency = (ms) => {
 };
 
 const log = (msg) => console.log(`[${new Date().toISOString()}] ${msg}`);
-
-// ============================================================================
-// HTTP Testing
-// ============================================================================
 
 async function checkHealth(port) {
   try {
@@ -149,15 +114,12 @@ function parseWrkOutput(output) {
     errors: 0,
   };
 
-  // Parse requests
   const reqMatch = output.match(/(\d+)\s+requests\s+in/);
   if (reqMatch) result.requests = parseInt(reqMatch[1], 10);
 
-  // Parse requests/sec
   const rpsMatch = output.match(/Requests\/sec:\s+([\d.]+)/);
   if (rpsMatch) result.requestsPerSec = parseFloat(rpsMatch[1]);
 
-  // Parse latency stats
   const latencyMatch = output.match(/Latency\s+([\d.]+)(us|ms|s)\s+([\d.]+)(us|ms|s)\s+([\d.]+)(us|ms|s)/);
   if (latencyMatch) {
     const parseTime = (val, unit) => {
@@ -171,7 +133,6 @@ function parseWrkOutput(output) {
     result.latencyMax = parseTime(latencyMatch[5], latencyMatch[6]);
   }
 
-  // Parse transfer rate
   const transferMatch = output.match(/Transfer\/sec:\s+([\d.]+)(\w+)/);
   if (transferMatch) {
     let val = parseFloat(transferMatch[1]);
@@ -182,7 +143,6 @@ function parseWrkOutput(output) {
     result.transferPerSec = val;
   }
 
-  // Parse errors
   const errorMatch = output.match(/Socket errors:.*?(\d+)\s+connect.*?(\d+)\s+read.*?(\d+)\s+write.*?(\d+)\s+timeout/);
   if (errorMatch) {
     result.errors = parseInt(errorMatch[1], 10) + parseInt(errorMatch[2], 10) +
@@ -205,10 +165,6 @@ async function runWrk(port, scenario, duration, connections, threads) {
   }
 }
 
-// ============================================================================
-// Simple HTTP benchmark (no wrk dependency)
-// ============================================================================
-
 async function runSimpleBenchmark(port, scenario, requests, concurrency) {
   const url = `http://localhost:${port}/?scenario=${scenario}`;
   const latencies = [];
@@ -230,13 +186,12 @@ async function runSimpleBenchmark(port, scenario, requests, concurrency) {
 
   const startTime = performance.now();
 
-  // Run in batches for concurrency
   for (let i = 0; i < requests; i += concurrency) {
     const batch = Math.min(concurrency, requests - i);
     await Promise.all(Array(batch).fill().map(runRequest));
   }
 
-  const totalTime = (performance.now() - startTime) / 1000; // seconds
+  const totalTime = (performance.now() - startTime) / 1000;
 
   latencies.sort((a, b) => a - b);
 
@@ -258,10 +213,6 @@ async function runSimpleBenchmark(port, scenario, requests, concurrency) {
     errors,
   };
 }
-
-// ============================================================================
-// Process Management
-// ============================================================================
 
 const processes = new Map();
 
@@ -311,10 +262,6 @@ function cleanup() {
   processes.clear();
 }
 
-// ============================================================================
-// Main Runner
-// ============================================================================
-
 async function runBenchmark(options = {}) {
   const {
     frameworks = FRAMEWORKS,
@@ -329,7 +276,6 @@ async function runBenchmark(options = {}) {
     frameworks: [],
   };
 
-  // Ensure output directory exists
   if (!existsSync(CONFIG.outputDir)) {
     mkdirSync(CONFIG.outputDir, { recursive: true });
   }
@@ -338,7 +284,6 @@ async function runBenchmark(options = {}) {
   log("Server Reason React Benchmark Suite");
   log("=".repeat(60));
 
-  // Check for wrk
   let hasWrk = false;
   try {
     execSync("which wrk", { encoding: "utf-8" });
@@ -359,13 +304,11 @@ async function runBenchmark(options = {}) {
       scenarios: [],
     };
 
-    // Start framework if needed
     if (framework.cmd) {
       startFramework(framework);
       await sleep(2000);
     }
 
-    // Wait for server
     const ready = await waitForServer(framework.port);
     if (!ready) {
       log(`❌ ${framework.name} failed to start`);
@@ -377,10 +320,8 @@ async function runBenchmark(options = {}) {
     for (const scenario of scenarios) {
       process.stdout.write(`  ${scenario.name.padEnd(20)}`);
 
-      // Warmup
       await warmup(framework.port, scenario.key, CONFIG.warmupRequests);
 
-      // Run benchmark
       let result;
       if (useWrk && hasWrk) {
         result = await runWrk(
@@ -417,12 +358,10 @@ async function runBenchmark(options = {}) {
 
     results.frameworks.push(frameworkResult);
 
-    // Stop framework
     stopFramework(framework);
     await sleep(CONFIG.frameworkDelay);
   }
 
-  // Write results
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
   if (outputFormat === "all" || outputFormat === "json") {
@@ -440,10 +379,6 @@ async function runBenchmark(options = {}) {
 
   return results;
 }
-
-// ============================================================================
-// Report Generation
-// ============================================================================
 
 function generateMarkdown(results) {
   const lines = [
@@ -464,7 +399,6 @@ function generateMarkdown(results) {
     "",
   ];
 
-  // Group by scenario
   const scenarioResults = new Map();
 
   for (const framework of results.frameworks) {
@@ -488,7 +422,6 @@ function generateMarkdown(results) {
     lines.push("| Framework | Requests/sec | Avg Latency | P99 Latency | Errors |");
     lines.push("| --- | ---: | ---: | ---: | ---: |");
 
-    // Sort by requests/sec
     data.results.sort((a, b) => b.requestsPerSec - a.requestsPerSec);
 
     for (const r of data.results) {
@@ -500,7 +433,6 @@ function generateMarkdown(results) {
     lines.push("");
   }
 
-  // Summary table
   lines.push("## Summary (Table 100 Scenario)");
   lines.push("");
 
@@ -526,10 +458,6 @@ function generateMarkdown(results) {
 
   return lines.join("\n");
 }
-
-// ============================================================================
-// CLI
-// ============================================================================
 
 process.on("SIGINT", () => {
   cleanup();
@@ -566,7 +494,6 @@ Examples:
   process.exit(0);
 }
 
-// Parse arguments
 const parseList = (flag) => {
   const idx = args.indexOf(flag);
   if (idx !== -1 && args[idx + 1]) {

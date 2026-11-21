@@ -8,8 +8,3 @@ let get = (key, map) => get(map, key);
 [@mel.set_index] external set: (t, key, string) => unit;
 let set = (key, value, map) => set(map, key, value);
 let unsafeDeleteKey: (key, t) => unit = (_key, _t) => ();
-
-/* let unsafeDeleteKey: (key, t) => unit = [%raw
-     "function(key, map) { delete map[key] }"
-   ];
-    */

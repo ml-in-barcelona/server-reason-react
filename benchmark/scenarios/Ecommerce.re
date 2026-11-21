@@ -1,8 +1,3 @@
-/* Scenario: E-commerce Page
-      Realistic product listing page with complex UI patterns
-      Purpose: Test real-world SSR performance for e-commerce use case
-   */
-
 type product = {
   id: int,
   name: string,
@@ -595,7 +590,6 @@ module Page = {
   };
 };
 
-/* Different sizes */
 module Products24 = {
   let products = generateProducts(24);
   [@react.component]

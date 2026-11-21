@@ -1,5 +1,3 @@
-(** The ReactDOM library *)
-
 val renderToString : ?identifier_prefix:string -> React.element -> string
 (** renderToString renders a React tree to as an HTML string.
 
@@ -38,9 +36,7 @@ val prefetchDNS : href:string -> unit
 val preinitScript : href:string -> unit
 val attribute_to_html : React.JSX.prop -> Html.attribute
 val attributes_to_html : React.JSX.prop list -> Html.attribute list
-
 val getDangerouslyInnerHtml : React.JSX.prop list -> string option
-(** getDangerouslyInnerHtml returns the value of the dangerouslySetInnerHTML prop if it exists, otherwise None. *)
 
 val write_to_buffer : Buffer.t -> React.element -> unit
 (** Markup-mode write: renders the element into the buffer without [<!-- -->] text separators, matching
@@ -79,11 +75,9 @@ module Style = ReactDOMStyle
 (** ReactDOM.Style generates the inline styles for the `style` prop. *)
 
 val createDOMElementVariadic : string -> props:React.JSX.prop list -> React.element array -> React.element
-(** Create a React.element by giving the HTML tag, an array of props and children *)
 
 type dangerouslySetInnerHTML = < __html : string >
 
-(* JSX props for HTML and SVG elements, including React specific ones. *)
 val domProps :
   ?key:string ->
   ?ref:React.domRef ->

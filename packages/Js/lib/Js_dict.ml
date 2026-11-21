@@ -1,11 +1,5 @@
-(** Provide utilities for JS dictionary object.
-
-    Backed by a Hashtbl plus an insertion-order log so that iteration (entries/keys/values) follows JS object key order:
-    first insertion wins the position, re-setting an existing key keeps it, deleting and re-adding moves it to the end.
-*)
-
 type key = string
-type 'a t = { table : (key, 'a) Hashtbl.t; mutable order : key list (* reversed insertion order *) }
+type 'a t = { table : (key, 'a) Hashtbl.t; mutable order : key list }
 
 let empty () : 'a t = { table = Hashtbl.create 10; order = [] }
 let get (dict : 'a t) (k : key) : 'a option = Hashtbl.find_opt dict.table k

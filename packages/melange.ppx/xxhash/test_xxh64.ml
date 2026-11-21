@@ -17,7 +17,6 @@ let data =
     ("abcdefghij", 0xd6287a1de5498bb2L);
     ("abcdefghijklmnopqrstuvwxyz012345", 0xbf2cd639b4143b80L);
     ("abcdefghijklmnopqrstuvwxyz0123456789", 0x64f23ecf1609b766L);
-    (* Exactly 63 characters, which exercises all code paths *)
     ("Call me Ishmael. Some years ago--never mind how long precisely-", 0x02a2e85470d6fd96L);
     ( "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore \
        magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo \

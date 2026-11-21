@@ -1,33 +1,24 @@
-### OS ###
 .DS_Store
 
-### Node ###
-# Logs
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Runtime data
 pids
 *.pid
 *.seed
 *.pid.lock
 
-# Dependency directories
 node_modules/
 
-# Build
 **/dist/
 
-# Optional npm cache directory
 .npm
 
-# Output of 'npm pack'
 *.tgz
 
-# Yarn Integrity file
 .yarn-integrity
 
 *.annot
@@ -40,26 +31,19 @@ node_modules/
 *.cmxs
 *.cmxa
 
-# dune working directory
 _build/
 
-# odoc (odoc-driver) html artifacts
 _html/
 
-# ocamlbuild targets
 *.byte
 *.native
 
-# Merlin configuring file for Vim and Emacs
 .merlin
 
-# Dune generated files
 *.install
 
-# Local OPAM switch
 _opam/
 
-# vscode
 .vscode
 
 *.dump
@@ -69,7 +53,6 @@ demo/.running/*
 .vercel
 .env*
 
-# Local design notes
 /design/
 
 /.agents/*

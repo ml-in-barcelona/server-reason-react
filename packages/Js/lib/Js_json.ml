@@ -1,6 +1,3 @@
-(* JSON encoding/decoding with JSON.parse / JSON.stringify semantics (ECMA-404
-   grammar, ECMA-262 JSON.stringify serialization). *)
-
 type t =
   | JsonNull
   | JsonBoolean of bool
@@ -36,8 +33,6 @@ let classify (x : t) : tagged_t =
   | JsonObject o -> JSONObject o
   | JsonArray a -> JSONArray a
 
-(* Melange's [test] takes any ['a]; natively values carry no runtime type
-   information, so the first argument is narrowed to [t]. *)
 let test (type a) (x : t) (kind : a kind) : bool =
   match (x, kind) with
   | JsonString _, String -> true
@@ -64,10 +59,6 @@ let stringArray (a : string array) : t = JsonArray (Stdlib.Array.map (fun s -> J
 let numberArray (a : float array) : t = JsonArray (Stdlib.Array.map (fun n -> JsonNumber n) a)
 let booleanArray (a : bool array) : t = JsonArray (Stdlib.Array.map (fun b -> JsonBoolean b) a)
 let objectArray (a : t Js_dict.t array) : t = JsonArray (Stdlib.Array.map (fun o -> JsonObject o) a)
-
-(* ---------------------------------------------------------------------------
-   JSON.parse: strict ECMA-404 recursive descent parser.
-   Raises Js_exn.SyntaxError like JSON.parse raises a SyntaxError. *)
 
 exception Syntax_error of string
 
@@ -98,9 +89,6 @@ let parse (input : string) : t =
     else error "Unexpected token"
   in
   let utf8_encode buf code =
-    (* code is a Unicode scalar value (or an unpaired surrogate, encoded as-is
-       like JS engines do when producing WTF-8-ish output; we use U+FFFD for
-       unpaired surrogates to keep strings valid UTF-8). *)
     let code = if code >= 0xD800 && code <= 0xDFFF then 0xFFFD else code in
     if code < 0x80 then Stdlib.Buffer.add_char buf (Stdlib.Char.chr code)
     else if code < 0x800 then begin
@@ -173,7 +161,6 @@ let parse (input : string) : t =
           | Some 'u' ->
               advance ();
               let code = parse_hex4 () in
-              (* Combine surrogate pairs into a single scalar value. *)
               if
                 code >= 0xD800 && code <= 0xDBFF
                 && !pos + 1 < len
@@ -246,7 +233,6 @@ let parse (input : string) : t =
             skip_whitespace ();
             expect ':';
             let value = parse_value () in
-            (* Duplicate keys: JSON.parse keeps the last occurrence. *)
             Js_dict.set dict key value;
             skip_whitespace ();
             match peek () with
@@ -296,10 +282,6 @@ let parse (input : string) : t =
 
 let parseExn (s : string) : t = try parse s with Syntax_error msg -> Js_exn.raiseSyntaxError msg
 
-(* ---------------------------------------------------------------------------
-   JSON.stringify (ECMA-262 SerializeJSONProperty). Numbers are formatted with
-   Number::toString via quickjs so output matches JS byte-for-byte. *)
-
 let escape_string buf s =
   Stdlib.Buffer.add_char buf '"';
   Stdlib.String.iter
@@ -318,7 +300,6 @@ let escape_string buf s =
   Stdlib.Buffer.add_char buf '"'
 
 let number_to_string (n : float) =
-  (* JSON.stringify serializes non-finite numbers as null. *)
   if Float.is_nan n || Float.abs n = Float.infinity then "null" else Quickjs.Number.Prototype.to_string n
 
 let stringify_impl (json : t) ~(indent : int) : string =
@@ -368,17 +349,8 @@ let stringify_impl (json : t) ~(indent : int) : string =
   Stdlib.Buffer.contents buf
 
 let stringify (json : t) : string = stringify_impl json ~indent:0
-
-(* JSON.stringify clamps the space argument to 10. *)
 let stringifyWithSpace (json : t) (space : int) : string = stringify_impl json ~indent:(Stdlib.min space 10)
-
-(* Melange's stringifyAny serializes arbitrary values through the JS runtime;
-   natively only [t] values carry enough structure, so this stays unsupported
-   (see Js_json.mli: it raises). *)
 let stringifyAny _ = Js_internal.notImplemented "Js.Json" "stringifyAny"
-
-(* Melange's patch replaces [undefined] with [null] deep inside a structure.
-   Natively [t] cannot contain undefined, so there is nothing to patch. *)
 let patch (json : t) : t = json
 let serializeExn (_x : t) : string = Js_internal.notImplemented "Js.Json" "serializeExn"
 let deserializeUnsafe (_s : string) : 'a = Js_internal.notImplemented "Js.Json" "deserializeUnsafe"

@@ -48,7 +48,6 @@ let _ = offsetWidth(el);
 let _ = spellcheck(el);
 let _ = setSpellcheck(el, true);
 let _ = style(el);
-/* let _ = setStyle el CSSStyleDeclaration.t; /* TODO: No way to make a CSSStyleDeclaration at the moment */*/
 let _ = tabIndex(el);
 let _ = setTabIndex(el, 42);
 let _ = title(el);

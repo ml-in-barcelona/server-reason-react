@@ -23,8 +23,6 @@
  (enabled_if
   (= %{profile} dev))
  (alias client)
- ; the bundle output is a directory target so dune tracks the hashed chunks;
- ; it must live outside the melange-managed app/ directory
  (targets
   (dir dist))
  (deps

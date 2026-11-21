@@ -1,27 +1,3 @@
-// Encodes every reply spec case through the REAL React `encodeReply` (the
-// public wrapper over processReply from react-server-dom-webpack/client) and
-// writes the resulting server-function-call body to reply/fixtures/<case>.reply.
-//
-// Run from the react_flight_spec directory with:
-//   NODE_ENV=production node reply/generate-reply.mjs [--check]
-//
-// Run without the react-server condition because encodeReply is a client API.
-// Under Node.js, the package's `client` export resolves to `client.node.unbundled`,
-// which does not expose encodeReply, so this imports `client.browser` explicitly.
-//
-// --check: re-encode and diff against the committed fixtures instead of
-// writing; exits non-zero (with a printed diff) on any mismatch.
-//
-// Fixture format (see also ../protocol.md, "Reply fixtures"):
-//   line 1: `string` or `formdata` — the type encodeReply returned.
-//   string body: line 2 is the body verbatim (JSON never contains raw
-//     newlines, so it is always a single line).
-//   formdata body: one JSON array per line, in FormData insertion order:
-//     ["string", <key>, <value>]  for text entries
-//     ["blob", <key>, <base64>]   for Blob/File entries (content-type and
-//                                 filename are not part of the fixture)
-//   Every fixture ends with a trailing newline.
-
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -31,10 +7,6 @@ if (process.env.NODE_ENV !== "production") {
   process.exit(1);
 }
 
-// client.browser is a webpack bundle target: it dereferences webpack's
-// loader globals at module scope. encodeReply never loads modules, so inert
-// shims are enough. Installed before any import of the client (cases.mjs
-// re-exports from it, hence the dynamic imports below).
 globalThis.__webpack_require__ = Object.assign(() => ({}), { u: () => "" });
 globalThis.__webpack_chunk_load__ = () => Promise.resolve();
 

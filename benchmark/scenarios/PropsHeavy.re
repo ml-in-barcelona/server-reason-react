@@ -1,8 +1,3 @@
-/* Scenario: Props Heavy
-      Components with many HTML attributes/props
-      Purpose: Test attribute serialization performance
-   */
-
 module HeavyDiv = {
   [@react.component]
   let make = (~id, ~children) => {
@@ -198,7 +193,6 @@ module HeavyTable = {
   };
 };
 
-/* Different sizes for comparison */
 module Small = {
   [@react.component]
   let make = () => {

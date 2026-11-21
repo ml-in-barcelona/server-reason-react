@@ -1,6 +1,3 @@
-/* An async component that itself renders another async component: the root
-   resolves to a $L lazy reference, whose row contains another $L reference,
-   resolved by a later row ($L chaining). */
 let inner = () =>
   Spec.async_component(~name="InnerAsync", () =>
     Spec.delay(~ms=5)

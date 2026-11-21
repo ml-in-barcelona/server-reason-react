@@ -1,5 +1,3 @@
-(* Ported from melange jscomp/test/bs_hashmap_test.ml *)
-
 module N = Belt.HashMap
 module A = Belt.Array
 module So = Belt.SortArray

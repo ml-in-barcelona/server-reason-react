@@ -1,9 +1,4 @@
-let getExn = function
-  | Some x -> x
-  | None ->
-      (* Melange raises Not_found here *)
-      raise Stdlib.Not_found
-
+let getExn = function Some x -> x | None -> raise Stdlib.Not_found
 let mapWithDefaultU opt default f = match opt with Some x -> f x | None -> default
 let mapWithDefault opt default f = mapWithDefaultU opt default (fun x -> f x)
 let mapU opt f = match opt with Some x -> Some (f x) | None -> None

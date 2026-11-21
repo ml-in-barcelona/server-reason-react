@@ -109,14 +109,12 @@ docs: ## Generate odoc documentation
 	$(DUNE) build --root . @install
 	$(DUNE) exec --root . -- odoc_driver server-reason-react --remap
 
-# Because if the hack above, we can't have watch mode
 .PHONY: docs-watch
 docs-watch: ## Generate odoc docs
 	$(DUNE) build --root . -w @doc-new --profile=prod
 
 .PHONY: docs-open
 docs-open: ## Open odoc docs with default web browser
-# open _build/default/_doc_new/html/docs/local/server-reason-react/index.html
 	open _html/server-reason-react/index.html
 
 .PHONY: docs-serve

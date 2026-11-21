@@ -121,8 +121,6 @@ let handleNoJsFormRequest ~lookup formDataJs =
           | ReactServerDOM.Body handler -> handler [||]))
   | None -> Lwt.fail_with "No ACTION_ID header and no $ACTION_* keys in FormData"
 
-(* Dream has no request-disconnect promise: a failed write is the only disconnect signal and cannot fire while the
-   renderer waits on a hung resource, so the timeout is the reliable backstop for RSC responses. *)
 let stream_timeout = 30.0
 
 let write_chunk ~debug ~label stream chunk =

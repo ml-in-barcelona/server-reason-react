@@ -218,11 +218,6 @@ let url_search_params_tests =
   URL.(
     "URL.SearchParams",
     [
-      /* case("make", () => {
-           TODO: Fix this
-           let search = SearchParams.makeExn("33");
-           assert_string(SearchParams.toString(search), "33=");
-         }), */
       case("has", () => {
         let search = SearchParams.makeExn("topic=api");
         assert_bool(SearchParams.has(search, "topic"), true);
@@ -265,14 +260,9 @@ let url_search_params_tests =
         );
         let search = SearchParams.makeExn("foo=bar&foo=baz");
         let topics = SearchParams.get(search, "foo");
-        /* only get the first value */
         assert_option_string(topics, Some("bar"));
-        /* URLSearchParams doesn't distinguish between a parameter with nothing after the =, and a parameter that doesn't have a = altogether. */
         let emptyVal = SearchParams.makeExn("foo=&bar=baz");
         assert_option_string(SearchParams.get(emptyVal, "foo"), Some(""));
-        /* let noEquals = SearchParams.makeExn("foo&bar=baz");
-           assert_option_string(SearchParams.get(noEquals, "foo"), Some("")); */
-        /* assert_string(SearchParams.toString(noEquals), "foo=&bar=baz"); */
       }),
       case("get with comma-separated value", () => {
         let url = URL.makeExn("https://a.dev?tags=x,y");
@@ -298,10 +288,6 @@ let url_search_params_tests =
         let search = SearchParams.makeExn("topic=api,webdev");
         let topics = SearchParams.getAll(search, "topic");
         assert_string_array(topics, [|"api", "webdev"|]);
-        /* let search = SearchParams.makeExn("foo=bar&foo=baz");
-           let topics = SearchParams.getAll(search, "foo"); */
-        /* only get the first value */
-        /* assert_string_array(topics, [|"bar", "baz"|]); */
       }),
       case("keys", () => {
         let search =
@@ -330,10 +316,6 @@ let url_search_params_tests =
         assert_string(SearchParams.toString(search), "key1=v1&key2=v2");
         let search = SearchParams.makeExn("");
         assert_string(SearchParams.toString(search), "");
-        /*
-         TODO: Encode when printing to string
-         let search = SearchParams.makeExn("q=2,3,5");
-          assert_string(SearchParams.toString(search), "q=2%2C3%2C5"); */
       }),
     ],
   );

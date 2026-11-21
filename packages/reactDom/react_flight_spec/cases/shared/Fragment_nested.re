@@ -1,7 +1,3 @@
-/* Nested key-less fragments with siblings around them: fragments are
-   transparent in the Flight model, so only their children's grouping
-   survives in the children array. Keyed fragments are covered by
-   Fragment_keyed. */
 let app = () =>
   <div>
     {React.string("before")}

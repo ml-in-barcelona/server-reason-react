@@ -1,5 +1,3 @@
-(** JavaScript Array API *)
-
 type 'a t = 'a array
 type 'a array_like
 

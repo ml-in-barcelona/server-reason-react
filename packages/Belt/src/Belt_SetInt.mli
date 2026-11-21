@@ -28,10 +28,7 @@
     {b See} {!Belt.Set} *)
 
 type value = int
-(** The type of the set elements. *)
-
 type t
-(** The type of sets. *)
 
 val empty : t
 val fromArray : value array -> t

@@ -1,8 +1,6 @@
 let is_self_closing_tag = function
-  (* Take the list from
-     https://github.com/facebook/react/blob/97d75c9c8bcddb0daed1ed062101c7f5e9b825f4/packages/react-dom-bindings/src/shared/omittedCloseTags.js but found https://github.com/wooorm/html-void-elements to be more complete. *)
   | "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "command" | "embed" | "frame" | "hr" | "image" | "img"
-  | "input" | "keygen" | "link" (* | "menuitem" *) | "meta" | "param" | "source" | "track" | "wbr" ->
+  | "input" | "keygen" | "link" | "meta" | "param" | "source" | "track" | "wbr" ->
       true
   | _ -> false
 
@@ -66,7 +64,7 @@ let write_attribute buf (attr : attribute) =
 type element =
   | Null
   | String of string
-  | Raw of string (* text without encoding *)
+  | Raw of string
   | Node of node
   | Int of int
   | Float of float
@@ -87,8 +85,6 @@ let node tag attributes children = Node { tag; attributes; children }
 
 let to_string ?(add_separator_between_text_nodes = true) element =
   let out = Buffer.create 1024 in
-  (* This ref is used to enable rendering comments <!-- --> between text nodes
-     and can be disabled by `add_separator_between_text_nodes` *)
   let previous_node_was_text = ref false in
   let should_add_doctype_to_html = ref true in
   let rec write element =
@@ -112,11 +108,8 @@ let to_string ?(add_separator_between_text_nodes = true) element =
         Buffer.add_string out " />";
         should_add_doctype_to_html.contents <- false
     | Node { tag; attributes; children } ->
-        (* capturing the value of should_add_doctype_to_html before setting it to false, so the first thing is set to false and use the captured value *)
         let should_add_doctype = should_add_doctype_to_html.contents in
         should_add_doctype_to_html.contents <- false;
-        (* If the previous node was text, but from another parent node, then the comment shouldn't be added.
-           Check `separated_text_nodes_by_other_nodes` in test_renderToString.ml *)
         if add_separator_between_text_nodes then previous_node_was_text.contents <- false;
         if tag = "html" && should_add_doctype then Buffer.add_string out "<!DOCTYPE html>";
         Buffer.add_char out '<';
@@ -148,7 +141,6 @@ let to_string ?(add_separator_between_text_nodes = true) element =
   write element;
   Buffer.contents out
 
-(* The pretty print is used for debugging purposes *)
 let pp element =
   let out = Buffer.create 1024 in
   let rec write element =
@@ -220,9 +212,6 @@ let escape_attribute_value data =
   add_attribute_escaped buf data;
   Buffer.contents buf
 
-(* Escapes a string for embedding inside a double-quoted JS string literal within an inline <script>. '<' is escaped to
-   '\u003c' so user content can't terminate the script tag early, matching React's
-   escapeJSStringsForInstructionScripts. *)
 let escape_for_inline_script str =
   let buf = Buffer.create (String.length str + 16) in
   String.iter
@@ -238,9 +227,6 @@ let escape_for_inline_script str =
     str;
   Buffer.contents buf
 
-(* Escapes an entire inline <script> body (raw JS code, not a string literal): neutralizes "<script" and "</script"
-   (case-insensitive) by unicode-escaping the 's', so user content can't terminate the surrounding script tag early.
-   Mirrors react-dom's escapeEntireInlineScriptContent ((<\/|<)(s)(cript)/gi). *)
 let escape_entire_inline_script str =
   let len = String.length str in
   let buf = Buffer.create (len + 16) in
