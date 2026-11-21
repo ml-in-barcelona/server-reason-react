@@ -65,7 +65,7 @@ let consume_search search () =
   | Error _ -> sink := !sink + 1
 
 let page_registry () =
-  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~reusable:true in
+  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~search:[] ~reusable:true in
   let headers values = match RouterRuntime.Headers.make values with Ok headers -> headers | Error _ -> assert false in
   let root =
     RouterServer.Plan.Scope.make
@@ -94,7 +94,10 @@ let page_registry () =
             Ok
               (RouterServer.Endpoint.prepared
                  ~branch:
-                   [ root_branch; RouterServer.Branch.Scope.make ~id ~parameters:[ ("id", value) ] ~reusable:true ]
+                   [
+                     root_branch;
+                     RouterServer.Branch.Scope.make ~id ~parameters:[ ("id", value) ] ~search:[] ~reusable:true;
+                   ]
                  ~execution:(fun () ->
                    RouterServer.Execution.load
                      (fun () -> Lwt.return (RouterRuntime.Loader.Data value))

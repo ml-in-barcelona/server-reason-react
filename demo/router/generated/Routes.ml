@@ -8,6 +8,14 @@ Router.make ~basePath:"/demo/router" ~viewTransitions:true ~layout:Pages.AppLayo
     Router.route E2eLong ~page:Pages.E2eLong ~path:"/e2e/long";
     Router.route E2eOff ~page:Pages.E2eOff ~path:"/e2e/off" ~prefetch:Off;
     Router.route E2eViewport ~page:Pages.E2eViewport ~path:"/e2e/viewport" ~prefetch:Viewport;
+    Router.route E2eSlow ~page:Pages.E2eSlow ~path:"/e2e/slow" ~prefetch:Off;
+    Router.group ~path:"/e2e/group" ~layout:Pages.E2eGroupLayout
+      [
+        Router.route E2eGroupSlow ~page:Pages.E2eGroupSlow ~path:"/slow" ~prefetch:Off;
+        Router.route E2eGroupFast ~page:Pages.E2eGroupFast ~path:"/fast" ~prefetch:Off;
+      ];
+    Router.route E2eSearch ~page:Pages.E2eSearch ~path:"/e2e/search"
+      ~search:{ view = Router.Search.optional string; panel = Router.Search.optional ~shallow:true string };
     Router.redirect ~path:"/e2e/old" ~target:(fun ~search () -> Router.E2eLong.destination ~search ());
     Router.group ~path:"/:id<NoteId.t>" ~layout:Pages.NoteLayout ~loader:Pages.NoteLoader ~loaderLabel:note
       [

@@ -105,6 +105,71 @@ switch (supportSearch^) {
   };
 };
 
+RouterReact.searchValues := [("info-page", ["x"]), ("other", ["kept"])];
+RouterReact.searchUpdates := [];
+let supportUpdate = ref(None);
+SearchJsx.renderSupportUpdate(update => supportUpdate := Some(update))
+|> ignore;
+switch (supportUpdate^) {
+| None => failwith("Support.useUpdateSearch did not render")
+| Some(update) =>
+  update(search =>
+    {
+      ...search,
+      infoPage: Some(Option.value(search.infoPage, ~default="") ++ "1"),
+    }
+  )
+  |> ignore;
+  update(search =>
+    {
+      ...search,
+      infoPage: Some(Option.value(search.infoPage, ~default="") ++ "2"),
+      alpha: Some("a"),
+    }
+  )
+  |> ignore;
+  expect(
+    "useUpdateSearch composes updates from the latest value",
+    "info-page=x12&other=kept&z=a",
+    RouterReact.searchValues^
+    |> List.sort(((left, _), (right, _)) => String.compare(left, right))
+    |> List.map(((name, values)) =>
+         name ++ "=" ++ String.concat(",", values)
+       )
+    |> String.concat("&"),
+  );
+  expect(
+    "useUpdateSearch owns the route keys",
+    "info-page resources-projectId z a-zone",
+    switch (RouterReact.searchUpdates^) {
+    | [(owned, _), _] => String.concat(" ", owned)
+    | _ => "expected two updates"
+    },
+  );
+};
+
+expect(
+  "shallow search keys",
+  "z",
+  String.concat(
+    ",",
+    RouterRuntime.shallowSearch(Router.Support.destination()),
+  ),
+);
+expect(
+  "no shallow search keys",
+  "",
+  String.concat(
+    ",",
+    RouterRuntime.shallowSearch(
+      Router.Inspector.destination(
+        ~search=Router.Inspector.search(~target="t", ()),
+        (),
+      ),
+    ),
+  ),
+);
+
 let level = destination =>
   RouterRuntime.PrefetchLevel.toString(
     RouterRuntime.prefetchLevel(destination),

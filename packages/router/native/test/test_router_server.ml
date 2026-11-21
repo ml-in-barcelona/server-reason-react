@@ -1420,7 +1420,7 @@ let failure_plan_selects_not_found_boundary () =
   Alcotest.(check int) "status" 404 (Status.toInt resolved.status)
 
 let shared_layout_prefix_uses_canonical_identity () =
-  let scope = RouterServer.Branch.Scope.make in
+  let scope = RouterServer.Branch.Scope.make ~search:[] in
   let root = scope ~id:"root" ~parameters:[] ~reusable:true in
   let note = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:true in
   let same = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:true in
@@ -1431,6 +1431,24 @@ let shared_layout_prefix_uses_canonical_identity () =
   Alcotest.(check int)
     "scope without an outlet" 1
     (RouterServer.Branch.sharedPrefix [ root; note ] [ root; outletless ])
+
+let shared_layout_prefix_compares_search_in_reach () =
+  let scope search = RouterServer.Branch.Scope.make ~search ~reusable:true in
+  let root text = scope [ ("text", text) ] ~id:"root" ~parameters:[] in
+  let note text = scope [ ("text", text) ] ~id:"group:note" ~parameters:[ ("id", "1") ] in
+  Alcotest.(check int)
+    "same search" 2
+    (RouterServer.Branch.sharedPrefix [ root [ "a" ]; note [ "a" ] ] [ root [ "a" ]; note [ "a" ] ]);
+  Alcotest.(check int)
+    "changed search in reach" 0
+    (RouterServer.Branch.sharedPrefix [ root [ "a" ]; note [ "a" ] ] [ root [ "b" ]; note [ "b" ] ]);
+  Alcotest.(check int)
+    "values are framed" 0
+    (RouterServer.Branch.sharedPrefix [ root [ "ab"; "c" ] ] [ root [ "a"; "bc" ] ]);
+  Alcotest.(check string)
+    "search does not enter the instance key"
+    (RouterServer.Branch.Scope.instanceKey (root [ "a" ]))
+    (RouterServer.Branch.Scope.instanceKey (root [ "b" ]))
 
 let plan_scope_count_bounds_the_graft () =
   let scope = RouterServer.Plan.Scope.make ~layout:(fun child -> child) () in
@@ -1854,6 +1872,7 @@ let () =
           test "full plan composition" full_plan_composition;
           test "failure plan selects not-found boundary" failure_plan_selects_not_found_boundary;
           test "shared layout prefix uses canonical identity" shared_layout_prefix_uses_canonical_identity;
+          test "shared layout prefix compares search in reach" shared_layout_prefix_compares_search_in_reach;
           test "plan scope count bounds the graft" plan_scope_count_bounds_the_graft;
           test "suffix plan omits shared layouts" suffix_plan_omits_shared_layouts;
           test "scope values resolve concurrently" scope_values_resolve_concurrently;

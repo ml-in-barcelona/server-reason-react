@@ -112,6 +112,9 @@ module Decode : sig
     name:string ->
     parse:(string -> ('value, string) result) ->
     ('value list, 'error RouterRuntime.Error.t) result
+
+  val searchValues : input:Input.t -> string list -> (string * string list) list
+  (** The raw values of each named search parameter, in the given order, for {!Branch.Scope.make}. *)
 end
 
 (** A deferred, sequential description of route work.
@@ -150,9 +153,13 @@ module Branch : sig
   module Scope : sig
     type t
 
-    val make : id:string -> parameters:(string * string) list -> reusable:bool -> t
+    val make :
+      id:string -> parameters:(string * string) list -> search:(string * string list) list -> reusable:bool -> t
     (** [parameters] are framed into [instanceKey], avoiding ambiguous keys when names or values have shared prefixes.
-        [reusable] marks a scope that owns an outlet and can therefore receive a navigation patch. *)
+        [search] holds the raw values of the search parameters in the scope's reach, by URL key: the scope's own and
+        those of its ancestors. They do not enter [instanceKey], so a layout keeps its React identity across a search
+        change, but {!sharedPrefix} only reuses a scope whose [search] values are unchanged. [reusable] marks a scope
+        that owns an outlet and can therefore receive a navigation patch. *)
 
     val id : t -> string
     val instanceKey : t -> string
@@ -162,9 +169,9 @@ module Branch : sig
   type t = Scope.t list
 
   val sharedPrefix : t -> t -> int
-  (** Returns the number of leading layout instances that can survive a navigation. Comparison stops as soon as either
-      scope is not reusable. The result is an upper bound: {!Plan.scopeCount} bounds it further once loaders have run.
-  *)
+  (** Returns the number of leading layout instances that can survive a navigation: reusable scopes with the same
+      [instanceKey] and the same search values in reach. Comparison stops as soon as either scope is not reusable. The
+      result is an upper bound: {!Plan.scopeCount} bounds it further once loaders have run. *)
 
   val layouts : t -> RouterRuntime.Navigation.layout list
 end

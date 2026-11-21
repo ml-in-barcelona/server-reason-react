@@ -54,3 +54,14 @@ module SupportSearch = {
 
 let renderSupportSearch = onSearch =>
   ReactDOMServer.renderToString(<SupportSearch onSearch />);
+
+module SupportUpdate = {
+  [@react.component]
+  let make = (~onUpdate) => {
+    onUpdate(Router.Support.useUpdateSearch());
+    React.null;
+  };
+};
+
+let renderSupportUpdate = onUpdate =>
+  ReactDOMServer.renderToString(<SupportUpdate onUpdate />);

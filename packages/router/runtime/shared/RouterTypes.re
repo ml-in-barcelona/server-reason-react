@@ -33,11 +33,13 @@ module PrefetchLevel = {
 type destination = {
   href: string,
   prefetch: PrefetchLevel.t,
+  shallowSearch: list(string),
 };
 
 let makeDestination: string => destination = href => {
   href,
   prefetch: PrefetchLevel.Intent,
+  shallowSearch: [],
 };
 let destinationHref = destination => destination.href;
 let destinationPrefetch = destination => destination.prefetch;
@@ -48,6 +50,11 @@ let prefetchLevel = destinationPrefetch;
 let withPrefetch = (destination, prefetch) => {
   ...destination,
   prefetch,
+};
+let shallowSearch = destination => destination.shallowSearch;
+let withShallowSearch = (destination, shallowSearch) => {
+  ...destination,
+  shallowSearch,
 };
 
 let destinationWithHash = (~encode, destination, ~hash) => {

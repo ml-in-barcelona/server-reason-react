@@ -14,6 +14,16 @@ type updateSearch =
     unit
   ) =>
   navigationResult;
+/** Updates the search from its latest value: the function receives every
+    current name with its values, including updates made earlier in the same
+    task, and returns the values of the [owned] names. */
+type updateSearchWith =
+  (
+    ~owned: list(string),
+    ~history: RouterRuntime.Navigation.historyAction=?,
+    list((string, list(string))) => list((string, list(string)))
+  ) =>
+  navigationResult;
 type updateHash =
   (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
   navigationResult;
@@ -47,6 +57,17 @@ type invalidation =
   | All
   | Prefix(RouterRuntime.destination);
 
+/** Which locations make a destination active for [useIsActive],
+    [useIsPending] and [Link ~activeWhen]. [Url]: the same path and the same
+    search, in any order (the [useIsCurrent] rule). [Route]: the same path
+    with any search, so the same route with the same path parameters.
+    [Subtree]: the same path or a path below it, by whole decoded segments.
+    The hash is always ignored. */
+type activeWhen =
+  | Url
+  | Route
+  | Subtree;
+
 module Provider: {
   [@react.component]
   let make:
@@ -71,6 +92,7 @@ module Provider: {
 let useNavigation: unit => (navigate, RouterRuntime.Navigation.status);
 let useCurrentRoute: unit => option((string, list((string, string))));
 let useSearch: unit => (list((string, list(string))), updateSearch);
+let useUpdateSearchWith: unit => updateSearchWith;
 let useUpdateHash: unit => updateHash;
 let useLocation: unit => RouterRuntime.Navigation.location;
 
@@ -94,6 +116,17 @@ let useInvalidate: (unit, invalidation) => unit;
     in any query order. The hash is ignored. */
 let useIsCurrent: RouterRuntime.destination => bool;
 
+/** True when the committed location matches the destination by
+    [~activeWhen], [Route] by default. */
+let useIsActive:
+  (~activeWhen: activeWhen=?, RouterRuntime.destination) => bool;
+
+/** True while a content navigation whose target matches the destination by
+    [~activeWhen] ([Route] by default) is in flight, until its page is on
+    screen. Always false on the server. */
+let useIsPending:
+  (~activeWhen: activeWhen=?, RouterRuntime.destination) => bool;
+
 /** While the argument is true, [navigate], [Link], intercepted clicks, and
     Back or Forward to other content wait for [proceed] or [cancel]. */
 let useBlocker: bool => blocker;
@@ -110,6 +143,7 @@ module Link: {
       ~target: string=?,
       ~download: string=?,
       ~ariaCurrent: string=?,
+      ~activeWhen: activeWhen=?,
       ~id: string=?,
       ~title: string=?,
       ~rel: string=?,

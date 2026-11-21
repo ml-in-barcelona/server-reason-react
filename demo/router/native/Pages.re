@@ -37,6 +37,12 @@ module AppLayout = {
             <Router.E2eLong className="layout-long">
               {React.string("Long page")}
             </Router.E2eLong>
+            <RouterReact.Link
+              destination={Router.E2e.destination()}
+              activeWhen=RouterReact.Subtree
+              className="layout-e2e-subtree">
+              {React.string("All checks")}
+            </RouterReact.Link>
           </nav>
           <section className="mt-4 mb-4 flex flex-row gap-2" key="search">
             <SearchField />
@@ -186,6 +192,16 @@ module E2e = {
       <Router.E2e className="link-self">
         {React.string("This page")}
       </Router.E2e>
+      <Router.E2eSlow className="link-slow">
+        {React.string("Slow page")}
+      </Router.E2eSlow>
+      <Router.E2eGroupSlow className="link-group-slow">
+        {React.string("Slow page in a group")}
+      </Router.E2eGroupSlow>
+      <Router.E2eGroupFast className="link-group-fast">
+        {React.string("Fast page in a group")}
+      </Router.E2eGroupFast>
+      <E2ePending />
       <form id="visit-form" action={`Function(E2eActions.countVisit)}>
         <span id="visits">
           {React.string(string_of_int(E2eState.visits^))}
@@ -229,4 +245,48 @@ module E2eViewport = {
     <p id="e2e-viewport">
       {React.string("A route prefetched near the viewport")}
     </p>;
+};
+
+module E2eSlow = {
+  [@react.component]
+  let make = (~search as _) =>
+    <div className="p-4">
+      <E2eGate name="slow" />
+      <p id="e2e-slow"> {React.string("A slow page")} </p>
+    </div>;
+};
+
+module E2eSearch = {
+  [@react.component]
+  let make = (~search: Router.E2eSearch.search) =>
+    <div className="flex flex-col gap-2 p-4" id="e2e-search">
+      <span id="server-view">
+        {React.string(Option.value(search.view, ~default="none"))}
+      </span>
+      <span id="server-panel">
+        {React.string(Option.value(search.panel, ~default="none"))}
+      </span>
+      <E2eSearchTools />
+    </div>;
+};
+
+module E2eGroupLayout = {
+  [@react.component]
+  let make = (~search as _, ~children) =>
+    <section id="e2e-group"> children </section>;
+};
+
+module E2eGroupSlow = {
+  [@react.component]
+  let make = (~search as _) =>
+    <div>
+      <E2eGate name="group-slow" />
+      <p id="e2e-slow"> {React.string("A slow page in a group")} </p>
+    </div>;
+};
+
+module E2eGroupFast = {
+  [@react.component]
+  let make = (~search as _) =>
+    <p id="e2e-group-fast"> {React.string("A fast page in a group")} </p>;
 };

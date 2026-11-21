@@ -88,7 +88,7 @@ Router.make(
         infoPage: Router.Search.optional(~key="info-page", string),
         resourcesProjectId:
           Router.Search.default(~key="resources-projectId", int, 0),
-        alpha: Router.Search.optional(~key="z", string),
+        alpha: Router.Search.optional(~key="z", ~shallow=true, string),
         zone: Router.Search.many(~key="a-zone", string),
       },
     ),

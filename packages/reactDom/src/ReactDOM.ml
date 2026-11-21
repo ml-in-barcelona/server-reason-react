@@ -384,7 +384,8 @@ and task_group = {
   mutable on_error : exn -> unit;
 }
 
-type render_context = { segment : segment; tasks : task_group; providers : (unit -> unit -> unit) list }
+type provider = { push : unit -> unit -> unit; scope : 'a. (unit -> 'a) -> 'a }
+type render_context = { segment : segment; tasks : task_group; providers : provider list }
 
 let make_segment ~previous_node_was_text ~should_add_doctype =
   { buf = Buffer.create 128; slots = []; previous_node_was_text; should_add_doctype }
@@ -525,7 +526,7 @@ let suspend ~stream_context context promise render_resolved =
         if tasks.cancelled || stream_context.closed then Ok ()
         else
           let previous_tree_context = !React.current_tree_context in
-          let pops = List.rev_map (fun push -> push ()) (List.rev context.providers) in
+          let pops = List.rev_map (fun provider -> provider.push ()) (List.rev context.providers) in
           React.current_tree_context := tree_context;
           let result =
             match render_resolved { context with segment } value with
@@ -570,9 +571,10 @@ let render_to_segment ~env ~stream_context =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider { children; push; _ } ->
+    | Provider { children; push; async_key; async_value } ->
         let pop = push () in
-        Fun.protect ~finally:pop (fun () -> render { context with providers = push :: context.providers } children)
+        let provider = { push; scope = (fun run -> Lwt.with_value async_key (Some async_value) run) } in
+        Fun.protect ~finally:pop (fun () -> render { context with providers = provider :: context.providers } children)
     | Consumer children -> render context children
     | Fragment { children; _ } -> render context children
     | List list | Static_list list -> render_list context list
@@ -636,7 +638,8 @@ let render_to_segment ~env ~stream_context =
    fun context component ~replayed render_result ->
     let saved_ctx = !React.current_tree_context in
     React.reset_component_id_state saved_ctx;
-    match React.call_with_promise_replay replayed component with
+    let scoped = List.fold_left (fun run provider () -> provider.scope run) component context.providers in
+    match React.call_with_promise_replay replayed scoped with
     | exception exn ->
         React.current_tree_context := saved_ctx;
         raise exn

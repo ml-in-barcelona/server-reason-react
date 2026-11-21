@@ -14,6 +14,13 @@ type updateSearch =
     unit
   ) =>
   navigationResult;
+type updateSearchWith =
+  (
+    ~owned: list(string),
+    ~history: RouterRuntime.Navigation.historyAction=?,
+    list((string, list(string))) => list((string, list(string)))
+  ) =>
+  navigationResult;
 type updateHash =
   (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
   navigationResult;
@@ -43,9 +50,16 @@ let updateSearch: updateSearch = (~owned, ~values, ~history as _=?, ()) => {
   searchUpdates := [(owned, values), ...searchUpdates^];
   RouterRuntime.Navigation.Result.Canceled;
 };
+let updateSearchWith: updateSearchWith = (~owned, ~history as _=?, update) => {
+  let values = update(searchValues^);
+  searchUpdates := [(owned, values), ...searchUpdates^];
+  searchValues := RouterRuntime.Search.update(~owned, ~values, searchValues^);
+  RouterRuntime.Navigation.Result.Canceled;
+};
 let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>
   assert(false);
 let useNavigation = () => (navigate, RouterRuntime.Navigation.Idle);
 let useCurrentRoute = () => None;
 let useSearch = () => (searchValues^, updateSearch);
+let useUpdateSearchWith = () => updateSearchWith;
 let useUpdateHash = () => updateHash;

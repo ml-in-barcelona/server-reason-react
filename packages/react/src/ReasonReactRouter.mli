@@ -33,8 +33,34 @@ val dangerouslyGetInitialUrl : ?serverUrlString:string -> unit -> url
 
     So, the correct (and idiomatic) usage of this helper is to only use it in a component that's also subscribed to
     watchUrl. Please see https://github.com/reasonml-community/reason-react-example/blob/master/src/todomvc/TodoItem.re
-    for an example. *)
+    for an example.
+
+    On the server, [serverUrlString] is parsed like {!ServerUrl} parses its [url] prop. Without it, the function returns
+    the URL that the closest enclosing {!ServerUrl} provides, or an empty URL when there is none. *)
 
 val useUrl : ?serverUrl:url -> unit -> url
 (** hook for watching url changes. * serverUrl is used for ssr. it allows you to specify the url without relying on
-    browser apis existing/working as expected *)
+    browser apis existing/working as expected
+
+    On the server, without [serverUrl], it returns the URL that the closest enclosing {!ServerUrl} provides, or an empty
+    URL when there is none. *)
+
+module ServerUrl : sig
+  (** Server-only provider of the request URL for {!useUrl} and {!dangerouslyGetInitialUrl}.
+
+      [url] is a request target such as ["/books/1/?sort=asc#top"]. It is split like the browser router splits
+      [window.location]: [path] holds the non-empty segments between ['/'] (["books"; "1"]), [search] is the text after
+      the first ['?'] without the ['?'] (["sort=asc"]), and [hash] is the text after the first ['#'] without the ['#']
+      (["top"]). Segments are not percent-decoded. The closest enclosing provider wins.
+
+      {[
+        ReactDOM.renderToStream
+          (ReasonReactRouter.ServerUrl.make
+             (ReasonReactRouter.ServerUrl.makeProps ~url:request_target ~children:app ()))
+      ]}
+
+      With the JSX ppx: [<ReasonReactRouter.ServerUrl url=request_target> app </ReasonReactRouter.ServerUrl>]. *)
+
+  val makeProps : url:string -> children:React.element -> unit -> < url : string ; children : React.element > Js.t
+  val make : (< url : string ; children : React.element > Js.t, React.element) React.componentLike
+end

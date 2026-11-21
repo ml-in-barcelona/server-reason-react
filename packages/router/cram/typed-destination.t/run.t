@@ -478,6 +478,8 @@ A route without its own parameters shares the root record and hook.
   val useSearch : unit -> (search
   $ grep -Eo '~owned:\[[^]]*\]' RouteSearch.ml
   ~owned:["q"]
+  ~owned:["q"]
+  ~owned:["q"; "page"]
   ~owned:["q"; "page"]
   $ ocamlc -c route_search_use.ml
 
@@ -535,17 +537,17 @@ equal another field's label.
   type search = { infoPage: string option ; siteTarget: string option ; target: string ; kind: string ; tags: int list }
   val search : ?infoPage:string -> ?siteTarget:string -> ?target:string -> kind:string -> ?tags:int list -> unit -> search
   $ tr -s ' \n' ' ' < SearchKeyAlias.ml | grep -Eo '~name:"[^"]*"|\("[^"]*", *\[|~owned:\[[^]]*\]' | sort | uniq -c
-        3 ("info-page", [
+        4 ("info-page", [
         1 ("site", [
         1 ("target", [
         1 ("type", [
-        4 ~name:"info-page"
-        2 ~name:"site"
-        2 ~name:"tag"
-        2 ~name:"target"
-        2 ~name:"type"
-        1 ~owned:["info-page"; "target"; "site"; "type"; "tag"]
-        1 ~owned:["info-page"]
+        6 ~name:"info-page"
+        3 ~name:"site"
+        3 ~name:"tag"
+        3 ~name:"target"
+        3 ~name:"type"
+        2 ~owned:["info-page"; "target"; "site"; "type"; "tag"]
+        2 ~owned:["info-page"]
   $ server-reason-react.router-gen --mode registry --source search-key-alias.ml < search-key-alias.ml | tr -s ' \n' ' ' | grep -Eo 'search(Required|Optional|Default|Many) ~input ~name:"[^"]*"|[a-zA-Z.]+ = search_[0-9]+' | sort | uniq -c
         1 Router.Inspector.kind = search_2
         1 Router.Inspector.siteTarget = search_0
@@ -598,6 +600,21 @@ other labelled argument.
   $ server-reason-react.router-gen --mode handles --source unknown-search-argument.ml < unknown-search-argument.ml
   File "unknown-search-argument.ml", line 2, characters 62-104:
   Error: router: unknown router argument ~kye
+  [2]
+
+`~shallow:true` marks a search parameter whose changes need no server
+response. Generated destinations list the URL keys of their route's shallow
+parameters, root parameters included, with `RouterRuntime.withShallowSearch`.
+The flag is part of the registry fingerprint. It takes a boolean literal.
+
+  $ server-reason-react.router-gen --mode handles --source shallow-search.ml < shallow-search.ml | tr -s ' \n' ' ' | grep -Eo 'withShallowSearch|~hash\) \["[^]]*\]'
+  withShallowSearch
+  ~hash) ["tab"; "p"]
+  withShallowSearch
+  ~hash) ["tab"]
+  $ server-reason-react.router-gen --mode handles --source shallow-search-invalid.ml < shallow-search-invalid.ml
+  File "shallow-search-invalid.ml", line 4, characters 110-117:
+  Error: router: ~shallow takes true or false, for example ~shallow:true
   [2]
 
 Without `~key`, a keyword is not a field name, so a query key such as `type`

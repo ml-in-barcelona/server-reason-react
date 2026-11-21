@@ -299,7 +299,9 @@ and [useSearch] updates use the key:
 }
 ]}
 
-[required], [optional], [default] and [many] all take [~key]. It is a
+[required], [optional], [default] and [many] all take [~key] and
+[~shallow], a boolean literal (see "Shallow search parameters" under Search
+updates). [~shallow] is part of the registry fingerprint. [~key] is a
 non-empty string literal that is valid UTF-8. Two parameters of one branch
 cannot share a key, so [~key="target"] on [siteTarget] next to a [target]
 field without [~key] is an error. Names are sorted by key in URLs, and a key
@@ -430,6 +432,44 @@ Flight model and the server answers with a full model, or with a partial patch
 that reuses unchanged layouts. [~revalidate=true] forces a full response.
 [~history] selects [Push], [Replace], or [Pop].
 
+{3 Pending navigations}
+
+The provider renders the new page inside React [startTransition]. While the
+request runs, and while parts of the new page that have no [~loading] of their
+own are still streaming, the old page stays on screen and keeps working:
+clicks, typing and state updates still apply to it. A [~loading] boundary
+that the new page mounts shows its fallback at once, as before. The status
+stays [Loading] until the new page is on screen, so a global indicator can
+read it from [useNavigation]. The URL, the history entry and the [navigate]
+result change when the new page is on screen too. A navigation, search update
+or hash update that starts while the new page is still waiting cancels it: it
+applies to the page on screen, and the canceled [navigate] resolves to
+[Canceled].
+
+With [~viewTransitions=true] the provider still commits each navigation at
+once inside the view transition, because the browser takes its snapshot of
+the old page when the transition starts. A boundary of the old page that the
+new content suspends then shows its fallback. When the user prefers reduced
+motion ([prefers-reduced-motion: reduce]), the provider runs no view
+transition and renders the new page in a transition.
+
+[RouterReact.useIsPending destination] is true while a navigation to that
+destination is in flight, until its page is on screen. It takes the same
+[~activeWhen] as [useIsActive] (see Links), [Route] by default:
+
+{[
+let pending = RouterReact.useIsPending(Router.Results.destination());
+<span> {pending ? React.string("Loading results") : React.null} </span>
+]}
+
+While a navigation is in flight, the provider also sets [data-router-pending]
+on every [Link] whose destination matches its target by the link's own
+[~activeWhen] rule, and removes it when the navigation ends. Style pending
+links with [a[data-router-pending]]. Like [aria-current], this also reaches
+links in layouts that a patch does not render again, and links in server
+components. A [Link] with an explicit [~ariaCurrent] is not marked. On the
+server [useIsPending] is false.
+
 A [Push] or [Replace] to the committed URL (path, search in any order, and
 hash), without [~revalidate=true] and with no navigation in flight, does
 nothing: it adds no history entry, sends no request, and resolves to
@@ -444,9 +484,29 @@ URL with a hash also scrolls to and focuses the fragment's element.
 
 A patch grafts into the outlet of the deepest scope both locations share. A
 scope is shared when it declares [~layout], its path parameters are unchanged,
-and the search string is unchanged. Navigating between two routes of the same
+and the values of the search parameters in its reach are unchanged. The root
+and its groups reach the root search parameters; a route reaches the root
+parameters and its own. A route is the last scope of its branch and is always
+rendered again, so a change of a route's own search parameters keeps every
+layout above it, and a change of a root parameter renders the whole page.
+Values are compared as they appear in the URL, by key, before decoding, so a
+change between two spellings that decode the same, or to a value the parser
+rejects, also counts as a change. Navigating between two routes of the same
 group therefore replaces only that group's outlet and leaves every enclosing
-layout mounted. When a loader fails, its scope and everything below it leave
+layout mounted.
+
+A shared layout is not rendered again. Its server components read the request
+that rendered them: a server component inside a root or group layout that
+reads a route's own search parameters through a hook keeps the old value after
+a patch. Read route search parameters in the route's page, or navigate with
+[~revalidate=true].
+
+The rule trusts the scope's inputs. A root or group loader, [~metadata] or
+[~headers] reads search only through its [~search] record, which holds the
+root parameters. Do not read a route's own query key from the raw request,
+for example through [~context] built from the request by
+[DreamRouter.routesWithContext]: a patch that changes only that key keeps the
+layout rendered from the old value, even though the loader runs again. When a loader fails, its scope and everything below it leave
 the response, and the graft moves up to the deepest scope the response still
 renders.
 
@@ -658,6 +718,52 @@ synchronously and never contact the server. When server-rendered content
 depends on a search value, navigate to a destination carrying the new value
 instead of calling [updateSearch].
 
+The update function takes a whole record built from the record of the last
+render. Two updates in one event handler then both start from the same record,
+and the second drops the first one's change. [Router.useUpdateSearch] and
+[Router.Route.useUpdateSearch] return a function that takes the update as a
+function of the latest record instead, including updates made earlier in the
+same task:
+
+{[
+let updateSearch = Router.Results.useUpdateSearch();
+
+let onClear = () => {
+  updateSearch(search => {...search, page: 1}) |> ignore;
+  updateSearch(search => {...search, filter: None}) |> ignore;
+};
+]}
+
+Both updates apply. A second [Push] search update in the same task, from any
+of these functions or from a shallow [navigate] (see below), replaces the entry
+the first one pushed, so one handler adds one history entry.
+[RouterReact.useUpdateSearchWith] is the untyped form: it takes [~owned]
+names and a function from every current name and its values to the values of
+the owned names.
+
+{3 Shallow search parameters}
+
+[~shallow=true] on a search parameter says that no server output depends on
+it: client components read it with [useSearch].
+
+{[
+~search={
+  page: Router.Search.default(int, 1),
+  panel: Router.Search.optional(~shallow=true, string),
+}
+]}
+
+A [navigate], or a [Link] click, to a destination with the committed path
+whose search differs from the committed search only in shallow parameters of
+the destination's route, without [~revalidate=true], sends no request. It
+commits the URL like [updateSearch], with the destination's search and hash,
+and its [~history]. It is not held by [useBlocker]. Any other difference still
+asks the server. The server still receives shallow parameters on every
+request and passes them to loaders and pages, so a document load renders
+them. [RouterRuntime.shallowSearch destination] lists the URL keys of a
+destination's shallow parameters. A plain anchor carries no destination, so
+its clicks always ask the server.
+
 [Router.useUpdateHash] commits hash-only changes without a request.
 
 [RouterReact.useLocation] returns the committed location: [pathname], [search]
@@ -689,7 +795,30 @@ for its children. Style current links with [a[aria-current="page"]].
 elements. The comparison uses the URL: a destination does not carry its route
 id.
 
-Every [Link] without [~ariaCurrent] renders [data-router-link]. After each
+For navigation menus, [~activeWhen] on [RouterReact.Link] changes the rule:
+
+- [Url], the default, is the rule above: same path and same search.
+- [Route]: same path, any search. A generated destination has one path for
+  each route and set of path parameters, so this is the same route with the
+  same path parameters. A link to a list stays current while the user changes
+  its filters.
+- [Subtree]: the destination's path or any path below it, by whole decoded
+  segments. [/notes] is current on [/notes] and [/notes/42/edit], not on
+  [/notes-archive].
+
+The hash is always ignored.
+
+{[
+<RouterReact.Link destination={Router.Notes.destination()} activeWhen=RouterReact.Subtree>
+  {React.string("Notes")}
+</RouterReact.Link>
+]}
+
+[RouterReact.useIsActive(~activeWhen=?, destination)] applies a rule for other
+elements, with [Route] as its default.
+
+Every [Link] without [~ariaCurrent] renders [data-router-link], with the
+value [route] or [subtree] for those rules and empty for [Url]. After each
 committed navigation, including a patch and a search update, the provider sets
 or removes [aria-current="page"] on these anchors, so links in layouts that a
 patch does not render again stay correct.

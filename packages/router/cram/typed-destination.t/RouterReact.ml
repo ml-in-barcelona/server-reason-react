@@ -18,3 +18,4 @@ let useNavigation () = (navigate, RouterRuntime.Navigation.Idle)
 let useCurrentRoute () = None
 let useUpdateHash () = updateHash
 let useSearch () = ([], fun ~owned:_ ~values:_ ?history:_ () -> ())
+let useUpdateSearchWith () ~owned:_ ?history:_ _update = failwith "not used"

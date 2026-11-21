@@ -21,6 +21,7 @@ type search = {
   parser : Longident.t;
   to_string : Longident.t;
   kind : search_kind;
+  shallow : bool;
   loc : Location.t;
 }
 
@@ -241,7 +242,15 @@ let search_kind ~name expression =
       match values with [ typ ] -> (Many, typ, 1) | _ -> error ~loc:expression.pexp_loc "Search.many expects one type"
     else error ~loc:expression.pexp_loc "unknown search schema constructor"
   in
-  validate_arguments ~loc:expression.pexp_loc ~allowed:[ "key" ] ~unlabelled arguments;
+  validate_arguments ~loc:expression.pexp_loc ~allowed:[ "key"; "shallow" ] ~unlabelled arguments;
+  let shallow =
+    match argument (Labelled "shallow") arguments with
+    | None -> false
+    | Some { pexp_desc = Pexp_construct ({ txt = Lident "true"; _ }, None); _ } -> true
+    | Some { pexp_desc = Pexp_construct ({ txt = Lident "false"; _ }, None); _ } -> false
+    | Some shallow_expression ->
+        error ~loc:shallow_expression.pexp_loc "~shallow takes true or false, for example ~shallow:true"
+  in
   let key =
     match argument (Labelled "key") arguments with
     | None -> name
@@ -258,6 +267,7 @@ let search_kind ~name expression =
   let type_name = type_name_of_expression type_expression in
   ( kind,
     key,
+    shallow,
     type_of_name ~loc:type_expression.pexp_loc type_name,
     parser_of_type ~loc:type_expression.pexp_loc type_name,
     to_string_of_type ~loc:type_expression.pexp_loc type_name )
@@ -272,8 +282,8 @@ let search_of_expression expression =
             | name :: _ -> name
             | [] -> error ~loc "search field needs a name"
           in
-          let kind, key, typ, parser, to_string = search_kind ~name value in
-          { name; key; typ; parser; to_string; kind; loc })
+          let kind, key, shallow, typ, parser, to_string = search_kind ~name value in
+          { name; key; typ; parser; to_string; kind; shallow; loc })
         fields
   | _ -> error ~loc:expression.pexp_loc "~search must be a record schema"
 

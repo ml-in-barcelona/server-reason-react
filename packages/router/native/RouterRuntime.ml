@@ -43,3 +43,5 @@ let href = RouterTypes.href
 let withHash = RouterTypes.destinationWithHash ~encode
 let prefetchLevel = RouterTypes.prefetchLevel
 let withPrefetch = RouterTypes.withPrefetch
+let shallowSearch = RouterTypes.shallowSearch
+let withShallowSearch = RouterTypes.withShallowSearch

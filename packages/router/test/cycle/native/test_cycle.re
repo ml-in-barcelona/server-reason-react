@@ -1006,6 +1006,57 @@ let checkPatchMatchesFull = (~from, ~to_, ~arrange, ~graft, ~above) => {
   );
 };
 
+let searchNavigation = (~from, ~search) =>
+  runEngine(
+    ~pathname="/fixture/workspaces/7/notes/42",
+    ~search,
+    ~navigation=navigateFrom(from),
+    (),
+  );
+
+let testPatchRouteSearchChange = () => {
+  resetFixture();
+  switch (
+    searchNavigation(
+      ~from="/fixture/workspaces/7/notes/42?filter=open",
+      ~search="?filter=closed",
+    )
+  ) {
+  | Patch(response) =>
+    Alcotest.check(
+      Alcotest.string,
+      "graft",
+      workspaceGraft("7"),
+      response.replace_from,
+    );
+    checkLayouts([]);
+  | Full(_)
+  | ReloadRequired
+  | Redirect(_)
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) =>
+    Alcotest.fail("a route search change did not answer a patch")
+  };
+};
+
+let testFullRootSearchChange = () => {
+  resetFixture();
+  switch (
+    searchNavigation(
+      ~from="/fixture/workspaces/7/notes/42?filter=open",
+      ~search="?filter=open&page=2",
+    )
+  ) {
+  | Full(_) => checkLayouts(["root-layout", "workspace-layout"])
+  | Patch(_)
+  | ReloadRequired
+  | Redirect(_)
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) =>
+    Alcotest.fail("a root search change did not answer a full response")
+  };
+};
+
 let testPatchLoaderGroupRegularNavigation = () => {
   resetFixture();
   checkPatchGraft(
@@ -1317,6 +1368,16 @@ let () =
             testApplicationErrorPolicy,
           ),
           Alcotest.test_case("patch response", `Quick, testPatchResponse),
+          Alcotest.test_case(
+            "route search change patch",
+            `Quick,
+            testPatchRouteSearchChange,
+          ),
+          Alcotest.test_case(
+            "root search change full",
+            `Quick,
+            testFullRootSearchChange,
+          ),
           Alcotest.test_case(
             "loader group patch",
             `Quick,

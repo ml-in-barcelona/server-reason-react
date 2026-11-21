@@ -21,6 +21,7 @@ type search = {
   parser : Longident.t;
   to_string : Longident.t;
   kind : search_kind;
+  shallow : bool;
   loc : Location.t;
 }
 

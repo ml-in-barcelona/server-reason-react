@@ -14,6 +14,13 @@ type updateSearch =
     unit
   ) =>
   navigationResult;
+type updateSearchWith =
+  (
+    ~owned: list(string),
+    ~history: RouterRuntime.Navigation.historyAction=?,
+    list((string, list(string))) => list((string, list(string)))
+  ) =>
+  navigationResult;
 type updateHash =
   (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
   navigationResult;
@@ -40,6 +47,11 @@ type blocker =
 type invalidation =
   | All
   | Prefix(RouterRuntime.destination);
+
+type activeWhen =
+  | Url
+  | Route
+  | Subtree;
 
 type contextValue = {
   committed: RouterRuntime.Navigation.committed,
@@ -93,6 +105,9 @@ let navigate: navigate = (~history as _=?, ~revalidate as _=?, _destination) =>
 let updateSearch: updateSearch =
     (~owned as _, ~values as _, ~history as _=?, ()) =>
   unavailable();
+let updateSearchWith: updateSearchWith =
+    (~owned as _, ~history as _=?, _update) =>
+  unavailable();
 let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>
   unavailable();
 
@@ -109,6 +124,7 @@ let useCurrentRoute = () =>
   | [] => None
   };
 let useSearch = () => (useContextValue().search, updateSearch);
+let useUpdateSearchWith = () => updateSearchWith;
 let useUpdateHash = () => updateHash;
 let useLocation = () => useContextValue().committed.location;
 let locationScope =
@@ -136,6 +152,31 @@ let isCurrent = (~location: RouterRuntime.Navigation.location, href) =>
 
 let useIsCurrent = destination =>
   isCurrent(~location=useLocation(), RouterRuntime.href(destination));
+
+let isActive =
+    (~activeWhen, ~location: RouterRuntime.Navigation.location, href) =>
+  switch (activeWhen) {
+  | Url => isCurrent(~location, href)
+  | Route =>
+    RouterSearchKey.isActive(~prefix=false, ~pathname=location.pathname, href)
+  | Subtree =>
+    RouterSearchKey.isActive(~prefix=true, ~pathname=location.pathname, href)
+  };
+
+let activeRule =
+  fun
+  | Url => ""
+  | Route => "route"
+  | Subtree => "subtree";
+
+let useIsActive = (~activeWhen=Route, destination) =>
+  isActive(
+    ~activeWhen,
+    ~location=useLocation(),
+    RouterRuntime.href(destination),
+  );
+
+let useIsPending = (~activeWhen as _=Route, _destination) => false;
 let useBlocker = _shouldBlock => Unblocked;
 
 let outlet = (~owner, ~children, ()) =>
@@ -156,6 +197,7 @@ module Link = {
         ~target=?,
         ~download=?,
         ~ariaCurrent=?,
+        ~activeWhen=Url,
         ~id=?,
         ~title=?,
         ~rel=?,
@@ -175,7 +217,7 @@ module Link = {
     let routerContext = React.useContext(context);
     let dataRouterLink =
       switch (ariaCurrent, routerContext) {
-      | (None, Some(_)) => Some("")
+      | (None, Some(_)) => Some(activeRule(activeWhen))
       | (Some(_), _)
       | (None, None) => None
       };
@@ -185,7 +227,7 @@ module Link = {
       | None =>
         switch (routerContext) {
         | Some({ committed, _ })
-            when isCurrent(~location=committed.location, href) =>
+            when isActive(~activeWhen, ~location=committed.location, href) =>
           Some("page")
         | Some(_)
         | None => None

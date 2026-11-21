@@ -97,6 +97,13 @@ let update_search_function_type ~loc =
     (result_type ~loc "Navigation.historyAction")
     (B.ptyp_arrow ~loc Nolabel (result_type ~loc "search") (result_type ~loc "Navigation.Result.t"))
 
+let update_search_with_function_type ~loc =
+  B.ptyp_arrow ~loc (Optional "history")
+    (result_type ~loc "Navigation.historyAction")
+    (B.ptyp_arrow ~loc Nolabel
+       (B.ptyp_arrow ~loc Nolabel (result_type ~loc "search") (result_type ~loc "search"))
+       (result_type ~loc "Navigation.Result.t"))
+
 let search_constructor_type ~loc search =
   List.fold_right
     (fun (search : Router_declaration.search) result ->
@@ -346,6 +353,12 @@ let use_search_signature ~loc =
             (B.ptyp_tuple ~loc [ result_type ~loc "search"; update_search_function_type ~loc ]))
        ~prim:[])
 
+let use_update_search_signature ~loc =
+  B.psig_value ~loc
+    (B.value_description ~loc ~name:{ txt = "useUpdateSearch"; loc }
+       ~type_:(B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (update_search_with_function_type ~loc))
+       ~prim:[])
+
 let route_search_signature ~loc ~root_search search =
   match search with
   | [] -> []
@@ -357,7 +370,9 @@ let route_search_signature ~loc ~root_search search =
           (B.value_description ~loc ~name:{ txt = "search"; loc } ~type_:(search_constructor_type ~loc search) ~prim:[]);
       ]
       @ search_codec_signature ~loc
-      @ if route_owns_search ~root_search search then [ use_search_signature ~loc ] else []
+      @
+      if route_owns_search ~root_search search then [ use_search_signature ~loc; use_update_search_signature ~loc ]
+      else []
 
 let route_signature ~root_search (route : Router_declaration.route) =
   let loc = route.loc in
@@ -401,7 +416,7 @@ let search_contract_signature ~loc search =
   if search = [] then []
   else
     (B.psig_type ~loc Recursive [ search_type_declaration ~loc search ] :: search_codec_signature ~loc)
-    @ [ use_search_signature ~loc ]
+    @ [ use_search_signature ~loc; use_update_search_signature ~loc ]
 
 let signature (declaration : Router_declaration.t) =
   let loc = declaration.loc in
@@ -619,7 +634,48 @@ let use_search_structure ~loc ~values search =
       (B.ptyp_arrow ~loc Nolabel (unit_type ~loc)
          (B.ptyp_tuple ~loc [ result_type ~loc "search"; update_search_function_type ~loc ]))
   in
-  B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "useSearch") ~expr:use_search ]
+  let use_update_search =
+    let next =
+      B.pexp_let ~loc Nonrecursive
+        [
+          B.value_binding ~loc
+            ~pat:(B.ppat_constraint ~loc (B.pvar ~loc "search") (result_type ~loc "search"))
+            ~expr:(B.pexp_apply ~loc (B.evar ~loc "update") [ (Nolabel, search_of_values ~loc search) ]);
+        ]
+        values
+    in
+    let update =
+      B.pexp_fun ~loc (Optional "history") None (B.pvar ~loc "history")
+        (B.pexp_fun ~loc Nolabel None (B.pvar ~loc "update")
+           (B.pexp_apply ~loc (B.evar ~loc "updateSearchWith")
+              [
+                ( Labelled "owned",
+                  B.elist ~loc (List.map (fun (item : Router_declaration.search) -> B.estring ~loc item.key) search) );
+                (Optional "history", B.evar ~loc "history");
+                (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc "values") next);
+              ]))
+    in
+    let body =
+      B.pexp_let ~loc Nonrecursive
+        [
+          B.value_binding ~loc ~pat:(B.pvar ~loc "updateSearchWith")
+            ~expr:
+              (B.pexp_apply ~loc (B.evar ~loc "RouterReact.useUpdateSearchWith") [ (Nolabel, unit_expression ~loc) ]);
+        ]
+        (B.pexp_apply ~loc (B.evar ~loc "React.useMemo1")
+           [
+             (Nolabel, B.pexp_fun ~loc Nolabel None (B.punit ~loc) update);
+             (Nolabel, B.pexp_array ~loc [ B.evar ~loc "updateSearchWith" ]);
+           ])
+    in
+    B.pexp_constraint ~loc
+      (B.pexp_fun ~loc Nolabel None (B.punit ~loc) body)
+      (B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (update_search_with_function_type ~loc))
+  in
+  [
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "useSearch") ~expr:use_search ];
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "useUpdateSearch") ~expr:use_update_search ];
+  ]
 
 let route_module ~base_path ~root_search (route : Router_declaration.route) =
   let loc = route.loc in
@@ -671,6 +727,18 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
         B.pexp_apply ~loc
           (B.evar ~loc "RouterRuntime.withPrefetch")
           [ (Nolabel, destination_body); (Nolabel, prefetch_level ~loc level) ]
+  in
+  let destination_body =
+    match List.filter (fun (search : Router_declaration.search) -> search.shallow) route.search with
+    | [] -> destination_body
+    | shallow ->
+        B.pexp_apply ~loc
+          (B.evar ~loc "RouterRuntime.withShallowSearch")
+          [
+            (Nolabel, destination_body);
+            ( Nolabel,
+              B.elist ~loc (List.map (fun (search : Router_declaration.search) -> B.estring ~loc search.key) shallow) );
+          ]
   in
   let destination_body =
     List.fold_right
@@ -777,7 +845,7 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
             [ B.value_binding ~loc ~pat:(B.pvar ~loc "search") ~expr:(search_constructor_expression ~loc route.search) ];
         ]
         @ search_codec_structure ~loc ~values route.search
-        @ if route_owns_search ~root_search route.search then [ use_search_structure ~loc ~values route.search ] else []
+        @ if route_owns_search ~root_search route.search then use_search_structure ~loc ~values route.search else []
   in
   let private_items =
     B.pstr_open ~loc
@@ -808,7 +876,7 @@ let search_contract_structure ~loc search =
   else
     let values = search_values_expression ~loc (B.evar ~loc "search") search in
     (B.pstr_type ~loc Recursive [ search_type_declaration ~loc search ] :: search_codec_structure ~loc ~values search)
-    @ [ use_search_structure ~loc ~values search ]
+    @ use_search_structure ~loc ~values search
 
 let handles (declaration : Router_declaration.t) =
   let base_path = if declaration.base_path = "/" then "" else declaration.base_path in
@@ -992,12 +1060,24 @@ let boundary_callback ~loc attachment parameters search loaders =
   in
   B.pexp_fun ~loc Nolabel None (B.pvar ~loc "error") call
 
-let branch_scope ~loc (scope : Router_declaration.scope) parameters ~reusable =
+let search_keys (scope : Router_declaration.scope) =
+  List.map (fun (search : Router_declaration.search) -> search.key) scope.search
+
+let branch_scope ~loc (scope : Router_declaration.scope) parameters ~search_keys ~reusable =
+  let search =
+    match search_keys with
+    | [] -> B.elist ~loc []
+    | keys ->
+        B.pexp_apply ~loc
+          (B.evar ~loc "RouterServer.Decode.searchValues")
+          [ (Labelled "input", B.evar ~loc "input"); (Nolabel, B.elist ~loc (List.map (B.estring ~loc) keys)) ]
+  in
   B.pexp_apply ~loc
     (B.evar ~loc "RouterServer.Branch.Scope.make")
     [
       (Labelled "id", B.estring ~loc scope.id);
       (Labelled "parameters", parameter_list ~loc parameters);
+      (Labelled "search", search);
       (Labelled "reusable", B.ebool ~loc reusable);
     ]
 
@@ -1011,7 +1091,7 @@ let scope_plan ~context (scope : Router_declaration.scope) parameters search loa
     (match (scope.attachments.layout, scope.attachments.loading) with
       | None, None -> []
       | layout, loading ->
-          let identity = branch_scope ~loc scope parameters ~reusable in
+          let identity = branch_scope ~loc scope parameters ~search_keys:[] ~reusable in
           let instance_key =
             B.pexp_apply ~loc (B.evar ~loc "RouterServer.Branch.Scope.instanceKey") [ (Nolabel, identity) ]
           in
@@ -1146,16 +1226,17 @@ let active_route_candidates routes pattern =
 
 let projected_branch (route : Router_declaration.route) =
   let loc = route.loc in
-  let rec build scopes parameters projected =
+  let rec build scopes parameters keys projected =
     match scopes with
     | [] -> B.elist ~loc projected
     | (scope : Router_declaration.scope) :: scopes ->
         let parameters = parameters @ scope.parameters in
+        let keys = keys @ search_keys scope in
         let reusable = Option.is_some scope.attachments.layout in
-        let projected = projected @ [ branch_scope ~loc:scope.loc scope parameters ~reusable ] in
-        build scopes parameters projected
+        let projected = projected @ [ branch_scope ~loc:scope.loc scope parameters ~search_keys:keys ~reusable ] in
+        build scopes parameters keys projected
   in
-  build route.scopes [] []
+  build route.scopes [] [] []
 
 let recover_decode_failure ~context ~loc ~branch ~scopes ~active_routes error_boundary =
   let plan = failure_plan ~loc scopes (B.evar ~loc "decodeError") None (Some error_boundary) in
@@ -1174,17 +1255,18 @@ let recover_decode_failure ~context ~loc ~branch ~scopes ~active_routes error_bo
   B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some prepared)
 
 let decode_endpoint ~context ~routes ~present ~root_search (route : Router_declaration.route) prepared =
-  let rec build scopes pattern parameters search completed branch error_boundary loader_seen root =
+  let rec build scopes pattern parameters keys search completed branch error_boundary loader_seen root =
     match scopes with
     | [] -> prepared
     | (scope : Router_declaration.scope) :: scopes -> (
         let loc = scope.loc in
         let next_parameters = parameters @ scope.parameters in
+        let next_keys = keys @ search_keys scope in
         let next_search = scope_search search scope in
         let next_pattern = RouterPattern.append pattern (parsed_path scope.path) in
         let has_loader = Option.is_some scope.attachments.loader in
         let reusable = Option.is_some scope.attachments.layout in
-        let next_branch = branch @ [ branch_scope ~loc scope next_parameters ~reusable ] in
+        let next_branch = branch @ [ branch_scope ~loc scope next_parameters ~search_keys:next_keys ~reusable ] in
         let next_error_boundary =
           if loader_seen then error_boundary
           else
@@ -1197,7 +1279,7 @@ let decode_endpoint ~context ~routes ~present ~root_search (route : Router_decla
           else completed @ [ scope_plan ~context scope next_parameters next_search [] ~reusable ]
         in
         let success =
-          build scopes next_pattern next_parameters next_search next_completed next_branch next_error_boundary
+          build scopes next_pattern next_parameters next_keys next_search next_completed next_branch next_error_boundary
             (loader_seen || has_loader) false
         in
         let decoded_search =
@@ -1237,7 +1319,7 @@ let decode_endpoint ~context ~routes ~present ~root_search (route : Router_decla
                     ~guard:None ~rhs:recover;
                 ])
   in
-  build route.scopes (parsed_path "/") [] None [] [] None false true
+  build route.scopes (parsed_path "/") [] [] None [] [] None false true
 
 let encoded_path path =
   match
@@ -1264,7 +1346,8 @@ let search_kind_part (search : Router_declaration.search) =
 
 let search_part (search : Router_declaration.search) =
   let key = if String.equal search.key search.name then "" else ":key:" ^ search.key in
-  "search:" ^ search.name ^ key ^ ":" ^ type_string search.typ ^ ":" ^ search_kind_part search
+  let shallow = if search.shallow then ":shallow" else "" in
+  "search:" ^ search.name ^ key ^ shallow ^ ":" ^ type_string search.typ ^ ":" ^ search_kind_part search
 
 let fingerprint_parts (route : Router_declaration.route) =
   let route_parts = [ "route:" ^ route.name; "path:" ^ route.path ] in

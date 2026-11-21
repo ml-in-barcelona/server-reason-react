@@ -326,6 +326,8 @@ module Decode = struct
 
   let searchMany ~input ~name ~parse =
     Ok (List.filter_map (fun value -> Result.to_option (parse value)) (Search.values input.Input.search name))
+
+  let searchValues ~input names = List.map (fun name -> (name, Search.values input.Input.search name)) names
 end
 
 let redirect_location destination =
@@ -412,13 +414,18 @@ let status_of_error ~application = function
 
 module Branch = struct
   module Scope = struct
-    type t = { id : string; instance_key : string; reusable : bool }
+    type t = { id : string; instance_key : string; search_key : string; reusable : bool }
 
     let frame value = string_of_int (String.length value) ^ ":" ^ value
 
-    let make ~id ~parameters ~reusable =
+    let make ~id ~parameters ~search ~reusable =
       let identity = parameters |> List.map (fun (name, value) -> frame name ^ frame value) |> String.concat "" in
-      { id; instance_key = frame id ^ identity; reusable }
+      let search_key =
+        search
+        |> List.map (fun (name, values) -> frame name ^ frame (String.concat "" (List.map frame values)))
+        |> String.concat ""
+      in
+      { id; instance_key = frame id ^ identity; search_key; reusable }
 
     let id scope = scope.id
     let instanceKey scope = scope.instance_key
@@ -430,7 +437,9 @@ module Branch = struct
   let rec sharedPrefix from target =
     match (from, target) with
     | left :: from, right :: target
-      when left.Scope.reusable && right.Scope.reusable && String.equal left.instance_key right.instance_key ->
+      when left.Scope.reusable && right.Scope.reusable
+           && String.equal left.instance_key right.instance_key
+           && String.equal left.search_key right.search_key ->
         1 + sharedPrefix from target
     | _ -> 0
 
@@ -762,27 +771,25 @@ module ServerEngine = struct
       match (request.kind, request.navigation) with
       | Rsc, Some { from = Some from; base_revision = Some base_revision; _ } when String.length from <= 2048 -> (
           let from_pathname, from_search = Path.splitLocation from in
-          if not (String.equal from_search request.search) then None
-          else
-            match Path.stripBasePath ~basePath from_pathname with
-            | None -> None
-            | Some from_path -> (
-                match (Search.parse from_search, EndpointRegistry.find registry ~pathname:from_path) with
-                | Ok from_search, Ok (Some from_match) -> (
-                    match EndpointRegistry.decode from_match ~search:from_search with
-                    | Error _ -> None
-                    | Ok prepared ->
-                        let from_branch = Endpoint.branch prepared in
-                        let shared = Branch.sharedPrefix from_branch target_branch in
-                        if shared <= 0 || shared >= List.length target_branch then None
+          match Path.stripBasePath ~basePath from_pathname with
+          | None -> None
+          | Some from_path -> (
+              match (Search.parse from_search, EndpointRegistry.find registry ~pathname:from_path) with
+              | Ok from_search, Ok (Some from_match) -> (
+                  match EndpointRegistry.decode from_match ~search:from_search with
+                  | Error _ -> None
+                  | Ok prepared ->
+                      let from_branch = Endpoint.branch prepared in
+                      let shared = Branch.sharedPrefix from_branch target_branch in
+                      if shared <= 0 || shared >= List.length target_branch then None
+                      else
+                        let depth = min shared (Plan.scopeCount plan) in
+                        if depth <= 0 then None
                         else
-                          let depth = min shared (Plan.scopeCount plan) in
-                          if depth <= 0 then None
-                          else
-                            Option.map
-                              (fun scope -> (base_revision, depth, Branch.Scope.instanceKey scope))
-                              (List.nth_opt target_branch (depth - 1)))
-                | _ -> None))
+                          Option.map
+                            (fun scope -> (base_revision, depth, Branch.Scope.instanceKey scope))
+                            (List.nth_opt target_branch (depth - 1)))
+              | _ -> None))
       | _ -> None
     in
     let execute () =

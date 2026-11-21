@@ -1603,6 +1603,25 @@ switch (
 };
 
 switch (
+  SearchKeyCases.activeFailures((~prefix, ~pathname, href) =>
+    RouterPolicy.linkMatches(
+      ~rule=prefix ? "subtree" : "route",
+      ~location={
+        pathname,
+        search: "",
+        hash: "",
+        key: "k",
+      },
+      href,
+    )
+  )
+) {
+| [] => ()
+| names =>
+  failwith("JS isActive answers differ: " ++ String.concat(", ", names))
+};
+
+switch (
   SearchParseCases.failures(
     ~parse=
       search =>

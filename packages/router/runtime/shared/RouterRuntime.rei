@@ -42,6 +42,16 @@ let prefetchLevel: destination => PrefetchLevel.t;
     their route. */
 let withPrefetch: (destination, PrefetchLevel.t) => destination;
 
+/** The URL keys of the search parameters declared [~shallow=true] on the
+    route [destination] points to. A [navigate] to the committed path that
+    changes only these keys updates the URL without a request, like
+    [updateSearch]. Other destinations have none. */
+let shallowSearch: destination => list(string);
+
+/** Sets the shallow search keys. Generated destinations call it with the
+    keys of their route. */
+let withShallowSearch: (destination, list(string)) => destination;
+
 /** Query string without the leading [?]: names sorted, every name and value
     percent-encoded. Destinations and [updateSearch] both use it so one query
     has one spelling. */

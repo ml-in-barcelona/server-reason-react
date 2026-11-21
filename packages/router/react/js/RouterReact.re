@@ -19,6 +19,13 @@ type updateSearch =
     unit
   ) =>
   navigationResult;
+type updateSearchWith =
+  (
+    ~owned: list(string),
+    ~history: Navigation.historyAction=?,
+    list((string, list(string))) => list((string, list(string)))
+  ) =>
+  navigationResult;
 type updateHash =
   (~hash: string, ~history: Navigation.historyAction=?, unit) =>
   navigationResult;
@@ -46,6 +53,27 @@ type invalidation =
   | All
   | Prefix(RouterRuntime.destination);
 
+type activeWhen =
+  | Url
+  | Route
+  | Subtree;
+
+let activeRule =
+  fun
+  | Url => ""
+  | Route => "route"
+  | Subtree => "subtree";
+
+let isActive = (~activeWhen, ~location, href) =>
+  RouterPolicy.linkMatches(~rule=activeRule(activeWhen), ~location, href);
+
+let pendingTarget = status =>
+  switch (status) {
+  | Navigation.Loading({ to_, _ }) => Some(to_)
+  | Navigation.Idle
+  | Navigation.Failed(_) => None
+  };
+
 type contextValue = {
   navigate,
   invalidate: invalidation => unit,
@@ -53,6 +81,7 @@ type contextValue = {
   committed: Navigation.committed,
   search: list((string, list(string))),
   updateSearch,
+  updateSearchWith,
   updateHash,
   blockers: RouterBlocker.t,
   blocked: option(RouterBlocker.request),
@@ -62,6 +91,7 @@ type actions = {
   navigate,
   invalidate: invalidation => unit,
   updateSearch,
+  updateSearchWith,
   updateHash,
 };
 
@@ -71,6 +101,12 @@ type model = {
   element: React.element,
   patchOperation: RouterOutlet.operation,
   restore: option((Navigation.historyAction, string, string)),
+};
+
+type pendingCommit = {
+  next: model,
+  finish: unit => unit,
+  resolve: navigationResult => unit,
 };
 
 type activeRequest = {
@@ -405,11 +441,18 @@ module Provider = {
         activeRequest.current = None
       | _ => ()
       };
+    let pendingCommit = React.useRef(None);
     let abortActiveRequest = () => {
       switch (activeRequest.current) {
       | Some(active) =>
         active.abort();
         activeRequest.current = None;
+      | None => ()
+      };
+      switch (pendingCommit.current) {
+      | Some(pending) =>
+        pendingCommit.current = None;
+        pending.resolve(Navigation.Result.Canceled);
       | None => ()
       };
       RouterViewTransition.supersede(viewTransition);
@@ -477,6 +520,24 @@ module Provider = {
       };
       Navigation.Result.Committed(committed);
     };
+    let searchPushedThisTick = React.useRef(false);
+    let commitSearch = (~action, location) => {
+      let action =
+        switch (action) {
+        | Navigation.Push when searchPushedThisTick.current => Navigation.Replace
+        | Navigation.Push =>
+          searchPushedThisTick.current = true;
+          let _ =
+            Js.Promise.resolve()
+            |> Js.Promise.then_(() => {
+                 searchPushedThisTick.current = false;
+                 Js.Promise.resolve();
+               });
+          Navigation.Push;
+        | action => action
+        };
+      commitLocation(~kind=Navigation.Shallow, ~action, location);
+    };
     let updateSearch = (~owned, ~values, ~history=Navigation.Replace, ()) => {
       let current = Navigation.committed(modelRef.current.navigationState);
       let nextValues =
@@ -492,8 +553,7 @@ module Provider = {
           )) {
         Navigation.Result.Committed(current);
       } else {
-        commitLocation(
-          ~kind=Navigation.Shallow,
+        commitSearch(
           ~action=history,
           {
             ...current.location,
@@ -501,6 +561,16 @@ module Provider = {
           },
         );
       };
+    };
+    let updateSearchWith = (~owned, ~history=Navigation.Replace, update) => {
+      let current = Navigation.committed(modelRef.current.navigationState);
+      updateSearch(
+        ~owned,
+        ~values=
+          update(RouterSearch.valuesFromString(current.location.search)),
+        ~history,
+        (),
+      );
     };
     let updateHash = (~hash, ~history=Navigation.Replace, ()) => {
       let current = Navigation.committed(modelRef.current.navigationState);
@@ -617,13 +687,6 @@ module Provider = {
               | None => RouterViewTransition.Forward
               }
             };
-          contentIdentity.current = nextContentIdentity;
-          mutateHistory(
-            ~action,
-            ~key=prepared.key,
-            ~position=nextPosition(action),
-            ~url=prepared.url,
-          );
           let (element, patchOperation) =
             switch (prepared.render) {
             | RouterTransaction.ReplacePayload(element) => (
@@ -655,13 +718,23 @@ module Provider = {
             patchOperation,
             restore: Some(prepared.restore),
           };
-          currentLayers.current =
-            RouterNavigationCache.invalidatedSince(
-              cache,
-              ~startedIn,
-              prepared.committed.location.pathname,
-            )
-              ? None : layers;
+          let finish = () => {
+            contentIdentity.current = nextContentIdentity;
+            mutateHistory(
+              ~action,
+              ~key=prepared.key,
+              ~position=nextPosition(action),
+              ~url=prepared.url,
+            );
+            currentLayers.current =
+              RouterNavigationCache.invalidatedSince(
+                cache,
+                ~startedIn,
+                prepared.committed.location.pathname,
+              )
+                ? None : layers;
+            modelRef.current = next;
+          };
           switch (layers) {
           | Some(layers) when !fromCache =>
             RouterNavigationCache.store(
@@ -677,18 +750,27 @@ module Provider = {
           | None => ()
           };
           if (options.current.viewTransitions
-              && RouterViewTransition.supported()) {
-            modelRef.current = next;
+              && RouterViewTransition.supported()
+              && !RouterViewTransition.reducedMotion()) {
+            finish();
             RouterViewTransition.run(
               viewTransition, ~enabled=true, ~direction, () =>
               ReactDOM.flushSync(() => setModel(_ => modelRef.current))
             );
+            Js.Promise.resolve(
+              Navigation.Result.Committed(prepared.committed),
+            );
           } else {
-            updateModel(next);
+            Js.Promise.make((~resolve, ~reject as _) => {
+              pendingCommit.current =
+                Some({
+                  next,
+                  finish,
+                  resolve: result => resolve(. result),
+                });
+              React.startTransition(() => setModel(_ => next));
+            });
           };
-          Js.Promise.resolve(
-            Navigation.Result.Committed(prepared.committed),
-          );
         };
       };
       let fetchNetwork = () => {
@@ -956,7 +1038,7 @@ module Provider = {
       guarded(~action, ~target, () =>
         navigateTarget(~action, ~revalidate, target)
       );
-    let navigateUrl = (~action, ~revalidate, target) => {
+    let navigateUrl = (~action, ~revalidate, ~shallowKeys=[], target) => {
       let state = modelRef.current.navigationState;
       let committed = Navigation.committed(state);
       if (RouterPolicy.unchangedTarget(
@@ -974,13 +1056,31 @@ module Provider = {
             ~action,
             ~revalidate,
             target,
-          )
+          ),
+          RouterPolicy.shallowSearchTarget(
+            ~location=committed.location,
+            ~action,
+            ~revalidate,
+            ~shallowKeys,
+            target,
+          ),
         ) {
-        | Some(hash) =>
+        | (Some(hash), _) =>
           guarded(~action, ~target, () =>
             Js.Promise.resolve(updateHash(~hash, ~history=action, ()))
           )
-        | None => guardedNavigate(~action, ~revalidate, target)
+        | (None, Some((search, hash))) =>
+          Js.Promise.resolve(
+            commitSearch(
+              ~action,
+              {
+                ...committed.location,
+                search,
+                hash,
+              },
+            ),
+          )
+        | (None, None) => guardedNavigate(~action, ~revalidate, target)
         };
       };
     };
@@ -988,6 +1088,7 @@ module Provider = {
       navigateUrl(
         ~action=history,
         ~revalidate,
+        ~shallowKeys=RouterRuntime.shallowSearch(destination),
         RouterRuntime.href(destination),
       );
     let (prefetcher, _) =
@@ -1408,6 +1509,24 @@ module Provider = {
     });
     React.useLayoutEffect1(
       () => {
+        switch (pendingCommit.current) {
+        | Some(pending) when pending.next === model =>
+          pendingCommit.current = None;
+          pending.finish();
+          pending.resolve(
+            Navigation.Result.Committed(
+              Navigation.committed(model.navigationState),
+            ),
+          );
+        | Some(_)
+        | None => ()
+        };
+        None;
+      },
+      [|model|],
+    );
+    React.useLayoutEffect1(
+      () => {
         switch (model.restore) {
         | Some(restore)
             when
@@ -1437,17 +1556,29 @@ module Provider = {
       },
       [|Navigation.committed(model.navigationState)|],
     );
+    React.useLayoutEffect1(
+      () => {
+        RouterPolicy.markPendingLinks(
+          ~target=pendingTarget(Navigation.status(model.navigationState)),
+          RouterPolicy.routerLinks(),
+        );
+        None;
+      },
+      [|Navigation.status(model.navigationState)|],
+    );
     let latest =
       React.useRef({
         navigate,
         invalidate,
         updateSearch,
+        updateSearchWith,
         updateHash,
       });
     latest.current = {
       navigate,
       invalidate,
       updateSearch,
+      updateSearchWith,
       updateHash,
     };
     let (stable, _) =
@@ -1458,6 +1589,8 @@ module Provider = {
           invalidate: invalidation => latest.current.invalidate(invalidation),
           updateSearch: (~owned, ~values, ~history=?, ()) =>
             latest.current.updateSearch(~owned, ~values, ~history?, ()),
+          updateSearchWith: (~owned, ~history=?, update) =>
+            latest.current.updateSearchWith(~owned, ~history?, update),
           updateHash: (~hash, ~history=?, ()) =>
             latest.current.updateHash(~hash, ~history?, ()),
         }
@@ -1480,6 +1613,7 @@ module Provider = {
                   search:
                     RouterSearch.valuesFromString(committed.location.search),
                   updateSearch: stable.updateSearch,
+                  updateSearchWith: stable.updateSearchWith,
                   updateHash: stable.updateHash,
                   blockers,
                   blocked,
@@ -1516,6 +1650,8 @@ let useSearch = () => {
   (value.search, value.updateSearch);
 };
 
+let useUpdateSearchWith = () => useContextValue().updateSearchWith;
+
 let useUpdateHash = () => useContextValue().updateHash;
 
 let useLocation = () => useContextValue().committed.location;
@@ -1529,6 +1665,20 @@ let useIsCurrent = destination =>
     ~location=useLocation(),
     RouterRuntime.href(destination),
   );
+
+let useIsActive = (~activeWhen=Route, destination) =>
+  isActive(
+    ~activeWhen,
+    ~location=useLocation(),
+    RouterRuntime.href(destination),
+  );
+
+let useIsPending = (~activeWhen=Route, destination) =>
+  switch (pendingTarget(useContextValue().navigation)) {
+  | Some(location) =>
+    isActive(~activeWhen, ~location, RouterRuntime.href(destination))
+  | None => false
+  };
 
 let useBlocker = shouldBlock => {
   let value = useContextValue();
@@ -1562,6 +1712,7 @@ module Link = {
         ~target=?,
         ~download=?,
         ~ariaCurrent=?,
+        ~activeWhen=Url,
         ~id=?,
         ~title=?,
         ~rel=?,
@@ -1584,7 +1735,7 @@ module Link = {
       switch (ariaCurrent) {
       | Some(_) => ariaCurrent
       | None =>
-        RouterPolicy.isCurrent(~location=value.committed.location, href)
+        isActive(~activeWhen, ~location=value.committed.location, href)
           ? Some("page") : None
       };
     let onClick = event => {
@@ -1631,7 +1782,11 @@ module Link = {
       dataRouterPrefetch,
     );
     if (Option.is_none(explicitAriaCurrent)) {
-      Js.Dict.set(attributes, RouterPolicy.routerLinkAttribute, "");
+      Js.Dict.set(
+        attributes,
+        RouterPolicy.routerLinkAttribute,
+        activeRule(activeWhen),
+      );
     };
     Js.Array.length(Js.Dict.keys(attributes)) == 0
       ? link : React.cloneElement(link, attributes);
