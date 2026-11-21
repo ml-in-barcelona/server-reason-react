@@ -1260,10 +1260,10 @@ travel from the server in the RSC payload. To set it, render your own client
 component through [Server.clientRootWith] and give the [Provider]
 [~onNavigationError] there.
 
-The [server-reason-react-dream] package installs [DreamRouter], a Dream
-adapter over these functions. It is a separate package, so
-[server-reason-react] does not depend on Dream. Add the library
-[server-reason-react-dream] to your [dune] file. [DreamRouter.routes] returns
+The library [server-reason-react.dream] holds [DreamRouter], a Dream adapter
+over these functions. It is optional: dune builds it only when Dream is
+installed, so [server-reason-react] does not depend on Dream. Add
+[server-reason-react.dream] to your [dune] file. [DreamRouter.routes] returns
 the Dream routes of the router, and [DreamRouter.request ()] holds the request
 context.
 
@@ -1344,7 +1344,7 @@ Melange applications depend on [server-reason-react.router]. Native
 applications depend on [server-reason-react.router-native]. Route generation
 uses [server-reason-react.router-gen]. A native adapter that calls
 [ReactServerDOM] also depends on [server-reason-react.reactDom]. The Dream
-adapter is the library [server-reason-react-dream] (see Server integration).
+adapter is the library [server-reason-react.dream] (see Server integration).
 
 The generator reads the manifest on standard input and writes [Router.ml]
 ([--mode handles]), its interface [Router.mli] ([--mode interface]) and the

@@ -20,7 +20,7 @@
   str
   lwt
   lwt.unix
-  server-reason-react-dream)
+  server-reason-react.dream)
  (wrapped false)
  (preprocess
   (pps
