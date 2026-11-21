@@ -83,6 +83,7 @@ type t = {
   trailing_slash : trailing_slash;
   intercept_links : bool option;
   view_transitions : bool option;
+  page_cache_max_age : string option;
   error_status : expression option;
   invalid_search : expression option;
   context : core_type option;

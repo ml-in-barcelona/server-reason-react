@@ -1624,6 +1624,10 @@ let registry (declaration : Router_declaration.t) =
         @ List.filter_map
             (fun (label, value) -> Option.map (fun value -> (Labelled label, B.ebool ~loc value)) value)
             [ ("interceptLinks", declaration.intercept_links); ("viewTransitions", declaration.view_transitions) ]
+        @ Option.to_list
+            (Option.map
+               (fun literal -> (Labelled "pageCacheMaxAge", B.efloat ~loc literal))
+               declaration.page_cache_max_age)
         @ [ (Nolabel, unit_expression ~loc) ])
     in
     B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "server") ~expr:expression ]

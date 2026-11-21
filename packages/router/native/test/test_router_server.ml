@@ -1024,7 +1024,7 @@ let server_base_path_validation () =
       Alcotest.(check bool) basePath true rejected)
     [ ""; "app"; "/app/"; "/app?preview"; "/münchen"; "/%61pp" ]
 
-let adapter_server () =
+let adapter_server ?interceptLinks ?viewTransitions ?pageCacheMaxAge () =
   let page =
     RouterServer.Plan.success
       ~scopes:
@@ -1054,7 +1054,7 @@ let adapter_server () =
   RouterServer.Server.make ~basePath:"/app" ~registry
     ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
-    ()
+    ?interceptLinks ?viewTransitions ?pageCacheMaxAge ()
 
 let adapter_reply ?(registry = None) ?(search = "") ~kind pathname =
   let server = adapter_server () in
@@ -1106,6 +1106,206 @@ let count_occurrences ~needle haystack =
     else go (from + 1) acc
   in
   go 0 0
+
+let html_document ~head children =
+  React.createElement "html" [] [ React.createElement "head" [] [ head ]; React.createElement "body" [] [ children ] ]
+
+let parse_request_reads_router_headers () =
+  let parse headers = RouterServer.Adapter.parseRequest ~target:"/app/item?q=1" ~headers in
+  let rsc =
+    parse
+      [
+        ("accept", "application/react.component");
+        ("ROUTER-NAVIGATION-FROM", "/app");
+        ("router-registry", "2.abc");
+        ("Router-Base-Revision", "r1");
+        ("router-prefetch", "viewport");
+      ]
+  in
+  Alcotest.(check string) "pathname" "/app/item" rsc.engine.pathname;
+  Alcotest.(check string) "search" "?q=1" rsc.engine.search;
+  Alcotest.(check bool) "rsc" true (rsc.engine.kind = Rsc);
+  Alcotest.(check bool)
+    "navigation" true
+    (rsc.engine.navigation = Some { from = Some "/app"; registry = Some "2.abc"; base_revision = Some "r1" });
+  Alcotest.(check bool) "prefetch" true (rsc.prefetch = Some RouterRuntime.PrefetchLevel.Viewport);
+  let unknown_level = parse [ ("Accept", "application/react.component"); ("Router-Prefetch", "Viewport") ] in
+  Alcotest.(check bool) "unknown level" true (unknown_level.prefetch = None);
+  Alcotest.(check bool)
+    "missing facts" true
+    (unknown_level.engine.navigation = Some { from = None; registry = None; base_revision = None });
+  List.iter
+    (fun (name, headers) ->
+      let document = parse headers in
+      Alcotest.(check bool) (name ^ " kind") true (document.engine.kind = Document);
+      Alcotest.(check bool) (name ^ " navigation") true (document.engine.navigation = None);
+      Alcotest.(check bool) (name ^ " prefetch") true (document.prefetch = None))
+    [
+      ("html", [ ("Accept", "text/html"); ("Router-Prefetch", "intent"); ("Router-Navigation-From", "/app") ]);
+      ("no accept", []);
+    ]
+
+let parse_request_empty_query_and_fragment () =
+  let location target =
+    let { RouterServer.Adapter.engine; _ } = RouterServer.Adapter.parseRequest ~target ~headers:[] in
+    (engine.pathname, engine.search)
+  in
+  let check target expected = Alcotest.(check (pair string string)) target expected (location target) in
+  check "/app/item?" ("/app/item", "");
+  check "/app/item#top" ("/app/item", "");
+  check "/app/item?#top" ("/app/item", "");
+  check "/app/item?q=1#top" ("/app/item", "?q=1");
+  check "/app/item?q=1&" ("/app/item", "?q=1&")
+
+let handle ?(allow = None) ?(headers = []) method_ target =
+  Lwt_main.run
+    (RouterServer.Adapter.handle (adapter_server ())
+       ~diagnosticId:(fun _ -> "diagnostic")
+       ~document:html_document ?allow ~method_ ~target ~headers ())
+
+let adapter_handle () =
+  let document = handle "GET" "/app/item" in
+  Alcotest.(check int) "document status" 200 document.status;
+  check_header document "Vary" (Some "Accept");
+  Alcotest.(check bool) "document body" true (match document.body with Html _ -> true | Empty | Model _ -> false);
+  let head = handle "HEAD" "/app/item" in
+  Alcotest.(check int) "head status" 200 head.status;
+  Alcotest.(check bool) "head headers" true (head.headers = document.headers);
+  Alcotest.(check bool) "head body" true (head.body = RouterServer.Adapter.Empty);
+  let rsc =
+    handle
+      ~headers:
+        [
+          ("accept", "application/react.component");
+          ("router-navigation-from", "/app");
+          ("router-registry", "2." ^ RouterServer.Server.fingerprint (adapter_server ()));
+          ("router-base-revision", "");
+        ]
+      "GET" "/app/item"
+  in
+  Alcotest.(check int) "rsc status" 200 rsc.status;
+  check_header rsc "Router-Response" (Some "full");
+  Alcotest.(check bool) "rsc body" true (match rsc.body with Model _ -> true | Empty | Html _ -> false);
+  let refused =
+    handle ~headers:[ ("Accept", "application/react.component"); ("Router-Prefetch", "idle") ] "GET" "/app/item"
+  in
+  Alcotest.(check int) "refused prefetch" 204 refused.status;
+  check_header refused "Router-Prefetch-Refused" (Some "intent");
+  let options = handle "OPTIONS" "/app/item" in
+  Alcotest.(check int) "options" 204 options.status;
+  check_header options "Allow" (Some "GET, HEAD, OPTIONS");
+  Alcotest.(check int) "post by default" 405 (handle "POST" "/app/item").status;
+  let with_post = handle ~allow:(Some [ "GET"; "HEAD"; "OPTIONS"; "POST" ]) "DELETE" "/app/item" in
+  Alcotest.(check int) "delete" 405 with_post.status;
+  check_header with_post "Allow" (Some "GET, HEAD, OPTIONS, POST")
+
+let adapter_handle_builds_context_only_to_run () =
+  let built = ref 0 in
+  let handle method_ =
+    Lwt_main.run
+      (RouterServer.Adapter.handleWithContext (adapter_server ())
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~document:html_document
+         ~context:(fun () -> incr built)
+         ~method_ ~target:"/app/item" ~headers:[] ())
+  in
+  Alcotest.(check int) "options" 204 (handle "OPTIONS").status;
+  Alcotest.(check int) "no context for options" 0 !built;
+  Alcotest.(check int) "get" 200 (handle "GET").status;
+  Alcotest.(check int) "one context for get" 1 !built
+
+let collect (response : RouterServer.Adapter.response) =
+  match response.body with
+  | None -> None
+  | Some body ->
+      let chunks = Buffer.create 256 in
+      Lwt_main.run
+        (body (fun chunk ->
+             Buffer.add_string chunks chunk;
+             Lwt.return_unit));
+      Some (Buffer.contents chunks)
+
+let count_header name (response : RouterServer.Adapter.response) =
+  List.length (List.filter (fun (key, _) -> String.equal (String.lowercase_ascii key) name) response.headers)
+
+let adapter_response () =
+  let document =
+    RouterServer.Adapter.response ~bootstrapModules:[ "/app.js" ] (adapter_reply ~kind:Document "/app/item")
+  in
+  Alcotest.(check int) "document status" 200 document.status;
+  Alcotest.(check (option string))
+    "document type" (Some "text/html; charset=utf-8")
+    (List.assoc_opt "Content-Type" document.headers);
+  Alcotest.(check int) "one content type" 1 (count_header "content-type" document);
+  (match collect document with
+  | Some html ->
+      Alcotest.(check bool) "routed markup" true (contains ~needle:"<main>item</main>" html);
+      Alcotest.(check bool) "bootstrap module" true (contains ~needle:"/app.js" html)
+  | None -> Alcotest.fail "expected a document body");
+  let model = RouterServer.Adapter.response (adapter_reply ~kind:Rsc "/app/item") in
+  Alcotest.(check (option string)) "location" (Some "/app/item") (List.assoc_opt "X-Location" model.headers);
+  Alcotest.(check (option string)) "nosniff" (Some "nosniff") (List.assoc_opt "X-Content-Type-Options" model.headers);
+  Alcotest.(check int) "one model content type" 1 (count_header "content-type" model);
+  Alcotest.(check (option string))
+    "registry kept"
+    (List.assoc_opt "Router-Registry" (adapter_reply ~kind:Rsc "/app/item").headers)
+    (List.assoc_opt "Router-Registry" model.headers);
+  (match collect model with
+  | Some flight ->
+      Alcotest.(check bool)
+        "flight payload" true
+        (contains ~needle:"<main>" flight || contains ~needle:"\"main\"" flight)
+  | None -> Alcotest.fail "expected a model body");
+  let empty = RouterServer.Adapter.response (adapter_reply ~registry:(Some "0.stale") ~kind:Rsc "/app/item") in
+  Alcotest.(check int) "reload status" 409 empty.status;
+  Alcotest.(check bool) "no body" true (Option.is_none empty.body)
+
+let client_root_settings () =
+  let initial : RouterRuntime.Navigation.committed =
+    { location = { pathname = "/app"; search = ""; hash = ""; key = "k" }; matches = []; layouts = []; revision = "r" }
+  in
+  let seen server ?pageCacheCapacity () =
+    let seen = ref None in
+    ignore
+      (RouterServer.Server.clientRootWith ?pageCacheCapacity server
+         ~make:(fun
+             ~initial:_
+             ~protocolVersion:_
+             ~registryFingerprint:_
+             ~basePath:_
+             ~routes:_
+             ~interceptLinks
+             ~viewTransitions
+             ~pageCacheCapacity
+             ~pageCacheMaxAge
+             ~metadata:_
+             ~children
+           ->
+           seen := Some (interceptLinks, viewTransitions, pageCacheCapacity, pageCacheMaxAge);
+           children)
+         ~initial ~metadata:React.null ~children:React.null);
+    Option.get !seen
+  in
+  Alcotest.(check bool) "defaults" true (seen (adapter_server ()) () = (true, false, None, None));
+  Alcotest.(check bool)
+    "given" true
+    (seen (adapter_server ~interceptLinks:false ~viewTransitions:true ~pageCacheMaxAge:30.0 ()) ~pageCacheCapacity:5 ()
+    = (false, true, Some 5, Some 30.0));
+  let html server =
+    let reply =
+      Lwt_main.run
+        (RouterServer.Adapter.handle server
+           ~diagnosticId:(fun _ -> "diagnostic")
+           ~pageCacheCapacity:5 ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ())
+    in
+    Option.get (collect (RouterServer.Adapter.response reply))
+  in
+  let with_max_age = html (adapter_server ~pageCacheMaxAge:30.0 ()) in
+  Alcotest.(check bool) "max age prop" true (contains ~needle:{|"pageCacheMaxAge":30,|} with_max_age);
+  Alcotest.(check bool) "capacity prop" true (contains ~needle:{|"pageCacheCapacity":5|} with_max_age);
+  Alcotest.(check bool)
+    "client default max age" true
+    (contains ~needle:{|"pageCacheMaxAge":0,|} (html (adapter_server ())))
 
 let adapter_document_reply () =
   let reply = adapter_reply ~kind:Document "/app/item" in
@@ -1439,7 +1639,19 @@ let client_routes_exclude_base_path () =
   let passed = ref [||] in
   ignore
     (RouterServer.Server.clientRootWith (server "/app")
-       ~make:(fun ~initial:_ ~protocolVersion:_ ~registryFingerprint:_ ~basePath:_ ~routes ~metadata:_ ~children ->
+       ~make:(fun
+           ~initial:_
+           ~protocolVersion:_
+           ~registryFingerprint:_
+           ~basePath:_
+           ~routes
+           ~interceptLinks:_
+           ~viewTransitions:_
+           ~pageCacheCapacity:_
+           ~pageCacheMaxAge:_
+           ~metadata:_
+           ~children
+         ->
          passed := routes;
          children)
        ~initial:
@@ -1633,6 +1845,12 @@ let () =
           test "adapter reload required reply" adapter_reload_required_reply;
           test "adapter document redirect reply" adapter_document_redirect_reply;
           test "adapter rsc redirect reply" adapter_rsc_redirect_reply;
+          test "parse request reads router headers" parse_request_reads_router_headers;
+          test "parse request empty query and fragment" parse_request_empty_query_and_fragment;
+          test "adapter handle" adapter_handle;
+          test "adapter handle builds context only to run" adapter_handle_builds_context_only_to_run;
+          test "adapter response" adapter_response;
+          test "client root settings" client_root_settings;
           test "full plan composition" full_plan_composition;
           test "failure plan selects not-found boundary" failure_plan_selects_not_found_boundary;
           test "shared layout prefix uses canonical identity" shared_layout_prefix_uses_canonical_identity;

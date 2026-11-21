@@ -11,6 +11,7 @@
 
 (install
  (section bin)
+ (package server-reason-react)
  (enabled_if
   (= %{profile} dev))
  (files

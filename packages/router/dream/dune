@@ -1,0 +1,17 @@
+(library
+ (name dream_router)
+ (public_name server-reason-react-dream)
+ (modules DreamRouter)
+ (wrapped false)
+ (libraries
+  dream
+  lwt
+  lwt.unix
+  mtime
+  mtime.clock.os
+  server-reason-react.js
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.router-native)
+ (preprocess
+  (pps lwt_ppx)))

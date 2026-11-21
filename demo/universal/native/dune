@@ -20,7 +20,7 @@
   str
   lwt
   lwt.unix
-  dream_router)
+  server-reason-react-dream)
  (wrapped false)
  (preprocess
   (pps

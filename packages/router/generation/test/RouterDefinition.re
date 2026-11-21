@@ -3,6 +3,7 @@ Router.make(
   ~error=Pages.AppError,
   ~interceptLinks=false,
   ~viewTransitions=true,
+  ~pageCacheMaxAge=30.0,
   ~context=string,
   [
     Router.route(Docs, ~page=Pages.Docs, ~path="/docs/:rest?<string...>"),

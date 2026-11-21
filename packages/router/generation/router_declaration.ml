@@ -83,6 +83,7 @@ type t = {
   trailing_slash : trailing_slash;
   intercept_links : bool option;
   view_transitions : bool option;
+  page_cache_max_age : string option;
   error_status : expression option;
   invalid_search : expression option;
   context : core_type option;
@@ -365,6 +366,12 @@ let bool_argument label arguments =
   | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "false"; _ }, None); _ } -> Some false
   | Some expression -> error ~loc:expression.pexp_loc "~%s must be true or false" label
 
+let float_argument label arguments =
+  match argument (Labelled label) arguments with
+  | None -> None
+  | Some { pexp_desc = Pexp_constant (Pconst_float (literal, None)); _ } -> Some literal
+  | Some expression -> error ~loc:expression.pexp_loc "~%s must be a float literal, such as 30.0" label
+
 let reject_context ~callee arguments =
   match argument (Labelled "context") arguments with
   | Some context -> error ~loc:context.pexp_loc "%s cannot declare ~context; declare it on Router.make" callee
@@ -644,6 +651,7 @@ let declaration_of_expression expression =
              "invalidSearch";
              "interceptLinks";
              "viewTransitions";
+             "pageCacheMaxAge";
              "errorStatus";
              "context";
            ]
@@ -682,6 +690,7 @@ let declaration_of_expression expression =
         trailing_slash = trailing_slash_policy arguments;
         intercept_links = bool_argument "interceptLinks" arguments;
         view_transitions = bool_argument "viewTransitions" arguments;
+        page_cache_max_age = float_argument "pageCacheMaxAge" arguments;
         error_status;
         invalid_search;
         context =

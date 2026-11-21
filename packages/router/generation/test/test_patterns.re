@@ -430,6 +430,12 @@ let testClientOptions = () => {
     true,
     contains({|"interceptLinks":false,"viewTransitions":true|}),
   );
+  Alcotest.check(
+    Alcotest.bool,
+    "page cache max age",
+    true,
+    contains({|"pageCacheMaxAge":30,|}),
+  );
 };
 
 let renderPage = (~search, pathname) =>

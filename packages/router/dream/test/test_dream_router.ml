@@ -325,6 +325,23 @@ let patch_payload_is_smaller_than_full () =
   Alcotest.(check bool) "smaller" true (String.length patch_body < String.length full_body);
   Alcotest.(check (option string)) "patch" (Some "patch") (Dream.header patch_response "Router-Response")
 
+let empty_query_keeps_the_patch () =
+  let registry = patch_registry () in
+  let request =
+    Dream.request ~target:"/app/detail?"
+      ~headers:
+        [
+          ("Accept", "application/react.component");
+          ("Router-Registry", "2." ^ RouterServer.EndpointRegistry.fingerprint registry);
+          ("Router-Navigation-From", "/app");
+          ("Router-Base-Revision", "base");
+        ]
+      ""
+  in
+  let response = Dream.test (patch_handler registry) request in
+  Alcotest.(check (option string)) "patch" (Some "patch") (Dream.header response "Router-Response");
+  Alcotest.(check (option string)) "location" (Some "/app/detail") (Dream.header response "X-Location")
+
 let rsc_redirect_uses_navigation_envelope () =
   let endpoint =
     RouterServer.Endpoint.make ~id:"redirect" ~path:"/redirect"
@@ -893,6 +910,7 @@ let () =
           test "rejected action discards cookie and streams error" rejected_action_discards_cookie_and_streams_error;
           test "registry mismatch returns reload-required" registry_mismatch_returns_reload_required;
           test "patch payload is smaller than full" patch_payload_is_smaller_than_full;
+          test "empty query keeps the patch" empty_query_keeps_the_patch;
           test "RSC redirect uses navigation envelope" rsc_redirect_uses_navigation_envelope;
           test "loader permanent redirect answers 308 and rsc envelope"
             loader_permanent_redirect_answers_308_and_rsc_envelope;

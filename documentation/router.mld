@@ -465,8 +465,8 @@ redirects adds one entry. After five redirects in a row, or for any other
 [http:] or [https:] location, the client loads the location as a document. A
 location with another scheme, such as [javascript:], fails the navigation.
 
-The default client root passes no optional provider props. To set
-[~onNavigationError], [~viewTransitions] or [~interceptLinks], render
+The default client root passes the router's settings to the provider (see
+Server integration). To set [~onNavigationError], render
 [RouterReact.Provider] from your own client component and give it to
 [RouterServer.Server.clientRootWith ~make].
 
@@ -492,7 +492,10 @@ its request. Every other [Push] and [Replace] still asks the server.
 - Back and Forward use a cached page of any age.
 - [Push] and [Replace] use a cached page only when it is younger than
   [~pageCacheMaxAge] seconds. The default [0.0] means never, except for a
-  prefetched page (see Prefetching).
+  prefetched page (see Prefetching). Set it on the manifest with
+  [Router.make(~pageCacheMaxAge=30.0, ...)], a float literal, or with
+  [?pageCacheMaxAge] on [RouterServer.Server.make]; the default client root
+  passes it to the provider.
 - [~revalidate=true] does not read the cache. Its response is stored.
 - Only successful pages are stored: the HTTP status and the page status are
   both 2xx. An error page, a not-found page or a 401 and 403 page is always
@@ -918,7 +921,47 @@ reload-required outcome to its HTTP server and streams render data through
 [ReactServerDOM].
 
 [RouterServer.Adapter] holds the parts that do not depend on a server, so an
-adapter only parses the request and writes the reply:
+adapter only passes the request in and writes the response out:
+
+- [Adapter.handle server ~diagnosticId ~document ~method_ ~target ~headers ()]
+  answers one request: [methodReply], then [parseRequest], [RouterServer.run]
+  and [reply]. A [HEAD] reply has no body. [?allow] defaults to [GET], [HEAD]
+  and [OPTIONS]; an adapter that serves server functions at the same paths
+  adds [POST] and sends [POST]s elsewhere. [Adapter.handleWithContext] takes
+  [~context:(unit => 'context)] and calls it only when the router runs.
+- [Adapter.parseRequest ~target ~headers] reads the request target and a list
+  of headers. Header names match in any letter case.
+  [Accept: application/react.component] makes a navigation request, with
+  [Router-Navigation-From], [Router-Registry], [Router-Base-Revision] and
+  [Router-Prefetch]; any other request is a document request.
+- [Adapter.response reply] adds the transport headers and returns
+  [{ status; headers; body }], where [body] is [None] or a function that
+  writes each chunk with the function it receives. [Html] streams through
+  [ReactServerDOM.render_html] with [?skipRoot], [?bootstrapModules] and
+  [?nonce]; [Model] streams the Flight payload with
+  [Content-Type: application/react.component], [X-Location] and
+  [X-Content-Type-Options: nosniff].
+
+An adapter for another HTTP server is then a few lines, where [write] sends
+[status], [headers] and each chunk of [body] with that server:
+
+{[
+let respond = (request) => {
+  let%lwt reply =
+    RouterServer.Adapter.handle(
+      RouterRegistry.server,
+      ~diagnosticId=Printexc.to_string,
+      ~document,
+      ~method_=request.method_,
+      ~target=request.target,
+      ~headers=request.headers,
+      (),
+    );
+  write(RouterServer.Adapter.response(~bootstrapModules=["/app.js"], reply));
+};
+]}
+
+The parts below are what [handle] and [response] use:
 
 - [Adapter.reply server ~target ~pageCacheCapacity ~document ~kind outcome]
   returns [{ status; headers; body }]. [body] is [Empty], [Html element] or
@@ -943,9 +986,13 @@ Bootstrap modules and the skip-root choice are not part of the reply. The
 adapter picks them for each request when it writes [Html].
 
 The client root receives the router's settings as props. [~interceptLinks]
-(default [true]) and [~viewTransitions] (default [false]) on [Router.make], or
-[?interceptLinks] and [?viewTransitions] on [Server.make], reach the client
-[Provider]. The client root also receives [routes]: every concrete route path
+(default [true]), [~viewTransitions] (default [false]) and
+[~pageCacheMaxAge] on [Router.make], or the same optional arguments on
+[Server.make], reach the client [Provider], with the [?pageCacheCapacity]
+given to [Adapter.reply]. The [make] given to [Server.clientRootWith]
+receives all of them: [~interceptLinks] and [~viewTransitions] as [bool], and
+[~pageCacheCapacity] and [~pageCacheMaxAge] as options, [None] for the
+provider's default. The client root also receives [routes]: every concrete route path
 without the base path, from [Server.routes]. The client matches plain links
 against them with [RouterPattern.matchesPath(~basePath)], which strips the
 percent-encoded base path segment by segment. [onNavigationError] is a function, so it cannot
@@ -953,10 +1000,12 @@ travel from the server in the RSC payload. To set it, render your own client
 component through [Server.clientRootWith] and give the [Provider]
 [~onNavigationError] there.
 
-The repository's [demo/dream-router/DreamRouter.ml] is a thin Dream adapter
-over these functions. It also parses the request and sets the request
-context. [DreamRouter] is demo-only: it is not installed by any published
-package.
+The [server-reason-react-dream] package installs [DreamRouter], a Dream
+adapter over these functions. It is a separate package, so
+[server-reason-react] does not depend on Dream. Add the library
+[server-reason-react-dream] to your [dune] file. [DreamRouter.routes] returns
+the Dream routes of the router, and [DreamRouter.request ()] holds the request
+context.
 
 {2 Request details}
 
@@ -973,7 +1022,8 @@ package.
   [RouterServer.run]. [allow] lists the methods the adapter serves at the router's
   paths. [OPTIONS] answers 204 and a method outside [allow] answers 405, both
   with an [Allow] header. For [None], [GET] and [HEAD] run the router, and the
-  adapter sends a [HEAD] reply without its body. [DreamRouter.routes] allows
+  adapter sends a [HEAD] reply without its body. [Adapter.handle] does both.
+  [DreamRouter.routes] allows
   [GET, HEAD, OPTIONS, POST] and sends [POST] to the action handler.
 - [~metadata] and [~headers] of all scopes start at the same time. The results
   still merge from the root down, whatever order they resolve in.

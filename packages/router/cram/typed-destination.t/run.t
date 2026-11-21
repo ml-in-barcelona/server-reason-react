@@ -385,15 +385,21 @@ RouterRuntime.prefetchLevel.
   Error: router: unknown router argument ~prefetch
   [2]
 
-`~interceptLinks` and `~viewTransitions` on Router.make reach the client
-Provider through Server.make. Without them the generated call passes neither.
+`~interceptLinks`, `~viewTransitions` and `~pageCacheMaxAge` on Router.make
+reach the client Provider through Server.make. Without them the generated call
+passes none of them.
 
-  $ server-reason-react.router-gen --mode registry --source client-options.ml < client-options.ml | tr -d ' \n' | grep -Eo '~(interceptLinks|viewTransitions):[a-z]+'
+  $ server-reason-react.router-gen --mode registry --source client-options.ml < client-options.ml | tr -d ' \n' | grep -Eo '~(interceptLinks|viewTransitions|pageCacheMaxAge):[a-z0-9.]+'
   ~interceptLinks:false
   ~viewTransitions:true
-  $ server-reason-react.router-gen --mode registry --source prefetch.ml < prefetch.ml | grep -c 'interceptLinks\|viewTransitions'
+  ~pageCacheMaxAge:30.0
+  $ server-reason-react.router-gen --mode registry --source prefetch.ml < prefetch.ml | grep -c 'interceptLinks\|viewTransitions\|pageCacheMaxAge'
   0
   [1]
+  $ server-reason-react.router-gen --mode registry --source page-cache-max-age-invalid.ml < page-cache-max-age-invalid.ml
+  File "page-cache-max-age-invalid.ml", line 1, characters 46-48:
+  Error: router: ~pageCacheMaxAge must be a float literal, such as 30.0
+  [2]
   $ server-reason-react.router-gen --mode registry --source client-options-invalid.ml < client-options-invalid.ml
   File "client-options-invalid.ml", line 1, characters 46-51:
   Error: router: ~viewTransitions must be true or false

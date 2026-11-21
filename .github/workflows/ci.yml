@@ -88,6 +88,14 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
         run: make test-flight-key-validation
 
+      - name: Install router e2e deps
+        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
+        run: cd packages/router/test/e2e && npm ci
+
+      - name: Check the router in the browser
+        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
+        run: make test-router-e2e
+
       - name: Generate docs
         if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.4.0'
         run: |

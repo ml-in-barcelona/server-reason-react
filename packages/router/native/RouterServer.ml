@@ -927,6 +927,7 @@ module Server = struct
     routes : string array;
     intercept_links : bool;
     view_transitions : bool;
+    page_cache_max_age : float option;
   }
 
   let client_routes registry =
@@ -935,7 +936,7 @@ module Server = struct
     |> List.rev |> Array.of_list
 
   let makeWithContext ~basePath ~registry ?(trailingSlash = TrailingSlash.Redirect) ~fallback ~applicationStatus
-      ?(protocolVersion = 2) ?(interceptLinks = true) ?(viewTransitions = false) () =
+      ?(protocolVersion = 2) ?(interceptLinks = true) ?(viewTransitions = false) ?pageCacheMaxAge () =
     if not (Path.validBasePath basePath) then invalid_arg ("invalid router base path " ^ basePath)
     else
       {
@@ -948,30 +949,44 @@ module Server = struct
         routes = client_routes registry;
         intercept_links = interceptLinks;
         view_transitions = viewTransitions;
+        page_cache_max_age = pageCacheMaxAge;
       }
 
   let make ~basePath ~registry ?trailingSlash ~fallback ~applicationStatus ?protocolVersion ?interceptLinks
-      ?viewTransitions () =
+      ?viewTransitions ?pageCacheMaxAge () =
     makeWithContext ~basePath ~registry ?trailingSlash
       ~fallback:(fun ~context:() -> fallback)
-      ~applicationStatus ?protocolVersion ?interceptLinks ?viewTransitions ()
+      ~applicationStatus ?protocolVersion ?interceptLinks ?viewTransitions ?pageCacheMaxAge ()
 
   let routes server = Array.copy server.routes
   let basePath server = server.base_path
   let protocolVersion server = server.protocol_version
   let fingerprint server = EndpointRegistry.fingerprint server.registry
 
-  let clientRootWith server ~make ~initial ~metadata ~children =
+  let clientRootWith ?pageCacheCapacity server ~make ~initial ~metadata ~children =
     make ~initial ~protocolVersion:server.protocol_version ~registryFingerprint:(fingerprint server)
-      ~basePath:server.base_path ~routes:(routes server) ~metadata ~children
+      ~basePath:server.base_path ~routes:(routes server) ~interceptLinks:server.intercept_links
+      ~viewTransitions:server.view_transitions ~pageCacheCapacity ~pageCacheMaxAge:server.page_cache_max_age ~metadata
+      ~children
 
   let client_root ?pageCacheCapacity server =
-    clientRootWith server
-      ~make:(fun ~initial ~protocolVersion ~registryFingerprint ~basePath ~routes ~metadata ~children ->
+    clientRootWith server ?pageCacheCapacity
+      ~make:(fun
+          ~initial
+          ~protocolVersion
+          ~registryFingerprint
+          ~basePath
+          ~routes
+          ~interceptLinks
+          ~viewTransitions
+          ~pageCacheCapacity
+          ~pageCacheMaxAge
+          ~metadata
+          ~children
+        ->
         RouterClientRoot.make
           (RouterClientRoot.makeProps ~initial ~protocolVersion ~registryFingerprint ~basePath ?pageCacheCapacity
-             ~routes ~interceptLinks:server.intercept_links ~viewTransitions:server.view_transitions ~metadata ~children
-             ()))
+             ?pageCacheMaxAge ~routes ~interceptLinks ~viewTransitions ~metadata ~children ()))
 
   let clientRootWithCache server ~pageCacheCapacity = client_root ~pageCacheCapacity server
   let clientRoot server = client_root server
@@ -1231,6 +1246,91 @@ module Adapter = struct
   let formActionReply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document request action =
     formActionReplyWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context:() request
       action
+
+  type request = { engine : ServerEngine.request; prefetch : RouterRuntime.PrefetchLevel.t option }
+
+  let header headers name =
+    List.find_map
+      (fun (key, value) -> if String.equal (String.lowercase_ascii key) name then Some value else None)
+      headers
+
+  let parseRequest ~target ~headers =
+    let target = match String.index_opt target '#' with Some index -> String.sub target 0 index | None -> target in
+    let pathname, search = Path.splitLocation target in
+    let search = if String.equal search "?" then "" else search in
+    match header headers "accept" with
+    | Some "application/react.component" ->
+        {
+          engine =
+            {
+              pathname;
+              search;
+              hash = "";
+              kind = Rsc;
+              navigation =
+                Some
+                  {
+                    from = header headers "router-navigation-from";
+                    registry = header headers "router-registry";
+                    base_revision = header headers "router-base-revision";
+                  };
+            };
+          prefetch = Option.bind (header headers "router-prefetch") RouterRuntime.PrefetchLevel.fromString;
+        }
+    | Some _ | None -> { engine = { pathname; search; hash = ""; kind = Document; navigation = None }; prefetch = None }
+
+  let defaultAllow = [ "GET"; "HEAD"; "OPTIONS" ]
+
+  let handleWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow = defaultAllow) ~context
+      ~method_ ~target ~headers () =
+    match methodReply ~allow method_ with
+    | Some reply -> Lwt.return reply
+    | None ->
+        let { engine; prefetch } = parseRequest ~target ~headers in
+        Lwt.map
+          (fun outcome ->
+            let reply = reply server ~target ?pageCacheCapacity ~document ~kind:engine.kind outcome in
+            if String.equal method_ "HEAD" then { reply with body = Empty } else reply)
+          (Server.runWithContext server ~diagnosticId ?revision ?prefetch ~context:(context ()) engine)
+
+  let handle server ~diagnosticId ?revision ?pageCacheCapacity ~document ?allow ~method_ ~target ~headers () =
+    handleWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ?allow
+      ~context:(fun () -> ())
+      ~method_ ~target ~headers ()
+
+  type response = {
+    status : int;
+    headers : (string * string) list;
+    body : ((string -> unit Lwt.t) -> unit Lwt.t) option;
+  }
+
+  let set_header name value headers =
+    let lower = String.lowercase_ascii name in
+    List.filter (fun (key, _) -> not (String.equal (String.lowercase_ascii key) lower)) headers @ [ (name, value) ]
+
+  let response ?env ?timeout ?(skipRoot = false) ?bootstrapModules ?nonce (reply : reply) =
+    match reply.body with
+    | Empty -> { status = reply.status; headers = reply.headers; body = None }
+    | Html element ->
+        {
+          status = reply.status;
+          headers = set_header "Content-Type" "text/html; charset=utf-8" reply.headers;
+          body =
+            Some
+              (fun write ->
+                Lwt.bind (ReactServerDOM.render_html ?env ?timeout ~skipRoot ?bootstrapModules ?nonce element)
+                  (fun (html, rest) -> Lwt.bind (write html) (fun () -> rest write)));
+        }
+    | Model { location; model } ->
+        {
+          status = reply.status;
+          headers =
+            reply.headers
+            |> set_header "Content-Type" "application/react.component"
+            |> set_header "X-Content-Type-Options" "nosniff"
+            |> set_header "X-Location" location;
+          body = Some (fun write -> ReactServerDOM.render_model_value ?env ?timeout ~subscribe:write model);
+        }
 end
 
 let run = Server.run

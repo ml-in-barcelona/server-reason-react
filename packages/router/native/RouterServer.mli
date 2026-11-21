@@ -413,10 +413,12 @@ module Server : sig
     ?protocolVersion:int ->
     ?interceptLinks:bool ->
     ?viewTransitions:bool ->
+    ?pageCacheMaxAge:float ->
     unit ->
     ('view, 'error, unit) t
-  (** [trailingSlash] defaults to {!TrailingSlash.Redirect}. [interceptLinks] (default [true]) and [viewTransitions]
-      (default [false]) are passed to the client [Provider] by {!clientRoot} and {!clientRootWithCache}. *)
+  (** [trailingSlash] defaults to {!TrailingSlash.Redirect}. [interceptLinks] (default [true]), [viewTransitions]
+      (default [false]) and [pageCacheMaxAge] (seconds, the client's default [0.0] when absent) are passed to the client
+      [Provider] by {!clientRoot}, {!clientRootWithCache} and the [make] given to {!clientRootWith}. *)
 
   val makeWithContext :
     basePath:string ->
@@ -427,6 +429,7 @@ module Server : sig
     ?protocolVersion:int ->
     ?interceptLinks:bool ->
     ?viewTransitions:bool ->
+    ?pageCacheMaxAge:float ->
     unit ->
     ('view, 'error, 'context) t
   (** {!make} for a registry with a request context. Run it with {!runWithContext}. *)
@@ -457,6 +460,7 @@ module Server : sig
     React.element
 
   val clientRootWith :
+    ?pageCacheCapacity:int ->
     (React.element, 'error, 'context) t ->
     make:
       (initial:RouterRuntime.Navigation.committed ->
@@ -464,6 +468,10 @@ module Server : sig
       registryFingerprint:string ->
       basePath:string ->
       routes:string array ->
+      interceptLinks:bool ->
+      viewTransitions:bool ->
+      pageCacheCapacity:int option ->
+      pageCacheMaxAge:float option ->
       metadata:React.element ->
       children:React.element ->
       React.element) ->
@@ -471,6 +479,10 @@ module Server : sig
     metadata:React.element ->
     children:React.element ->
     React.element
+  (** Builds the client root with a custom [make], for example a client component that renders [RouterReact.Provider]
+      with [~onNavigationError]. [make] receives every setting the default client root passes to the [Provider]:
+      [interceptLinks] and [viewTransitions] from {!make}, [pageCacheCapacity] as given here, and [pageCacheMaxAge] from
+      {!make}. [None] means the [Provider]'s default; pass the option on with [?pageCacheCapacity]. *)
 end
 
 (** Server functions run from a page form without JavaScript. *)
@@ -598,6 +610,70 @@ module Adapter : sig
         and [Cache-Control: private, no-store].
       - [ReloadRequired]: 409 with [Router-Response: reload-required] and [Cache-Control: private, no-store]. Every RSC
         reply carries [Vary: Accept, Router-Prefetch]; document replies carry [Vary: Accept]. *)
+
+  type request = { engine : ServerEngine.request; prefetch : RouterRuntime.PrefetchLevel.t option }
+
+  val parseRequest : target:string -> headers:(string * string) list -> request
+  (** Reads an HTTP request. [target] is the request target, path and query, as sent. A fragment is dropped, and an
+      empty query (a lone [?]) is no search. The path is not normalised: the engine decodes each segment when it
+      matches. Header names match in any letter case. With [Accept: application/react.component] the request is a
+      navigation ([Rsc]): its navigation facts come from [Router-Navigation-From], [Router-Registry] and
+      [Router-Base-Revision], and [prefetch] from [Router-Prefetch] ([None] for a value that is not a level). Any other
+      [Accept] gives a [Document] request without navigation facts or [prefetch]. *)
+
+  val handle :
+    (React.element, 'error, unit) Server.t ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    ?pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    ?allow:string list ->
+    method_:string ->
+    target:string ->
+    headers:(string * string) list ->
+    unit ->
+    reply Lwt.t
+  (** Answers one router request: {!methodReply} with [allow] (default [GET], [HEAD], [OPTIONS]), then {!parseRequest},
+      {!run} and {!reply}. A [HEAD] reply has no body. An adapter that serves [POST] at the router's paths, for server
+      functions, adds ["POST"] to [allow] and does not send [POST]s here. *)
+
+  val handleWithContext :
+    (React.element, 'error, 'context) Server.t ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    ?pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    ?allow:string list ->
+    context:(unit -> 'context) ->
+    method_:string ->
+    target:string ->
+    headers:(string * string) list ->
+    unit ->
+    reply Lwt.t
+  (** {!handle} for a server with a request context. [context] runs once, only when the router runs, so a method that
+      {!methodReply} answers builds no context. *)
+
+  type response = {
+    status : int;
+    headers : (string * string) list;
+    body : ((string -> unit Lwt.t) -> unit Lwt.t) option;
+  }
+  (** A reply ready to write. [body] is [None] for an empty body. Otherwise call it with a function that writes one
+      chunk; it resolves after the last chunk. *)
+
+  val response :
+    ?env:[ `Dev | `Prod ] ->
+    ?timeout:float ->
+    ?skipRoot:bool ->
+    ?bootstrapModules:string list ->
+    ?nonce:string ->
+    reply ->
+    response
+  (** Adds the transport headers and the renderer to a {!reply}. [Html] streams through {!ReactServerDOM.render_html}
+      with [skipRoot] (default [false]), [bootstrapModules] and [nonce], with [Content-Type: text/html; charset=utf-8].
+      [Model] streams through {!ReactServerDOM.render_model_value} with [Content-Type: application/react.component],
+      [X-Content-Type-Options: nosniff] and [X-Location] set to its [location]. [env] and [timeout] go to the renderer.
+      These headers replace a header of the same name in the reply. *)
 end
 
 val run :
