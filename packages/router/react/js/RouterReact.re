@@ -115,6 +115,9 @@ let outlet = (~owner, ~children, ()) =>
 let suspense = (~fallback, ~children, ()) =>
   <React.Suspense fallback> children </React.Suspense>;
 
+let errorBoundary = (~fallback, ~children, ()) =>
+  <RouterErrorBoundary fallback> children </RouterErrorBoundary>;
+
 let currentUrl = () => {
   let location = DOM.window->DOM.Window.location;
   Location.pathname(location)
@@ -337,7 +340,10 @@ module Provider = {
       let window = DOM.window;
       RouterScroll.save(
         scrollId(committed.location.key),
-        (DOM.Window.scrollX(window), DOM.Window.scrollY(window)),
+        RouterScroll.capture((
+          DOM.Window.scrollX(window),
+          DOM.Window.scrollY(window),
+        )),
       );
     };
     let reportError = (~target, ~recovery, message) =>
@@ -361,6 +367,9 @@ module Provider = {
         | Navigation.Push
         | Navigation.Replace => None
         };
+      Option.iter(RouterScroll.restoreContainers, saved);
+      let saved =
+        Option.map((saved: RouterScroll.saved) => saved.window, saved);
       switch (RouterPolicy.scrollFor(~kind, ~saved, hash)) {
       | RouterPolicy.ScrollTo(x, y) => DOM.Window.scrollTo(x, y, window)
       | RouterPolicy.Fragment(id) =>
@@ -1211,7 +1220,10 @@ module Provider = {
             RouterScroll.entryId(~revision=state.revision, ~key=state.key),
           )
         ) {
-        | Some((x, y)) => DOM.Window.scrollTo(x, y, window)
+        | Some(saved) =>
+          RouterScroll.restoreContainers(saved);
+          let (x, y) = saved.window;
+          DOM.Window.scrollTo(x, y, window);
         | None => ()
         }
       | Some(_)
@@ -1520,6 +1532,8 @@ let useUpdateHash = () => useContextValue().updateHash;
 
 let useLocation = () => useContextValue().committed.location;
 
+let useMatches = () => useContextValue().committed.matches;
+
 let locationScope = (~committed as _, ~children, ()) => children;
 
 let useInvalidate = () => useContextValue().invalidate;
@@ -1554,6 +1568,44 @@ let useBlocker = shouldBlock => {
 };
 
 module Link = {
+  type attributes = {
+    id: option(string),
+    title: option(string),
+    rel: option(string),
+    ariaLabel: option(string),
+    style: option(ReactDOM.Style.t),
+    data: list((string, string)),
+    anchorRef: option(ReactDOM.domRef),
+    onClick: option(React.Event.Mouse.t => unit),
+    onMouseEnter: option(React.Event.Mouse.t => unit),
+  };
+
+  let attributes =
+      (
+        ~id=?,
+        ~title=?,
+        ~rel=?,
+        ~ariaLabel=?,
+        ~style=?,
+        ~data=[],
+        ~anchorRef=?,
+        ~onClick=?,
+        ~onMouseEnter=?,
+        (),
+      ) => {
+    id,
+    title,
+    rel,
+    ariaLabel,
+    style,
+    data,
+    anchorRef,
+    onClick,
+    onMouseEnter,
+  };
+
+  let noAttributes = attributes();
+
   [@react.component]
   let make =
       (
@@ -1566,6 +1618,10 @@ module Link = {
         ~title=?,
         ~rel=?,
         ~ariaLabel=?,
+        ~style=?,
+        ~data=[],
+        ~anchorRef=?,
+        ~attributes=noAttributes,
         ~onClick as userOnClick=?,
         ~onMouseEnter=?,
         ~history=Navigation.Push,
@@ -1573,6 +1629,19 @@ module Link = {
         ~children,
       ) => {
     let value = useContextValue();
+    let either = (flat, fromAttributes) =>
+      switch (flat) {
+      | Some(_) => flat
+      | None => fromAttributes
+      };
+    let id = either(id, attributes.id);
+    let title = either(title, attributes.title);
+    let rel = either(rel, attributes.rel);
+    let ariaLabel = either(ariaLabel, attributes.ariaLabel);
+    let style = either(style, attributes.style);
+    let anchorRef = either(anchorRef, attributes.anchorRef);
+    let userOnClick = either(userOnClick, attributes.onClick);
+    let onMouseEnter = either(onMouseEnter, attributes.onMouseEnter);
     let href = RouterRuntime.href(destination);
     let dataRouterPrefetch =
       switch (RouterRuntime.prefetchLevel(destination)) {
@@ -1621,19 +1690,28 @@ module Link = {
         ?title
         ?rel
         ?ariaLabel
+        ?style
+        ref=?anchorRef
         ?onMouseEnter
         onClick>
         children
       </a>;
-    let attributes = Js.Dict.empty();
+    let extra = Js.Dict.empty();
+    List.iter(
+      ((name, value)) =>
+        if (RouterTypes.validAttributeName(name)) {
+          Js.Dict.set(extra, "data-" ++ name, value);
+        },
+      attributes.data @ data,
+    );
     Option.iter(
-      level => Js.Dict.set(attributes, "data-router-prefetch", level),
+      level => Js.Dict.set(extra, "data-router-prefetch", level),
       dataRouterPrefetch,
     );
     if (Option.is_none(explicitAriaCurrent)) {
-      Js.Dict.set(attributes, RouterPolicy.routerLinkAttribute, "");
+      Js.Dict.set(extra, RouterPolicy.routerLinkAttribute, "");
     };
-    Js.Array.length(Js.Dict.keys(attributes)) == 0
-      ? link : React.cloneElement(link, attributes);
+    Js.Array.length(Js.Dict.keys(extra)) == 0
+      ? link : React.cloneElement(link, extra);
   };
 };

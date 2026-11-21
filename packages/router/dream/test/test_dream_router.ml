@@ -748,6 +748,52 @@ let no_js_form_failure_renders_the_boundary () =
   Alcotest.(check bool) "no error detail" false (contains ~needle:"save failed" body);
   Alcotest.(check (option string)) "cookie discarded" None (Dream.header response "Set-Cookie")
 
+let no_js_form_failure_honours_render_signals () =
+  let form =
+    React.createElement "form"
+      [
+        React.JSX.Action ("action", "action", { Runtime.id = "fail"; call = (fun () -> Lwt.return (React.string "")) });
+      ]
+      []
+  in
+  let endpoint path boundary =
+    RouterServer.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
+        Ok
+          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterServer.Execution.done_
+                 (RouterServer.Plan.withFailure (RouterServer.Plan.success ~scopes:[] ~page:form) (fun error ->
+                      RouterServer.Plan.failure ~scopes:[] ~error
+                        ~notFound:(fun _ -> React.createElement "p" [] [ React.string "gone" ])
+                        ~errorBoundary:(fun _ -> React.Upper_case_component ("Boundary", boundary))
+                        ())))))
+  in
+  let registry =
+    RouterServer.EndpointRegistry.makeExn
+      [
+        endpoint "/moved" (fun () -> RouterServer.Render.redirect (RouterRuntime.destination ~path:"/app/login"));
+        endpoint "/gone" (fun () -> RouterServer.Render.notFound ());
+      ]
+  in
+  let lookup = function
+    | "fail" -> Some (ReactServerDOM.FormData (fun _ _ -> Lwt.fail (Failure "save failed")))
+    | _ -> None
+  in
+  let router =
+    Dream.router
+      (DreamRouter.routes ~server:(server registry)
+         ~actionHandler:(fun _ -> Dream.empty `OK)
+         ~lookup
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~document ())
+  in
+  let response = Dream.test router (form_post "/app/moved" [ ("$ACTION_ID_fail", "") ]) in
+  Alcotest.(check int) "redirect status" 303 (status response);
+  Alcotest.(check (option string)) "redirect location" (Some "/app/login") (location response);
+  let response = Dream.test router (form_post "/app/gone" [ ("$ACTION_ID_fail", "") ]) in
+  let body = Lwt_main.run (Dream.body response) in
+  Alcotest.(check int) "not found status" 404 (status response);
+  Alcotest.(check bool) "not-found boundary" true (contains ~needle:"<p>gone</p>" body)
+
 let no_js_form_post_checks_origin () =
   let fixture = form_fixture () in
   let response =
@@ -829,7 +875,7 @@ let server_links_see_the_location () =
   Alcotest.(check bool) "html" true (contains ~needle:{|aria-current="page"|} document);
   Alcotest.(check bool) "document payload" true (contains ~needle:{|"aria-current":"page"|} document);
   Alcotest.(check bool) "navigation payload" true (contains ~needle:{|"aria-current":"page"|} navigation);
-  Alcotest.(check bool) "keyed client root" true (contains ~needle:{|"$L1","router:root"|} document)
+  Alcotest.(check bool) "keyed client root" true (contains ~needle:{|"router:root",{"initial":|} document)
 
 let no_js_form_post_never_answers_a_method_preserving_redirect () =
   List.iter
@@ -927,6 +973,7 @@ let () =
           test "no-JS form post redirects to the page" no_js_form_post_redirects_to_the_page;
           test "no-JS form redirect follows the server function" no_js_form_redirect_follows_the_server_function;
           test "no-JS form failure renders the boundary" no_js_form_failure_renders_the_boundary;
+          test "no-JS form failure honours render signals" no_js_form_failure_honours_render_signals;
           test "no-JS form post checks origin" no_js_form_post_checks_origin;
           test "JS server function call is unchanged" js_server_function_call_is_unchanged;
           test "JS action redirect sets header" js_action_redirect_sets_header;

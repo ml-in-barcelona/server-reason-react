@@ -1,0 +1,1 @@
+Router.make ~basePath:"/" [ Router.group ~path:"/workspaces/:workspaceId<string>" ~loader:WorkspaceLoader [ Router.route Note ~page:Page ~path:"/notes/:id<int>" ~loader:NoteLoader ~loaderParallel:true ] ]

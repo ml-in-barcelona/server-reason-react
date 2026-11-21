@@ -157,6 +157,12 @@ module EditNote = {
     <NoteItem note isEditing=true />;
 };
 
+module E2eCrash = {
+  [@react.component]
+  let make = (~search as _): React.element =>
+    failwith("the e2e page failed to render");
+};
+
 module E2e = {
   [@react.component]
   let make = (~search as _) =>
@@ -186,6 +192,9 @@ module E2e = {
       <Router.E2e className="link-self">
         {React.string("This page")}
       </Router.E2e>
+      <Router.E2eCrash className="link-crash">
+        {React.string("A page that fails to render")}
+      </Router.E2eCrash>
       <form id="visit-form" action={`Function(E2eActions.countVisit)}>
         <span id="visits">
           {React.string(string_of_int(E2eState.visits^))}
@@ -212,6 +221,12 @@ module E2eLong = {
       <Router.E2e className="long-back">
         {React.string("Checks")}
       </Router.E2e>
+      <div
+        id="long-panel"
+        dataRouterScroll="e2e-long-panel"
+        style={ReactDOM.Style.make(~height="200px", ~overflow="auto", ())}>
+        <div style={ReactDOM.Style.make(~height="2000px", ())} />
+      </div>
       <div style={ReactDOM.Style.make(~height="4000px", ())} />
       <p id="long-end"> {React.string("End")} </p>
     </div>;

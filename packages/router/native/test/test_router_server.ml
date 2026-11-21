@@ -473,6 +473,64 @@ let fatal_loader_exceptions_propagate () =
   propagates Lwt.Canceled;
   propagates Sys.Break
 
+let started_loader_exceptions_use_boundary () =
+  let execution failure =
+    RouterServer.Execution.start
+      ~run:(fun () -> raise failure)
+      ~next:(fun started ->
+        RouterServer.Execution.loadWithBoundary
+          ~run:(fun () -> Lwt.return (RouterRuntime.Loader.Data ()))
+          ~failure:(fun _ -> "parent")
+          ~next:(fun () ->
+            RouterServer.Execution.loadWithBoundary ~run:(RouterServer.Execution.await started)
+              ~failure:(function
+                | RouterRuntime.Error.Internal { diagnosticId } -> "child:" ^ diagnosticId | _ -> "child:wrong-error")
+              ~next:(fun (_ : unit) -> RouterServer.Execution.done_ "loaded")))
+  in
+  let run failure =
+    Lwt_main.run
+      (Lwt.catch
+         (fun () -> Lwt.map Result.ok (RouterServer.Execution.run ~diagnosticId:Printexc.to_string (execution failure)))
+         (fun error -> Lwt.return (Error error)))
+  in
+  (match run (Failure "detail") with
+  | Ok (RouterRuntime.Loader.Data result) -> Alcotest.(check string) "boundary" "child:Failure(\"detail\")" result
+  | _ -> Alcotest.fail "expected the boundary");
+  match run Sys.Break with
+  | Error actual -> Alcotest.(check string) "fatal" (Printexc.to_string Sys.Break) (Printexc.to_string actual)
+  | Ok _ -> Alcotest.fail "expected exception to propagate"
+
+let request_memo_runs_once_per_request () =
+  let key : int RouterServer.Request.key = RouterServer.Request.key () in
+  let other : int RouterServer.Request.key = RouterServer.Request.key () in
+  let runs = ref [] in
+  let fetch key argument =
+    RouterServer.Request.memo key argument (fun () ->
+        runs := !runs @ [ argument ];
+        Lwt.bind (Lwt.pause ()) (fun () -> Lwt.return (List.length !runs)))
+  in
+  let request () =
+    RouterServer.Request.scope (fun () ->
+        let first = fetch key "a" in
+        let again = fetch key "a" in
+        let different = fetch key "b" in
+        let other_key = fetch other "a" in
+        let nested = RouterServer.Request.scope (fun () -> fetch key "a") in
+        Lwt.all [ first; again; different; other_key; nested ])
+  in
+  let int_list = Alcotest.(list int) in
+  Alcotest.check int_list "first request" [ 4; 4; 4; 4; 4 ] (Lwt_main.run (request ()));
+  Alcotest.(check (list string))
+    "one run per key and argument, a nested scope starts empty" [ "a"; "b"; "a"; "a" ] !runs;
+  runs := [];
+  let both = Lwt_main.run (Lwt.both (request ()) (request ())) in
+  Alcotest.(check int) "each request runs its own" 8 (List.length !runs);
+  Alcotest.(check bool) "results kept per request" true (List.for_all (fun value -> value = 8) (fst both @ snd both));
+  runs := [];
+  let outside = Lwt_main.run (Lwt.all [ fetch key "a"; fetch key "a" ]) in
+  Alcotest.check int_list "outside a request" [ 2; 2 ] outside;
+  Alcotest.(check (list string)) "no cache outside a request" [ "a"; "a" ] !runs
+
 let error_status () =
   let open RouterRuntime in
   Alcotest.(check int)
@@ -481,7 +539,13 @@ let error_status () =
     |> Status.toInt);
   Alcotest.(check int)
     "application" 403
-    (RouterServer.statusOfError ~application:(fun _ -> Status.Forbidden) (Error.Application "denied") |> Status.toInt)
+    (RouterServer.statusOfError ~application:(fun _ -> Status.Forbidden) (Error.Application "denied") |> Status.toInt);
+  List.iter
+    (fun (status, code) ->
+      Alcotest.(check int)
+        (string_of_int code) code
+        (RouterServer.statusOfError ~application:(fun _ -> status) (Error.Application "denied") |> Status.toInt))
+    [ (Status.Unauthorized, 401); (Status.Gone, 410); (Status.TooManyRequests, 429); (Status.ServiceUnavailable, 503) ]
 
 let metadata_composition () =
   let open RouterRuntime.Metadata in
@@ -526,7 +590,17 @@ let metadata_rendering () =
           meta ~name:"robots" "noindex";
           property ~property:"og:title" "Og";
           link ~rel:"canonical" "/c";
-          link ~key:"alt:es" ~rel:"alternate" ~attrs:[ ("hreflang", "es"); ("rel", "evil"); ("HREF", "/evil") ] "/es";
+          link ~key:"alt:es" ~rel:"alternate"
+            ~attrs:
+              [
+                ("hreflang", "es");
+                ("rel", "evil");
+                ("HREF", "/evil");
+                ("x onload=alert(1) y", "1");
+                ("", "2");
+                ("a\"b", "3");
+              ]
+            "/es";
         ]
       ()
     |> RouterServer.Adapter.metadata_element |> ReactDOM.renderToStaticMarkup
@@ -1214,6 +1288,81 @@ let adapter_handle_builds_context_only_to_run () =
   Alcotest.(check int) "get" 200 (handle "GET").status;
   Alcotest.(check int) "one context for get" 1 !built
 
+let request_memo_reaches_streamed_components () =
+  let key : string RouterServer.Request.key = RouterServer.Request.key () in
+  let runs = ref 0 in
+  let viewer () =
+    RouterServer.Request.memo key "viewer" (fun () ->
+        incr runs;
+        Lwt.return ("viewer-" ^ string_of_int !runs))
+  in
+  let page =
+    React.Async_component
+      ("Viewer", fun () -> Lwt.map (fun viewer -> React.createElement "main" [] [ React.string viewer ]) (viewer ()))
+  in
+  let endpoint =
+    RouterServer.Endpoint.make ~id:"item" ~path:"/item"
+      ~activeRoutes:[ ("item", []) ]
+      ~fingerprint:"item"
+      ~decode:(fun _ ->
+        Ok
+          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterServer.Execution.load
+                 (fun () -> Lwt.map (fun viewer -> RouterRuntime.Loader.Data viewer) (viewer ()))
+                 (fun (_ : string) ->
+                   let metadata () = Lwt.map (fun title -> RouterRuntime.Metadata.make ~title ()) (viewer ()) in
+                   RouterServer.Execution.done_
+                     (RouterServer.Plan.success ~scopes:[ RouterServer.Plan.Scope.make ~metadata () ] ~page)))))
+  in
+  let server =
+    RouterServer.Server.make ~basePath:"/app"
+      ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
+      ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+      ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+      ()
+  in
+  let request () =
+    Lwt.bind
+      (RouterServer.Adapter.serve server
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ())
+      (fun (response : RouterServer.Adapter.response) ->
+        match response.body with
+        | None -> Alcotest.fail "expected a body"
+        | Some body ->
+            let chunks = Buffer.create 256 in
+            Lwt.map
+              (fun () -> Buffer.contents chunks)
+              (body (fun chunk ->
+                   Buffer.add_string chunks chunk;
+                   Lwt.return_unit)))
+  in
+  let first = Lwt_main.run (request ()) in
+  Alcotest.(check bool) "component reads the loader's value" true (contains ~needle:"<main>viewer-1</main>" first);
+  Alcotest.(check int) "one run for loader and component" 1 !runs;
+  let second = Lwt_main.run (request ()) in
+  Alcotest.(check bool) "next request runs again" true (contains ~needle:"<main>viewer-2</main>" second);
+  Alcotest.(check int) "one run per request" 2 !runs;
+  ignore
+    (Lwt_main.run
+       (RouterServer.Adapter.handle server
+          ~diagnosticId:(fun _ -> "diagnostic")
+          ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ()));
+  Alcotest.(check int) "handle shares between loader and metadata" 3 !runs;
+  let outer () =
+    RouterServer.Request.scope (fun () ->
+        let handled () =
+          RouterServer.Adapter.handle server
+            ~diagnosticId:(fun _ -> "diagnostic")
+            ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ()
+        in
+        Lwt.bind (handled ()) (fun _ ->
+            Lwt.bind (handled ()) (fun _ -> Lwt.bind (request ()) (fun _ -> Lwt.map ignore (request ())))))
+  in
+  runs := 0;
+  Lwt_main.run (outer ());
+  Alcotest.(check int) "requests under an outer scope do not share entries" 4 !runs
+
 let collect (response : RouterServer.Adapter.response) =
   match response.body with
   | None -> None
@@ -1759,6 +1908,139 @@ let unsafe_redirects_are_internal_errors () =
     "location of an unsafe destination" None
     (RouterServer.Adapter.redirectLocation (RouterRuntime.destination ~path:"javascript:alert(1)"))
 
+let signal_server () =
+  let text value = React.createElement "p" [] [ React.string value ] in
+  let page name body = React.Upper_case_component (name, body) in
+  let plan page =
+    RouterServer.Plan.withFailure (RouterServer.Plan.success ~scopes:[] ~page) (fun error ->
+        RouterServer.Plan.failure ~scopes:[] ~error
+          ~notFound:(fun _ -> text "missing note")
+          ~errorBoundary:(fun _ -> text "broken")
+          ())
+  in
+  let pages =
+    [
+      ("/missing", page "Missing" (fun () -> RouterServer.Render.notFound ()));
+      ("/broken", page "Broken" (fun () -> failwith "page failed"));
+      ( "/failing-fallback",
+        RouterReact.errorBoundary
+          ~fallback:(page "FailingFallback" (fun () -> failwith "fallback failed"))
+          ~children:(text "content") () );
+      ("/moved", page "Moved" (fun () -> RouterServer.Render.redirect (RouterRuntime.destination ~path:"/app/plain")));
+      ( "/suspended-missing",
+        React.Suspense
+          {
+            key = None;
+            fallback = Some (text "loading");
+            children = page "SyncInside" (fun () -> RouterServer.Render.notFound ());
+          } );
+      ( "/late-missing",
+        React.Suspense
+          {
+            key = None;
+            fallback = Some (text "loading");
+            children =
+              React.Async_component
+                ( "Late",
+                  fun () ->
+                    Lwt.bind (Lwt.pause ()) (fun () ->
+                        Lwt.bind (Lwt.pause ()) (fun () -> Lwt.return (RouterServer.Render.notFound ()))) );
+          } );
+      ( "/plain",
+        React.list
+          [
+            text "plain";
+            React.Suspense
+              {
+                key = None;
+                fallback = Some (text "loading");
+                children =
+                  React.Async_component
+                    ("Later", fun () -> Lwt.bind (Lwt.pause ()) (fun () -> Lwt.return (text "later")));
+              };
+          ] );
+    ]
+  in
+  let registry =
+    RouterServer.EndpointRegistry.makeExn
+      (List.map
+         (fun (path, element) ->
+           RouterServer.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
+               Ok
+                 (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+                      RouterServer.Execution.done_ (plan element)))))
+         pages)
+  in
+  RouterServer.Server.make ~basePath:"/app" ~registry
+    ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+    ()
+
+let serve ?(rsc = false) target =
+  let headers = if rsc then [ ("Accept", "application/react.component"); ("Router-Navigation-From", "/app") ] else [] in
+  let response =
+    Lwt_main.run
+      (RouterServer.Adapter.serve (signal_server ())
+         ~diagnosticId:(fun _ -> "d")
+         ~document:(fun ~head children ->
+           React.createElement "html" []
+             [ React.createElement "head" [] [ head ]; React.createElement "body" [] [ children ] ])
+         ~method_:"GET" ~target ~headers ())
+  in
+  let chunks = ref [] in
+  (match response.body with
+  | None -> ()
+  | Some body ->
+      Lwt_main.run
+        (body (fun chunk ->
+             chunks := chunk :: !chunks;
+             Lwt.return ())));
+  (response, String.concat "" (List.rev !chunks))
+
+let render_signals_change_the_response () =
+  let header (response : RouterServer.Adapter.response) name = List.assoc_opt name response.headers in
+  let response, body = serve "/app/missing" in
+  Alcotest.(check int) "document not found status" 404 response.status;
+  Alcotest.(check bool) "not-found boundary" true (contains ~needle:"missing note" body);
+  let response, body = serve ~rsc:true "/app/missing" in
+  Alcotest.(check int) "navigation not found status" 404 response.status;
+  Alcotest.(check bool) "navigation not-found boundary" true (contains ~needle:"missing note" body);
+  let response, _ = serve "/app/moved" in
+  Alcotest.(check int) "document redirect" 303 response.status;
+  Alcotest.(check (option string)) "location" (Some "/app/plain") (header response "Location");
+  let response, body = serve ~rsc:true "/app/moved" in
+  Alcotest.(check int) "navigation redirect envelope" 200 response.status;
+  Alcotest.(check (option string)) "redirect kind" (Some "redirect") (header response "Router-Response");
+  Alcotest.(check bool) "redirect location" true (contains ~needle:"/app/plain" body);
+  let response, body = serve "/app/broken" in
+  Alcotest.(check int) "document render exception" 500 response.status;
+  Alcotest.(check bool) "error boundary" true (contains ~needle:"broken" body);
+  let response, body = serve "/app/suspended-missing" in
+  Alcotest.(check int) "synchronous signal inside suspense" 404 response.status;
+  Alcotest.(check bool) "suspense not-found boundary" true (contains ~needle:"missing note" body)
+
+let failing_fallback_does_not_fail_the_page () =
+  let response, body = serve "/app/failing-fallback" in
+  Alcotest.(check int) "document status" 200 response.status;
+  Alcotest.(check bool) "document content" true (contains ~needle:"<p>content</p>" body);
+  let response, body = serve ~rsc:true "/app/failing-fallback" in
+  Alcotest.(check int) "navigation status" 200 response.status;
+  Alcotest.(check bool) "navigation content" true (contains ~needle:"content" body)
+
+let render_signals_after_the_shell_keep_the_status () =
+  let response, body = serve "/app/late-missing" in
+  Alcotest.(check int) "late document signal" 200 response.status;
+  Alcotest.(check bool) "fallback streamed" true (contains ~needle:"loading" body);
+  let response, _ = serve ~rsc:true "/app/late-missing" in
+  Alcotest.(check int) "late navigation signal" 200 response.status;
+  let response, body = serve "/app/plain" in
+  Alcotest.(check int) "plain document" 200 response.status;
+  Alcotest.(check bool) "streamed document content" true (contains ~needle:"later" body);
+  let response, body = serve ~rsc:true "/app/plain" in
+  Alcotest.(check int) "plain navigation" 200 response.status;
+  Alcotest.(check bool) "first navigation chunk" true (contains ~needle:"plain" body);
+  Alcotest.(check bool) "streamed navigation content" true (contains ~needle:"later" body)
+
 let () =
   Alcotest.run "router server"
     [
@@ -1801,6 +2083,9 @@ let () =
           test "loader short circuit" loader_short_circuit;
           test "rejected loader uses nearest boundary" rejected_loader_uses_nearest_boundary;
           test "fatal loader exceptions propagate" fatal_loader_exceptions_propagate;
+          test "started loader exceptions use boundary" started_loader_exceptions_use_boundary;
+          test "request memo runs once per request" request_memo_runs_once_per_request;
+          test "request memo reaches streamed components" request_memo_reaches_streamed_components;
           test "error status" error_status;
           test "metadata composition" metadata_composition;
           test "metadata default keys" metadata_default_keys;
@@ -1865,5 +2150,8 @@ let () =
           test "client routes exclude base path" client_routes_exclude_base_path;
           test "action error renders after loaders" action_error_renders_after_loaders;
           test "unsafe redirects are internal errors" unsafe_redirects_are_internal_errors;
+          test "render signals change the response" render_signals_change_the_response;
+          test "a failing fallback does not fail the page" failing_fallback_does_not_fail_the_page;
+          test "render signals after the shell keep the status" render_signals_after_the_shell_keep_the_status;
         ] );
     ]

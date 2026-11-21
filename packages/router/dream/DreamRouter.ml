@@ -47,7 +47,7 @@ let set_cookie = RequestContext.set_cookie
 let with_render_context request =
  fun fn ->
   Lwt.with_value RequestContext.request_key (Some request) (fun () ->
-      Lwt.with_value RequestContext.phase_key (Some RequestContext.Render) fn)
+      Lwt.with_value RequestContext.phase_key (Some RequestContext.Render) (fun () -> RouterServer.Request.scope fn))
 
 let with_action_context request =
  fun fn ->
@@ -251,22 +251,22 @@ let write_response (response : RouterServer.Adapter.response) =
           in
           Dream.flush stream)
 
-let respond ~skipRoot ~bootstrapModules reply =
-  write_response (RouterServer.Adapter.response ~env:`Dev ~timeout:stream_timeout ~skipRoot ~bootstrapModules reply)
-
 let allow = [ "GET"; "HEAD"; "OPTIONS"; "POST" ]
 
 let handler ~server ~context ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = [])
     ?pageCacheCapacity ~document =
  fun request ->
   with_render_context request (fun () ->
-      let%lwt reply =
-        RouterServer.Adapter.handleWithContext server ~diagnosticId ~revision ?pageCacheCapacity ~document ~allow
+      let%lwt response =
+        RouterServer.Adapter.serveWithContext server ~diagnosticId ~revision ?pageCacheCapacity ~document ~allow
+          ~env:`Dev ~timeout:stream_timeout
+          ~skipRoot:(not (ssr request))
+          ~bootstrapModules
           ~context:(fun () -> context request)
           ~method_:(Dream.method_to_string (Dream.method_ request))
           ~target:(Dream.target request) ~headers:(Dream.all_headers request) ()
       in
-      respond ~skipRoot:(not (ssr request)) ~bootstrapModules reply)
+      write_response response)
 
 let is_form_post request =
   Option.is_none (Dream.header request "ACTION_ID")
@@ -303,16 +303,17 @@ let form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstra
               | Completed | Redirected _ -> serialize_pending_cookies !pending
             in
             with_render_context request (fun () ->
-                let%lwt reply =
-                  RouterServer.Adapter.formActionReplyWithContext server ~diagnosticId ~revision
-                    ~target:(Dream.target request) ?pageCacheCapacity ~document ~context:(context request)
+                let%lwt response =
+                  RouterServer.Adapter.serveFormActionWithContext server ~diagnosticId ~revision
+                    ~target:(Dream.target request) ?pageCacheCapacity ~document ~env:`Dev ~timeout:stream_timeout
+                    ~skipRoot:(not (ssr request))
+                    ~bootstrapModules ~context:(context request)
                     (RouterServer.Adapter.parseRequest ~target:(Dream.target request)
                        ~headers:(Dream.all_headers request))
                       .engine
                     action
                 in
-                respond ~skipRoot:(not (ssr request)) ~bootstrapModules { reply with headers = reply.headers @ cookies })
-        )
+                write_response { response with headers = response.headers @ cookies }))
     | _ -> pass_on ()
 
 let random_id () = Dream.to_base64url (Dream.random 12)

@@ -74,8 +74,10 @@ let useSearch: unit => (list((string, list(string))), updateSearch);
 let useUpdateHash: unit => updateHash;
 let useLocation: unit => RouterRuntime.Navigation.location;
 
-/** Drops cached navigation responses. Call it after a change on the server
-    that cached pages do not show. */
+/** Every route active at the committed location, outermost first: the
+    matched route and each route whose path is a prefix of it. */
+let useMatches: unit => list(RouterRuntime.Navigation.matched);
+
 /** Gives [Link]s rendered in server components the committed location, so
     their [aria-current] is the same in the Flight payload and in the HTML.
     The server wraps each routed element with it. In the browser it returns
@@ -88,6 +90,8 @@ let locationScope:
   ) =>
   React.element;
 
+/** Drops cached navigation responses. Call it after a change on the server
+    that cached pages do not show. */
 let useInvalidate: (unit, invalidation) => unit;
 
 /** True when the destination has the path and search of the current location,
@@ -101,7 +105,33 @@ let outlet: (~owner: string, ~children: React.element, unit) => React.element;
 let suspense:
   (~fallback: React.element, ~children: React.element, unit) => React.element;
 
+/** Renders [children], or [fallback] once rendering [children] in the
+    browser throws. It shows [children] again after the next content
+    navigation commits. Generated routes wrap each scope that declares
+    [~error] with it. */
+let errorBoundary:
+  (~fallback: React.element, ~children: React.element, unit) => React.element;
+
 module Link: {
+  /** Anchor attributes for a generated route link, whose labelled arguments
+      are its path parameters. [data] entries render as [data-<name>]. */
+  type attributes;
+
+  let attributes:
+    (
+      ~id: string=?,
+      ~title: string=?,
+      ~rel: string=?,
+      ~ariaLabel: string=?,
+      ~style: ReactDOM.Style.t=?,
+      ~data: list((string, string))=?,
+      ~anchorRef: ReactDOM.domRef=?,
+      ~onClick: React.Event.Mouse.t => unit=?,
+      ~onMouseEnter: React.Event.Mouse.t => unit=?,
+      unit
+    ) =>
+    attributes;
+
   [@react.component]
   let make:
     (
@@ -114,6 +144,10 @@ module Link: {
       ~title: string=?,
       ~rel: string=?,
       ~ariaLabel: string=?,
+      ~style: ReactDOM.Style.t=?,
+      ~data: list((string, string))=?,
+      ~anchorRef: ReactDOM.domRef=?,
+      ~attributes: attributes=?,
       ~onClick: React.Event.Mouse.t => unit=?,
       ~onMouseEnter: React.Event.Mouse.t => unit=?,
       ~history: RouterRuntime.Navigation.historyAction=?,

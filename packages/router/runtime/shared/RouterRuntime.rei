@@ -30,6 +30,13 @@ let destinationFromPattern:
   destination;
 let href: destination => string;
 
+/** [origin] followed by the href of [destination], for a link that leaves
+    the page, such as in an email or a copied URL. [origin] is a scheme and
+    host such as ["https://example.com"]; trailing slashes are dropped. A
+    destination whose href does not start with [/], such as an absolute
+    [unsafeDestination], is returned unchanged. */
+let absoluteHref: (~origin: string, destination) => string;
+
 /** Sets the fragment of [destination] to [hash], percent-encoded like a
     search value. An empty [hash] removes the fragment. */
 let withHash: (destination, ~hash: string) => destination;
@@ -51,9 +58,13 @@ module Status: {
   type t =
     | Ok
     | BadRequest
+    | Unauthorized
     | Forbidden
     | NotFound
+    | Gone
+    | TooManyRequests
     | InternalServerError
+    | ServiceUnavailable
     | TemporaryRedirect
     | PermanentRedirect;
 
@@ -72,7 +83,8 @@ module Loader: {
 module Error: {
   type notFoundReason =
     | NoMatchingRoute
-    | LoaderNotFound;
+    | LoaderNotFound
+    | RenderNotFound;
 
   type t('applicationError) =
     | NotFound({reason: notFoundReason})
@@ -260,13 +272,15 @@ module Search: {
   let parseString: string => result(string, string);
   let parseInt: string => result(int, string);
   let parseBool: string => result(bool, string);
+  /** The first value of [name], parsed. [None] when the name is missing or
+      its first value does not parse. */
   let required:
     (
       ~name: string,
       ~parse: string => result('value, string),
       list((string, list(string)))
     ) =>
-    'value;
+    option('value);
   let optional:
     (
       ~name: string,

@@ -344,6 +344,34 @@ let redirect_location destination =
 let unsafe_redirect destination = Invalid_argument ("unsafe redirect target " ^ RouterRuntime.href destination)
 let fatal_exception = function Lwt.Canceled | Out_of_memory | Stack_overflow | Sys.Break -> true | _ -> false
 
+module Render = struct
+  type signal = NotFound | Redirect of RouterRuntime.destination | PermanentRedirect of RouterRuntime.destination
+
+  exception Signal of signal
+
+  let slot : signal option ref Lwt.key = Lwt.new_key ()
+
+  let signal value =
+    (match Lwt.get slot with
+    | Some recorded when Option.is_none !recorded -> recorded := Some value
+    | Some _ | None -> ());
+    raise (Signal value)
+
+  let notFound () = signal NotFound
+
+  let redirect ?(permanent = false) destination =
+    signal (if permanent then PermanentRedirect destination else Redirect destination)
+
+  let recording render =
+    let recorded = ref None in
+    let result =
+      Lwt.catch
+        (fun () -> Lwt.map (fun value -> Ok value) (Lwt.with_value slot (Some recorded) render))
+        (fun exn -> match !recorded with Some _ -> Lwt.return (Error exn) | None -> Lwt.fail exn)
+    in
+    Lwt.map (fun result -> (result, recorded)) result
+end
+
 module Execution = struct
   type ('result, 'error) t =
     | Done : 'result -> ('result, 'error) t
@@ -360,12 +388,21 @@ module Execution = struct
         next : 'data -> ('result, 'error) t;
       }
         -> ('result, 'error) t
+    | Start : {
+        run : unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t;
+        next : ('data, 'error) RouterRuntime.Loader.result Lwt.t -> ('result, 'error) t;
+      }
+        -> ('result, 'error) t
+
+  type ('data, 'error) started = ('data, 'error) RouterRuntime.Loader.result Lwt.t
 
   let done_ result = Done result
   let redirect destination = Redirect destination
   let permanentRedirect destination = PermanentRedirect destination
   let load run next = Load { run; next }
   let loadWithBoundary ~run ~failure ~next = LoadWithBoundary { run; failure; next }
+  let start ~run ~next = Start { run; next }
+  let await started () = started
 
   let run ?(diagnosticId = fun _ -> "internal") execution =
     let rec loop : type result error. (result, error) t -> (result, error) RouterRuntime.Loader.result Lwt.t = function
@@ -400,6 +437,7 @@ module Execution = struct
                 Lwt.return
                   (RouterRuntime.Loader.Data
                      (loader.failure (RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ }))))
+      | Start loader -> loop (loader.next (Lwt.apply loader.run ()))
     in
     loop execution
 end
@@ -439,6 +477,8 @@ module Branch = struct
       (fun scope -> RouterRuntime.Navigation.{ id = Scope.id scope; instanceKey = Scope.instanceKey scope })
       branch
 end
+
+let internal_error_text = "Something went wrong"
 
 module Plan = struct
   module Scope = struct
@@ -558,7 +598,7 @@ module Plan = struct
           match resolved.error with
           | Some (RouterRuntime.Error.NotFound _) -> "Not found"
           | Some (InvalidPathParameter _ | InvalidSearchParameter _) -> "Bad request"
-          | Some (Application _ | Internal _) | None -> "Something went wrong"
+          | Some (Application _ | Internal _) | None -> internal_error_text
         in
         React.createElement "p" [] [ React.string text ]
 end
@@ -1006,6 +1046,37 @@ module Action = struct
   let redirect destination = raise (Redirect destination)
 end
 
+module Request = struct
+  type 'a key = 'a Type.Id.t
+  type entry = Entry : 'a key * 'a Lwt.t -> entry
+
+  let table : (int * string, entry) Hashtbl.t Lwt.key = Lwt.new_key ()
+  let key () = Type.Id.make ()
+  let scope run = Lwt.with_value table (Some (Hashtbl.create 16)) run
+
+  let reentering body =
+    match Lwt.get table with
+    | None -> body
+    | Some _ as entries -> fun write -> Lwt.with_value table entries (fun () -> body write)
+
+  let memo (type a) (key : a key) argument (run : unit -> a Lwt.t) : a Lwt.t =
+    match Lwt.get table with
+    | None -> run ()
+    | Some entries -> (
+        let slot = (Type.Id.uid key, argument) in
+        let cached =
+          Hashtbl.find_all entries slot
+          |> List.find_map (fun (Entry (stored, promise)) : a Lwt.t option ->
+              match Type.Id.provably_equal stored key with Some Type.Equal -> Some promise | None -> None)
+        in
+        match cached with
+        | Some promise -> promise
+        | None ->
+            let promise = Lwt.apply run () in
+            Hashtbl.add entries slot (Entry (key, promise));
+            promise)
+end
+
 module Adapter = struct
   let metadata_element (metadata : RouterRuntime.Metadata.t) =
     let attribute name value = React.JSX.String (name, name, value) in
@@ -1028,7 +1099,10 @@ module Adapter = struct
           let extra =
             List.filter_map
               (fun (name, value) ->
-                match String.lowercase_ascii name with "rel" | "href" -> None | _ -> Some (attribute name value))
+                match String.lowercase_ascii name with
+                | "rel" | "href" -> None
+                | _ when not (RouterTypes.validAttributeName name) -> None
+                | _ -> Some (attribute name value))
               attrs
           in
           keyed key "link" (attribute "rel" rel :: attribute "href" href :: extra)
@@ -1045,7 +1119,12 @@ module Adapter = struct
     { location = { RouterRuntime.Navigation.pathname; search; hash = ""; key = "server" }; revision; matches; layouts }
 
   let scoped_element ~committed resolved =
-    RouterReact.locationScope ~committed ~children:(Plan.resolvedElement resolved) ()
+    RouterReact.locationScope ~committed
+      ~children:
+        (RouterReact.errorBoundary
+           ~fallback:(React.createElement "p" [] [ React.string internal_error_text ])
+           ~children:(Plan.resolvedElement resolved) ())
+      ()
 
   let document_element server ?pageCacheCapacity ~document (response : (React.element, 'error) ServerEngine.full) =
     let initial =
@@ -1218,8 +1297,22 @@ module Adapter = struct
         in
         { status; headers; body }
 
-  let formActionReplyWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context
-      (request : ServerEngine.request) = function
+  let form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context
+      (request : ServerEngine.request) actionError =
+    Lwt.map
+      (fun (outcome : (React.element, 'error) ServerEngine.outcome) ->
+        match outcome with
+        | Redirect destination | PermanentRedirect destination -> (
+            match redirect_location destination with
+            | Some location -> see_other location
+            | None -> unsafe_redirect_reply)
+        | outcome -> reply server ~target ?pageCacheCapacity ~document ~kind:Document outcome)
+      (Server.runWithContext server ~diagnosticId ?revision ~actionError ~context
+         { request with kind = Document; navigation = None })
+
+  let form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context
+      (request : ServerEngine.request) action =
+    match action with
     | Completed ->
         Lwt.return
           (match redirect_location (RouterRuntime.destination ~path:target) with
@@ -1231,17 +1324,13 @@ module Adapter = struct
           | Some location -> see_other location
           | None -> unsafe_redirect_reply)
     | Failed exception_ ->
-        let actionError = RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ } in
-        Lwt.map
-          (fun (outcome : (React.element, 'error) ServerEngine.outcome) ->
-            match outcome with
-            | Redirect destination | PermanentRedirect destination -> (
-                match redirect_location destination with
-                | Some location -> see_other location
-                | None -> unsafe_redirect_reply)
-            | outcome -> reply server ~target ?pageCacheCapacity ~document ~kind:Document outcome)
-          (Server.runWithContext server ~diagnosticId ?revision ~actionError ~context
-             { request with kind = Document; navigation = None })
+        form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request
+          (RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ })
+
+  let formActionReplyWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request
+      action =
+    Request.scope (fun () ->
+        form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request action)
 
   let formActionReply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document request action =
     formActionReplyWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context:() request
@@ -1287,6 +1376,7 @@ module Adapter = struct
     | Some reply -> Lwt.return reply
     | None ->
         let { engine; prefetch } = parseRequest ~target ~headers in
+        Request.scope @@ fun () ->
         Lwt.map
           (fun outcome ->
             let reply = reply server ~target ?pageCacheCapacity ~document ~kind:engine.kind outcome in
@@ -1331,6 +1421,141 @@ module Adapter = struct
             |> set_header "X-Location" location;
           body = Some (fun write -> ReactServerDOM.render_model_value ?env ?timeout ~subscribe:write model);
         }
+
+  type shell = Committed of response | Signaled of Render.signal | Failed of exn
+
+  let render_html_shell ?env ?timeout ?skipRoot ?bootstrapModules ?nonce (reply : reply) element =
+    let abort, stop = Lwt.wait () in
+    Lwt.map
+      (fun (result, recorded) ->
+        match (!recorded, result) with
+        | Some signal, _ ->
+            Lwt.wakeup_later stop ();
+            Signaled signal
+        | None, Error exn -> Failed exn
+        | None, Ok (html, rest) ->
+            let committed = response ?env ?timeout ?skipRoot ?bootstrapModules ?nonce reply in
+            Committed { committed with body = Some (fun write -> Lwt.bind (write html) (fun () -> rest write)) })
+      (Lwt.catch
+         (fun () ->
+           Render.recording (fun () ->
+               ReactServerDOM.render_html ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~abort element))
+         (fun exn -> if fatal_exception exn then Lwt.fail exn else Lwt.return (Error exn, ref None)))
+
+  let render_model_shell ?env ?timeout (reply : reply) model =
+    let abort, stop = Lwt.wait () in
+    let first, produced = Lwt.wait () in
+    let gate, release = Lwt.wait () in
+    let buffered = Queue.create () in
+    let sink = ref None in
+    let subscribe chunk =
+      match !sink with
+      | Some write -> write chunk
+      | None ->
+          Queue.push chunk buffered;
+          if Lwt.is_sleeping first then Lwt.wakeup_later produced ();
+          gate
+    in
+    let rendering = ref (Lwt.return ()) in
+    Lwt.map
+      (fun (result, recorded) ->
+        match (!recorded, result) with
+        | Some signal, _ ->
+            sink := Some (fun _ -> Lwt.return ());
+            Lwt.wakeup_later release ();
+            Lwt.wakeup_later stop ();
+            Signaled signal
+        | None, Error exn -> raise exn
+        | None, Ok () ->
+            let committed = response ?env ?timeout reply in
+            let body write =
+              let rec drain () =
+                match Queue.take_opt buffered with
+                | Some chunk -> Lwt.bind (write chunk) drain
+                | None ->
+                    sink := Some write;
+                    Lwt.wakeup_later release ();
+                    !rendering
+              in
+              drain ()
+            in
+            Committed { committed with body = Some body })
+      (Render.recording (fun () ->
+           rendering := ReactServerDOM.render_model_value ?env ?timeout ~abort ~subscribe model;
+           Lwt.choose [ first; Lwt.map ignore !rendering ]))
+
+  let render_shell ?env ?timeout ?skipRoot ?bootstrapModules ?nonce (reply : reply) =
+    match reply.body with
+    | Empty -> Lwt.return (Committed (response reply))
+    | Html element -> render_html_shell ?env ?timeout ?skipRoot ?bootstrapModules ?nonce reply element
+    | Model { model; _ } -> render_model_shell ?env ?timeout reply model
+
+  let render_with_signals ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~diagnosticId ~rerun ~redirect first =
+    let render reply = render_shell ?env ?timeout ?skipRoot ?bootstrapModules ?nonce reply in
+    let commit = function
+      | Committed response -> Lwt.return response
+      | Signaled _ -> Lwt.return (response { status = 500; headers = [ ("Vary", "Accept") ]; body = Empty })
+      | Failed exn -> Lwt.fail exn
+    in
+    Lwt.map
+      (fun (response : response) -> { response with body = Option.map Request.reentering response.body })
+      (Lwt.bind (Lwt.bind first render) (function
+        | Committed response -> Lwt.return response
+        | Signaled Render.NotFound ->
+            Lwt.bind
+              (rerun (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.RenderNotFound }))
+              (fun reply -> Lwt.bind (render reply) commit)
+        | Signaled (Render.Redirect destination) -> Lwt.bind (render (redirect ~permanent:false destination)) commit
+        | Signaled (Render.PermanentRedirect destination) ->
+            Lwt.bind (render (redirect ~permanent:true destination)) commit
+        | Failed exn ->
+            Lwt.bind
+              (rerun (RouterRuntime.Error.Internal { diagnosticId = diagnosticId exn }))
+              (fun reply -> Lwt.bind (render reply) commit)))
+
+  let serveWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow = defaultAllow) ?env ?timeout
+      ?skipRoot ?bootstrapModules ?nonce ~context ~method_ ~target ~headers () =
+    match methodReply ~allow method_ with
+    | Some reply -> Lwt.return (response reply)
+    | None when String.equal method_ "HEAD" ->
+        Lwt.map response
+          (handleWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ~allow ~context ~method_
+             ~target ~headers ())
+    | None ->
+        let { engine; prefetch } = parseRequest ~target ~headers in
+        Request.scope @@ fun () ->
+        let context = context () in
+        let reply_to outcome = reply server ~target ?pageCacheCapacity ~document ~kind:engine.kind outcome in
+        let run ?actionError () =
+          Lwt.map reply_to (Server.runWithContext server ~diagnosticId ?revision ?prefetch ?actionError ~context engine)
+        in
+        render_with_signals ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~diagnosticId
+          ~rerun:(fun actionError -> run ~actionError ())
+          ~redirect:(fun ~permanent destination ->
+            reply_to
+              (if permanent then ServerEngine.PermanentRedirect destination else ServerEngine.Redirect destination))
+          (run ())
+
+  let serveFormActionWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ?env ?timeout
+      ?skipRoot ?bootstrapModules ?nonce ~context request action =
+    Request.scope @@ fun () ->
+    render_with_signals ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~diagnosticId
+      ~rerun:(form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request)
+      ~redirect:(fun ~permanent:_ destination ->
+        match redirect_location destination with Some location -> see_other location | None -> unsafe_redirect_reply)
+      (form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request action)
+
+  let serveFormAction server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ?env ?timeout ?skipRoot
+      ?bootstrapModules ?nonce request action =
+    serveFormActionWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ?env ?timeout
+      ?skipRoot ?bootstrapModules ?nonce ~context:() request action
+
+  let serve server ~diagnosticId ?revision ?pageCacheCapacity ~document ?allow ?env ?timeout ?skipRoot ?bootstrapModules
+      ?nonce ~method_ ~target ~headers () =
+    serveWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ?allow ?env ?timeout ?skipRoot
+      ?bootstrapModules ?nonce
+      ~context:(fun () -> ())
+      ~method_ ~target ~headers ()
 end
 
 let run = Server.run

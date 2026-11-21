@@ -24,7 +24,7 @@ type search = {
   loc : Location.t;
 }
 
-type loader = { run : expression; result_label : string; loc : Location.t }
+type loader = { run : expression; result_label : string; parallel : bool; loc : Location.t }
 
 type attachments = {
   layout : expression option;
@@ -198,7 +198,9 @@ let argument label arguments =
 let unlabelled_arguments arguments =
   List.filter_map (fun (label, expression) -> if label = Nolabel then Some expression else None) arguments
 
-let attachment_labels = [ "layout"; "loading"; "notFound"; "error"; "loader"; "loaderLabel"; "metadata"; "headers" ]
+let attachment_labels =
+  [ "layout"; "loading"; "notFound"; "error"; "loader"; "loaderLabel"; "loaderParallel"; "metadata"; "headers" ]
+
 let renamed_labels = [ ("loaderAs_", "loaderLabel"); ("to_", "target") ]
 
 let rec duplicate = function
@@ -304,10 +306,19 @@ let loader_alias expression =
   | Pexp_ident { txt = Longident.Lident name; _ } | Pexp_construct ({ txt = Longident.Lident name; _ }, None) -> name
   | _ -> error ~loc:expression.pexp_loc "~loaderLabel must be an identifier"
 
+let loader_parallel expression =
+  match expression.pexp_desc with
+  | Pexp_construct ({ txt = Longident.Lident "true"; _ }, None) -> true
+  | Pexp_construct ({ txt = Longident.Lident "false"; _ }, None) -> false
+  | _ -> error ~loc:expression.pexp_loc "~loaderParallel takes a bool literal, for example ~loaderParallel=true"
+
 let attachments arguments =
   let loader =
     match argument (Labelled "loader") arguments with
     | None -> (
+        (match argument (Labelled "loaderParallel") arguments with
+        | Some parallel -> error ~loc:parallel.pexp_loc "~loaderParallel requires ~loader"
+        | None -> ());
         match argument (Labelled "loaderLabel") arguments with
         | Some alias -> error ~loc:alias.pexp_loc "~loaderLabel requires ~loader"
         | None -> None)
@@ -318,7 +329,12 @@ let attachments arguments =
           | Some alias -> loader_alias alias
           | None -> inferred_label
         in
-        Some { run; result_label; loc = loader.pexp_loc }
+        let parallel =
+          match argument (Labelled "loaderParallel") arguments with
+          | Some parallel -> loader_parallel parallel
+          | None -> false
+        in
+        Some { run; result_label; parallel; loc = loader.pexp_loc }
   in
   let component label = Option.map (component_attachment ~label) (argument (Labelled label) arguments) in
   {
@@ -486,6 +502,7 @@ let generated_labels =
   [
     "applicationStatus";
     "ariaCurrent";
+    "attributes";
     "basePath";
     "children";
     "className";
@@ -581,7 +598,9 @@ let endpoints declaration =
   (match duplicate (List.map (fun (route : route) -> route.name) routes) with
   | Some name -> error ~loc:declaration.loc "duplicate generated route name %s" name
   | None -> ());
-  let reserved = [ "Status"; "Loader"; "Error"; "Metadata"; "Headers"; "Navigation"; "Search"; "Link" ] in
+  let reserved =
+    [ "Status"; "Loader"; "Error"; "Metadata"; "Headers"; "Navigation"; "Search"; "Link"; "ActiveSearch" ]
+  in
   List.iter
     (fun route ->
       if List.mem route.name reserved then error ~loc:route.loc "generated route name %s is reserved" route.name)

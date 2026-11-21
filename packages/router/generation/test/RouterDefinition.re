@@ -61,6 +61,20 @@ Router.make(
         ),
       ],
     ),
+    Router.group(
+      ~path="/reports/:reportId<string>",
+      ~loader=Pages.ReportLoader,
+      ~error=Pages.ReportError,
+      [
+        Router.route(
+          Report,
+          ~page=Pages.Report,
+          ~path="/",
+          ~loader=Pages.ReportStatsLoader,
+          ~loaderParallel=true,
+        ),
+      ],
+    ),
     Router.route(
       Note,
       ~page=Pages.Note,

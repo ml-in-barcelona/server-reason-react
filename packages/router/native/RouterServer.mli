@@ -114,7 +114,29 @@ module Decode : sig
     ('value list, 'error RouterRuntime.Error.t) result
 end
 
-(** A deferred, sequential description of route work.
+(** Not-found and redirect signals from render code, such as a page or a server component, for a result that only
+    rendering can decide.
+
+    A signal takes effect when {!Adapter.serve} or {!Adapter.serveWithContext} renders the response, if it is raised
+    before the response starts: while the HTML shell renders (including the synchronous part of a [Suspense] boundary),
+    or before the first chunk of a navigation payload. [notFound] then answers like a loader [NotFound]: the route runs
+    again with the error [NotFound { reason = RenderNotFound }], so the nearest [~notFound] (or [~error]) boundary
+    renders with status 404, and its loaders run a second time. [redirect] answers like a loader redirect. A signal
+    raised later, in content that streams after the response started, cannot change the status: it is an error in that
+    content, and the nearest [~error] boundary shows in the browser. *)
+module Render : sig
+  type signal = NotFound | Redirect of RouterRuntime.destination | PermanentRedirect of RouterRuntime.destination
+
+  exception Signal of signal
+
+  val notFound : unit -> 'a
+  (** Raises [Signal NotFound]. *)
+
+  val redirect : ?permanent:bool -> RouterRuntime.destination -> 'a
+  (** Raises [Signal (Redirect destination)], or [Signal (PermanentRedirect destination)] when [permanent] is true. *)
+end
+
+(** A deferred description of route work.
 
     Generated routes build this value while walking from the outermost layout to the page. Running it later keeps
     decoding and branch comparison free of loader side effects, which is important when deciding whether a navigation
@@ -141,6 +163,20 @@ module Execution : sig
     ('result, 'error) t
   (** Adds a loader with the nearest error boundary. Application errors, not found results, and non-fatal exceptions
       become [failure] values; redirects and fatal exceptions still escape the boundary. *)
+
+  type ('data, 'error) started
+  (** A loader that already runs. *)
+
+  val start :
+    run:(unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t) ->
+    next:(('data, 'error) started -> ('result, 'error) t) ->
+    ('result, 'error) t
+  (** Calls [run] when the execution reaches this step and goes on with [next] without waiting for the result. An
+      exception from [run] is kept in the result. Pass {!await} as the [run] of a later {!loadWithBoundary} to read the
+      result in its place, so ancestors still decide first. A result that is never awaited is dropped. *)
+
+  val await : ('data, 'error) started -> unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t
+  (** The result of a started loader. *)
 
   val run : ?diagnosticId:(exn -> string) -> ('result, 'error) t -> ('result, 'error) RouterRuntime.Loader.result Lwt.t
 end
@@ -494,6 +530,28 @@ module Action : sig
       [destination] instead of to the page. *)
 end
 
+(** Request-scoped memoisation, like React's [cache]. *)
+module Request : sig
+  type 'a key
+  (** Names one memoised function. Create it once, at the top level. *)
+
+  val key : unit -> 'a key
+
+  val memo : 'a key -> string -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+  (** [memo key argument run] runs [run] once per request for each [key] and [argument], and gives every later call in
+      the same request the same promise, also when it failed. [argument] must hold every input of [run], encoded so that
+      two different inputs never give the same string. Outside {!scope} it runs [run] each time. *)
+
+  val scope : (unit -> 'a Lwt.t) -> 'a Lwt.t
+  (** Runs one request with a new, empty cache. {!memo} calls in [run] and in every [Lwt] callback registered while it
+      runs share it. It never joins an enclosing scope, so a scope opened around anything longer than one request does
+      not leak entries between requests: every adapter entry point opens its own. {!Adapter.serve},
+      {!Adapter.serveWithContext}, {!Adapter.serveFormAction} and {!Adapter.serveFormActionWithContext} keep the cache
+      of the request for the whole streamed body, so loaders, [~metadata], [~headers] and server components share it.
+      {!Adapter.handle}, {!Adapter.handleWithContext} and the [formActionReply] functions open one for loaders,
+      [~metadata] and [~headers] only: server components that {!Adapter.response} streams later do not see it. *)
+end
+
 (** Server-agnostic pieces of an HTTP adapter. An adapter parses its request into a {!ServerEngine.request}, calls
     {!run}, passes the outcome to {!reply}, and writes the {!reply} with its own server. Nothing here depends on an HTTP
     server. *)
@@ -674,6 +732,87 @@ module Adapter : sig
       [Model] streams through {!ReactServerDOM.render_model_value} with [Content-Type: application/react.component],
       [X-Content-Type-Options: nosniff] and [X-Location] set to its [location]. [env] and [timeout] go to the renderer.
       These headers replace a header of the same name in the reply. *)
+
+  val serve :
+    (React.element, 'error, unit) Server.t ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    ?pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    ?allow:string list ->
+    ?env:[ `Dev | `Prod ] ->
+    ?timeout:float ->
+    ?skipRoot:bool ->
+    ?bootstrapModules:string list ->
+    ?nonce:string ->
+    method_:string ->
+    target:string ->
+    headers:(string * string) list ->
+    unit ->
+    response Lwt.t
+  (** {!handle} and {!response} in one step, with {!Render} signals. It renders the HTML shell, or the first chunk of a
+      navigation payload, before it returns, so a signal raised by then changes the response: [Render.notFound] runs the
+      route again with its not-found boundary and status 404, and [Render.redirect] answers as a loader redirect. A
+      signal while the not-found boundary renders answers 500. [HEAD] runs the router without rendering. Another
+      exception while the HTML shell renders runs the route again with [Internal { diagnosticId }], so its nearest
+      [~error] boundary renders with status 500; an exception there propagates. *)
+
+  val serveWithContext :
+    (React.element, 'error, 'context) Server.t ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    ?pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    ?allow:string list ->
+    ?env:[ `Dev | `Prod ] ->
+    ?timeout:float ->
+    ?skipRoot:bool ->
+    ?bootstrapModules:string list ->
+    ?nonce:string ->
+    context:(unit -> 'context) ->
+    method_:string ->
+    target:string ->
+    headers:(string * string) list ->
+    unit ->
+    response Lwt.t
+  (** {!serve} for a server with a request context. [context] runs once per request that runs the router. *)
+
+  val serveFormAction :
+    (React.element, 'error, unit) Server.t ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    target:string ->
+    ?pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    ?env:[ `Dev | `Prod ] ->
+    ?timeout:float ->
+    ?skipRoot:bool ->
+    ?bootstrapModules:string list ->
+    ?nonce:string ->
+    ServerEngine.request ->
+    formAction ->
+    response Lwt.t
+  (** {!formActionReply} and {!response} in one step, with {!Render} signals as in {!serve}. When the page that renders
+      after a failed function signals not found, it renders with its not-found boundary and status 404; a redirect
+      signal answers 303, never 307 or 308. *)
+
+  val serveFormActionWithContext :
+    (React.element, 'error, 'context) Server.t ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    target:string ->
+    ?pageCacheCapacity:int ->
+    document:(head:React.element -> React.element -> React.element) ->
+    ?env:[ `Dev | `Prod ] ->
+    ?timeout:float ->
+    ?skipRoot:bool ->
+    ?bootstrapModules:string list ->
+    ?nonce:string ->
+    context:'context ->
+    ServerEngine.request ->
+    formAction ->
+    response Lwt.t
+  (** {!serveFormAction} for a server with a request context. *)
 end
 
 val run :
