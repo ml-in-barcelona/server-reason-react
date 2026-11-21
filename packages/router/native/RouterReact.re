@@ -127,6 +127,7 @@ let useSearch = () => (useContextValue().search, updateSearch);
 let useUpdateSearchWith = () => updateSearchWith;
 let useUpdateHash = () => updateHash;
 let useLocation = () => useContextValue().committed.location;
+let useMatches = () => useContextValue().committed.matches;
 let locationScope =
     (~committed: RouterRuntime.Navigation.committed, ~children, ()) =>
   provider(
@@ -188,7 +189,44 @@ let outlet = (~owner, ~children, ()) =>
 let suspense = (~fallback, ~children, ()) =>
   <React.Suspense fallback> children </React.Suspense>;
 
+let errorBoundary = (~fallback, ~children, ()) =>
+  RouterErrorBoundary.make(
+    RouterErrorBoundary.makeProps(~fallback, ~children, ()),
+  );
+
 module Link = {
+  type attributes = {
+    id: option(string),
+    title: option(string),
+    rel: option(string),
+    ariaLabel: option(string),
+    style: option(ReactDOM.Style.t),
+    data: list((string, string)),
+  };
+
+  let attributes =
+      (
+        ~id=?,
+        ~title=?,
+        ~rel=?,
+        ~ariaLabel=?,
+        ~style=?,
+        ~data=[],
+        ~anchorRef as _: option(ReactDOM.domRef)=?,
+        ~onClick as _: option(React.Event.Mouse.t => unit)=?,
+        ~onMouseEnter as _: option(React.Event.Mouse.t => unit)=?,
+        (),
+      ) => {
+    id,
+    title,
+    rel,
+    ariaLabel,
+    style,
+    data,
+  };
+
+  let noAttributes = attributes();
+
   [@react.component]
   let make =
       (
@@ -202,12 +240,26 @@ module Link = {
         ~title=?,
         ~rel=?,
         ~ariaLabel=?,
+        ~style=?,
+        ~data=[],
+        ~anchorRef as _: option(ReactDOM.domRef)=?,
+        ~attributes=noAttributes,
         ~onClick as _=?,
         ~onMouseEnter as _=?,
         ~history as _=?,
         ~revalidate as _=?,
         ~children,
       ) => {
+    let either = (flat, fromAttributes) =>
+      switch (flat) {
+      | Some(_) => flat
+      | None => fromAttributes
+      };
+    let id = either(id, attributes.id);
+    let title = either(title, attributes.title);
+    let rel = either(rel, attributes.rel);
+    let ariaLabel = either(ariaLabel, attributes.ariaLabel);
+    let style = either(style, attributes.style);
     let href = RouterRuntime.href(destination);
     let dataRouterPrefetch =
       switch (RouterRuntime.prefetchLevel(destination)) {
@@ -233,19 +285,40 @@ module Link = {
         | None => None
         }
       };
-    <a
-      href
-      ?className
-      ?target
-      ?download
-      ?ariaCurrent
-      ?id
-      ?title
-      ?rel
-      ?ariaLabel
-      ?dataRouterPrefetch
-      ?dataRouterLink>
-      children
-    </a>;
+    let link =
+      <a
+        href
+        ?className
+        ?target
+        ?download
+        ?ariaCurrent
+        ?id
+        ?title
+        ?rel
+        ?ariaLabel
+        ?style
+        ?dataRouterPrefetch
+        ?dataRouterLink>
+        children
+      </a>;
+    switch (
+      List.filter(
+        ((name, _)) => RouterTypes.validAttributeName(name),
+        attributes.data @ data,
+      )
+    ) {
+    | [] => link
+    | data =>
+      React.cloneElement(
+        link,
+        List.map(
+          ((name, value)) => {
+            let name = "data-" ++ name;
+            React.JSX.String((name, name, value));
+          },
+          data,
+        ),
+      )
+    };
   };
 };

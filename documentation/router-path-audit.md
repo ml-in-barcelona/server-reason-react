@@ -14,9 +14,11 @@ and route-set validation. The main files are:
 - `packages/router/cram/typed-destination.t`
 - `packages/router/native/test/test_router_server.ml`
 
-The current grammar has static segments and whole-segment typed parameters. It
-does not have optional segments, wildcard segments, or mixed static and dynamic
-segments.
+At the time of the audit the grammar had static segments and whole-segment
+typed parameters only. It now also has a final catch-all
+(`:name<string...>`), optional parameters (`:name?<type>`) and a final optional
+catch-all (`:name?<string...>`); see "Path syntax" in `router.mld`. Mixed static
+and dynamic segments, such as `file-:id<int>`, are still not supported.
 
 ## Findings
 

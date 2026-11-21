@@ -8,7 +8,9 @@
 val request : unit -> Dream.request option
 (** The request being handled. [routes], [createFromRequest] and [streamFunctionResponse] hold it for the whole
     response, including streaming, so route loaders, [~metadata], [~headers], server components and server functions
-    read their own request after any [Lwt] wait, also when requests run concurrently. [None] outside a request. *)
+    read their own request after any [Lwt] wait, also when requests run concurrently. [None] outside a request. [routes]
+    and [createFromRequest] also open {!RouterServer.Request.scope} around the response; a server function runs outside
+    it. *)
 
 val get_header : string -> string option
 (** Read a request header from the ambient request.

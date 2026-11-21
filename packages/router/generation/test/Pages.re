@@ -133,3 +133,59 @@ module SettingsError = {
     React.string("settings-error");
   };
 };
+
+module ReportGates = {
+  type gate = Lwt.u(RouterRuntime.Loader.result(string, string));
+  let events: ref(list(string)) = ref([]);
+  let report: ref(option(gate)) = ref(None);
+  let stats: ref(option(gate)) = ref(None);
+  let reset = () => {
+    events := [];
+    report := None;
+    stats := None;
+  };
+  let wait = (name, gate) => {
+    events := events^ @ [name ++ ":start"];
+    let (promise, resolver) = Lwt.wait();
+    gate := Some(resolver);
+    Lwt.map(
+      result => {
+        events := events^ @ [name ++ ":done"];
+        result;
+      },
+      promise,
+    );
+  };
+  let resolve = (gate, result) =>
+    switch (gate^) {
+    | Some(resolver) => Lwt.wakeup_later(resolver, result)
+    | None => failwith("loader has not started")
+    };
+};
+
+module ReportLoader = {
+  let load = (~context as _: string, ~reportId as _: string, ()) =>
+    ReportGates.wait("report", ReportGates.report);
+};
+
+module ReportStatsLoader = {
+  let load = (~context as _: string, ~reportId as _: string, ()) =>
+    ReportGates.wait("stats", ReportGates.stats);
+};
+
+module Report = {
+  [@react.component]
+  let make =
+      (~reportId: string, ~reportLoader: string, ~reportStatsLoader: string) =>
+    React.string(reportId ++ ":" ++ reportLoader ++ ":" ++ reportStatsLoader);
+};
+
+module ReportError = {
+  [@react.component]
+  let make = (~reportId as _: string, ~error: RouterRuntime.Error.t(string)) =>
+    switch (error) {
+    | RouterRuntime.Error.Application(error) =>
+      React.string("report-error:" ++ error)
+    | _ => React.string("report-error")
+    };
+};

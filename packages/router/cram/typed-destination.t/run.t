@@ -112,7 +112,11 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   type route =
   val useRoute : unit -> route option
   $ grep -E 'RouterRuntime\.(Navigation\.|Search\.)|RouterReact' Router.interface
-  [1]
+  val useBlocker : bool -> RouterReact.blocker
+  val useInvalidate : unit -> RouterReact.invalidation -> unit
+        ?attributes:RouterReact.Link.attributes ->
+        ?attributes:RouterReact.Link.attributes ->
+        ?attributes:RouterReact.Link.attributes ->
   $ grep -o 'enabled:bool' Router.interface | sort -u
   enabled:bool
   $ grep -o 'parts:string list' Router.interface | sort -u
@@ -258,6 +262,16 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   Error: router: generated route name Link is reserved
   [2]
 
+  $ server-reason-react.router-gen --mode handles --source reserved-active-search.ml < reserved-active-search.ml
+  File "reserved-active-search.ml", line 1, characters 28-80:
+  Error: router: generated route name ActiveSearch is reserved
+  [2]
+
+  $ server-reason-react.router-gen --mode handles --source reserved-attributes.ml < reserved-attributes.ml
+  File "reserved-attributes.ml", line 1, characters 28-85:
+  Error: router: branch input label attributes conflicts with a generated router argument
+  [2]
+
   $ server-reason-react.router-gen --mode handles --source static-query.ml < static-query.ml
   File "static-query.ml", line 1, characters 28-82:
   Error: router: invalid route path /reports?draft
@@ -322,7 +336,7 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
 
   $ server-reason-react.router-gen --mode registry --source recover-root-error.ml < recover-root-error.ml > recover-root-error-registry.ml
   $ grep -c 'AppError.make' recover-root-error-registry.ml
-  6
+  14
 
 Errors name the manifest location, or the file set by a line directive.
 
@@ -359,6 +373,7 @@ nothing.
   PrefetchLevel.Viewport
   moduleBilling=struct
   PrefetchLevel.Off
+  moduleActiveSearch=struct
   $ server-reason-react.router-gen --mode registry --source prefetch.ml < prefetch.ml | tr -d ' \n' | grep -Eo 'id:"[A-Z][A-Za-z]*"|PrefetchLevel.[A-Za-z]+'
   id:"Home"
   id:"Settings"
@@ -376,6 +391,7 @@ RouterRuntime.prefetchLevel.
   val destination : ?hash:string -> unit -> destination
   module Billing : sig
   val destination : ?hash:string -> unit -> destination
+  module ActiveSearch : sig
   $ server-reason-react.router-gen --mode handles --source prefetch-invalid.ml < prefetch-invalid.ml
   File "prefetch-invalid.ml", line 1, characters 84-89:
   Error: router: ~prefetch must be Off, Intent, Viewport or Idle
@@ -417,6 +433,25 @@ passes none of them.
   [2]
   $ server-reason-react.router-gen --mode registry --source loader-label.ml < loader-label.ml | grep -o 'fun note ->'
   fun note ->
+
+`~loaderParallel=true` starts a loader with the ancestor loaders. It receives
+no ancestor loader result, and its result is read after theirs.
+
+  $ server-reason-react.router-gen --mode registry --source loader-parallel.ml < loader-parallel.ml | tr -s ' \n' ' ' | grep -Eo 'Execution\.(start|await|loadWithBoundary)|[A-Za-z]+Loader\.load [^)]*\)'
+  Execution.start
+  NoteLoader.load ~workspaceId ~id ()
+  Execution.loadWithBoundary
+  WorkspaceLoader.load ~workspaceId ()
+  Execution.loadWithBoundary
+  Execution.await
+  $ server-reason-react.router-gen --mode handles --source loader-parallel-required.ml < loader-parallel-required.ml
+  File "loader-parallel-required.ml", line 1, characters 87-91:
+  Error: router: ~loaderParallel requires ~loader
+  [2]
+  $ server-reason-react.router-gen --mode handles --source loader-parallel-literal.ml < loader-parallel-literal.ml
+  File "loader-parallel-literal.ml", line 1, characters 106-109:
+  Error: router: ~loaderParallel takes a bool literal, for example ~loaderParallel=true
+  [2]
 
 The root `~error` is a boundary component, like `~error` on a group or a
 route. `~errorStatus` maps an application error to a status. Without it,
@@ -476,6 +511,7 @@ A route without its own parameters shares the root record and hook.
   module Results : sig
   type search = { q: string option ; page: int }
   val useSearch : unit -> (search
+  module ActiveSearch : sig
   $ grep -Eo '~owned:\[[^]]*\]' RouteSearch.ml
   ~owned:["q"]
   ~owned:["q"]
@@ -541,11 +577,11 @@ equal another field's label.
         1 ("site", [
         1 ("target", [
         1 ("type", [
-        6 ~name:"info-page"
-        3 ~name:"site"
-        3 ~name:"tag"
-        3 ~name:"target"
-        3 ~name:"type"
+        7 ~name:"info-page"
+        4 ~name:"site"
+        4 ~name:"tag"
+        4 ~name:"target"
+        4 ~name:"type"
         2 ~owned:["info-page"; "target"; "site"; "type"; "tag"]
         2 ~owned:["info-page"]
   $ server-reason-react.router-gen --mode registry --source search-key-alias.ml < search-key-alias.ml | tr -s ' \n' ' ' | grep -Eo 'search(Required|Optional|Default|Many) ~input ~name:"[^"]*"|[a-zA-Z.]+ = search_[0-9]+' | sort | uniq -c

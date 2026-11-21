@@ -16,6 +16,7 @@ Router.make ~basePath:"/demo/router" ~viewTransitions:true ~layout:Pages.AppLayo
       ];
     Router.route E2eSearch ~page:Pages.E2eSearch ~path:"/e2e/search"
       ~search:{ view = Router.Search.optional string; panel = Router.Search.optional ~shallow:true string };
+    Router.route E2eCrash ~page:Pages.E2eCrash ~path:"/e2e/crash" ~prefetch:Off;
     Router.redirect ~path:"/e2e/old" ~target:(fun ~search () -> Router.E2eLong.destination ~search ());
     Router.group ~path:"/:id<NoteId.t>" ~layout:Pages.NoteLayout ~loader:Pages.NoteLoader ~loaderLabel:note
       [

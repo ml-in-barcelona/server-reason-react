@@ -25,7 +25,7 @@ type search = {
   loc : Location.t;
 }
 
-type loader = { run : expression; result_label : string; loc : Location.t }
+type loader = { run : expression; result_label : string; parallel : bool; loc : Location.t }
 
 type attachments = {
   layout : expression option;

@@ -174,6 +174,40 @@ check("link click navigates without a document request", async ({ page, net, ori
   return `navigation requests: ${navigations(after, "/demo/router/1").length}, documents: 0`;
 });
 
+check("a render error after a client navigation shows the error boundary", async ({ page, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, ".link-crash");
+  await page.click(".link-crash");
+  await page.waitForURL(`${origin}/demo/router/e2e/crash`);
+  await page.waitForFunction(() =>
+    document.querySelector("main")?.innerText.includes("The requested note could not be loaded."),
+  );
+  assert.ok(await page.$(".layout-long"), "the layout around the boundary is gone");
+  await page.click(".layout-long");
+  await page.waitForSelector("#e2e-long");
+  assert.equal(pathOf(page), "/demo/router/e2e/long");
+  return "boundary shown inside the layout, next navigation renders the page";
+});
+
+check("a render error in a transition shows the error boundary and ends the pending state", async ({ browser, origin }) =>
+  withReducedMotion(browser, async (page) => {
+    await page.goto(`${origin}/demo/router/e2e`);
+    await ready(page, ".link-crash");
+    await page.click(".link-crash");
+    await page.waitForURL(`${origin}/demo/router/e2e/crash`);
+    await page.waitForFunction(() =>
+      document.querySelector("main")?.innerText.includes("The requested note could not be loaded."),
+    );
+    await absenceWindow(page);
+    const pending = await page.evaluate(() => document.querySelectorAll("a[data-router-pending]").length);
+    assert.equal(pending, 0, "pending marks stayed after the boundary was shown");
+    await page.click(".layout-long");
+    await page.waitForSelector("#e2e-long");
+    assert.equal(pathOf(page), "/demo/router/e2e/long");
+    return `boundary shown, pending marks ${pending}, next navigation renders the page`;
+  }),
+);
+
 check("plain anchor to a route is intercepted", async ({ page, net, origin }) => {
   await page.goto(`${origin}/demo/router/e2e`);
   await ready(page, "#plain-route");
@@ -236,6 +270,46 @@ check("scroll restores on Back after a reload", async ({ page, origin }) => {
   const back = await waitForScroll(page, 1200);
   assert.equal(back, 1200, "Back after a reload did not restore the scroll position");
   return `Back after reload ${back}`;
+});
+
+const panelTop = (page) => page.evaluate(() => Math.round(document.querySelector("#long-panel").scrollTop));
+
+async function scrollPanel(page, y) {
+  await page.evaluate((y) => document.querySelector("#long-panel").scrollTo(0, y), y);
+  await page.waitForFunction((y) => Math.round(document.querySelector("#long-panel").scrollTop) === y, y);
+}
+
+async function waitForPanel(page, y) {
+  await page
+    .waitForFunction((y) => Math.round(document.querySelector("#long-panel")?.scrollTop) === y, y, { timeout: 5_000 })
+    .catch(() => null);
+  return panelTop(page);
+}
+
+check("scroll container restores on Back and after a reload", async ({ page, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e/long`);
+  await ready(page, ".long-back");
+  await scrollPanel(page, 600);
+  await page.evaluate(() => document.querySelector(".long-back").click());
+  await page.waitForSelector("#e2e-page");
+  await page.goBack();
+  await page.waitForSelector("#e2e-long");
+  const back = await waitForPanel(page, 600);
+  await scrollPanel(page, 900);
+  await page.evaluate(() => document.querySelector(".long-back").click());
+  await page.waitForSelector("#e2e-page");
+  await page.reload();
+  await ready(page, "#plain-route");
+  await page.goBack();
+  await page.waitForSelector("#e2e-long");
+  const afterReload = await waitForPanel(page, 900);
+  await page.reload();
+  await ready(page, ".long-back");
+  const reloaded = await waitForPanel(page, 900);
+  assert.equal(back, 600, "Back did not restore the container position");
+  assert.equal(afterReload, 900, "Back after a reload did not restore the container position");
+  assert.equal(reloaded, 900, "a reload did not restore the container position");
+  return `Back ${back}, Back after reload ${afterReload}, reload ${reloaded}`;
 });
 
 check("reload paints the saved scroll position on its first frame", async ({ page, origin }) => {

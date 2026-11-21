@@ -570,13 +570,22 @@ expect(
   RouterRuntime.Search.many(~name="n", ~parse=parseInt, badSearch) == [1, 3],
 );
 expect(
-  "a bad required search value was accepted",
-  switch (
-    RouterRuntime.Search.required(~name="r", ~parse=parseInt, badSearch)
-  ) {
-  | _ => false
-  | exception (Invalid_argument(_)) => true
-  },
+  "a bad required search value was not read as None",
+  RouterRuntime.Search.required(~name="r", ~parse=parseInt, badSearch) == None,
+);
+expect(
+  "a missing required search value was not read as None",
+  RouterRuntime.Search.required(~name="missing", ~parse=parseInt, badSearch)
+  == None,
+);
+expect(
+  "a good required search value was not read",
+  RouterRuntime.Search.required(
+    ~name="r",
+    ~parse=parseInt,
+    [("r", ["7", "8"])],
+  )
+  == Some(7),
 );
 
 let sameSearch = (current, next) => RouterSearch.unchanged(~current, ~next);
@@ -620,6 +629,16 @@ let writeStorage: (string, string) => unit = [%mel.raw
 let storedScrollCount: unit => int = [%mel.raw
   {|() => JSON.parse(globalThis.sessionStorage.getItem("server-reason-react.router.scroll")).length|}
 ];
+let storedScrollEntry: string => string = [%mel.raw
+  {|(id) => JSON.stringify(JSON.parse(globalThis.sessionStorage.getItem("server-reason-react.router.scroll")).find((entry) => entry[0] === id))|}
+];
+let onlyWindow = window =>
+  Some(
+    RouterScroll.{
+      window,
+      containers: [],
+    },
+  );
 let breakStorage: unit => unit = [%mel.raw
   {|() => {
   globalThis.sessionStorage = {
@@ -632,19 +651,57 @@ let breakStorage: unit => unit = [%mel.raw
 installStorage();
 writeStorage(
   RouterScroll.storageKey,
-  {|[["content-previous server",0,480]]|},
+  {|[["content-previous server",0,480],["with-containers",0,20,[["sidebar",0,300],["broken",1],["panel",5,60]]]]|},
 );
 expect(
   "a scroll position saved by a previous document was not restored",
   RouterScroll.find(
     RouterScroll.entryId(~revision="content-previous", ~key="server"),
   )
-  == Some((0.0, 480.0)),
+  == onlyWindow((0.0, 480.0)),
+);
+expect(
+  "stored container positions were not decoded",
+  RouterScroll.find("with-containers")
+  == Some(
+       RouterScroll.{
+         window: (0.0, 20.0),
+         containers: [("sidebar", (0.0, 300.0)), ("panel", (5.0, 60.0))],
+       },
+     ),
+);
+RouterScroll.save(
+  "saved-containers",
+  RouterScroll.{
+    window: (0.0, 10.0),
+    containers: [("list", (0.0, 250.0))],
+  },
+);
+expect(
+  "container positions were not stored with the entry",
+  String.equal(
+    storedScrollEntry("saved-containers"),
+    {|["saved-containers",0,10,[["list",0,250]]]|},
+  ),
+);
+RouterScroll.save(
+  "saved-window",
+  RouterScroll.{
+    window: (0.0, 10.0),
+    containers: [],
+  },
+);
+expect(
+  "an entry without containers was not stored in the original format",
+  String.equal(storedScrollEntry("saved-window"), {|["saved-window",0,10]|}),
 );
 for (index in 0 to 149) {
   RouterScroll.save(
     "entry-" ++ string_of_int(index),
-    (0.0, float_of_int(index)),
+    RouterScroll.{
+      window: (0.0, float_of_int(index)),
+      containers: [],
+    },
   );
 };
 expect(
@@ -657,13 +714,25 @@ expect(
 );
 expect(
   "the newest scroll position was not stored",
-  RouterScroll.find("entry-149") == Some((0.0, 149.0)),
+  RouterScroll.find("entry-149") == onlyWindow((0.0, 149.0)),
 );
 breakStorage();
-RouterScroll.save("unstored", (3.0, 4.0));
+RouterScroll.save(
+  "unstored",
+  RouterScroll.{
+    window: (3.0, 4.0),
+    containers: [("list", (0.0, 7.0))],
+  },
+);
 expect(
   "a scroll position was lost when sessionStorage threw",
-  RouterScroll.find("unstored") == Some((3.0, 4.0)),
+  RouterScroll.find("unstored")
+  == Some(
+       RouterScroll.{
+         window: (3.0, 4.0),
+         containers: [("list", (0.0, 7.0))],
+       },
+     ),
 );
 
 let page =
