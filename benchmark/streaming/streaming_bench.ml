@@ -1,5 +1,3 @@
-(** Times [renderToStaticMarkup] and [renderToString] per scenario. *)
-
 let measure_time_us f =
   let start = Unix.gettimeofday () in
   let result = f () in

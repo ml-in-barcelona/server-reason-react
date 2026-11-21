@@ -67,7 +67,6 @@ let _ = removeAttributeNS("http://...", "foo", el);
 let _ = requestFullscreen(el);
 let _ = requestPointerLock(el);
 let _ = scrollIntoView(el);
-/*let _ = scrollIntoViewNoAlignToTop(el);*/
 let _ = scrollIntoViewNoAlignToTop(el);
 let _ =
   scrollIntoViewWithOptions(

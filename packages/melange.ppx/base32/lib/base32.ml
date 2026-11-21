@@ -32,9 +32,6 @@ let unsafe_get_uint8 input off = String.unsafe_get input off |> Char.code
 let unsafe_set_uint8 input off v = v |> Char.chr |> Bytes.unsafe_set input off
 let none = -1
 
-(* We mostly want to have an optional array for [dmap] (e.g. [int option
-   array]). So we consider the [none] value as [-1]. *)
-
 let make_alphabet alphabet =
   if String.length alphabet <> 32 then invalid_arg "Length of alphabet must be 32";
   if String.contains alphabet '=' then invalid_arg "Alphabet can not contain padding character";
@@ -60,7 +57,6 @@ let encode_sub pad { emap; _ } ?(off = 0) ?len input =
 
     let emap i = Array.unsafe_get emap i in
 
-    (* the bit magic - takes 5 bytes and reads 5-bits at a time *)
     let emit b1 b2 b3 b4 b5 i =
       unsafe_set_uint8 res i (emap ((0b11111000 land b1) lsr 3));
       unsafe_set_uint8 res (i + 1) (emap (((0b00000111 land b1) lsl 2) lor ((0b11000000 land b2) lsr 6)));
@@ -109,7 +105,6 @@ let encode_sub pad { emap; _ } ?(off = 0) ?len input =
 
     enc 0 0;
 
-    (* amount of padding required *)
     let pad_to_write = match n mod 5 with 0 -> 0 | 1 -> 6 | 2 -> 4 | 3 -> 3 | 4 -> 1 | _ -> 0 in
 
     if pad then (
@@ -141,10 +136,7 @@ let decode_sub { dmap; _ } ?(off = 0) ?len input =
 
     let get_uint8 t i = if i < len then Char.code (String.unsafe_get t (off + i)) else padding in
 
-    let set_uint8 t off v =
-      (* Format.printf "set_uint8 %d\n" (v land 0xff); *)
-      if off < 0 || off >= Bytes.length t then () else unsafe_set_uint8 t off (v land 0xff)
-    in
+    let set_uint8 t off v = if off < 0 || off >= Bytes.length t then () else unsafe_set_uint8 t off (v land 0xff) in
 
     let emit b0 b1 b2 b3 b4 b5 b6 b7 j =
       set_uint8 res j ((b0 lsl 3) lor (b1 lsr 2));
@@ -177,7 +169,6 @@ let decode_sub { dmap; _ } ?(off = 0) ?len input =
         let b7, pad7 = get_uint8_with_padding input (i + 7) 1 in
         let pad = List.fold_left max 0 [ pad0; pad1; pad2; pad3; pad4; pad5; pad6; pad7 ] in
 
-        (* Format.printf "emit %d %d %d %d %d %d %d %d\n" b0 b1 b2 b3 b4 b5 b6 b7; *)
         emit b0 b1 b2 b3 b4 b5 b6 b7 j;
         if pad == 0 then dec (j + 5) (i + 8) else pad
     in

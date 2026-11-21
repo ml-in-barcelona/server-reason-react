@@ -1,8 +1,3 @@
-(** Ported from Melange's test suite: jscomp/test/js_re_test.ml (melange 6.0.1-54).
-
-    Natively [Js.Nullable.return x] is [Some x] and [Js.Nullable.undefined] is [None], so captures compare directly as
-    options. *)
-
 open Helpers
 
 let assert_option_string left right = assert_option Alcotest.string "should be equal" left right
@@ -20,7 +15,6 @@ let tests =
             assert_option_string undefined None
         | None -> Alcotest.fail "expected match");
     test "fromString" (fun () ->
-        (* From the example in js_re.mli *)
         let contentOf tag xmlString =
           match Js.Re.fromString ("<" ^ tag ^ ">(.*?)<\\/" ^ tag ^ ">") |> Js.Re.exec ~str:xmlString with
           | Some result -> (Js.Re.captures result).(1)
@@ -50,7 +44,6 @@ let tests =
         match [%re "/foo/g"] |> Js.Re.exec ~str:input with
         | Some res -> assert_string (Js.Re.input res) input
         | None -> Alcotest.fail "expected match");
-    (* es2015 *)
     test "t_flags" (fun () -> assert_string (Js.Re.flags [%re "/./ig"]) "gi");
     test "t_global" (fun () -> assert_bool (Js.Re.global [%re "/./ig"]) true);
     test "t_ignoreCase" (fun () -> assert_bool (Js.Re.ignoreCase [%re "/./ig"]) true);
@@ -67,7 +60,6 @@ let tests =
         assert_int after 42);
     test "t_multiline" (fun () -> assert_bool (Js.Re.multiline [%re "/./ig"]) false);
     test "t_source" (fun () -> assert_string (Js.Re.source [%re "/f.+o/ig"]) "f.+o");
-    (* es2015 *)
     test "t_sticky" (fun () -> assert_bool (Js.Re.sticky [%re "/./yg"]) true);
     test "t_unicode" (fun () -> assert_bool (Js.Re.unicode [%re "/./yg"]) false);
   ]

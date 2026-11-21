@@ -2,7 +2,7 @@ type t = Dom.domRect;
 
 [@mel.new]
 external make: (~x: float, ~y: float, ~width: float, ~height: float) => t =
-  "DOMRect"; /* experimental */
+  "DOMRect";
 
 [@mel.get] external top: t => float = "top";
 [@mel.get] external bottom: t => float = "bottom";

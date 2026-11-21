@@ -15,7 +15,6 @@ let clon = React.cloneElement(
 const { Provider, Consumer } = React.createContext(10);
 
 var app = () => {
-	/* https://fb.me/react-uselayouteffect-ssr */
 	React.useLayoutEffect(() => {
 		console.log("asdfdsf");
 
@@ -57,12 +56,6 @@ var app = () => {
 	console.log(state);
 	return React.createElement("div", null, [state]);
 };
-
-/* var app = () => {
-  return React.createElement("div", {
-    dangerouslySetInnerHTML: { __html: "asdf" },
-  });
-}; */
 
 var ctx = React.createContext(10);
 

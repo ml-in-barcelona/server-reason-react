@@ -6,8 +6,6 @@ function DivWithId({ label }) {
 	return React.createElement("div", { id, "data-label": label });
 }
 
-// ── Edge Case 1: useId inside Suspense children ──────────────────────
-// (sync component, no actual suspension)
 function SuspenseWithUseId() {
 	return React.createElement(
 		React.Suspense,
@@ -16,8 +14,6 @@ function SuspenseWithUseId() {
 	);
 }
 
-// ── Edge Case 2: useId in Suspense fallback vs children ──────────────
-// Does Suspense fork the tree context?
 function FallbackWithId() {
 	const id = React.useId();
 	return React.createElement("div", { id, "data-label": "fallback" });
@@ -38,8 +34,6 @@ function SuspenseWithIdInBoth() {
 	);
 }
 
-// ── Edge Case 3: Fragment wrapping ───────────────────────────────────
-// Does Fragment affect tree context?
 function FragmentTest() {
 	return React.createElement(
 		"div",
@@ -52,7 +46,6 @@ function FragmentTest() {
 	);
 }
 
-// ── Edge Case 4: Fragment with multiple children ─────────────────────
 function FragmentMultipleChildren() {
 	return React.createElement(
 		"div",
@@ -66,7 +59,6 @@ function FragmentMultipleChildren() {
 	);
 }
 
-// ── Edge Case 5: Nested fragments ────────────────────────────────────
 function NestedFragments() {
 	return React.createElement(
 		"div",
@@ -83,7 +75,6 @@ function NestedFragments() {
 	);
 }
 
-// ── Edge Case 6: Empty elements between components ───────────────────
 function NullBetween() {
 	return React.createElement(
 		"div",
@@ -94,7 +85,6 @@ function NullBetween() {
 	);
 }
 
-// ── Edge Case 7: useId with conditional children ─────────────────────
 function ConditionalChildren({ show }) {
 	return React.createElement(
 		"div",
@@ -104,7 +94,6 @@ function ConditionalChildren({ show }) {
 	);
 }
 
-// ── Edge Case 8: useId with keyed fragments ──────────────────────────
 function KeyedFragments() {
 	return React.createElement(
 		"div",
@@ -122,7 +111,6 @@ function KeyedFragments() {
 	);
 }
 
-// ── Edge Case 9: Deeply nested list (many siblings) ──────────────────
 function ManySiblings() {
 	const items = Array.from({ length: 10 }, (_, i) =>
 		React.createElement(DivWithId, { key: String(i), label: `item-${i}` }),
@@ -130,7 +118,6 @@ function ManySiblings() {
 	return React.createElement("div", null, items);
 }
 
-// ── Edge Case 10: useId after Suspense boundary ─────────────────────
 function UseIdAfterSuspense() {
 	return React.createElement(
 		"div",
@@ -144,7 +131,6 @@ function UseIdAfterSuspense() {
 	);
 }
 
-// ── Edge Case 11: Provider/Context with useId ────────────────────────
 const MyContext = React.createContext("default");
 function ProviderWithUseId() {
 	return React.createElement(
@@ -154,7 +140,6 @@ function ProviderWithUseId() {
 	);
 }
 
-// ── Edge Case 12: Mixed: Provider, Fragment, Suspense ────────────────
 function KitchenSink() {
 	return React.createElement(
 		"div",
@@ -200,7 +185,6 @@ for (const [name, Component] of tests) {
 	console.log();
 }
 
-// Edge 7 needs two renders
 console.log("Edge 7a: Conditional children (show=true):");
 console.log(
 	`  ${ReactDOM.renderToString(React.createElement(ConditionalChildren, { show: true }))}`,

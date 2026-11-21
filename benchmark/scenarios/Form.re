@@ -1,8 +1,3 @@
-/* Scenario: Complex Form
-      Multi-step form with many inputs and validation UI
-      Purpose: Test form-heavy page rendering
-   */
-
 module FormField = {
   [@react.component]
   let make =

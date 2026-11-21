@@ -454,10 +454,6 @@ let prop_key (prop : JSX.prop) =
   | Ref _ -> "ref"
   | Event (name, _) -> name
 
-(* Merges attributes following JS object-spread semantics ([{...attributes, ...new_attributes}]): base attributes keep
-   their original order and are replaced in place when a new attribute shares their key; new attributes with unseen
-   keys are appended in their original order. If the same key appears multiple times in [new_attributes], the last
-   occurrence wins. O(n²) over List, which is fine: attribute lists are small and [cloneElement] is rare. *)
 let clone_attributes (attributes : JSX.prop list) (new_attributes : JSX.prop list) =
   let key_equals key prop = String.equal (prop_key prop) key in
   let last_new_with_key key =
@@ -549,8 +545,6 @@ end
 module StrictMode = Fragment
 
 let fragment children = Fragment.make (Fragment.makeProps ~children ())
-
-(* ReasonReact APIs *)
 let string txt = Text txt
 let null = Empty
 let int i = Int i
@@ -611,8 +605,6 @@ end
 module Cache = struct
   type cache_entry = Ok of Obj.t | Error of exn
 
-  (* React-parity keying: primitives (int/string/float) by value, everything else by reference. Every [Obj.obj] is
-     guarded by an [Obj.tag] check, so no representation is reinterpreted. *)
   let same_arg (a : Obj.t) (b : Obj.t) =
     a == b
     || Obj.is_block a && Obj.is_block b
@@ -637,8 +629,6 @@ module Cache = struct
     Lwt.with_value async_key (Some cache) f
 end
 
-(* On the server there's no re-render, so memoization is a no-op and the
-   component is passed through unchanged. Signatures match reason-react. *)
 let memo component = component
 let memoCustomCompareProps component _compare = component
 
@@ -687,20 +677,11 @@ type ('input, 'output) callbackAsync = 'input -> 'output Js.Promise.t
 let useSyncExternalStore ~subscribe:_ ~getSnapshot = getSnapshot ()
 let useSyncExternalStoreWithServer ~subscribe:_ ~getSnapshot:_ ~getServerSnapshot = getServerSnapshot ()
 
-(* Tree context for useId — implements the same bit-packing algorithm as React's
-   ReactFizzTree_context.js to produce hydration-compatible IDs.
-
-   IDs are base-32 strings whose binary representation corresponds to the
-   position of a node in a tree. Every time the tree forks into multiple
-   children, additional bits encode the position of the child within the
-   current level of children. *)
 module Tree_context = struct
   type t = { id : int; overflow : string }
 
   let empty = { id = 1; overflow = "" }
 
-  (* Count leading zeros in a 32-bit representation.
-     Uses the same algorithm as Math.clz32 in JavaScript. *)
   let clz32 x =
     if x = 0 then 32
     else
@@ -724,8 +705,6 @@ module Tree_context = struct
   let get_bit_length n = 32 - clz32 n
   let get_leading_bit id = 1 lsl (get_bit_length id - 1)
 
-  (* Convert a non-negative integer to a base-32 string (digits: 0-9, a-v).
-     Matches JavaScript's Number.prototype.toString(32). *)
   let int_to_base32 n =
     if n = 0 then "0"
     else
@@ -754,7 +733,6 @@ module Tree_context = struct
     let slot = index + 1 in
     let length = get_bit_length total_children + base_length in
     if length > 30 then begin
-      (* Overflow: convert some bits to base-32 string *)
       let number_of_overflow_bits = base_length - (base_length mod 5) in
       let new_overflow_bits = (1 lsl number_of_overflow_bits) - 1 in
       let new_overflow = int_to_base32 (base_id land new_overflow_bits) in
@@ -767,21 +745,11 @@ module Tree_context = struct
       { id = (1 lsl rest_of_length) lor id; overflow }
     end
     else
-      (* Normal path *)
       let new_bits = slot lsl base_length in
       let id = new_bits lor base_id in
       { id = (1 lsl length) lor id; overflow = base_overflow }
 end
 
-(* Rendering hook context — mutable state set by the renderer (ReactDOM) and
-   read by hooks (useId). This mirrors React's currentlyRenderingTask pattern
-   in ReactFizzHooks.js.
-
-   This state is process-global: two async renders (renderToStream/render_html)
-   must not be in flight concurrently in one process, or their useId state
-   interleaves at Lwt yields and produces hydration mismatches.
-   TODO: scope per render (Lwt.key, as React.Cache/Context do, or thread through
-   the renderer) before enabling concurrent renders. *)
 let current_tree_context : Tree_context.t Stdlib.ref = Stdlib.ref Tree_context.empty
 let local_id_counter : int Stdlib.ref = Stdlib.ref 0
 let did_render_id_hook : bool Stdlib.ref = Stdlib.ref false
@@ -800,8 +768,6 @@ let reset_id_rendering ?prefix () =
   did_render_id_hook := false;
   identifier_prefix := prefix
 
-(* React 19 uses \u00ab (LEFT-POINTING DOUBLE ANGLE QUOTATION MARK) and
-   \u00bb (RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK) as ID delimiters. *)
 let id_start = "\xc2\xab"
 let id_end = "\xc2\xbb"
 
@@ -1018,7 +984,6 @@ module Children = struct
         else raise (Invalid_argument "Expected at least one child")
     | _ -> element
 
-  (* TODO: silly way to convert children to array, but isn't necessary in most cases *)
   let toArray element = [| element |]
 end
 
@@ -1038,8 +1003,6 @@ let actAsync callback = callback ()
 let useDebugValue _ ?format:_ () = ()
 let useDeferredValue value = value
 
-(* `exception Suspend of 'a Lwt`
-    exceptions can't have type params, this is called existential wrapper *)
 type any_promise = Any_promise : 'a Lwt.t -> any_promise
 
 exception Suspend of any_promise
@@ -1078,18 +1041,12 @@ module Experimental = struct
             | [] -> promise
             | Any_promise earlier :: rest ->
                 state.replayed <- rest;
-                (* Safe when the component calls [usePromise] in the same order on each call: the earlier promise comes
-                   from this call position, so it has the same type *)
                 (Obj.magic earlier : a Lwt.t)
           in
           state.used <- Any_promise promise :: state.used;
           promise
     in
-    match Lwt.state promise with
-    | Sleep -> suspend promise
-    (* TODO: Fail should raise a FailedSupense and catch at renderTo*? *)
-    | Fail e -> raise e
-    | Return v -> v
+    match Lwt.state promise with Sleep -> suspend promise | Fail e -> raise e | Return v -> v
 
   let promise = usePromise
   let useContext = useContext

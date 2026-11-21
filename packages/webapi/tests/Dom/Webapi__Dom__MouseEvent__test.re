@@ -3,7 +3,6 @@ open MouseEvent;
 
 let event = make("my-event");
 
-/* Event */
 let _ = bubbles(event);
 let _ = cancelable(event);
 let _ = composed(event);
@@ -19,11 +18,9 @@ preventDefault(event);
 stopImmediatePropagation(event);
 stopPropagation(event);
 
-/* UIEvent */
 let _ = detail(event);
 let _ = view(event);
 
-/* MouseEvent */
 let _ = altKey(event);
 let _ = button(event);
 let _ = buttons(event);

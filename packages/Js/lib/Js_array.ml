@@ -1,16 +1,10 @@
-(** JavaScript Array API *)
-
 type 'a t = 'a array
 type 'a array_like
 
 let from _ = Js_internal.notImplemented "Js.Array" "from"
 let fromMap _ ~f:_ = Js_internal.notImplemented "Js.Array" "fromMap"
-
-(* This doesn't behave the same as melange-js, since it's a runtime check so lists are represented as arrays in the runtime: isArray([1, 2]) == true *)
 let isArray (_arr : 'a) = true
 let length arr = Stdlib.Array.length arr
-
-(* Mutator functions *)
 let copyWithin ~to_:_ ?start:_ ?end_:_ _ = Js_internal.notImplemented "Js.Array" "copyWithin"
 let fill ~value:_ ?start:_ ?end_:_ _ = Js_internal.notImplemented "Js.Array" "fill"
 let pop _ = Js_internal.notImplemented "Js.Array" "pop"
@@ -25,20 +19,16 @@ let removeCountInPlace ~start:_ ~count:_ _ = Js_internal.notImplemented "Js.Arra
 let shift _ = Js_internal.notImplemented "Js.Array" "shift"
 let unshift ~value:_ _ = Js_internal.notImplemented "Js.Array" "unshift"
 let unshiftMany ~values:_ _ = Js_internal.notImplemented "Js.Array" "unshiftMany"
-
-(* Copying functions (ES2023) *)
 let flat arr = Stdlib.Array.concat (Stdlib.Array.to_list arr)
 
 let toReversed arr =
   let len = Stdlib.Array.length arr in
   Stdlib.Array.init len (fun i -> arr.(len - 1 - i))
 
-(* JS default sort coerces elements to strings, which requires runtime type info *)
 let toSorted _ = Js_internal.notImplemented "Js.Array" "toSorted"
 
 let toSortedWith ~f arr =
   let copy = Stdlib.Array.copy arr in
-  (* JS Array.prototype.sort is required to be stable since ES2019 *)
   Stdlib.Array.stable_sort f copy;
   copy
 
@@ -51,8 +41,6 @@ let toSpliced ~start ~remove ~add arr =
 
 let removeFrom ~start arr = toSpliced ~start ~remove:(Stdlib.Array.length arr) ~add:[||] arr
 let removeCount ~start ~count arr = toSpliced ~start ~remove:count ~add:[||] arr
-
-(* Accessor functions *)
 let concat ~other:second first = Stdlib.Array.append first second
 let concatMany ~arrays arr = Stdlib.Array.concat (arr :: Stdlib.Array.to_list arrays)
 let includes ~value arr = Stdlib.Array.exists (fun x -> x = value) arr
@@ -62,7 +50,6 @@ let indexOf ~value ?start arr =
   match start with None -> aux 0 | Some from -> if from < 0 || from >= Stdlib.Array.length arr then -1 else aux from
 
 let join ?sep arr =
-  (* js bindings can really take in `'a array`, while native is constrained to `string array` *)
   match sep with
   | None -> Stdlib.Array.to_list arr |> String.concat ","
   | Some sep -> Stdlib.Array.to_list arr |> String.concat sep
@@ -92,7 +79,6 @@ let copy = Stdlib.Array.copy
 let toString _ = Js_internal.notImplemented "Js.Array" "toString"
 let toLocaleString _ = Js_internal.notImplemented "Js.Array" "toLocaleString"
 
-(* Iteration functions *)
 let everyi ~f arr =
   let len = Stdlib.Array.length arr in
   let rec aux idx = if idx >= len then true else if f arr.(idx) idx then aux (idx + 1) else false in

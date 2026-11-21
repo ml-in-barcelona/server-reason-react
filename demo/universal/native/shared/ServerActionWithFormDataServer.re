@@ -4,7 +4,6 @@ let make = () => {
     action={
       switch%platform () {
       | Native => `Function(ServerFunctions.formDataFunction)
-      // doesn't matter the client value, it will never reach the browser
       | Melange => ""
       }
     }

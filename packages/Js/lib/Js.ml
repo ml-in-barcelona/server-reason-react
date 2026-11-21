@@ -1,5 +1,3 @@
-(** The Js equivalent library (very unsafe) *)
-
 include Js_internal
 
 type 'a t = < .. > as 'a
@@ -39,21 +37,13 @@ external nullToOption : 'a null -> 'a option = "%identity"
 external undefinedToOption : 'a undefined -> 'a option = "%identity"
 external fromOpt : 'a option -> 'a undefined = "%identity"
 
-(** The same as [empty] {!Js.Undefined} will be compiled as [undefined]*)
 let undefined = None
-
-(** The same as [empty] in {!Js.Null} will be compiled as [null]*)
 let null = None
-
 let empty = None
 
 type (+'a, +'e) promise
 
-(** [typeof x] will be compiled as [typeof x] in JS Please consider functions in {!Types} for a type safe way of
-    reflection *)
 let typeof _ = notImplemented "Js" "typeof"
-
-(** {12 nested modules}*)
 
 type 'a iterator = 'a Js_iterator.t
 

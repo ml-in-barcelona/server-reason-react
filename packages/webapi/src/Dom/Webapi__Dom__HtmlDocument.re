@@ -7,29 +7,24 @@ module Impl = (T: {
   external activeElement: t_htmlDocument => option(Dom.element) =
     "activeElement";
   [@mel.get] [@mel.return nullable]
-  external body: t_htmlDocument => option(Dom.element) = "body"; /* returns option HTMLBodyElement */
-  [@mel.set] external setBody: (t_htmlDocument, Dom.element) => unit = "body"; /* accepth HTMLBodyElement */
+  external body: t_htmlDocument => option(Dom.element) = "body";
+  [@mel.set] external setBody: (t_htmlDocument, Dom.element) => unit = "body";
   [@mel.get] external cookie: t_htmlDocument => string = "cookie";
   [@mel.set] external setCookie: (t_htmlDocument, string) => unit = "cookie";
   [@mel.get] [@mel.return nullable]
   external defaultView: t_htmlDocument => option(Dom.window) = "defaultView";
-  [@mel.get]
-  external designMode: t_htmlDocument => string /* designMode enum */ =
-    "designMode";
+  [@mel.get] external designMode: t_htmlDocument => string = "designMode";
   let designMode: t_htmlDocument => Webapi__Dom__Types.designMode = self =>
     Webapi__Dom__Types.decodeDesignMode(designMode(self));
   [@mel.set]
-  external setDesignMode:
-    (t_htmlDocument, string /* designMode enum */) => unit =
-    "designMode";
+  external setDesignMode: (t_htmlDocument, string) => unit = "designMode";
   let setDesignMode: (t_htmlDocument, Webapi__Dom__Types.designMode) => unit =
       (self, value) =>
     setDesignMode(self, Webapi__Dom__Types.encodeDesignMode(value));
-  [@mel.get] external dir: t_htmlDocument => string /* dir enum */ = "dir";
+  [@mel.get] external dir: t_htmlDocument => string = "dir";
   let dir: t_htmlDocument => Webapi__Dom__Types.dir = self =>
     Webapi__Dom__Types.decodeDir(dir(self));
-  [@mel.set]
-  external setDir: (t_htmlDocument, string /* dir enum */) => unit = "dir";
+  [@mel.set] external setDir: (t_htmlDocument, string) => unit = "dir";
   let setDir: (t_htmlDocument, Webapi__Dom__Types.dir) => unit = (self, value) =>
     setDir(self, Webapi__Dom__Types.encodeDir(value));
   [@mel.get] [@mel.return nullable]
@@ -37,7 +32,7 @@ module Impl = (T: {
   [@mel.set] external setDomain: (t_htmlDocument, string) => unit = "domain";
   [@mel.get] external embeds: t_htmlDocument => Dom.nodeList = "embeds";
   [@mel.get] external forms: t_htmlDocument => Dom.htmlCollection = "forms";
-  [@mel.get] external head: t_htmlDocument => Dom.element = "head"; /* returns HTMLHeadElement */
+  [@mel.get] external head: t_htmlDocument => Dom.element = "head";
   [@mel.get] external images: t_htmlDocument => Dom.htmlCollection = "images";
   [@mel.get] external lastModified: t_htmlDocument => string = "lastModified";
   [@mel.get] external links: t_htmlDocument => Dom.nodeList = "links";
@@ -46,8 +41,7 @@ module Impl = (T: {
   external setLocation: (t_htmlDocument, string) => unit = "location";
   [@mel.get]
   external plugins: t_htmlDocument => Dom.htmlCollection = "plugins";
-  [@mel.get]
-  external readyState: t_htmlDocument => string /* enum */ = "readyState";
+  [@mel.get] external readyState: t_htmlDocument => string = "readyState";
   let readyState: t_htmlDocument => Webapi__Dom__Types.readyState = self =>
     Webapi__Dom__Types.decodeReadyState(readyState(self));
   [@mel.get] external referrer: t_htmlDocument => string = "referrer";

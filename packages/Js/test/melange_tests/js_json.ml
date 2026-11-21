@@ -1,8 +1,3 @@
-(** Ported from Melange's test suite: jscomp/test/js_json_test.ml (melange 6.0.1-54).
-
-    Skipped (unsupported natively, raise by design): [stringifyAny], [serializeExn]/[deserializeUnsafe] round-trips, and
-    the [%mel.obj] test. Extra parse/stringify cases at the bottom cite node's JSON.parse/JSON.stringify output. *)
-
 open Helpers
 module J = Js.Json
 
@@ -181,7 +176,6 @@ let tests =
         ok (J.decodeNull J.null = Some Js.null);
         ok (J.decodeNull (J.object_ (Js.Dict.empty ())) = None);
         ok (J.decodeNull (J.number 1.23) = None));
-    (* --- Extra cases, expectations are node's JSON.parse/JSON.stringify output --- *)
     test "JSON.stringify(1) is \"1\" (node)" (fun () -> assert_string (J.stringify (J.number 1.)) "1");
     test "JSON.stringify(1e21) is \"1e+21\" (node)" (fun () -> assert_string (J.stringify (J.number 1e21)) "1e+21");
     test "JSON.stringify(NaN) is \"null\" (node)" (fun () -> assert_string (J.stringify (J.number Float.nan)) "null");
@@ -209,7 +203,6 @@ let tests =
         let v = J.parseExn {|{"a":[1,null]}|} in
         ok (J.patch v == v));
     test "stringify preserves object key order (node)" (fun () ->
-        (* node: JSON.stringify(JSON.parse('{"z":1,"a":2,"m":3}')) = '{"z":1,"a":2,"m":3}' *)
         assert_string (J.stringify (J.parseExn {|{"z":1,"a":2,"m":3}|})) {|{"z":1,"a":2,"m":3}|};
         let d = Js.Dict.empty () in
         Js.Dict.set d "z" (J.number 1.);

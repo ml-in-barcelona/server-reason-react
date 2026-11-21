@@ -1,8 +1,3 @@
-/* Scenario: Deep Tree
-      50+ levels deep component tree
-      Purpose: Test deep recursion and call stack performance
-   */
-
 module Wrapper = {
   [@react.component]
   let make = (~depth, ~maxDepth, ~children) => {
@@ -32,7 +27,6 @@ let rec renderDepth = (current, max) =>
     </Wrapper>;
   };
 
-/* Different depth variants for comparison */
 module Depth10 = {
   [@react.component]
   let make = () => renderDepth(0, 10);

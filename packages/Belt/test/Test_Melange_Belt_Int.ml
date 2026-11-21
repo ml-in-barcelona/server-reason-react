@@ -1,5 +1,3 @@
-(* Ported from melange jscomp/test/bs_int_test.ml *)
-
 module I = Belt.Int
 
 let suites =

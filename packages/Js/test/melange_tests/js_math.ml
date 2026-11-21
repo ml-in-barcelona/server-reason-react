@@ -1,11 +1,6 @@
-(** Ported from Melange's test suite: jscomp/test/js_math_test.ml (melange 6.0.1-54).
-
-    Expectations are the exact values asserted by Melange's suite, which runs against the real Math object in JS. *)
-
 open Helpers
 open Js.Math
 
-(* Melange's ApproxThreshold(0.001, expected, actual) *)
 let approx expected actual =
   if Stdlib.abs_float (expected -. actual) >= 0.001 then
     Alcotest.failf "expected %.6f to be within 0.001 of %.6f" actual expected
@@ -76,8 +71,6 @@ let tests =
     test "tanh" (fun () -> approx 0.379 (tanh 0.4));
     test "unsafe_trunc" (fun () -> assert_int (unsafe_trunc 4.2156) 4);
     test "trunc" (fun () -> assert_float_exact (trunc 4.2156) 4.);
-    (* Additional ECMA-262 semantics not covered by Melange's suite; expected
-       values are node REPL output. *)
     test "Math.max(NaN, 1) is NaN (node)" (fun () -> assert_true "nan" (Stdlib.Float.is_nan (max_float Float.nan 1.)));
     test "Math.min(NaN, 1) is NaN (node)" (fun () -> assert_true "nan" (Stdlib.Float.is_nan (min_float Float.nan 1.)));
     test "Math.max(0, -0) is 0 (node)" (fun () -> assert_true "+0" (Stdlib.Float.sign_bit (max_float 0. (-0.)) = false));

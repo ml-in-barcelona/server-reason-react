@@ -74,7 +74,7 @@ let rec getUndefined (n : t) (x : value) =
 
 let rec getExn (n : t) (x : value) =
   match N.toOpt n with
-  | None -> raise Stdlib.Not_found (* like Melange *)
+  | None -> raise Stdlib.Not_found
   | Some t ->
       let v = N.value t in
       if x = v then v else getExn (if x < v then N.left t else N.right t) x

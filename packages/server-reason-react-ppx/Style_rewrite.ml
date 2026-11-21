@@ -1,18 +1,6 @@
-(* Rewrites [ReactDOM.Style.make ~foo:a ~bar:b ()] at compile time into a
-   direct list of [(kebab, camel, value)] tuples, avoiding the 347-optional-arg
-   calling convention overhead (~1460 words/call on stock OCaml).
-
-   The PPX only rewrites calls where:
-   - the function is literally [ReactDOM.Style.make] (or [Style.make] in the
-     ReactDOM module namespace), and
-   - all arguments are labelled (not optional), and
-   - the final arg is [()].
-   Calls that don't fit fall through to the runtime function. *)
-
 open Ppxlib
 open Ast_builder.Default
 
-(* CamelCase -> kebab-case mapping, kept in sync with ReactDOMStyle.ml. *)
 let mapping =
   [
     ("azimuth", "azimuth");
@@ -359,45 +347,26 @@ let mapping =
     ("rubyPosition", "ruby-position");
   ]
 
-(* Assoc of camel -> (kebab, signature_index). *)
 let indexed_mapping = List.mapi (fun i (camel, kebab) -> (camel, (kebab, i))) mapping
 let find_camel camel = List.assoc_opt camel indexed_mapping
 
-(* Returns true if [longident] is [ReactDOM.Style.make] (possibly prefixed). *)
 let is_style_make_ident = function
   | Ldot (Ldot (Lident "ReactDOM", "Style"), "make") -> true
-  | Ldot (Lident "Style", "make") -> true (* used inside ReactDOM module *)
+  | Ldot (Lident "Style", "make") -> true
   | _ -> false
 
-(* Attempt to rewrite a call [ReactDOM.Style.make ~foo:a ~bar:b ()] to a direct
-   list expression. Returns [Some new_expr] on success, [None] otherwise.
-
-   The final arg must be [()] (Nolabel, unit), and there must be no optional
-   args and no unknown label names.
-
-   The output list must match the runtime order produced by [Style.make]:
-   signature order (the body prepends in signature order and reverses at the
-   end). Signature order is also the JS object key order melange produces for
-   reason-react's [ReactDOM.Style.make], which react-dom preserves in both
-   inline style output and the Flight payload. *)
 let try_rewrite_call ~loc args =
   let rec collect acc = function
-    | [] -> None (* missing the final unit *)
+    | [] -> None
     | [ (Nolabel, { pexp_desc = Pexp_construct ({ txt = Lident "()"; _ }, None); _ }) ] -> Some acc
     | (Labelled name, expr) :: rest -> (
-        match find_camel name with
-        | Some (kebab, idx) -> collect ((idx, name, kebab, expr) :: acc) rest
-        | None ->
-            (* unknown style name — fall back *)
-            None)
-    | (Optional _, _) :: _ -> None (* optional arg — fall back *)
-    | (Nolabel, _) :: _ -> None (* unexpected positional — fall back *)
+        match find_camel name with Some (kebab, idx) -> collect ((idx, name, kebab, expr) :: acc) rest | None -> None)
+    | (Optional _, _) :: _ -> None
+    | (Nolabel, _) :: _ -> None
   in
   match collect [] args with
   | None -> None
   | Some entries ->
-      (* Sort by signature index ascending, matching the runtime [make]'s
-         output order. *)
       let sorted = List.sort (fun (i, _, _, _) (j, _, _, _) -> Int.compare i j) entries in
       let list_expr =
         List.fold_right
@@ -409,7 +378,6 @@ let try_rewrite_call ~loc args =
       in
       Some [%expr ([%e list_expr] : ReactDOM.Style.t)]
 
-(* Top-level rewriter: looks at any [Pexp_apply] and rewrites eligible ones. *)
 let rewrite_expression expr =
   match expr.pexp_desc with
   | Pexp_apply ({ pexp_desc = Pexp_ident { txt; _ }; _ }, args) when is_style_make_ident txt -> (

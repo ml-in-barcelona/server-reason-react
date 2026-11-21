@@ -1,5 +1,3 @@
-(** JavaScript String API *)
-
 type t = string
 
 let make _whatever = Js_internal.notImplemented "Js.String" "make"
@@ -41,18 +39,13 @@ let lastIndexOf ~search ?start str =
   | None -> Quickjs.String.Prototype.last_index_of search str
   | Some start -> Quickjs.String.Prototype.last_index_of_from search start str
 
-(* No locale-aware collation (ICU) on the server: byte-wise comparison.
-   Diverges from JS for case-mixed and non-ASCII strings. *)
 let localeCompare ~other str = Stdlib.float_of_int (Stdlib.compare (Stdlib.String.compare str other) 0)
 
-(* Removes the given flag from a JavaScript flags string, e.g. [remove_flag 'g' "gi"] is ["i"]. *)
 let remove_flag flag flags =
   Stdlib.String.to_seq flags |> Stdlib.Seq.filter (fun c -> c <> flag) |> Stdlib.String.of_seq
 
 let match_ ~regexp str =
   if Js_re.global regexp then (
-    (* JavaScript's String.prototype.match with a global regexp returns every
-       full match (without capture groups) and leaves lastIndex at 0. *)
     let flags = remove_flag 'g' (Js_re.flags regexp) in
     let matches = Quickjs.String.Prototype.match_global ~flags (Js_re.source regexp) str in
     Js_re.setLastIndex regexp 0;
@@ -77,9 +70,6 @@ let add_source_range buf ~prepared ~source ~start ~end_ =
   | Some (start_byte, end_byte) -> Buffer.add_substring buf source start_byte (end_byte - start_byte)
   | None -> Buffer.add_string buf (Js_re.Prepared.substring prepared ~start ~end_)
 
-(* Expands the replacement patterns of String.prototype.replace ($$, $&, $`,
-   $', $1..$99) directly into [buf], as specified by GetSubstitution
-   (ECMA-262 22.1.3.20.1). *)
 let process_replacement ~buf ~prepared ~source ~source_length ~replacement ~matches ~match_start ~match_end =
   let len = Stdlib.String.length replacement in
   let i = ref 0 in
@@ -88,26 +78,20 @@ let process_replacement ~buf ~prepared ~source ~source_length ~replacement ~matc
       let next = replacement.[!i + 1] in
       match next with
       | '$' ->
-          (* $$ -> literal $ *)
           Buffer.add_char buf '$';
           i := !i + 2
       | '&' ->
-          (* $& -> the matched substring *)
           let matched = Stdlib.Array.get matches 0 |> Stdlib.Option.value ~default:"" in
           Buffer.add_string buf matched;
           i := !i + 2
       | '`' ->
-          (* $` -> portion before the match *)
           add_source_range buf ~prepared ~source ~start:0 ~end_:match_start;
           i := !i + 2
       | '\'' ->
-          (* $' -> portion after the match *)
           add_source_range buf ~prepared ~source ~start:match_end ~end_:source_length;
           i := !i + 2
       | '0' .. '9' ->
-          (* $n or $nn -> capturing group *)
           let start_digit = !i + 1 in
-          (* Check for two-digit group number *)
           let group_num, advance =
             if !i + 2 < len then
               match replacement.[!i + 2] with
@@ -122,13 +106,11 @@ let process_replacement ~buf ~prepared ~source ~source_length ~replacement ~matc
             let group_value = Stdlib.Array.get matches group_num |> Stdlib.Option.value ~default:"" in
             Buffer.add_string buf group_value
           else (
-            (* Invalid group reference, keep as literal *)
             Buffer.add_char buf '$';
             Buffer.add_char buf next;
             if advance = 3 then Buffer.add_char buf replacement.[!i + 2]);
           i := !i + advance
       | _ ->
-          (* Unknown $ sequence, keep as literal *)
           Buffer.add_char buf '$';
           incr i)
     else (
@@ -140,9 +122,6 @@ let is_full_unicode regexp =
   let flags = Js_re.flags regexp in
   Stdlib.String.contains flags 'u' || Stdlib.String.contains flags 'v'
 
-(* Shared driver for RegExp.prototype[Symbol.replace] (ECMA-262 22.2.6.11).
-   Global matches are collected before replacements are evaluated, so callback
-   mutations of lastIndex cannot affect which matches are replaced. *)
 let replace_driver ~regexp str ~add_replacement =
   let str_byte_length = Stdlib.String.length str in
   let str_length = Quickjs.String.Prototype.length str in
@@ -164,11 +143,6 @@ let replace_driver ~regexp str ~add_replacement =
         Buffer.contents buf
   in
   if Js_re.global regexp then (
-    (* RegExp.prototype[Symbol.replace] (ECMA-262 22.2.6.11): with the global
-       flag, start from 0 and iterate with exec (which advances lastIndex to
-       the end of each match); on an empty match, advance lastIndex manually
-       with AdvanceStringIndex. The final failing exec resets the caller's
-       lastIndex to 0, as in JavaScript. *)
     Js_re.setLastIndex regexp 0;
     let unicode = is_full_unicode regexp in
     let rec collect acc =
@@ -181,23 +155,13 @@ let replace_driver ~regexp str ~add_replacement =
           collect (match_ :: acc)
     in
     render (collect []))
-  else
-    (* Without the global flag only the first match is replaced. exec is used
-       directly on the caller's regexp so sticky (y) lastIndex semantics are
-       preserved. *)
-    match Js_re.Prepared.exec prepared regexp with
-    | None -> str
-    | Some match_ -> render [ match_ ]
+  else match Js_re.Prepared.exec prepared regexp with None -> str | Some match_ -> render [ match_ ]
 
 let replaceByRe ~regexp ~replacement str =
   replace_driver ~regexp str ~add_replacement:(fun buf ~prepared ~source_length ~match_ ~match_start ~match_end ->
       process_replacement ~buf ~prepared ~source:str ~source_length ~replacement
         ~matches:(Js_re.Prepared.captures match_) ~match_start ~match_end)
 
-(* The unsafeReplaceByN functions pass the matched text, the first N capture
-   groups, the UTF-16 offset of the match, and the whole string to [f]. Like
-   JavaScript, a capture group that did not participate in the match is passed
-   as an "empty" value; Melange leaks [undefined], natively it is [""]. *)
 let capture matches n =
   if n >= Stdlib.Array.length matches then "" else match Stdlib.Array.get matches n with Some c -> c | None -> ""
 
@@ -222,8 +186,6 @@ let unsafeReplaceBy3 ~regexp ~f str =
         (f (capture matches 0) (capture matches 1) (capture matches 2) (capture matches 3) match_start str))
 
 let search ~regexp str =
-  (* RegExp.prototype[Symbol.search] (ECMA-262 22.2.6.12): search from 0 and
-     restore the caller's lastIndex afterwards. *)
   let saved_last_index = Js_re.lastIndex regexp in
   Js_re.setLastIndex regexp 0;
   let result = match Js_re.exec ~str regexp with Some result -> Js_re.index result | None -> -1 in
@@ -237,35 +199,22 @@ let slice ?start ?end_ str =
   | None, Some end_ -> Quickjs.String.Prototype.slice ~start:0 ~end_ str
   | Some start, Some end_ -> Quickjs.String.Prototype.slice ~start ~end_ str
 
-(* String.prototype.split coerces limit with ToUint32: negative values wrap to
-   huge positive values and behave as "no limit". *)
 let to_uint32 limit = limit land 0xFFFFFFFF
 
 let split ?sep ?limit str =
   match sep with
-  (* JavaScript's str.split(undefined, limit) never splits: it is [str] alone,
-     or [] when the limit is 0. *)
   | None -> ( match limit with Some limit when to_uint32 limit = 0 -> [||] | _ -> [| str |])
   | Some sep -> (
-      if str = "" && sep <> "" then
-        (* JavaScript: "".split(sep) is [""] for any non-empty separator. *)
-        match limit with
-        | Some limit when to_uint32 limit = 0 -> [||]
-        | _ -> [| str |]
+      if str = "" && sep <> "" then match limit with Some limit when to_uint32 limit = 0 -> [||] | _ -> [| str |]
       else
         match limit with
         | None -> Quickjs.String.Prototype.split sep str
         | Some limit -> Quickjs.String.Prototype.split_limit sep limit str)
 
 let splitByRe ~regexp ?limit str =
-  (* RegExp.prototype[Symbol.split] (ECMA-262 22.2.6.14). The regexp is
-     recompiled with the global flag added (JavaScript clones it with the
-     sticky flag), so the caller's lastIndex is never touched. *)
   let limit = match limit with None -> 0xFFFFFFFF | Some limit -> to_uint32 limit in
   if limit = 0 then [||]
   else
-    (* The spec clones with the sticky flag and probes every position one by
-       one; scanning forward with a global, non-sticky regexp is equivalent. *)
     let flags = remove_flag 'y' (Js_re.flags regexp) in
     let flags = if Stdlib.String.contains flags 'g' then flags else flags ^ "g" in
     let splitter = Js_re.fromStringWithFlags (Js_re.source regexp) ~flags in
@@ -291,13 +240,9 @@ let splitByRe ~regexp ?limit str =
             | None -> ()
             | Some match_ ->
                 let match_start, match_end = Js_re.Prepared.range match_ in
-                (* The loop in the spec only probes positions before the end of
-                   the string: a match starting at the very end is ignored. *)
                 if match_start < size then
                   let match_end = Stdlib.min match_end size in
                   if match_end = !segment_start then (
-                    (* Empty match at the current segment start: no split here,
-                       advance and keep searching. *)
                     Js_re.setLastIndex splitter (Js_re.Prepared.advance_index prepared ~unicode match_start);
                     loop ())
                   else (
@@ -336,17 +281,11 @@ let substring ?start ?end_ str =
   | Some start, Some end_ -> Quickjs.String.Prototype.substring ~start ~end_ str
 
 let toLowerCase str = Quickjs.String.Prototype.to_lower_case str
-
-(* Locale-insensitive: aliased to toLowerCase (no ICU on the server). *)
 let toLocaleLowerCase str = Quickjs.String.Prototype.to_lower_case str
 let toUpperCase str = Quickjs.String.Prototype.to_upper_case str
-
-(* Locale-insensitive: aliased to toUpperCase (no ICU on the server). *)
 let toLocaleUpperCase str = Quickjs.String.Prototype.to_upper_case str
 let trim str = Quickjs.String.Prototype.trim str
 
-(* String.prototype.anchor/link (ECMA-262 B.2.2, CreateHTML): double quotes
-   in the attribute value are replaced with &quot;. *)
 let escape_html_attribute value =
   let buf = Buffer.create (Stdlib.String.length value) in
   Stdlib.String.iter (fun c -> if c = '"' then Buffer.add_string buf "&quot;" else Buffer.add_char buf c) value;

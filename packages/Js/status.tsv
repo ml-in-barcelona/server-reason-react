@@ -1,16 +1,4 @@
-# Hand-maintained status annotations for the generated README.md.
-# Format: <Module.fn | Module.*> <TAB> <green|orange|wontfix|planned> <TAB> <note>
-#   green   — implemented and verified by tests whose expectations cite a JS source.
-#   orange  — implemented with a known behavioral divergence (note required).
-#   wontfix — raising stub kept by design (note required).
-#   planned — raising stub with a specific plan (note replaces the default "Planned.").
-# The generator (scripts/status/generate_status_readme.sh) hard-fails if an
-# entry contradicts the code (e.g. green on a raising stub).
-#
-# --- Js (top-level) ---
 Js.typeof	wontfix	Requires JS runtime type tags.
-#
-# --- Js.Array ---
 Js.Array.isArray	orange	Always returns true; there is no runtime type information (Js_array.ml:10).
 Js.Array.includes	orange	Uses OCaml structural equality; JS SameValueZero differs (NaN, object identity).
 Js.Array.indexOf	orange	Negative ~start handling diverges from JS.
@@ -31,13 +19,7 @@ Js.Array.removeFromInPlace	wontfix	OCaml arrays are fixed-length; in-place JS ar
 Js.Array.removeCountInPlace	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
 Js.Array.unshift	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
 Js.Array.unshiftMany	wontfix	OCaml arrays are fixed-length; in-place JS array mutation is unsupported.
-#
-# --- Js.Bigint ---
-#
-# --- Js.Console ---
 Js.Console.*	orange	Silent no-op on the server (nothing is printed); signatures match Melange's polymorphic API.
-#
-# --- Js.Date ---
 Js.Date.fromFloat	green	test262-derived suite: packages/Js/test/date_tests.
 Js.Date.fromString	green	test262-derived suite: packages/Js/test/date_tests.
 Js.Date.getDate	green	test262-derived suite: packages/Js/test/date_tests.
@@ -86,13 +68,7 @@ Js.Date.valueOf	green	test262-derived suite: packages/Js/test/date_tests.
 Js.Date.toLocaleString	orange	Aliased to toString; no locale handling (Js_date.ml:323).
 Js.Date.toLocaleDateString	orange	Aliased to toDateString; no locale handling (Js_date.ml:324).
 Js.Date.toLocaleTimeString	orange	Aliased to toTimeString; no locale handling (Js_date.ml:325).
-#
-# --- Js.Dict ---
-#
-# --- Js.Float ---
 Js.Float.toString	green	test262-derived suite: packages/Js/test/number_tests.
-#
-# --- Js.Global ---
 Js.Global.parseFloat	green	test262-derived suite: packages/Js/test/number_tests.
 Js.Global.setTimeout	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
 Js.Global.setTimeoutFloat	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
@@ -100,10 +76,6 @@ Js.Global.setInterval	orange	Runs on the Lwt event loop: inert without a running
 Js.Global.setIntervalFloat	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
 Js.Global.clearTimeout	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
 Js.Global.clearInterval	orange	Runs on the Lwt event loop: inert without a running Lwt main loop (Lwt_main.run/Dream); no 4ms nesting clamp. Tested in test/melange_tests/js_global_timers.ml.
-#
-# --- Js.Nullable ---
-#
-# --- Js.Promise ---
 Js.Promise.make	green	Ported Melange suite + node-cited cases (settles once, executor raise rejects): packages/Js/test/melange_tests/js_promise.ml.
 Js.Promise.resolve	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
 Js.Promise.reject	green	Ported Melange suite: packages/Js/test/melange_tests/js_promise.ml.
@@ -116,8 +88,6 @@ Js.Promise.all6	green	node-cited input-order case: packages/Js/test/melange_test
 Js.Promise.race	green	Ported Melange suite + node-cited cases (empty race, array order, losers not canceled): packages/Js/test/melange_tests/js_promise.ml.
 Js.Promise.then_	orange	A raising callback rejects, as in JS; but callbacks run synchronously when the promise is already settled; JS always queues them as microtasks. Tested in packages/Js/test/melange_tests/js_promise.ml.
 Js.Promise.catch	orange	A raising handler rejects, as in JS; but callbacks run synchronously when the promise is already settled; JS always queues them as microtasks. Tested in packages/Js/test/melange_tests/js_promise.ml.
-#
-# --- Js.Re ---
 Js.Re.exec	green	test262-derived suite: packages/Js/test/regexp_tests.
 Js.Re.test	green	test262-derived suite: packages/Js/test/regexp_tests.
 Js.Re.fromString	green	test262-derived suite: packages/Js/test/regexp_tests.
@@ -128,8 +98,6 @@ Js.Re.global	green	test262-derived suite: packages/Js/test/regexp_tests.
 Js.Re.ignoreCase	green	test262-derived suite: packages/Js/test/regexp_tests.
 Js.Re.multiline	green	test262-derived suite: packages/Js/test/regexp_tests.
 Js.Re.unicode	green	test262-derived suite: packages/Js/test/regexp_tests.
-#
-# --- Js.String ---
 Js.String.normalize	green	test262-derived suite: packages/Js/test/string_tests.
 Js.String.search	green	test262-derived suite: packages/Js/test/string_tests.
 Js.String.make	wontfix	Requires JS String() coercion of arbitrary values.
@@ -142,12 +110,8 @@ Js.String.unsafeReplaceBy0	green	node-cited tests in packages/Js/test/test.ml.
 Js.String.unsafeReplaceBy1	orange	Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml.
 Js.String.unsafeReplaceBy2	orange	Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml.
 Js.String.unsafeReplaceBy3	orange	Non-participating capture groups are passed as ""; JS passes undefined. node-cited tests in packages/Js/test/test.ml.
-#
-# --- Js.Types ---
 Js.Types.test	wontfix	Requires JS runtime type tags.
 Js.Types.classify	wontfix	Requires JS runtime type tags.
-#
-# --- Js.Json ---
 Js.Json.classify	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
 Js.Json.parseExn	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
 Js.Json.decodeString	green	Ported Melange suite: packages/Js/test/melange_tests/js_json.ml.
@@ -171,8 +135,6 @@ Js.Json.test	orange	First argument narrowed to t; Melange accepts any value (no 
 Js.Json.stringifyAny	wontfix	Requires JS runtime type information for arbitrary values.
 Js.Json.serializeExn	wontfix	Melange-internal raw serialization; requires the JS runtime.
 Js.Json.deserializeUnsafe	wontfix	Melange-internal raw deserialization; requires the JS runtime.
-#
-# --- Js.Math ---
 Js.Math._E	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
 Js.Math._LN2	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
 Js.Math._LN10	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
@@ -232,8 +194,6 @@ Js.Math.unsafe_trunc	green	Ported Melange suite: packages/Js/test/melange_tests/
 Js.Math.trunc	green	Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
 Js.Math.maxMany_int	orange	Empty array returns min_int; JS Math.max() returns -Infinity. Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
 Js.Math.minMany_int	orange	Empty array returns max_int; JS Math.min() returns Infinity. Ported Melange suite: packages/Js/test/melange_tests/js_math.ml.
-#
-# --- Js.Exn ---
 Js.Exn.asJsExn	green	Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml.
 Js.Exn.message	green	Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml.
 Js.Exn.name	green	Ported Melange suite: packages/Js/test/melange_tests/js_exn.ml.
@@ -241,8 +201,6 @@ Js.Exn.stack	orange	Always None: native exceptions do not capture a JS-style sta
 Js.Exn.fileName	orange	Always None: native exceptions do not carry a file name.
 Js.Exn.anyToExnInternal	wontfix	Requires JS runtime type tags.
 Js.Exn.isCamlExceptionOrOpenVariant	wontfix	Requires JS runtime type tags.
-#
-# --- Js.Null / Js.Undefined / Js.Nullable ---
 Js.Null.toOption	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
 Js.Null.return	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
 Js.Null.empty	green	Ported Melange suite: packages/Js/test/melange_tests/js_null.ml.
@@ -267,11 +225,6 @@ Js.Nullable.map	green	Ported Melange suite: packages/Js/test/melange_tests/js_nu
 Js.Nullable.bind	green	Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml.
 Js.Nullable.iter	green	Ported Melange suite: packages/Js/test/melange_tests/js_nullable.ml.
 Js.Nullable.undefined	orange	null and undefined are both represented as None natively.
-#
-#
-# --- Divergences found while porting the Melange test suites (assertions removed in the ports) ---
-#
-# --- Verified by the ported Melange test suites ---
 Js.Array.concat	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
 Js.Array.concatMany	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
 Js.Array.copy	green	Ported Melange suite: packages/Js/test/melange_tests/js_array.ml.
@@ -334,8 +287,6 @@ Js.String.substring	green	Ported Melange suite: packages/Js/test/melange_tests/j
 Js.String.toLowerCase	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
 Js.String.toUpperCase	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
 Js.String.trim	green	Ported Melange suite: packages/Js/test/melange_tests/js_string.ml.
-#
-# --- Fixed divergences (now verified) ---
 Js.Global.parseInt	green	test262-derived suite: packages/Js/test/number_tests (parse_int.ml).
 Js.Bigint.of_string	green	test262-derived suite: packages/Js/test/bigint_tests (incl. hex e/E digits).
 Js.Bigint.of_string_exn	green	test262-derived suite: packages/Js/test/bigint_tests (incl. hex e/E digits).
@@ -349,11 +300,7 @@ Js.Json.stringifyWithSpace	green	Object key order follows insertion order; node-
 Js.Int.toExponential	green	Ported Melange suite: packages/Js/test/melange_tests/js_int.ml.
 Js.Float.toExponential	green	Ported Melange suite: packages/Js/test/melange_tests/js_float.ml.
 Js.Float.toFixed	green	Ported Melange suite: packages/Js/test/melange_tests/js_float.ml.
-#
-# --- Js.Array modern additions ---
 Js.Array.toSorted	wontfix	JS default comparator string-coerces elements (requires runtime type info); use toSortedWith.
-#
-# --- Verified by ported/authored suites (second pass) ---
 Js.Array.at	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
 Js.Array.entries	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
 Js.Array.findLast	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_array_modern.ml.
@@ -405,8 +352,6 @@ Js.Set.make	green	Ported Melange suite / node-cited: packages/Js/test/melange_te
 Js.Set.size	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
 Js.Set.toArray	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
 Js.Set.values	green	Ported Melange suite / node-cited: packages/Js/test/melange_tests/js_map_set.ml.
-#
-# --- Js.Bigint melange-named API ---
 Js.Bigint.asIntN	green	node-cited test: packages/Js/test/bigint_tests/constructor.ml.
 Js.Bigint.asUintN	green	node-cited test: packages/Js/test/bigint_tests/constructor.ml.
 Js.Bigint.toLocaleString	orange	Ignores the locale and options (no ICU on the server); returns the plain decimal representation.

@@ -442,7 +442,6 @@ expect(
   RouterRuntime.NavigationResponse.kindOfString("failed") == None,
 );
 
-/* Plain string literals are UTF-8 bytes in Melange, so non-ASCII text is built from code units. */
 let encodingTable = [
   ("abc", "abc"),
   ("a b", "a%20b"),

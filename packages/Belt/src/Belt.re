@@ -11,10 +11,6 @@
 */
 module Id = Belt_Id;
 
-/** {!Belt.Array}
-
-    {b mutable array}: Utilities functions
-*/
 module Array = Belt_Array;
 
 /** {!Belt.SortArray}
@@ -38,10 +34,6 @@ module MutableQueue = Belt_MutableQueue;
 */
 module MutableStack = Belt_MutableStack;
 
-/** {!Belt.List}
-
-    Utilities for List data type
-*/
 module List = Belt_List;
 
 /** {!Belt.Range}
@@ -112,27 +104,10 @@ module HashSet = Belt_HashSet;
 */
 module HashMap = Belt_HashMap;
 
-/** {!Belt.Option}
-
-    Utilities for option data type.
-*/
 module Option = Belt_Option;
-
-/** {!Belt.Result}
-
-    Utilities for result data type.
-*/;
 
 module Result = Belt_Result;
 
-/** {!Belt.Int}
-    Utilities for Int.
-*/;
-
 module Int = Belt_Int;
-
-/** {!Belt.Float}
-    Utilities for Float.
-*/;
 
 module Float = Belt_Float;

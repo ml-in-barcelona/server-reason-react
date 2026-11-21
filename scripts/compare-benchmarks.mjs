@@ -1,12 +1,7 @@
-// Render a markdown comparison between the current benchmark run and the
-// cached baseline from main (github-action-benchmark external data format).
-//
-// Usage: node scripts/compare-benchmarks.mjs <bench_results.json> <benchmark-data.json>
-
 import fs from 'node:fs';
 
 const BENCHMARK_NAME = 'server-reason-react Benchmarks';
-const NOISE_THRESHOLD = 5; // percent
+const NOISE_THRESHOLD = 5;
 
 const [currentPath, baselinePath] = process.argv.slice(2);
 

@@ -1,5 +1,3 @@
-/* Async sections resolve via Lwt.return on purpose: the benchmark measures render cost, not waiting. */
-
 module Item = {
   [@react.component]
   let make = (~id) => {

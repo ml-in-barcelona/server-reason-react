@@ -1,9 +1,5 @@
 let hash _location = ""
-
-(* TODO: Maybe this should be implemented? *)
 let path ?serverUrlString:_ () = []
-
-(* TODO: Maybe this should be implemented? *)
 let search ?serverUrlString:_ () = ""
 let push (_path : string) = ()
 let replace (_path : string) = ()

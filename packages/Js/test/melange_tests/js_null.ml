@@ -1,5 +1,3 @@
-(** Ported from Melange's test suite: jscomp/test/js_null_test.ml (melange 6.0.1-54). *)
-
 open Helpers
 open Js.Null
 
@@ -25,7 +23,6 @@ let tests =
         assert_int !hit 2);
     test "fromOption - None" (fun () -> ok (fromOption None = empty));
     test "fromOption - Some" (fun () -> ok (fromOption (Some 2) = return 2));
-    (* Extra: melange raises a JS Error with this message (js_null.ml getExn). *)
     test "getExn raises Js.Exn.Error" (fun () ->
         (match getExn empty with _ -> Alcotest.fail "expected raise" | exception Js.Exn.Error "Js.Null.getExn" -> ());
         assert_int (getExn (return 2)) 2);

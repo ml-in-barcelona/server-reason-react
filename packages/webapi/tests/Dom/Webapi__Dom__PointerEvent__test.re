@@ -3,7 +3,6 @@ open PointerEvent;
 
 let event = make("my-event");
 
-/* Event */
 let _ = bubbles(event);
 let _ = cancelable(event);
 let _ = composed(event);
@@ -19,11 +18,9 @@ preventDefault(event);
 stopImmediatePropagation(event);
 stopPropagation(event);
 
-/* UIEvent */
 let _ = detail(event);
 let _ = view(event);
 
-/* MouseEvent */
 let _ = altKey(event);
 let _ = button(event);
 let _ = buttons(event);
@@ -46,7 +43,6 @@ let _ = x(event);
 let _ = y(event);
 let _ = getModifierState(Alt, event);
 
-/* PointerEvent */
 let _ = pointerId(event);
 let _ = width(event);
 let _ = height(event);

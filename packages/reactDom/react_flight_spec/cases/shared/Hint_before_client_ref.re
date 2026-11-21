@@ -1,7 +1,3 @@
-/* Within one flush React writes import (I) rows before hint (H) rows
-   regardless of call order: a preload issued before the client reference is
-   encountered still streams after the I row (imports, then hints, then
-   regular rows). */
 module App = {
   [@react.component]
   let make = () => {

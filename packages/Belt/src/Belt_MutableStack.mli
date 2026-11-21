@@ -29,10 +29,7 @@
 type 'a t
 
 val make : unit -> 'a t
-(** @return a new stack, initially empty. *)
-
 val clear : 'a t -> unit
-(** Discard all elements from the stack. *)
 
 val copy : 'a t -> 'a t
 (** [copy x] O(1) operation, return a new stack *)

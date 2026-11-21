@@ -1,5 +1,3 @@
-(** JavaScript Date API. *)
-
 type t
 
 val valueOf : t -> float

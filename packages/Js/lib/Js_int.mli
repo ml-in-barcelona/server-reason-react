@@ -1,5 +1,3 @@
-(** Provides functions for inspecting and manipulating [int]s *)
-
 type t = int
 
 val toExponential : ?digits:t -> t -> string

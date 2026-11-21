@@ -51,11 +51,6 @@ let render_manifest manifest =
             | Some name -> Printf.sprintf "%s.make_client" (print_module_name name)
             | None -> "make_client"
           in
-          (* A loader record, not a React.lazy: the Flight client's $L references already provide
-             laziness (preloadModule starts the import and blocks the module chunk; requireModule
-             returns the component synchronously once loaded). Wrapping in React.lazy produced a
-             lazy-resolving-to-lazy element type, which React rejects when the chunk isn't already
-             loaded ("Lazy element type must resolve to a class or function"). *)
           Printf.sprintf
             "window.__client_manifest_map[\"%s\"] = { load: () => import(\"%s\").then(module => module.%s) }"
             original_path_with_submodule compiled_js_path export
@@ -74,12 +69,10 @@ window.__server_functions_manifest_map = window.__server_functions_manifest_map 
 %s|}
     (String.concat "\n" register_client_modules)
 
-(* TODO: Add parameter to allow users to configure the extension of the files *)
 let is_js_file path =
   let ext = Filename.extension path in
   ext = ".js" || ext = ".jsx"
 
-(* TODO: refactor path to be a Filepath, not a string *)
 let capture_all_client_modules_files_in_target path =
   let rec traverse_fs path =
     try

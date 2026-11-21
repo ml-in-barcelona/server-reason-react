@@ -13,7 +13,6 @@ js_flag=""
 output_format=""
 input_file=""
 
-# Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
     --output)
@@ -31,7 +30,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Check required arguments
 if [ -z "$output_format" ] || [ -z "$input_file" ]; then
   usage
   exit 1

@@ -1,5 +1,3 @@
-(** JavaScript String API *)
-
 type t = string
 
 val make : 'a -> t [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
@@ -20,10 +18,7 @@ val indexOf : search:t -> ?start:int -> t -> int
 val lastIndexOf : search:t -> ?start:int -> t -> int
 val localeCompare : other:t -> t -> float
 val match_ : regexp:Js_re.t -> t -> t Js_internal.nullable array Js_internal.nullable
-
 val normalize : ?form:[ `NFC | `NFD | `NFKC | `NFKD ] -> t -> t
-(** Returns the Unicode Normalization Form of a string. *)
-
 val repeat : count:int -> t -> t
 val replace : search:t -> replacement:t -> t -> t
 val replaceByRe : regexp:Js_re.t -> replacement:t -> t -> t

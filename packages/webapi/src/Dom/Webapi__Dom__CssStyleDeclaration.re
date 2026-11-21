@@ -1,5 +1,5 @@
 type t = Dom.cssStyleDeclaration;
-type cssRule; /* TODO: Move to Webapi__Dom */
+type cssRule;
 
 [@mel.get] external cssText: t => string = "cssText";
 [@mel.set] external setCssText: (t, string) => unit = "cssText";
@@ -14,8 +14,7 @@ external getPropertyValue: string => string = "getPropertyValue";
 [@mel.send.pipe: t]
 external removeProperty: string => string = "removeProperty";
 [@mel.send.pipe: t]
-external setProperty: (string, string, string) => unit = "setProperty" /*[@@mel.send.pipe : t] external setPropertyValue : (string, string) => unit = "setPropertyValue";*/; /* not mentioned by MDN and not implemented by chrome, but in the CSSOM spec:  https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface */
-/* CSS2Properties */
+external setProperty: (string, string, string) => unit = "setProperty";
 [@mel.get] external azimuth: t => string = "azimuth";
 [@mel.get] external background: t => string = "background";
 [@mel.get] external backgroundAttachment: t => string = "backgroundAttachment";

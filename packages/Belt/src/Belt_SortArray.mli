@@ -22,8 +22,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. *)
 
-(** A module for Array sort relevant utiliites *)
-
 module Int = Belt_SortArrayInt
 (** Specalized when key type is [int], more efficient than the generic type *)
 

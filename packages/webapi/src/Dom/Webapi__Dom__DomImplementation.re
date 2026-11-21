@@ -25,4 +25,4 @@ external createHTMLDocument: Dom.htmlDocument = "createHTMLDocument";
 [@mel.send.pipe: t]
 external createHTMLDocumentWithTitle: string => Dom.htmlDocument =
   "createHTMLDocument";
-[@mel.send.pipe: t] external hasFeature: bool = "hasFeature"; /* useless; always returns true (this is exact wording from the actual spec) */
+[@mel.send.pipe: t] external hasFeature: bool = "hasFeature";

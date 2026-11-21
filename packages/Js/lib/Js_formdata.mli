@@ -1,4 +1,3 @@
-(* TODO: This is a bad implementation for FormData, and not compatible with the Js.FormData from melange.js *)
 type entryValue = [ `String of string ]
 type t = (string, entryValue) Hashtbl.t
 

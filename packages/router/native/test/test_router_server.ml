@@ -469,7 +469,6 @@ let metadata_default_keys () =
   Alcotest.(check string) "property" "property:og:title" (entryKey (property ~property:"og:title" "x"));
   Alcotest.(check string) "link" "link:canonical" (entryKey (link ~rel:"canonical" "/x"));
   Alcotest.(check string) "explicit" "k" (entryKey (link ~key:"k" ~rel:"alternate" "/x"));
-  (* A meta and a link whose names coincide must not replace each other. *)
   let merged = merge (make ~entries:[ meta ~name:"icon" "a" ] ()) (make ~entries:[ link ~rel:"icon" "/i.png" ] ()) in
   Alcotest.(check int) "no accidental collision" 2 (List.length merged.entries);
   let merged = merge (make ~entries:[ meta ~name:"x" "a" ] ()) (make ~entries:[ property ~property:"x" "b" ] ()) in

@@ -1,8 +1,3 @@
-/* Scenario: Table Rendering
-      Real-world data table patterns
-      Purpose: Test realistic table rendering performance
-   */
-
 type user = {
   id: int,
   name: string,
@@ -264,7 +259,6 @@ module DataTable = {
   };
 };
 
-/* Different sizes for comparison */
 module Table10 = {
   let users = generateUsers(10);
   [@react.component]

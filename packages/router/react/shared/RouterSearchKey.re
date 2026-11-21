@@ -1,7 +1,3 @@
-/* Server and client must agree on whether a link is current, or hydration
-   sees a different aria-current. Router URLs are percent-encoded ASCII, so
-   decoding escapes to bytes gives the same strings on both platforms. */
-
 let decode = part =>
   RouterPattern.percentDecode(~plus=true, ~malformed=Keep, part)
   |> Option.value(~default=part);

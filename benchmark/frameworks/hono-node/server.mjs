@@ -1,7 +1,3 @@
-/**
- * Hono + Node.js + React SSR Benchmark Server
- */
-
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import React from "react";
@@ -11,7 +7,6 @@ import * as scenarios from "../shared/scenarios.jsx";
 const app = new Hono();
 const PORT = process.env.PORT || 3003;
 
-// Scenario selection via query param
 app.get("/", (c) => {
   const scenarioName = c.req.query("scenario") || "table100";
   const scenario = scenarios.scenarios[scenarioName];
@@ -29,12 +24,10 @@ app.get("/", (c) => {
   );
 });
 
-// Health check
 app.get("/health", (c) => {
   return c.json({ status: "ok", framework: "hono-node", pid: process.pid });
 });
 
-// List available scenarios
 app.get("/scenarios", (c) => {
   const list = Object.entries(scenarios.scenarios).map(([key, val]) => ({
     key,

@@ -45,8 +45,6 @@ async function startServer() {
   const runDir = await mkdtemp(path.join(os.tmpdir(), "router-e2e-"));
   await mkdir(path.join(runDir, "demo/server/db"), { recursive: true });
   await copyFile(path.join(root, "demo/server/db/notes.json"), path.join(runDir, "demo/server/db/notes.json"));
-  // The demo DB lives under the nearest `_build` above the executable's real path (demo/universal/native/DB.re), so a
-  // copy of the executable inside runDir keeps the checks off the checkout's demo/.running data.
   const demoBuild = path.join(runDir, "_build/default/demo");
   await mkdir(path.join(demoBuild, "server"), { recursive: true });
   await mkdir(path.join(demoBuild, "client"), { recursive: true });

@@ -1,8 +1,3 @@
-/* Scenario: Wide Tree
-      Many siblings at the same level (tests list/array rendering)
-      Purpose: Test horizontal scaling and sibling handling
-   */
-
 module Card = {
   [@react.component]
   let make = (~id, ~title, ~description, ~price, ~rating, ~inStock) => {

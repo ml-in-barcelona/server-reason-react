@@ -11,13 +11,12 @@ module Impl = (T: {
   [@mel.get]
   external accessKeyLabel: t_htmlElement => string = "accessKeyLabel";
   [@mel.get]
-  external contentEditable: t_htmlElement => string /* enum */ =
-    "contentEditable";
+  external contentEditable: t_htmlElement => string = "contentEditable";
   let contentEditable: t_htmlElement => Webapi__Dom__Types.contentEditable =
       self =>
     Webapi__Dom__Types.decodeContentEditable(contentEditable(self));
   [@mel.set]
-  external setContentEditable: (t_htmlElement, string /* enum */) => unit =
+  external setContentEditable: (t_htmlElement, string) => unit =
     "contentEditable";
   let setContentEditable
       : (t_htmlElement, Webapi__Dom__Types.contentEditable) => unit =
@@ -29,50 +28,50 @@ module Impl = (T: {
   [@mel.get]
   external isContentEditable: t_htmlElement => bool = "isContentEditable";
   [@mel.get]
-  external contextMenu: t_htmlElement => Dom.htmlElement = "contextMenu"; /* returns HTMLMenuElement */
+  external contextMenu: t_htmlElement => Dom.htmlElement = "contextMenu";
   [@mel.set]
   external setContextMenu: (t_htmlElement, Dom.htmlElement) => unit =
-    "contextMenu"; /* accepts and returns HTMLMenuElement */
+    "contextMenu";
   [@mel.get] external dataset: t_htmlElement => Dom.domStringMap = "dataset";
-  [@mel.get] external dir: t_htmlElement => string /* enum */ = "dir";
+  [@mel.get] external dir: t_htmlElement => string = "dir";
   let dir: t_htmlElement => Webapi__Dom__Types.dir = self =>
     Webapi__Dom__Types.decodeDir(dir(self));
-  [@mel.set]
-  external setDir: (t_htmlElement, string /* enum */) => unit = "dir";
+  [@mel.set] external setDir: (t_htmlElement, string) => unit = "dir";
   let setDir: (t_htmlElement, Webapi__Dom__Types.dir) => unit = (self, value) =>
     setDir(self, Webapi__Dom__Types.encodeDir(value));
   [@mel.get] external draggable: t_htmlElement => bool = "draggable";
-  [@mel.set] external setDraggable: (t_htmlElement, bool) => unit = "draggable" /*let setDraggable : t_htmlElement => bool => unit = fun self value => setDraggable self (Js.Boolean.to_js_boolean value);*/; /* temproarily removed to reduce codegen size */
+  [@mel.set]
+  external setDraggable: (t_htmlElement, bool) => unit = "draggable";
   [@mel.get]
   external dropzone: t_htmlElement => Dom.domSettableTokenList = "dropzone";
   [@mel.get] external hidden: t_htmlElement => bool = "hidden";
-  [@mel.set] external setHidden: (t_htmlElement, bool) => unit = "hidden" /*let setHidden : t_htmlElement => bool => unit = fun self value => setHidden self (Js.Boolean.to_js_boolean value);*/; /* temproarily removed to reduce codegen size */
-  [@mel.get] external itemScope: t_htmlElement => bool = "itemScope"; /* experimental */
-  [@mel.set] external setItemScope: (t_htmlElement, bool) => unit = "itemScope" /*let setItemScope : t_htmlElement => bool => unit = fun self value => setItemScope self (Js.Boolean.to_js_boolean value);*/; /* experimental */ /* temproarily removed to reduce codegen size */
-  [@mel.get]
-  external itemType: t_htmlElement => Dom.domSettableTokenList = "itemType"; /* experimental */
-  [@mel.get] external itemId: t_htmlElement => string = "itemId"; /* experimental */
-  [@mel.set] external setItemId: (t_htmlElement, string) => unit = "itemId"; /* experimental */
-  [@mel.get]
-  external itemRef: t_htmlElement => Dom.domSettableTokenList = "itemRef"; /* experimental */
-  [@mel.get]
-  external itemProp: t_htmlElement => Dom.domSettableTokenList = "itemProp"; /* experimental */
-  [@mel.get] external itemValue: t_htmlElement => Js.t({..}) = "itemValue"; /* experimental */
+  [@mel.set] external setHidden: (t_htmlElement, bool) => unit = "hidden";
+  [@mel.get] external itemScope: t_htmlElement => bool = "itemScope";
   [@mel.set]
-  external setItemValue: (t_htmlElement, Js.t({..})) => unit = "itemValue"; /* experimental */
+  external setItemScope: (t_htmlElement, bool) => unit = "itemScope";
+  [@mel.get]
+  external itemType: t_htmlElement => Dom.domSettableTokenList = "itemType";
+  [@mel.get] external itemId: t_htmlElement => string = "itemId";
+  [@mel.set] external setItemId: (t_htmlElement, string) => unit = "itemId";
+  [@mel.get]
+  external itemRef: t_htmlElement => Dom.domSettableTokenList = "itemRef";
+  [@mel.get]
+  external itemProp: t_htmlElement => Dom.domSettableTokenList = "itemProp";
+  [@mel.get] external itemValue: t_htmlElement => Js.t({..}) = "itemValue";
+  [@mel.set]
+  external setItemValue: (t_htmlElement, Js.t({..})) => unit = "itemValue";
   [@mel.get] external lang: t_htmlElement => string = "lang";
   [@mel.set] external setLang: (t_htmlElement, string) => unit = "lang";
-  [@mel.get] external offsetHeight: t_htmlElement => int = "offsetHeight"; /* experimental */
-  [@mel.get] external offsetLeft: t_htmlElement => int = "offsetLeft"; /* experimental */
+  [@mel.get] external offsetHeight: t_htmlElement => int = "offsetHeight";
+  [@mel.get] external offsetLeft: t_htmlElement => int = "offsetLeft";
   [@mel.get] [@mel.return nullable]
   external offsetParent: t_htmlElement => option(Dom.element) =
-    "offsetParent"; /* experimental */
-  [@mel.get] external offsetTop: t_htmlElement => int = "offsetTop"; /* experimental, but widely supported */
-  [@mel.get] external offsetWidth: t_htmlElement => int = "offsetWidth"; /* experimental */
-  /*external properties : r => HTMLPropertiesCollection.t = "properties" [@@mel.get]; /* experimental */*/
+    "offsetParent";
+  [@mel.get] external offsetTop: t_htmlElement => int = "offsetTop";
+  [@mel.get] external offsetWidth: t_htmlElement => int = "offsetWidth";
   [@mel.get] external spellcheck: t_htmlElement => bool = "spellcheck";
   [@mel.set]
-  external setSpellcheck: (t_htmlElement, bool) => unit = "spellcheck" /*let setSpellcheck : t_htmlElement => bool => unit = fun self value => setSpellcheck self (Js.Boolean.to_js_boolean value);*/; /* temproarily removed to reduce codegen size */
+  external setSpellcheck: (t_htmlElement, bool) => unit = "spellcheck";
   [@mel.get]
   external style: t_htmlElement => Dom.cssStyleDeclaration = "style";
   [@mel.set]
@@ -82,8 +81,9 @@ module Impl = (T: {
   [@mel.set] external setTabIndex: (t_htmlElement, int) => unit = "tabIndex";
   [@mel.get] external title: t_htmlElement => string = "title";
   [@mel.set] external setTitle: (t_htmlElement, string) => unit = "title";
-  [@mel.get] external translate: t_htmlElement => bool = "translate"; /* experimental */
-  [@mel.set] external setTranslate: (t_htmlElement, bool) => unit = "translate" /*let setTranslate : t_htmlElement => bool => unit = fun self value => setTranslate self (Js.Boolean.to_js_boolean value);*/; /* experimental */ /* temproarily removed to reduce codegen size */
+  [@mel.get] external translate: t_htmlElement => bool = "translate";
+  [@mel.set]
+  external setTranslate: (t_htmlElement, bool) => unit = "translate";
   [@mel.send.pipe: t_htmlElement] external blur: unit = "blur";
   [@mel.send.pipe: t_htmlElement] external click: unit = "click";
   [@mel.send.pipe: t_htmlElement] external focus: unit = "focus";
@@ -92,27 +92,17 @@ module Impl = (T: {
     ([@mel.as {json|{ "preventScroll": true }|json}] _) => unit =
     "focus";
   [@mel.send.pipe: t_htmlElement]
-  external forceSpellCheck: unit = "forceSpellCheck"; /* experimental */
+  external forceSpellCheck: unit = "forceSpellCheck";
 
-  /* TODO: element-spcific, should be pulled out */
-  [@mel.get] external value: t_htmlElement => string = "value"; /* HTMLInputElement */
-  [@mel.get] external checked: t_htmlElement => bool = "checked"; /* HTMLInputElement */
-  [@mel.get] external type_: t_htmlElement => string = "type"; /* HTMLStyleElement */
-  [@mel.set] external setType: (t_htmlElement, string) => unit = "type"; /* HTMLStyleElement */
-  [@mel.get] external rel: t_htmlElement => string = "rel"; /* HTMLLinkElement */
-  [@mel.set] external setRel: (t_htmlElement, string) => unit = "rel"; /* HTMLLinkElement */
-  [@mel.get] external href: t_htmlElement => string = "href"; /* HTMLLinkElement, HTMLAnchorElement */
-  [@mel.set] external setHref: (t_htmlElement, string) => unit = "href"; /* HTMLLinkElement, HTMLAnchorElement */
+  [@mel.get] external value: t_htmlElement => string = "value";
+  [@mel.get] external checked: t_htmlElement => bool = "checked";
+  [@mel.get] external type_: t_htmlElement => string = "type";
+  [@mel.set] external setType: (t_htmlElement, string) => unit = "type";
+  [@mel.get] external rel: t_htmlElement => string = "rel";
+  [@mel.set] external setRel: (t_htmlElement, string) => unit = "rel";
+  [@mel.get] external href: t_htmlElement => string = "href";
+  [@mel.set] external setHref: (t_htmlElement, string) => unit = "href";
 };
-
-/* TODO
-   module Tree (T: { type t; }) => {
-     include ElementRe.Tree { type t = Type };
-     include Impl { type t = Type };
-   };
-
-   include Tree { type t = Dom.htmlElement };
-   */
 
 type t = Dom.htmlElement;
 

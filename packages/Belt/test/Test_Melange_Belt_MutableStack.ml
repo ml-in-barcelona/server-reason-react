@@ -1,8 +1,3 @@
-(* Ported from melange jscomp/test/bs_stack_test.ml.
-   The melange original models the tree with [Js.undefined] children and a
-   [@@deriving jsProperties, getSet] record; natively we use plain records with
-   [option] children instead. *)
-
 module S = Belt.MutableStack
 module Q = Belt.MutableQueue
 
@@ -39,9 +34,6 @@ let in_order3 (root : node option) : int array =
       Q.add q popped.value;
       push_all_left popped.right s);
   Q.toArray q
-
-(* skipped (melange-only): inOrder2 builds no observable result and is never
-   asserted in the melange original; test2/test3 trees are likewise unused *)
 
 let test1 = n 1 ~l:(n 2 ~l:(n 4) ~r:(n 5)) ~r:(n 3)
 

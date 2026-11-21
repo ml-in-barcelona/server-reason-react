@@ -105,7 +105,6 @@ let string_tests =
         assert_string (Js.String.get "Reason" 0) "R";
         assert_string (Js.String.get "Reason" 4) "o";
         assert_string (Js.String.get {js|Rẽasöń|js} 5) {js|ń|js};
-        (* JavaScript returns undefined out of bounds; the closest [t] value is "" *)
         assert_string (Js.String.get "Reason" 12) "");
     test "fromCharCode" (fun () ->
         assert_string (Js.String.fromCharCode 65) "A";
@@ -114,7 +113,6 @@ let string_tests =
         assert_string (Js.String.fromCharCode (-64568)) {js|ψ|js});
     test "fromCharCodeMany" (fun () ->
         assert_string (Js.String.fromCharCodeMany [| 0xd55c; 0xae00; 33 |]) {js|한글!|js};
-        (* surrogate halves pair up into a single code point *)
         assert_string (Js.String.fromCharCodeMany [| 0xd83d; 0xde00 |]) {js|😀|js});
     test "fromCodePoint" (fun () ->
         assert_string (Js.String.fromCodePoint 65) "A";
@@ -139,7 +137,6 @@ let string_tests =
         assert_option_int (Js.String.codePointAt "lola" ~index:1) (Some 111);
         assert_option_int (Js.String.codePointAt {js|¿😺?|js} ~index:1) (Some 0x1f63a);
         assert_option_int (Js.String.codePointAt {js|😀|js} ~index:0) (Some 0x1f600);
-        (* index on the low surrogate returns the trailing surrogate value *)
         assert_option_int (Js.String.codePointAt {js|😀|js} ~index:1) (Some 0xde00);
         assert_option_int (Js.String.codePointAt "abc" ~index:5) None);
     test "concat" (fun () -> assert_string (Js.String.concat "cow" ~other:"bell") "cowbell");
@@ -171,7 +168,6 @@ let string_tests =
         assert_int (Js.String.indexOf "bookseller" ~search:"sell" ~start:2) 4;
         assert_int (Js.String.indexOf "bookseller" ~search:"sell" ~start:5) (-1);
         assert_int (Js.String.indexOf "bookseller" ~search:"xyz") (-1);
-        (* negative start clamps to 0; indices are UTF-16 code units *)
         assert_int (Js.String.indexOf "bookseller" ~search:"ok" ~start:(-3)) 2;
         assert_int (Js.String.indexOf {js|éb|js} ~search:"b") 1;
         assert_int (Js.String.indexOf {js|a😀b|js} ~search:"b") 3);
@@ -202,25 +198,20 @@ let string_tests =
         assert_string_option_array
           (unsafe_match [%re "/(\\d+)-(\\d+)-(\\d+)/g"] "2018-04-05 2019-05-06")
           [| Some "2018-04-05"; Some "2019-05-06" |];
-        (* empty matches are all found, like "abc".match(/x*/g) *)
         assert_string_option_array (unsafe_match [%re "/x*/g"] "abc") [| Some ""; Some ""; Some ""; Some "" |];
-        (* no match with the global flag returns None (null in JavaScript) *)
         assert_bool (Js.String.match_ ~regexp:[%re "/b[aeiou]g/g"] "The large container." = None) true);
     test "repeat" (fun () ->
         assert_string (Js.String.repeat "ha" ~count:3) "hahaha";
         assert_string (Js.String.repeat "empty" ~count:0) "";
-        (* JavaScript raises RangeError on a negative count *)
         match Js.String.repeat "ha" ~count:(-1) with
         | exception Invalid_argument _ -> ()
         | (_ : string) -> Alcotest.fail "repeat with a negative count should raise Invalid_argument");
     test "replace" (fun () ->
         assert_string (Js.String.replace ~search:"old" ~replacement:"new" "old string") "new string";
         assert_string (Js.String.replace ~search:"the" ~replacement:"this" "the cat and the dog") "this cat and the dog";
-        (* only the first occurrence is replaced; $&, $$, $`, $' are expanded *)
         assert_string (Js.String.replace ~search:"a" ~replacement:"[$&]" "banana") "b[a]nana";
         assert_string (Js.String.replace ~search:"price" ~replacement:"$$100" "price") "$100";
         assert_string (Js.String.replace ~search:"cd" ~replacement:"[$`|$']" "abcdef") "ab[ab|ef]ef";
-        (* backslash sequences are literal, not backreferences *)
         assert_string (Js.String.replace ~search:"b" ~replacement:"\\1" "abc") "a\\1c");
     test "replaceByRe" (fun () ->
         assert_string (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x") "xavid");
@@ -243,13 +234,10 @@ let string_tests =
           (Js.String.replaceByRe "vowels be gone" ~regexp:[%re "/[aeiou]/g"] ~replacement:"x")
           "vxwxls bx gxnx");
     test "replaceByRe global empty matches" (fun () ->
-        (* "abc".replace(/x*/g, "-") = "-a-b-c-" *)
         assert_string (Js.String.replaceByRe "abc" ~regexp:[%re "/x*/g"] ~replacement:"-") "-a-b-c-");
     test "replaceByRe global on multibyte input" (fun () ->
-        (* "éb".replace(/b/g, "X") = "éX": UTF-16 index 1 is byte offset 2 *)
         assert_string (Js.String.replaceByRe {js|éb|js} ~regexp:[%re "/b/g"] ~replacement:"X") {js|éX|js});
     test "replaceByRe unicode flag advances over full code points" (fun () ->
-        (* "😀a".replace(/x*/gu, "-") = "-😀-a-" *)
         assert_string (Js.String.replaceByRe {js|😀a|js} ~regexp:[%re "/x*/gu"] ~replacement:"-") {js|-😀-a-|js});
     test "replaceByRe leaves lastIndex at 0 after a global replace" (fun () ->
         let regexp = [%re "/b/g"] in
@@ -261,10 +249,8 @@ let string_tests =
           (Js.String.replaceByRe "John Smith" ~regexp:[%re "/(?<first>\\w+) (?<last>\\w+)/"] ~replacement:"$2 $1")
           "Smith John");
     test "replaceByRe with a non-participating group" (fun () ->
-        (* "ac".replace(/a(b)?c/, "[$1]") = "[]" *)
         assert_string (Js.String.replaceByRe "ac" ~regexp:[%re "/a(b)?c/"] ~replacement:"[$1]") "[]");
     test "replaceByRe with an invalid group reference" (fun () ->
-        (* "abc".replace(/b/, "$9") = "a$9c" *)
         assert_string (Js.String.replaceByRe "abc" ~regexp:[%re "/b/"] ~replacement:"$9") "a$9c");
     test "replaceByRe with $` on the original string" (fun () ->
         assert_string (Js.String.replaceByRe "abcdef" ~regexp:[%re "/cd/"] ~replacement:"<$`>") "ab<ab>ef");
@@ -280,17 +266,12 @@ let string_tests =
         assert_string (Js.String.replaceByRe "ab" ~regexp ~replacement:"X") "aX";
         assert_int (Js.Re.lastIndex regexp) 2);
     test "splitByRe with sticky flag scans like JavaScript" (fun () ->
-        (* "a-b-c".split(/-/y) = ["a", "b", "c"] *)
         assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/-/y"] "a-b-c") [| Some "a"; Some "b"; Some "c" |]);
     test "splitByRe does not touch the caller's lastIndex" (fun () ->
         let regexp = [%re "/-/g"] in
         Js.Re.setLastIndex regexp 4;
         ignore (Js.String.splitByRe ~regexp "a-b-c");
         assert_int (Js.Re.lastIndex regexp) 4);
-    (* unsafeReplaceBy examples come from the Melange documentation; expected
-       strings are node's output for the equivalent String.prototype.replace
-       calls (the doc example for unsafeReplaceBy0 has a typo: node returns
-       "bEAUtIfUl vOwEls", with the "i" uppercased too). *)
     test "unsafeReplaceBy0" (fun () ->
         let str = "beautiful vowels" in
         let matchFn matchPart _offset _wholeString = Js.String.toUpperCase matchPart in
@@ -321,7 +302,6 @@ let string_tests =
         let replaced = Js.String.unsafeReplaceBy2 ~regexp:[%re "/(\\d+) times (\\d+)/"] ~f:matchFn str in
         assert_string replaced "42");
     test "unsafeReplaceBy0 offset is a UTF-16 index" (fun () ->
-        (* "a😀b".replace(/b/, (m, offset) => String(offset)) = "a😀3" (node) *)
         let replaced =
           Js.String.unsafeReplaceBy0 ~regexp:[%re "/b/"]
             ~f:(fun _ offset _ -> string_of_int offset)
@@ -339,7 +319,6 @@ let string_tests =
         assert_string (Js.String.slice ~start:4 "abcdefg") "efg";
         assert_string (Js.String.slice ~start:(-2) "abcdefg") "fg";
         assert_string (Js.String.slice ~start:7 "abcdefg") "";
-        (* UTF-16 indices: "a😀b".slice(1, 3) = "😀" *)
         assert_string (Js.String.slice ~start:1 ~end_:3 {js|a😀b|js}) {js|😀|js};
         assert_string (Js.String.slice ~start:(-1) {js|😀x|js}) "x");
     test "split" (fun () ->
@@ -377,15 +356,12 @@ let string_tests =
           (Js.String.split ~sep:"/" ~limit:9 "ant/bee/cat/dog/elk")
           [| "ant"; "bee"; "cat"; "dog"; "elk" |]);
     test "split unicode" (fun () ->
-        (* an empty separator splits per UTF-16 code unit; "é" is one unit *)
         assert_string_array (Js.String.split ~sep:"" {js|héllo|js}) [| "h"; {js|é|js}; "l"; "l"; "o" |]);
     test "split without separator" (fun () ->
-        (* str.split(undefined) is [str], like in JavaScript *)
         assert_string_array (Js.String.split "abc") [| "abc" |];
         assert_string_array (Js.String.split ~limit:2 "abc") [| "abc" |];
         assert_string_array (Js.String.split ~limit:0 "abc") [||]);
     test "split empty string" (fun () ->
-        (* "".split("-") is [""], but "".split("") is [] *)
         assert_string_array (Js.String.split ~sep:"-" "") [| "" |];
         assert_string_array (Js.String.split ~sep:"" "") [||]);
     test "splitByRe" (fun () ->
@@ -395,7 +371,6 @@ let string_tests =
           [| "art"; "bed"; "cog"; "dad" |];
         assert_string_array (unsafe_splitByRe "has:no:match" [%re "/[,;]/"]) [| "has:no:match" |]);
     test "splitByRe with empty-match regex terminates" (fun () ->
-        (* "abc".split(/x*/) = ["a", "b", "c"] *)
         assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/x*/"] "abc") [| Some "a"; Some "b"; Some "c" |];
         assert_string_option_array (Js.String.splitByRe ~regexp:[%re "/x*/g"] "abc") [| Some "a"; Some "b"; Some "c" |]);
     test "splitByRe handles a separator that splits a surrogate pair" (fun () ->
@@ -403,7 +378,6 @@ let string_tests =
           (Js.String.splitByRe ~regexp:(Js.Re.fromString "\\uD83D") {js|😀|js})
           [| Some ""; Some {js|�|js} |]);
     test "splitByRe splices captures in" (fun () ->
-        (* "a#b#:c".split(/(#)(:)?/) = ["a", "#", undefined, "b", "#", ":", "c"] *)
         assert_string_option_array
           (Js.String.splitByRe ~regexp:[%re "/(#)(:)?/"] "a#b#:c")
           [| Some "a"; Some "#"; None; Some "b"; Some "#"; Some ":"; Some "c" |]);
@@ -417,11 +391,9 @@ let string_tests =
         assert_string_option_array
           (Js.String.splitByRe ~regexp:[%re "/\\s*:\\s*/"] ~limit:8 "one: two: three: four")
           [| Some "one"; Some "two"; Some "three"; Some "four" |];
-        (* spliced captures count toward the limit *)
         assert_string_option_array
           (Js.String.splitByRe ~regexp:[%re "/(#)(:)?/"] ~limit:3 "a#b#:c")
           [| Some "a"; Some "#"; None |];
-        (* negative limits are coerced with ToUint32 and behave as "no limit" *)
         assert_string_option_array
           (Js.String.splitByRe ~regexp:[%re "/,/"] ~limit:(-1) "a,b,c")
           [| Some "a"; Some "b"; Some "c" |]);
@@ -432,7 +404,6 @@ let string_tests =
         assert_bool (Js.String.startsWith ~prefix:"cri" ~start:3 "ReScript") true;
         assert_bool (Js.String.startsWith ~prefix:"" ~start:3 "ReScript") true;
         assert_bool (Js.String.startsWith ~prefix:"Re" ~start:2 "JavaScript") false;
-        (* negative start clamps to 0; positions are UTF-16 code units *)
         assert_bool (Js.String.startsWith ~prefix:"He" ~start:(-5) "Hello") true;
         assert_bool (Js.String.startsWith ~prefix:"b" ~start:2 {js|😀b|js}) true);
     test "substr" (fun () ->
@@ -450,7 +421,6 @@ let string_tests =
         assert_string (Js.String.substring ~start:4 "playground") "ground";
         assert_string (Js.String.substring ~start:(-3) "playground") "playground";
         assert_string (Js.String.substring ~start:12 "playground") "";
-        (* UTF-16 indices: "a😀b".substring(3) = "b" *)
         assert_string (Js.String.substring ~start:3 {js|a😀b|js}) "b");
     test "toLowerCase" (fun () ->
         assert_string (Js.String.toLowerCase "") "";
@@ -471,17 +441,12 @@ let string_tests =
     test "trim" (fun () ->
         assert_string (Js.String.trim "   abc def   ") "abc def";
         assert_string (Js.String.trim "\n\r\t abc def \n\n\t\r ") "abc def";
-        (* the ECMA-262 WhiteSpace set includes \f, NBSP and the BOM *)
         assert_string (Js.String.trim "\x0Cx\x0C") "x";
         assert_string (Js.String.trim "\u{00A0}x\u{00A0}") "x";
         assert_string (Js.String.trim "\u{FEFF}x\u{FEFF}") "x";
-        (* U+180E (Mongolian vowel separator) is not whitespace since Unicode 6.3 *)
         assert_string (Js.String.trim "\u{180E}x\u{180E}") "\u{180E}x\u{180E}");
-    test "anchor" (fun () ->
-        (* node: anchor with a double quote in the name escapes it as &quot; *)
-        assert_string (Js.String.anchor ~name:"bar\"baz" "foo") "<a name=\"bar&quot;baz\">foo</a>");
+    test "anchor" (fun () -> assert_string (Js.String.anchor ~name:"bar\"baz" "foo") "<a name=\"bar&quot;baz\">foo</a>");
     test "link" (fun () ->
-        (* node: link wraps in an <a href> tag, expected output verified in node *)
         assert_string
           (Js.String.link ~href:"https://x.com?a=1&b=2" "click")
           "<a href=\"https://x.com?a=1&b=2\">click</a>");
@@ -576,25 +541,15 @@ let global_tests =
         assert_string (Js.Global.encodeURI "http://unipro.ru/\nabout") "http://unipro.ru/%0Aabout";
         assert_string (Js.Global.encodeURI "http://unipro.ru/\rabout") "http://unipro.ru/%0Dabout");
     test "encodeURI - combining characters" (fun () ->
-        (* Characters with combining diacritical marks *)
-        assert_string (Js.Global.encodeURI "é") (* e + acute accent as single char *) "%C3%A9";
-        assert_string (Js.Global.encodeURI "e\u{0301}") (* e + combining acute accent *) "e%CC%81";
-        assert_string (Js.Global.encodeURI "ế") (* e + circumflex + acute *) "%E1%BA%BF");
+        assert_string (Js.Global.encodeURI "é") "%C3%A9";
+        assert_string (Js.Global.encodeURI "e\u{0301}") "e%CC%81";
+        assert_string (Js.Global.encodeURI "ế") "%E1%BA%BF");
     test "encodeURI - Surrogate pairs" (fun () ->
-        (* Surrogate pairs for emoji and complex Unicode *)
-        assert_string (Js.Global.encodeURI "𝌆") (* Musical symbol *) "%F0%9D%8C%86";
-        assert_string (Js.Global.encodeURI "🌍") (* Earth globe *) "%F0%9F%8C%8D";
+        assert_string (Js.Global.encodeURI "𝌆") "%F0%9D%8C%86";
+        assert_string (Js.Global.encodeURI "🌍") "%F0%9F%8C%8D";
         assert_string
-          (Js.Global.encodeURI "👨‍👩‍👧‍👦") (* Family emoji with ZWJ sequences *)
+          (Js.Global.encodeURI "👨‍👩‍👧‍👦")
           "%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%E2%80%8D%F0%9F%91%A6");
-    (* \v and \f are not supported in ocaml *)
-    (*
-       assert_string
-         (Js.Global.decodeURIComponent "http://unipro.ru/%0Babout")
-          "http://unipro.ru/\vabout";
-        assert_string
-          (Js.Global.decodeURIComponent "http://unipro.ru/%0Cabout")
-          "http://unipro.ru/\fabout"; *)
     test "encodeURIComponent" (fun () ->
         assert_string (Js.Global.encodeURIComponent "http://unipro.ru") "http%3A%2F%2Funipro.ru";
         assert_string
@@ -605,13 +560,6 @@ let global_tests =
         assert_string (Js.Global.encodeURIComponent "abcdefghijklmnopqrstuvwxyz") "abcdefghijklmnopqrstuvwxyz";
         assert_string (Js.Global.encodeURIComponent "http://unipro.ru/\nabout") "http%3A%2F%2Funipro.ru%2F%0Aabout";
         assert_string (Js.Global.encodeURIComponent "http://unipro.ru/\rabout") "http%3A%2F%2Funipro.ru%2F%0Dabout");
-    (* \v and \f are not supported in ocaml
-       assert_string
-         (Js.Global.encodeURIComponent "http://unipro.ru/\vabout")
-         "http%3A%2F%2Funipro.ru%2F%0Babout";
-       assert_string
-         (Js.Global.encodeURIComponent "http://unipro.ru/\fabout")
-         "http%3A%2F%2Funipro.ru%2F%0Cabout"; *)
   ]
 
 let obj () = Js.Dict.fromList [ ("foo", 43); ("bar", 86) ]
@@ -687,14 +635,10 @@ let dict_tests =
         let o = Js.Dict.empty () in
         Js.Dict.set o "foo" 36;
         assert_option_int (Js.Dict.get o "foo") (Some 36));
-    (* node: Object.keys({david:99,foo:43,bar:86}) = ['david','foo','bar'] — insertion order *)
     test "keys" (fun _ -> assert_string_array (Js.Dict.keys (long_obj ())) [| "david"; "foo"; "bar" |]);
-    (* node: Object.keys({foo:43,bar:86,bar:1}) = ['foo','bar'] — duplicate keys collapse, first position kept *)
     test "keys duplicated" (fun _ -> assert_string_array (Js.Dict.keys (obj_duplicated ())) [| "foo"; "bar" |]);
-    (* node: Object.entries({foo:43,bar:86}) = [['foo',43],['bar',86]] *)
     test "entries" (fun _ -> assert_int_dict_entries (Js.Dict.entries (obj ())) [| ("foo", 43); ("bar", 86) |]);
     test "values" (fun _ -> assert_array_int (Js.Dict.values (obj ())) [| 43; 86 |]);
-    (* node: Object.values({foo:43,bar:86,bar:1}) = [43,1] — last value wins *)
     test "values duplicated" (fun _ -> assert_array_int (Js.Dict.values (obj_duplicated ())) [| 43; 1 |]);
     test "fromList - []" (fun _ -> assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromList [])) [||]);
     test "fromList" (fun _ ->
@@ -708,7 +652,6 @@ let dict_tests =
         let prices = Js.Dict.fromList [ ("pen", 1); ("book", 5); ("stapler", 7) ] in
         let discount price = price * 10 in
         let salePrices = Js.Dict.map ~f:discount prices in
-        (* insertion order: pen, book, stapler *)
         assert_int_dict_entries (Js.Dict.entries salePrices) [| ("pen", 10); ("book", 50); ("stapler", 70) |]);
   ]
 
@@ -769,22 +712,15 @@ let float_tests =
         assert_float (Js.Float.fromString "Infinity") Stdlib.Float.infinity;
         assert_float (Js.Float.fromString "-Infinity") Stdlib.Float.neg_infinity);
     test "fromString follows JS Number() semantics" (fun () ->
-        (* node: Number("abc") is NaN (Number(), not parseFloat) *)
         assert_float_exact (Js.Float.fromString "abc") Stdlib.Float.nan;
-        (* node: Number("3.5px") is NaN, unlike parseFloat("3.5px") === 3.5 *)
         assert_float_exact (Js.Float.fromString "3.5px") Stdlib.Float.nan;
-        (* node: Number("1_0") is NaN (no numeric separators) *)
         assert_float_exact (Js.Float.fromString "1_0") Stdlib.Float.nan;
-        (* node: Number("") === 0 and Number("   ") === 0 *)
         assert_float_exact (Js.Float.fromString "") 0.;
         assert_float_exact (Js.Float.fromString "   ") 0.;
-        (* node: Number(" 42 ") === 42 (whitespace trimmed on both sides) *)
         assert_float_exact (Js.Float.fromString " 42 ") 42.;
-        (* node: Number("0x10") === 16, Number("0b101") === 5, Number("0o17") === 15 *)
         assert_float_exact (Js.Float.fromString "0x10") 16.;
         assert_float_exact (Js.Float.fromString "0b101") 5.;
         assert_float_exact (Js.Float.fromString "0o17") 15.;
-        (* node: Number("+Infinity") === Infinity *)
         assert_float_exact (Js.Float.fromString "+Infinity") Stdlib.Float.infinity);
     test "toFixed" (fun () ->
         assert_string (Js.Float.toFixed 12.3456) "12";
@@ -822,7 +758,6 @@ let float_tests =
 
 let math_tests =
   [
-    (* Full double-precision values, verified against node's Math.* *)
     test "constants" (fun () ->
         assert_float_exact Js.Math._E 2.718281828459045;
         assert_float_exact Js.Math._LN2 0.6931471805599453;
@@ -841,7 +776,6 @@ let () =
          ("Js.Global", global_tests);
          ("Js.Global.timers", Melange_tests.Js_global_timers.tests);
          ("Js.Math", math_tests);
-         (* Ported from Melange's test suite (jscomp/test) *)
          ("Melange.Js.Math", Melange_tests.Js_math.tests);
          ("Melange.Js.Array", Melange_tests.Js_array.tests);
          ("Melange.Js.Json", Melange_tests.Js_json.tests);
@@ -867,7 +801,6 @@ let () =
          ("Js.Obj", obj_tests);
          ("Js.Dict", dict_tests);
          ("Js.Undefined", Undefined_tests.Undefined.tests);
-         (* Test262 - BigInt *)
          ("BigInt.Arithmetic", Bigint_tests.Arithmetic.tests);
          ("BigInt.Bitwise", Bigint_tests.Bitwise.tests);
          ("BigInt.Comparison", Bigint_tests.Comparison.tests);
@@ -876,7 +809,6 @@ let () =
          ("BigInt.AsIntN", Bigint_tests.As_int_n.tests);
          ("BigInt.AsUintN", Bigint_tests.As_uint_n.tests);
          ("BigInt.Prototype", Bigint_tests.Prototype.tests);
-         (* Test262 - Date *)
          ("Date.Getters", Date_tests.Getters.tests);
          ("Date.LocalGetters", Date_tests.Local_getters.tests);
          ("Date.Setters", Date_tests.Setters.tests);
@@ -886,7 +818,6 @@ let () =
          ("Date.LocalTime", Date_tests.Local_time.tests);
          ("Date.ToISOString", Date_tests.To_iso_string.tests);
          ("Date.UTC", Date_tests.Utc.tests);
-         (* Test262 - Number *)
          ("Number.IsFinite", Number_tests.Is_finite.tests);
          ("Number.IsInteger", Number_tests.Is_integer.tests);
          ("Number.IsNaN", Number_tests.Is_nan.tests);
@@ -895,10 +826,8 @@ let () =
          ("Number.ToString", Number_tests.To_string.tests);
          ("Number.ToExponential", Number_tests.To_exponential.tests);
          ("Number.ToPrecision", Number_tests.To_precision.tests);
-         (* Test262 - String *)
          ("String.Normalize", String_tests.Normalize.tests);
          ("String.Search", String_tests.Search.tests);
-         (* Test262 - RegExp *)
          ("RegExp.NamedGroups", Regexp_tests.Named_groups.tests);
          ("RegExp.DotAll", Regexp_tests.Dotall.tests);
          ("RegExp.Unicode", Regexp_tests.Unicode.tests);

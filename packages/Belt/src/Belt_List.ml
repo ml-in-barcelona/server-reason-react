@@ -7,40 +7,17 @@ external mutableCell : 'a -> 'a t -> 'a t = "belt_makemutablelist"
 let unsafeMutateTail a b = Obj.set_field (Obj.repr a) 1 (Obj.repr b)
 let unsafeTail a = Obj.obj (Obj.field (Obj.repr a) 1)
 let head x = match x with [] -> None | x :: _ -> Some x
-
-let headExn x =
-  match x with
-  | [] ->
-      (* Melange raises Not_found here *)
-      raise Stdlib.Not_found
-  | x :: _ -> x
-
+let headExn x = match x with [] -> raise Stdlib.Not_found | x :: _ -> x
 let tail x = match x with [] -> None | _ :: xs -> Some xs
-
-let tailExn x =
-  match x with
-  | [] ->
-      (* Melange raises Not_found here *)
-      raise Stdlib.Not_found
-  | _ :: t -> t
-
+let tailExn x = match x with [] -> raise Stdlib.Not_found | _ :: t -> t
 let add xs x = x :: xs
 let rec nthAux x n = match x with h :: t -> if n = 0 then Some h else nthAux t (n - 1) | _ -> None
 
 let rec nthAuxAssert x n =
-  match x with
-  | h :: t -> if n = 0 then h else nthAuxAssert t (n - 1)
-  | _ ->
-      (* Melange raises Not_found here *)
-      raise Stdlib.Not_found
+  match x with h :: t -> if n = 0 then h else nthAuxAssert t (n - 1) | _ -> raise Stdlib.Not_found
 
 let get x n = if n < 0 then None else nthAux x n
-
-let getExn x n =
-  if n < 0 then
-    (* Melange raises Not_found here *)
-    raise Stdlib.Not_found
-  else nthAuxAssert x n
+let getExn x n = if n < 0 then raise Stdlib.Not_found else nthAuxAssert x n
 
 let rec partitionAux p cell precX precY =
   match cell with

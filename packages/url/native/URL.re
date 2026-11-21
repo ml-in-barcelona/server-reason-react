@@ -1,6 +1,4 @@
 module SearchParams = {
-  /* value is a list of strings on Uri, but it's represented as string on the browser
-     we keep the type as a list, but each method it needs the value we "joinValue" */
   type value = list(string);
   let joinValue = value => String.concat(",", value);
 
@@ -121,10 +119,7 @@ type t = Uri.t;
 let makeExn = str => {
   let uri = Uri.of_string(str);
   if (Uri.empty == uri) {
-    /* TODO: raise(Js.Exn.raiseTypeError) when is implemented in Js.ml */
-    raise(
-      Invalid_argument("Invalid URL"),
-    );
+    raise(Invalid_argument("Invalid URL"));
   } else {
     uri;
   };
@@ -143,11 +138,9 @@ let makeWith = (str, ~base: string) => {
 };
 
 let host = url => {
-  /* https://url.spec.whatwg.org/#dom-url-host */
   switch (Uri.host(url), Uri.port(url)) {
   | (Some(host), Some(port)) => Some(host ++ ":" ++ Int.to_string(port))
   | (Some(host), None) => Some(host)
-  /* If url’s host is null, then return the empty string */
   | (None, None)
   | (None, _) => None
   };
@@ -157,10 +150,8 @@ let setHost = (url, host) => {
   Uri.with_host(url, Some(host));
 };
 let hostname = url => {
-  /* https://url.spec.whatwg.org/#dom-url-host */
   switch (Uri.host(url)) {
   | Some(host) => host
-  /* If url’s host is null, then return the empty string */
   | None => ""
   };
 };
@@ -171,13 +162,10 @@ let href = url => {
   Uri.to_string(url);
 };
 let setHref = (t, _string) => {
-  /* TODO: Unsure what to do here. Setting the href should update hostname, port, userinfo, etc. It seems like search params don't update. */
   t;
 };
 let password = url =>
-  /* https://url.spec.whatwg.org/#concept-url-password */
   switch (Uri.password(url)) {
-  /* Password can be empty, when is parsed with a username, but we normalise it to None */
   | Some("") => None
   | None => None
   | Some(password) => Some(password)
@@ -234,8 +222,6 @@ let searchParams = (url): SearchParams.t => {
 };
 let username = url => {
   switch (Uri.user(url)) {
-  /* User can be empty, if the Uri has a password is parsed as Some(""),
-     which isn't wrong, but we normalise it to option */
   | None => None
   | Some(user) when user == "" => None
   | Some(user) => Some(user)
@@ -255,7 +241,6 @@ let setHash = (t, string) => {
 };
 
 let origin = t => {
-  /* https://url.spec.whatwg.org/#dom-url-origin */
   switch (protocol(t), host(t)) {
   | (None, _)
   | (_, None) => None
@@ -263,8 +248,4 @@ let origin = t => {
   };
 };
 
-/*
- TODO: When we have a way to represent JSON universally, implement this.
- It could be yojson or a custom json type
- let toJson = url => assert(false); */
 let toString = url => Uri.to_string(url);

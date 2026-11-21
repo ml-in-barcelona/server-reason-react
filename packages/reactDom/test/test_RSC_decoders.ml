@@ -16,11 +16,9 @@ let assert_float_is_neg_zero value =
   if not (Float.equal value (-0.) && Float.sign_bit value) then
     Alcotest.fail (Printf.sprintf "expected -0., got %f" value)
 
-(* Unwrap Ok or fail the test *)
 let unwrap_ok = function Ok v -> v | Error msg -> Alcotest.fail (Printf.sprintf "unexpected Error: %s" msg)
 let unwrap_error = function Error msg -> msg | Ok _ -> Alcotest.fail "expected Error but got Ok"
 
-(* Assert that decodeReply returns Error with a message starting with expected_prefix *)
 let assert_decodeReply_errors ?temporaryReferences input expected_prefix () =
   match ReactServerDOM.decodeReply ?temporaryReferences input with
   | Ok _ -> Alcotest.fail (Printf.sprintf "expected Error starting with %S" expected_prefix)
@@ -28,14 +26,11 @@ let assert_decodeReply_errors ?temporaryReferences input expected_prefix () =
       if not (String.starts_with ~prefix:expected_prefix msg) then
         Alcotest.fail (Printf.sprintf "expected prefix %S, got %S" expected_prefix msg)
 
-(* Build FormData with the given entries and root model, then decode *)
 let decode_outlined ~entries ~root_json =
   let formData = Js.FormData.make () in
   List.iter (fun (k, v) -> Js.FormData.append formData k (`String v)) entries;
   Js.FormData.append formData "0" (`String root_json);
   ReactServerDOM.decodeFormDataReply formData |> unwrap_ok
-
-(* Basic types *)
 
 let decodeReply_string_and_int () =
   let response = ReactServerDOM.decodeReply "[\"Lola\", 20]" |> unwrap_ok in
@@ -82,14 +77,11 @@ let decodeReply_empty_args () =
   let response = ReactServerDOM.decodeReply "[]" |> unwrap_ok in
   Alcotest.check Alcotest.int "should have 0 args" (Array.length response) 0
 
-(* Special $-prefixed values *)
-
 let decodeReply_undefined () =
   let response = ReactServerDOM.decodeReply "[\"$undefined\"]" |> unwrap_ok in
   match response with [| `Null |] -> () | _ -> Alcotest.fail "expected [Null] for $undefined"
 
 let decodeReply_undefined_preserves_positions () =
-  (* Verifies $undefined converts to Null and does NOT shift array positions *)
   let response = ReactServerDOM.decodeReply "[\"hello\", \"$undefined\", 42]" |> unwrap_ok in
   match response with
   | [| `String hello; `Null; `Int n |] ->
@@ -104,7 +96,6 @@ let decodeReply_escaped_dollar_string () =
   | _ -> Alcotest.fail "expected [String \"$money\"] for $$money"
 
 let decodeReply_escaped_dollar_empty () =
-  (* "$$" is the escaped encoding of a lone "$" *)
   let response = ReactServerDOM.decodeReply "[\"$$\"]" |> unwrap_ok in
   match response with [| `String s |] -> assert_string s "$" | _ -> Alcotest.fail "expected [String \"$\"] for $$"
 
@@ -137,7 +128,6 @@ let decodeReply_neg_infinity () =
   | _ -> Alcotest.fail "expected [Float neg_infinity] for $-"
 
 let decodeReply_neg_infinity_long_form () =
-  (* React sends "$-Infinity" but any "$-" prefix that isn't "$-0" is neg_infinity *)
   let response = ReactServerDOM.decodeReply "[\"$-Infinity\"]" |> unwrap_ok in
   match response with
   | [| `Float f |] -> assert_float_is_neg_infinity f
@@ -148,8 +138,6 @@ let decodeReply_neg_zero () =
   match response with
   | [| `Float f |] -> assert_float_is_neg_zero f
   | _ -> Alcotest.fail "expected [Float (-0.)] for $-0"
-
-(* Mixed special and regular values *)
 
 let decodeReply_mixed_special_values () =
   let response =
@@ -167,20 +155,13 @@ let decodeReply_mixed_special_values () =
       assert_float_is_infinity inf_val
   | _ -> Alcotest.fail "expected mixed special values to decode correctly"
 
-(* Regular string starting with $ that is only 1 char long *)
-
 let decodeReply_single_dollar_string () =
-  (* A lone "$" is only 1 char, so it doesn't match the special prefix pattern *)
   let response = ReactServerDOM.decodeReply "[\"$\"]" |> unwrap_ok in
   match response with [| `String s |] -> assert_string s "$" | _ -> Alcotest.fail "expected [String \"$\"] for lone $"
-
-(* Invalid input *)
 
 let decodeReply_invalid_body () =
   let _ = ReactServerDOM.decodeReply "{\"not\": \"a list\"}" |> unwrap_error in
   ()
-
-(* FormData tests *)
 
 let decodeFormDataReply () =
   let formData = Js.FormData.make () in
@@ -207,8 +188,6 @@ let decodeFormDataReplyWithArg () =
   | _ -> Alcotest.fail "Something went wrong on the decodeFormDataReplyWithArg"
 
 let decodeFormDataReply_with_undefined_arg () =
-  (* Simulates: fn(~name: option(string)=?, formData: Js.FormData.t)
-     called with name=None. $undefined should become Null, not be filtered. *)
   let formData = Js.FormData.make () in
   Js.FormData.append formData "1_name" (`String "Lola");
   Js.FormData.append formData "0" (`String "[\"$undefined\", \"$K1\"]");
@@ -218,7 +197,6 @@ let decodeFormDataReply_with_undefined_arg () =
   | _ -> Alcotest.fail "expected [Null] for $undefined in FormData args"
 
 let decodeFormDataReply_with_special_values () =
-  (* Mixed special values alongside FormData reference *)
   let formData = Js.FormData.make () in
   Js.FormData.append formData "1_file" (`String "data");
   Js.FormData.append formData "0" (`String "[\"$$escaped\", \"$D2024-01-01T00:00:00.000Z\", \"$K1\", \"$N\"]");
@@ -230,8 +208,6 @@ let decodeFormDataReply_with_special_values () =
       assert_float_is_nan nan_val;
       assert_string file "data"
   | _ -> Alcotest.fail "expected special values decoded correctly with FormData"
-
-(* Outlined model resolution: $Q Map *)
 
 let decodeFormDataReply_map_string_keys () =
   let args, _ =
@@ -255,8 +231,6 @@ let decodeFormDataReply_map_empty () =
   let args, _ = decode_outlined ~entries:[ ("1", "[]") ] ~root_json:"[\"$Q1\"]" in
   match args with [| `Assoc [] |] -> () | _ -> Alcotest.fail "expected empty Assoc for empty Map"
 
-(* Outlined model resolution: $W Set *)
-
 let decodeFormDataReply_set () =
   let args, _ = decode_outlined ~entries:[ ("1", "[1,2,3]") ] ~root_json:"[\"$W1\"]" in
   match args with [| `List [ `Int 1; `Int 2; `Int 3 ] |] -> () | _ -> Alcotest.fail "expected List for Set"
@@ -267,23 +241,17 @@ let decodeFormDataReply_set_strings () =
   | [| `List [ `String "a"; `String "b"; `String "c" ] |] -> ()
   | _ -> Alcotest.fail "expected List of strings for Set"
 
-(* Outlined model resolution: $i Iterator *)
-
 let decodeFormDataReply_iterator () =
   let args, _ = decode_outlined ~entries:[ ("1", "[\"x\",\"y\",\"z\"]") ] ~root_json:"[\"$i1\"]" in
   match args with
   | [| `List [ `String "x"; `String "y"; `String "z" ] |] -> ()
   | _ -> Alcotest.fail "expected List for Iterator"
 
-(* Outlined model resolution: $F Server Reference *)
-
 let decodeFormDataReply_server_ref () =
   let args, _ = decode_outlined ~entries:[ ("1", "{\"id\":\"abc123\",\"bound\":null}") ] ~root_json:"[\"$F1\"]" in
   match args with
   | [| `Assoc [ ("id", `String id); ("bound", `Null) ] |] -> assert_string id "abc123"
   | _ -> Alcotest.fail "expected Assoc {id, bound} for Server Reference"
-
-(* Nested outlined models *)
 
 let decodeFormDataReply_nested_outlined () =
   let args, _ =
@@ -305,8 +273,6 @@ let decodeFormDataReply_outlined_with_special_values () =
       assert_string dollar "$dollar"
   | _ -> Alcotest.fail "expected outlined model with special values resolved"
 
-(* Mixed regular args + outlined models + FormData *)
-
 let decodeFormDataReply_mixed_outlined_and_regular () =
   let args, _ = decode_outlined ~entries:[ ("1", "[[\"x\",1],[\"y\",2]]") ] ~root_json:"[\"hello\",\"$Q1\",42]" in
   match args with
@@ -320,15 +286,11 @@ let decodeFormDataReply_outlined_and_formdata () =
   | _ -> Alcotest.fail "expected outlined Map resolved alongside FormData");
   match Js.FormData.get fd "name" with `String name -> assert_string name "Lola"
 
-(* Hex ID resolution *)
-
 let decodeFormDataReply_hex_id () =
   let args, _ = decode_outlined ~entries:[ ("10", "[\"from_hex\"]") ] ~root_json:"[\"$Wa\"]" in
   match args with
   | [| `List [ `String s ] |] -> assert_string s "from_hex"
   | _ -> Alcotest.fail "expected hex ID 'a' to resolve to FormData key '10'"
-
-(* Blob ($B) resolution *)
 
 let decodeFormDataReply_blob () =
   let formData = Js.FormData.make () in
@@ -407,10 +369,7 @@ let decode_shared_outlined_entry_once () =
       assert_bool (a = `List [ `String "leaf" ]) true
   | _ -> Alcotest.fail "expected shared outlined entries to decode"
 
-(* Recursive resolution of nested JSON objects *)
-
 let decodeReply_nested_special_values_in_object () =
-  (* Special values inside nested JSON objects get resolved *)
   let response =
     ReactServerDOM.decodeReply "[{\"date\": \"$D2024-01-01T00:00:00.000Z\", \"value\": \"$$50\"}]" |> unwrap_ok
   in
@@ -421,15 +380,12 @@ let decodeReply_nested_special_values_in_object () =
   | _ -> Alcotest.fail "expected special values in nested objects to be resolved"
 
 let decodeReply_nested_special_values_in_array () =
-  (* Special values inside nested arrays get resolved *)
   let response = ReactServerDOM.decodeReply "[[\"$N\", \"$I\", \"$undefined\"]]" |> unwrap_ok in
   match response with
   | [| `List [ `Float nan_val; `Float inf_val; `Null ] |] ->
       assert_float_is_nan nan_val;
       assert_float_is_infinity inf_val
   | _ -> Alcotest.fail "expected special values in nested arrays to be resolved"
-
-(* Temporary Reference ($T) tests *)
 
 let decodeReply_temporary_reference_resolves () =
   let temporaryReferences = function "abc" -> Some (`String "resolved_value") | _ -> None in
@@ -483,8 +439,6 @@ let decodeReply_temporary_reference_in_nested_object () =
       assert_int n 1
   | _ -> Alcotest.fail "expected temporary reference to resolve inside nested object"
 
-(* decodeAction tests *)
-
 let decodeAction_with_action_id_and_fields () =
   let formData = Js.FormData.make () in
   Js.FormData.append formData "$ACTION_ID_abc123" (`String "");
@@ -522,13 +476,11 @@ let decodeAction_multiple_action_keys () =
   Js.FormData.append formData "$ACTION_ID_second" (`String "");
   match ReactServerDOM.decodeAction formData with
   | Some (id, user_fd) -> (
-      (* Either action ID is valid since Hashtbl iteration order is unspecified *)
       assert_bool (String.equal id "first" || String.equal id "second") true;
       match Js.FormData.get user_fd "name" with `String name -> assert_string name "Lola")
   | None -> Alcotest.fail "expected Some but got None"
 
 let decodeAction_filters_other_action_keys () =
-  (* $ACTION_REF_ and other $ACTION_ prefixed keys should be filtered out from user data *)
   let formData = Js.FormData.make () in
   Js.FormData.append formData "$ACTION_ID_abc123" (`String "");
   Js.FormData.append formData "$ACTION_REF_xyz" (`String "some_ref");
@@ -537,7 +489,6 @@ let decodeAction_filters_other_action_keys () =
   | Some (id, user_fd) -> (
       assert_string id "abc123";
       (match Js.FormData.get user_fd "name" with `String name -> assert_string name "Lola");
-      (* $ACTION_REF_ should not be in user_fd *)
       try
         let _ = Js.FormData.get user_fd "$ACTION_REF_xyz" in
         Alcotest.fail "$ACTION_REF_ key should not be in user FormData"
@@ -548,14 +499,12 @@ let test title fn = (Printf.sprintf "Decoders / %s" title, [ Alcotest_lwt.test_c
 
 let tests =
   [
-    (* Basic types *)
     test "decodeReply: string and int" decodeReply_string_and_int;
     test "decodeReply: bool and null" decodeReply_bool_and_null;
     test "decodeReply: float" decodeReply_float;
     test "decodeReply: nested object" decodeReply_nested_object;
     test "decodeReply: nested array" decodeReply_nested_array;
     test "decodeReply: empty args" decodeReply_empty_args;
-    (* Special $-prefixed values *)
     test "decodeReply: $undefined → Null" decodeReply_undefined;
     test "decodeReply: $undefined preserves positions" decodeReply_undefined_preserves_positions;
     test "decodeReply: $$ escaped string" decodeReply_escaped_dollar_string;
@@ -570,15 +519,12 @@ let tests =
     test "decodeReply: mixed special values" decodeReply_mixed_special_values;
     test "decodeReply: single $ string" decodeReply_single_dollar_string;
     test "decodeReply: invalid body raises" decodeReply_invalid_body;
-    (* Recursive resolution in nested structures *)
     test "decodeReply: special values in nested objects" decodeReply_nested_special_values_in_object;
     test "decodeReply: special values in nested arrays" decodeReply_nested_special_values_in_array;
-    (* FormData: basic *)
     test "decodeFormDataReply: basic" decodeFormDataReply;
     test "decodeFormDataReply: with arg" decodeFormDataReplyWithArg;
     test "decodeFormDataReply: $undefined preserves position" decodeFormDataReply_with_undefined_arg;
     test "decodeFormDataReply: special values with FormData" decodeFormDataReply_with_special_values;
-    (* FormData: outlined model resolution *)
     test "decodeFormDataReply: $Q Map with string keys → Assoc" decodeFormDataReply_map_string_keys;
     test "decodeFormDataReply: $Q Map with non-string keys → List" decodeFormDataReply_map_non_string_keys;
     test "decodeFormDataReply: $Q Map empty" decodeFormDataReply_map_empty;
@@ -597,12 +543,9 @@ let tests =
     test "decodeReply: deeply nested body does not raise" decode_rejects_deeply_nested_body;
     test "decodeFormDataReply: valid outlined map still works" decode_valid_outlined_map_still_works;
     test "decodeFormDataReply: shared outlined entry decodes once" decode_shared_outlined_entry_once;
-    (* Outlined models without FormData context *)
     test "decodeReply: $Q Map without FormData raises" (assert_decodeReply_errors "[\"$Q1\"]" "decodeReply: Map");
     test "decodeReply: $W Set without FormData raises" (assert_decodeReply_errors "[\"$W1\"]" "decodeReply: Set");
-    (* Unsupported types raise descriptive errors *)
     test "decodeReply: $@ Promise raises" (assert_decodeReply_errors "[\"$@1\"]" "decodeReply: Promise");
-    (* Temporary References ($T) *)
     test "decodeReply: $T resolves with temporaryReferences" decodeReply_temporary_reference_resolves;
     test "decodeReply: $T not found returns error" decodeReply_temporary_reference_not_found;
     test "decodeReply: $T without resolver returns error" decodeReply_temporary_reference_no_resolver;
@@ -610,7 +553,6 @@ let tests =
     test "decodeReply: $T resolves in nested array" decodeReply_temporary_reference_in_nested_array;
     test "decodeReply: $T resolves in nested object" decodeReply_temporary_reference_in_nested_object;
     test "decodeReply: $A TypedArray raises" (assert_decodeReply_errors "[\"$A1\"]" "decodeReply: TypedArray");
-    (* Blob ($B) resolution *)
     test "decodeFormDataReply: $B Blob resolves from FormData" decodeFormDataReply_blob;
     test "decodeReply: $B Blob without FormData returns error" decodeReply_blob_without_formdata;
     test "decodeFormDataReply: $B Blob with missing entry returns error" decodeFormDataReply_blob_missing_entry;
@@ -624,7 +566,6 @@ let tests =
         List.iter
           (fun prefix -> assert_decodeReply_errors (Printf.sprintf "[\"$%s1\"]" prefix) "decodeReply: TypedArray" ())
           [ "O"; "o"; "U"; "S"; "s"; "L"; "l"; "G"; "g"; "M"; "m"; "V" ]);
-    (* decodeAction *)
     test "decodeAction: $ACTION_ID with form fields" decodeAction_with_action_id_and_fields;
     test "decodeAction: no $ACTION_* keys returns None" decodeAction_no_action_keys;
     test "decodeAction: $ACTION_ID with no other fields" decodeAction_action_id_only;

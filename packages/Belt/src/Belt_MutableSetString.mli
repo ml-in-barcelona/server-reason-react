@@ -30,10 +30,7 @@
     {b See} {!Belt.MutableSet} *)
 
 type value = string
-(** The type of the set elements. *)
-
 type t
-(** The type of sets. *)
 
 val make : unit -> t
 val fromArray : value array -> t

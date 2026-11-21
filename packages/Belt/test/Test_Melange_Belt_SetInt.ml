@@ -1,13 +1,9 @@
-(* Ported from melange jscomp/test/bs_set_int_test.ml *)
-
 module N = Belt.Set.Int
 module A = Belt.Array
 
 let ( =~ ) s i = N.eq (N.fromArray i) s
 let ( =* ) a b = N.eq (N.fromArray a) (N.fromArray b)
 let ofA = N.fromArray
-
-(* inclusive, matching the melange test's local [range]/[revRange] *)
 let range = inclusive_range
 let revRange = reverse_inclusive_range
 

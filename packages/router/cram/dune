@@ -1,5 +1,3 @@
-; run.t records OCaml compiler messages, and OCaml 5.4 changed their text.
-
 (cram
  (package server-reason-react)
  (enabled_if

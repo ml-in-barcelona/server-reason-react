@@ -1,8 +1,3 @@
-/* Scenario: Shallow Tree
-      5 components deep with multiple props each
-      Purpose: Test prop passing and shallow component hierarchies
-   */
-
 module Level5 = {
   [@react.component]
   let make = (~title, ~subtitle, ~active, ~count) => {

@@ -3,7 +3,6 @@ open TransitionEvent;
 
 let event = make("my-event");
 
-/* Event */
 let _ = bubbles(event);
 let _ = cancelable(event);
 let _ = composed(event);
@@ -19,7 +18,6 @@ preventDefault(event);
 stopImmediatePropagation(event);
 stopPropagation(event);
 
-/* TransitionEvent */
 let _ = propertyName(event);
 let _ = elapsedTime(event);
 let _ = pseudoElement(event);

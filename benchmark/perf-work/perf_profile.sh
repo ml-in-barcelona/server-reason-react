@@ -70,9 +70,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# ---------------------------------------------------------------------------
-# Build
-
 echo ">>> Building perf_profile.exe"
 (cd "${REPO_ROOT}" && dune build "${EXE_REL}")
 if [[ ! -x "${EXE}" ]]; then
@@ -82,37 +79,15 @@ fi
 
 mkdir -p "${OUT_DIR}"
 
-# ---------------------------------------------------------------------------
-# Scenario list
-
 if [[ -n "${SCENARIO}" ]]; then
     SCENARIOS=("${SCENARIO}")
 else
-    # Read from the binary's own --list so the shell script and OCaml never
-    # drift apart.
     mapfile -t SCENARIOS < <("${EXE}" --list)
 fi
 
 echo ">>> Tool: ${TOOL}   Scenarios: ${SCENARIOS[*]}"
 echo ">>> iters=${ITERS} warmup=${WARMUP}"
 echo ">>> Output directory: ${OUT_DIR}"
-
-# ---------------------------------------------------------------------------
-# callgrind driver
-#
-# The profiler process runs one selected scenario, so collecting the whole
-# process is more reliable than symbol toggles across tail calls and Lwt
-# continuations. Startup and summary output are fixed overhead amortized over
-# the default 500 measured iterations.
-#
-# --cache-sim=no: we only want call counts and Ir (instructions read),
-# not cache simulation. Cache simulation triples runtime and the numbers
-# are not meaningful on a virtualized host anyway.
-#
-# --collect-jumps=yes: branch-target attribution. Helpful later for
-# locating where variant-dispatch branch-misses accumulate.
-#
-# callgrind_annotate post-processes into a flat source-location table.
 
 run_callgrind() {
     local name="$1"
@@ -129,18 +104,12 @@ run_callgrind() {
         "${EXE}" --scenario "${name}" --warmup "${WARMUP}" --iters "${ITERS}" \
         > "${OUT_DIR}/callgrind-${name}.stdout" 2> "${OUT_DIR}/callgrind-${name}.stderr"
 
-    # callgrind_annotate reads the most recent callgrind.out.<pid> if we don't
-    # pass the file name; with an explicit name we point it at our output.
     callgrind_annotate \
         --threshold=99 \
         --auto=no \
         --context=0 \
         "${out}" > "${annot}" 2> "${OUT_DIR}/callgrind-${name}.annotate.stderr" || true
 
-    # Extract the flat function-level attribution. callgrind_annotate emits
-    # two tables: PROGRAM TOTALS, then "file:function". We want the second.
-    # Locate the header line [Ir ... file:function] and print the
-    # subsequent rows until the first blank line.
     echo ""
     echo "  Top 30 functions by Ir (instructions read):"
     awk '
@@ -151,18 +120,6 @@ run_callgrind() {
     ' "${annot}" | head -n 30
 }
 
-# ---------------------------------------------------------------------------
-# perf stat driver
-#
-# We query user-space hardware counters. In containers with paranoid>=2,
-# many counters are gated. perf prints "<not supported>" or zeros; we
-# report that verbatim rather than hiding it — the user should know the
-# ranking is degraded.
-#
-# -r 3: three runs, perf reports mean ± stddev. Three is a balance between
-# signal (more runs = tighter CI) and the wall-clock cost of running every
-# scenario. Raise with --perf-runs (future work).
-
 run_perf_stat() {
     local name="$1"
     local out="${OUT_DIR}/perf-stat-${name}.txt"
@@ -172,23 +129,8 @@ run_perf_stat() {
         -e task-clock:u,cycles:u,instructions:u,branches:u,branch-misses:u,cache-references:u,cache-misses:u \
         "${EXE}" --scenario "${name}" --warmup "${WARMUP}" --iters "${ITERS}" \
         > "${OUT_DIR}/perf-stat-${name}.stdout" 2> "${out}" || true
-    # perf stat writes its counter table to stderr. Echo the tail of the
-    # report for immediate feedback; the full run (with the 3-run stddev)
-    # is in the file.
     tail -n 20 "${out}"
 }
-
-# ---------------------------------------------------------------------------
-# perf record driver (sampled call graph)
-#
-# -F 997: sample at 997Hz (prime; avoids aliasing with the 1kHz scheduler
-# tick). -g fp: frame-pointer call graph. OCaml compiled with the
-# toolchain's default config keeps frame pointers on native amd64.
-#
-# We emit a perf.data and a scripted text dump so a flamegraph can be
-# built later without re-running. We do NOT generate the flamegraph here
-# — that would require stackcollapse-perf.pl + flamegraph.pl which are
-# Perl scripts the user may or may not have installed.
 
 run_perf_record() {
     local name="$1"
@@ -204,9 +146,6 @@ run_perf_record() {
     echo "  script: ${script}"
     echo "  (feed to stackcollapse-perf.pl + flamegraph.pl)"
 }
-
-# ---------------------------------------------------------------------------
-# Dispatch
 
 case "${TOOL}" in
     callgrind)

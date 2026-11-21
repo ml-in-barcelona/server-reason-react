@@ -1,15 +1,5 @@
-(* Conformance runner: renders every case from the shared registry with
-   ReactServerDOM.render_model ~env:`Prod and byte-compares the normalized
-   rows against the committed fixtures produced by the real
-   react-server-dom-webpack (see ../generate.mjs).
-
-
-   This runner only READS committed fixtures: it works offline, without Node.js
-   or node_modules. *)
-
 let fixtures_dir = "../fixtures"
 
-(* Normalization: keep in sync with ../generate.mjs and protocol.md. *)
 let normalize_row row =
   let row = Str.global_replace (Str.regexp "\"stack\":\\(\\[[^]]*\\]\\|\"[^\"]*\"\\)") "\"stack\":\"<stack>\"" row in
   Str.global_replace (Str.regexp "\"digest\":\"[^\"]*\"") "\"digest\":\"<digest>\"" row
