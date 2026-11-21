@@ -1,6 +1,7 @@
 (library
  (name dream_router)
- (public_name server-reason-react-dream)
+ (public_name server-reason-react.dream)
+ (optional)
  (modules DreamRouter)
  (wrapped false)
  (libraries

@@ -6,7 +6,7 @@
  (name server)
  (libraries
   dream
-  server-reason-react-dream
+  server-reason-react.dream
   demo_hacker_news_router_native
   demo_shared_native
   demo_router_native
