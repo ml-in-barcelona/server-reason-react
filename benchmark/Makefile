@@ -1,8 +1,12 @@
+# Server Reason React Benchmark Suite
+# ==================================
+
 .PHONY: all build build-native build-js clean help
 .PHONY: bench bench-micro bench-memory bench-streaming bench-http
 .PHONY: bench-render bench-render-native bench-render-bun bench-render-node
 .PHONY: native-server js-servers
 
+# Directories
 BENCHMARK_DIR := $(shell pwd)
 PROJECT_ROOT := $(shell dirname $(BENCHMARK_DIR))
 RESULTS_DIR := $(BENCHMARK_DIR)/results
@@ -10,13 +14,21 @@ FRAMEWORKS_DIR := $(BENCHMARK_DIR)/frameworks
 
 BUN := $(shell command -v bun 2>/dev/null || echo "$(HOME)/.bun/bin/bun")
 
+# Optimization control
+# Set DISABLE_OPTIMIZATIONS=1 to build without optimizations (--profile=dev)
+# Default: optimizations enabled (--profile=release)
 ifeq ($(DISABLE_OPTIMIZATIONS),1)
   DUNE_PROFILE := --profile=dev
 else
   DUNE_PROFILE := --profile=release
 endif
 
+# Default target
 all: help
+
+# ============================================================================
+# Build Targets
+# ============================================================================
 
 build: build-native build-js
 	@echo "✓ All builds complete"
@@ -44,6 +56,10 @@ clean:
 	rm -rf $(RESULTS_DIR)/*.json $(RESULTS_DIR)/*.md
 	rm -rf $(FRAMEWORKS_DIR)/node_modules
 	@echo "✓ Cleaned"
+
+# ============================================================================
+# Benchmark Targets
+# ============================================================================
 
 bench: bench-render bench-memory bench-streaming
 	@echo "✓ All benchmarks complete"
@@ -98,6 +114,10 @@ bench-js-http: build-js
 	@echo "\n=== Running JavaScript HTTP Benchmarks ==="
 	cd $(BENCHMARK_DIR)/runner && node runner.mjs --frameworks node-express,node-fastify,hono-node
 
+# ============================================================================
+# Server Targets (for manual testing)
+# ============================================================================
+
 native-server: build-native
 	@echo "Starting native Dream server on port 3000..."
 	PORT=3000 $(PROJECT_ROOT)/_build/default/benchmark/native/server.exe
@@ -115,6 +135,10 @@ node-fastify: build-js
 hono-node: build-js
 	cd $(FRAMEWORKS_DIR) && npm run start:hono-node
 
+# ============================================================================
+# Utility Targets
+# ============================================================================
+
 wrk-test:
 	@if [ -z "$(PORT)" ]; then \
 		echo "Usage: make wrk-test PORT=3000 [SCENARIO=table100]"; \
@@ -130,6 +154,10 @@ scenarios: build-native
 
 results:
 	@ls -la $(RESULTS_DIR)/*.md $(RESULTS_DIR)/*.json 2>/dev/null || echo "No results yet. Run 'make bench-http'"
+
+# ============================================================================
+# Help
+# ============================================================================
 
 help:
 	@echo "Server Reason React Benchmark Suite"
