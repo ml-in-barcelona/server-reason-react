@@ -61,14 +61,3 @@
   (fmt :with-test)
 ))
 
-(package
- (name server-reason-react-dream)
- (synopsis "Dream adapter for the server-reason-react router")
- (depends
-  (ocaml (>= 5.3.0))
-  (server-reason-react (= :version))
-  (dream (>= 1.0.0~alpha8))
-  (lwt (>= 5.9.2))
-  (lwt_ppx (>= 2.1.0))
-  (mtime (>= 2.0.0))
-  (alcotest :with-test)))
