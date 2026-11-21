@@ -1,8 +1,3 @@
-(* Native RouterQuery.parse and the browser both use this parser, so one URL has the same search values on both sides.
-   [~text] turns decoded UTF-8 bytes into the platform's string. [~slice] cuts [start, stop): Melange's String.sub
-   copies the whole string first. The file is OCaml, not Reason: Reason's multi-argument functions reach OCaml 5.2+
-   as one-argument closures, which allocate on every call of these loops. *)
-
 type error = QueryTooLong
 
 let maxLength = 8192
@@ -39,7 +34,6 @@ let rec decodeInto search stop decoded read write =
         Bytes.unsafe_set decoded write character;
         decodeInto search stop decoded (read + 1) (write + 1)
 
-(* [first] is the index of the first '%', '+' or byte >= 0x80 in [start, stop), or -1 when there is none. *)
 let decode ~text ~slice search start stop first =
   if first < 0 then Some (slice search start stop)
   else

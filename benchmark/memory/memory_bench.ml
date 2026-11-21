@@ -1,11 +1,3 @@
-(** Memory Benchmark Suite for server-reason-react
-
-    Measures:
-    - Memory allocation per render
-    - GC pressure (minor/major collections)
-    - Peak memory usage
-    - Memory efficiency compared to output size *)
-
 module Gc_stats = struct
   type t = {
     minor_words : float;
@@ -51,7 +43,6 @@ type scenario_result = {
 }
 
 let measure_scenario ~name ~iterations render_fn =
-  (* Stabilize GC first *)
   Gc.full_major ();
   Gc.compact ();
 

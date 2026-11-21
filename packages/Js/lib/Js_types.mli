@@ -1,5 +1,3 @@
-(** Provide utilities for manipulating JS types *)
-
 type symbol
 type bigint_val
 type obj_val

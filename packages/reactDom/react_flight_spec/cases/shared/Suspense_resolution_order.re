@@ -1,6 +1,3 @@
-/* Two sibling boundaries where the SECOND resolves FIRST (delays inverted
-   relative to suspense_two_boundaries): row emission must follow resolution
-   order, so row 3 (second boundary) streams before row 2 (first boundary). */
 let app = () =>
   <>
     <React.Suspense fallback={<span> {React.string("first waiting")} </span>}>

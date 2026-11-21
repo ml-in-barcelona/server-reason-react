@@ -1,24 +1,4 @@
 #!/bin/sh
-# Generates a per-function compatibility README for a universal-stdlib package
-# (packages/Js or packages/Belt) by merging three inputs:
-#
-#   1. melange-surface.tsv — Melange's API surface (see extract_melange_surface.sh)
-#   2. the package sources — which functions exist, and which are raising stubs
-#      (detected mechanically via `notImplemented`)
-#   3. status.tsv — hand-maintained annotations:
-#        <Module.fn | Module.*> \t <green|orange|wontfix|planned> \t <note>
-#      green   = implemented and verified by tests whose expectations cite a JS
-#                source (melange test suite, test262, documented JS output)
-#      orange  = implemented with a known behavioral divergence (note required)
-#      wontfix = raising stub kept by design (note required)
-#      planned = raising stub with a specific plan (note replaces "Planned.")
-#
-# The script hard-fails on contradictions between status.tsv and the code, so
-# the generated table cannot lie about what raises.
-#
-# Usage: generate_status_readme.sh <Js|Belt> <src-subdir>   (run from the package dir)
-# Output: README.md content on stdout.
-
 set -eu
 export LC_ALL=C
 
@@ -28,7 +8,6 @@ srcdir="$2"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
-# --- module name from file basename --------------------------------------
 module_of_file() {
   base="$1"
   case "$pkg" in
@@ -60,7 +39,6 @@ module_of_file() {
   esac
 }
 
-# --- our surface: <Module>\t<fn> from .mli files --------------------------
 : >"$tmp/ours.tsv"
 for f in "$srcdir"/*.mli; do
   case "$f" in *.pp.mli) continue ;; esac
@@ -83,7 +61,6 @@ for f in "$srcdir"/*.mli; do
   ' "$f" >>"$tmp/ours.tsv"
 done
 
-# --- stubs: <Module>\t<fn> for top-level bindings that raise --------------
 : >"$tmp/stubs.tsv"
 for f in "$srcdir"/*.ml; do
   case "$f" in *.pp.ml) continue ;; esac
@@ -111,7 +88,6 @@ for f in "$srcdir"/*.ml; do
   ' "$f" >>"$tmp/stubs.tsv"
 done
 
-# --- merge + validate -> rows --------------------------------------------
 awk -F'\t' -v pkg="$pkg" '
   FILENAME ~ /melange-surface/ {
     if ($0 ~ /^#/) { if (match($0, /melange [^ ]+/)) mel_version = substr($0, RSTART + 8, RLENGTH - 8); next }
@@ -188,7 +164,6 @@ awk -F'\t' -v pkg="$pkg" '
 version=$(awk -F'\t' '$1 == "@version" { print $2; exit }' "$tmp/rows.tsv")
 grep -v "^@version" "$tmp/rows.tsv" | sort -t "$(printf '\t')" -k1,1 -k2,2 >"$tmp/sorted.tsv"
 
-# --- render ----------------------------------------------------------------
 awk -F'\t' -v pkg="$pkg" -v version="$version" '
   BEGIN {
     lib = (pkg == "Js") ? "server-reason-react.js" : "server-reason-react.belt"
@@ -210,7 +185,6 @@ awk -F'\t' -v pkg="$pkg" -v version="$version" '
   }
   { rows[NR] = $0; count[$1]++ }
   END {
-    # summary
     print "## Summary"
     print ""
     print "| Module | 🟢 | ⚪️ | 🟠 | 🔴 | ➖ |"
@@ -230,7 +204,6 @@ awk -F'\t' -v pkg="$pkg" -v version="$version" '
       printf "| [%s](#%s) | %d | %d | %d | %d | %d |\n", mod, anchor(mod), g[mod], w[mod], o[mod], r[mod], m[mod]
     }
     print ""
-    # per-module tables
     prev = ""
     for (i = 1; i <= NR; i++) {
       split(rows[i], f, "\t")

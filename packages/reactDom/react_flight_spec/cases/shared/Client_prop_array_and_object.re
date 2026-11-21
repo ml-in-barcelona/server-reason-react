@@ -1,6 +1,3 @@
-/* Array and nested-object props on a client component. Native builds
-   React.Model.List/Assoc; melange builds plain JS arrays/objects. JSON key
-   order must follow insertion order on both sides. */
 let app = () =>
   Spec.client_component(
     ~importModule="spec/Table.js",

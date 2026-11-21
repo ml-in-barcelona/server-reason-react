@@ -1,5 +1,3 @@
-(* Ported from melange jscomp/test/bs_map_set_dict_test.ml *)
-
 module Icmp = (val Belt.Id.comparable ~cmp:(fun (x : int) y -> compare x y))
 module Icmp2 = (val Belt.Id.comparable ~cmp:(fun (x : int) y -> compare x y))
 module Ic3 = (val Belt.Id.comparable ~cmp:(compare : int -> int -> int))
@@ -29,13 +27,11 @@ let suites =
               data := Md0.set !data ~cmp:Mm.cmp i i
             done;
             let newm = M.packIdData ~data:!data ~id:m_dict in
-            (* skipped (melange-only): Js.log newm *)
             assert_int (count + 1) (M.size newm));
         test "Map.Dict set on empty dict" (fun () ->
             let m = Md0.empty in
             let m11 = Md0.set ~cmp:Icmp.cmp m 1 1 in
             let _m20 = M.make ~id:(module Icmp) in
-            (* skipped (melange-only): Js.log m11 *)
             assert_array (Alcotest.pair Alcotest.int Alcotest.int) [| (1, 1) |] (Md0.toArray m11));
         test "Set.Dict add with cmp from map id" (fun () ->
             let count = 100_000 in
@@ -48,7 +44,6 @@ let suites =
             for i = 0 to count do
               data := S0.add ~cmp !data i
             done;
-            (* skipped (melange-only): Js.log !data *)
             assert_int (count + 1) (S0.size !data));
         test "fromArray toArray toList get and set" (fun () ->
             let u0 = f (A.map (shuffled_range 0 39) (fun x -> (x, x))) in

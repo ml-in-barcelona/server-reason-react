@@ -1,5 +1,3 @@
-(* Ported from melange jscomp/test/bs_float_test.ml *)
-
 module F = Belt.Float
 
 let suites =

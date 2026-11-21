@@ -29,10 +29,10 @@ See `README.md` for user-facing documentation.
 
 ## Gotchas
 
-- quickjs 0.x minors are breaking; keep the `< 0.6.0` bound (see the
-  constraint comment in `dune-project`).
-- melange 7.0.0 (exactly) is excluded — see the constraint comment in
+- quickjs 0.x minors are breaking; keep the `< 0.6.0` bound in
   `dune-project`.
+- melange 7.0.0 (exactly) is excluded in `dune-project`: it inlines externals
+  across modules and breaks relative `[@mel.module "./..."]` paths.
 - CI builds on macOS + Ubuntu × OCaml 5.3.0 + 5.4.0. Code must stay
   compatible with OCaml 5.3 (no stdlib functions added in 5.4).
 - Universal code compiles twice (native + melange). Platform-specific code
@@ -49,9 +49,8 @@ See `README.md` for user-facing documentation.
   a pinned version ("verified against react-dom 19.1.0"), or a deliberate
   divergence.
 - No `Obj.magic` / `%identity` unless absolutely necessary; prefer type-safe
-  alternatives. `Obj.repr` for identity-only keys is acceptable when
-  documented (see the `Physical_key` module comment in
-  `packages/reactDom/src/ReactServerDOM.ml`).
+  alternatives. `Obj.repr` for identity-only keys is acceptable (see
+  `Physical_key` in `packages/reactDom/src/ReactServerDOM.ml`).
 - Commit messages: short imperative subject line, no prefixes — e.g.
   `Make global regexp string operations linear`, `Fix global timer tests`.
 - Snapshot/cram workflow: after an intentional output change, run

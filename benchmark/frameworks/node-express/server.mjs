@@ -1,7 +1,3 @@
-/**
- * Node.js + Express + React SSR Benchmark Server
- */
-
 import express from "express";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
@@ -10,7 +6,6 @@ import * as scenarios from "../shared/scenarios.jsx";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Scenario selection via query param
 app.get("/", (req, res) => {
   const scenarioName = req.query.scenario || "table100";
   const scenario = scenarios.scenarios[scenarioName];
@@ -26,12 +21,10 @@ app.get("/", (req, res) => {
   res.send(`<!DOCTYPE html><html><head><title>Benchmark</title></head><body><div id="root">${html}</div></body></html>`);
 });
 
-// Health check
 app.get("/health", (req, res) => {
   res.json({ status: "ok", framework: "node-express", pid: process.pid });
 });
 
-// List available scenarios
 app.get("/scenarios", (req, res) => {
   const list = Object.entries(scenarios.scenarios).map(([key, val]) => ({
     key,

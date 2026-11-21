@@ -1,7 +1,3 @@
-(* Machinery shared by the two conformance runners (flight_spec_conformance
-   and reply_spec_conformance): committed-fixture reading, row splitting, and
-   the xfail state machine. *)
-
 let read ~dir ~suffix ~regen_command name =
   let path = Filename.concat dir (name ^ suffix) in
   if not (Sys.file_exists path) then
@@ -13,8 +9,6 @@ let split_rows payload =
   let rows = String.split_on_char '\n' payload in
   match List.rev rows with "" :: rest -> List.rev rest | _ -> rows
 
-(* Cases annotated with [xfail] are asserted to MISMATCH: they are known
-   divergences and must flip loudly (test failure) once fixed. *)
 let check ~name ~xfail ~matches ~print_divergence =
   match (xfail, matches) with
   | None, true -> ()

@@ -1,5 +1,3 @@
-/* preinit(href, {as: "script"}) emits `:HX"<href>"` (the [src, options]
-   tuple form only appears when options survive trimming). */
 module App = {
   [@react.component]
   let make = () => {

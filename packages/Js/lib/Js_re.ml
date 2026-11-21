@@ -1,11 +1,6 @@
-(** Provide bindings to Js regex expression *)
-
 type t = Quickjs.RegExp.t
-
-(* The result of executing a RegExp on a string. *)
 type result = Quickjs.RegExp.match_result
 
-(* Maps with nullable since Melange does too: https://melange.re/v3.0.0/api/re/melange/Js/Re/index.html#val-captures *)
 let captures : result -> string Js_internal.nullable array = fun result -> result.Quickjs.RegExp.captures
 let index : result -> int = fun result -> result.Quickjs.RegExp.index
 let input : result -> string = fun result -> result.Quickjs.RegExp.input
@@ -32,8 +27,6 @@ let unicode : t -> bool = Quickjs.RegExp.unicode
 let dotAll : t -> bool = Quickjs.RegExp.dotall
 let lastIndex : t -> int = Quickjs.RegExp.last_index
 let setLastIndex : t -> int -> unit = Quickjs.RegExp.set_last_index
-
-(* [exec]/[test] stay eta-expanded to erase Quickjs's [?timeout_ms] optional argument *)
 let exec : str:string -> t -> result option = fun ~str rex -> Quickjs.RegExp.exec rex str
 let test : str:string -> t -> bool = fun ~str regex -> Quickjs.RegExp.test regex str
 
@@ -50,6 +43,5 @@ module Prepared = struct
   let advance_index = Quickjs.RegExp.prepared_advance_index
 end
 
-(* Named capture groups *)
 let groups : result -> (string * string option) list = fun result -> result.Quickjs.RegExp.groups
 let group : string -> result -> string option = Quickjs.RegExp.group

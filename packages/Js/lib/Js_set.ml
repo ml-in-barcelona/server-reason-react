@@ -1,10 +1,4 @@
-(** Provides bindings for ES6 Set
-
-    Backed by a Hashtbl plus an insertion-order log so that iteration (toArray/forEach/values/entries) follows JS Set
-    iteration order: first insertion wins the position, re-adding an existing value keeps it, deleting and re-adding
-    moves it to the end. *)
-
-type 'a t = { table : ('a, unit) Hashtbl.t; mutable order : 'a list (* reversed insertion order *) }
+type 'a t = { table : ('a, unit) Hashtbl.t; mutable order : 'a list }
 
 let make () : 'a t = { table = Hashtbl.create 10; order = [] }
 

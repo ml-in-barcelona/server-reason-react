@@ -17,17 +17,12 @@ external createFromFetchImpl:
 [@mel.module "./ReactServerDOMEsbuild.js"]
 external createServerReferenceImpl:
   (
-    string, // ServerReferenceId
+    string,
     callServer,
-    // EncodeFormActionCallback (optional) (We're not using this right now)
     option('encodeFormActionCallback),
-    // FindSourceMapURLCallback (optional, DEV-only) (We're not using this right now)
     option('findSourceMapURLCallback),
-    // functionName (optional)
     option(string)
   ) =>
-  // actionCallback is a function that takes N arguments and returns a promise
-  // As we don't have control over the number of arguments, we need to pass it as 'actionCallback
   'action =
   "createServerReference";
 
@@ -79,10 +74,6 @@ let resolveCallServer = callServer =>
   | None => getCallServer()
   };
 
-/* The returned promise is a real Promise (chainable with Js.Promise.then_)
-   that also carries live status/value/reason getters delegating to
-   react-client's root chunk, so React.use keeps its synchronous unwrap
-   during hydration. See chainableRoot in ReactServerDOMEsbuild.js. */
 let createFromReadableStream = (~callServer=?, stream): Js.Promise.t('a) => {
   switch (resolveCallServer(callServer)) {
   | Some(callServer) =>

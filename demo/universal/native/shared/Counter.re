@@ -20,7 +20,6 @@ let make = (~initial: int) => {
 };
 
 module Double = {
-  /* This component tests that client components can be nested in modules */
   [@react.client.component]
   let make = (~initial: int) => {
     let (state, [@melange_only] setCount) = RR.useStateValue(initial);

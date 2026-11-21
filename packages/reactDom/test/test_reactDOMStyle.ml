@@ -37,7 +37,6 @@ let unsafe_add_prop_css_custom_property_simple () =
   assert_styles styles "--var-5uugbw:16px"
 
 let unsafe_add_prop_camel_with_digits () =
-  (* Digits and underscores in non-custom-property keys must not insert dashes. *)
   let styles = ReactDOM.Style.unsafeAddProp (ReactDOM.Style.make ()) "grid_area1" "main" in
   assert_styles styles "grid_area1:main"
 

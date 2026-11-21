@@ -23,23 +23,12 @@
  (name server-reason-react)
  (synopsis "Rendering React components on the server natively")
  (depends
-  ; General system dependencies
   (ocaml (>= 5.3.0))
   (reason (>= 3.17.2))
-  ; melange 7.0.0 inlines externals cross-module and breaks relative
-  ; [@mel.module "./..."] paths (e.g. ReactServerDOMEsbuild.js); fixed in
-  ; 7.0.1. Exclude the whole 7.0.0 series (including 7.0.0-* builds).
   (melange (and (>= 3.0.0) (or (< 7.0.0) (>= 7.0.1))))
 
-  ; Library dependencies
   (ppxlib (>= 0.36.0))
   (ppx_platform (>= 0.3.0))
-  ; quickjs 0.5.0 is a breaking release (RegExp.exec returns match_result
-  ; option, captures are string option array, UTF-16 indices) and Js_re/
-  ; Js_string are written against that API. 0.5.1 adds prepared regexp inputs,
-  ; which global String operations require for linear scaling. 0.x minors are
-  ; breaking, so keep an upper bound to protect published releases (see the
-  ; server-reason-react.0.4.1 + quickjs.0.5.0 opam-repository incident).
   (quickjs (and (>= 0.5.1) (< 0.6.0)))
   (lwt (>= 5.9.2))
   (lwt_ppx (>= 2.1.0))
@@ -53,26 +42,20 @@
   (reason-react (>= 0.17.0))
   (reason-react-ppx (>= 0.17.0))
   (cmdliner (>= 1.1.0))
-
-  ; Documentation
   (odoc :with-doc)
-
-  ; Dev dependencies
   (ocamlformat
    (and
     (= 0.28.1)
-    :with-test)) ; We use ocamlformat on the tests
+    :with-test))
   (ocaml-lsp-server :with-dev-setup)
 
   (dream
    (and
     (= 1.0.0~alpha8)
-    :with-dev-setup)) ; We use dream on the demo
+    :with-dev-setup))
   (cohttp-lwt-unix :with-dev-setup)
   (lambdasoup :with-dev-setup)
   (mtime :with-dev-setup)
-
-  ; Test dependencies
   (alcotest :with-test)
   (alcotest-lwt :with-test)
   (fmt :with-test)

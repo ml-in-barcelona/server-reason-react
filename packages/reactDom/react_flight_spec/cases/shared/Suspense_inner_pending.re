@@ -1,6 +1,3 @@
-/* Nested boundaries where only the INNER one suspends: the outer boundary's
-   children are fully sync (so they inline into the root row), and only the
-   inner boundary emits a lazy reference resolved by a later row. */
 let app = () =>
   <React.Suspense fallback={<span> {React.string("outer waiting")} </span>}>
     <div>

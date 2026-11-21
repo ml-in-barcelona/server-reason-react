@@ -28,13 +28,10 @@ type t;
 
 [@mel.new] external make: string => t = "URL";
 
-/** Deprecated, use [makeWith] instead. */
 [@deprecated "Use [makeWith] instead."] [@mel.new]
 external makeWithBase: (string, string) => t = "URL";
 
-/** @since 0.19.0 */
-[@mel.new]
-external makeWith: (string, ~base: string) => t = "URL";
+[@mel.new] external makeWith: (string, ~base: string) => t = "URL";
 
 [@mel.get] external hash: t => string = "hash";
 [@mel.set] external setHash: (t, string) => unit = "hash";

@@ -1,14 +1,4 @@
-(** TC39 Test262: RegExp Named Capture Groups tests
-
-    Based on: https://github.com/tc39/test262/tree/main/test/built-ins/RegExp/named-groups
-
-    ECMA-262 Named Capturing Groups (ES2018+) *)
-
 open Helpers
-
-(* ===================================================================
-   Basic named capture groups
-   =================================================================== *)
 
 let basic_named_group () =
   let re = Js.Re.fromString "(?<year>\\d{4})-(?<month>\\d{2})-(?<day>\\d{2})" in
@@ -16,7 +6,6 @@ let basic_named_group () =
   match result with
   | None -> Alcotest.fail "Expected match"
   | Some r ->
-      (* Check named groups *)
       let groups = Js.Re.groups r in
       assert_true "has year group" (List.exists (fun (k, _) -> k = "year") groups);
       assert_true "has month group" (List.exists (fun (k, _) -> k = "month") groups);
@@ -39,10 +28,6 @@ let multiple_named_groups () =
   | Some r ->
       assert_string (Option.get (Js.Re.group "first" r)) "hello";
       assert_string (Option.get (Js.Re.group "second" r)) "world"
-
-(* ===================================================================
-   Named group access
-   =================================================================== *)
 
 let group_by_name () =
   let re = Js.Re.fromString "(?<greeting>hello|hi) (?<target>\\w+)" in
@@ -73,10 +58,6 @@ let all_groups_list () =
       let groups = Js.Re.groups r in
       assert_int (List.length groups) 3
 
-(* ===================================================================
-   Named groups with special patterns
-   =================================================================== *)
-
 let named_group_with_quantifiers () =
   let re = Js.Re.fromString "(?<digits>\\d+)" in
   let result = Js.Re.exec ~str:"abc123def" re in
@@ -90,10 +71,6 @@ let named_group_with_alternation () =
   match result with
   | None -> Alcotest.fail "Expected match"
   | Some r -> assert_string (Option.get (Js.Re.group "animal" r)) "cat"
-
-(* ===================================================================
-   Edge cases
-   =================================================================== *)
 
 let no_named_groups () =
   let re = Js.Re.fromString "(\\d+)" in
@@ -109,24 +86,18 @@ let mixed_named_and_unnamed () =
   let result = Js.Re.exec ~str:"123-abc" re in
   match result with
   | None -> Alcotest.fail "Expected match"
-  | Some r ->
-      (* Named group should still be accessible *)
-      assert_string (Option.get (Js.Re.group "name" r)) "abc"
+  | Some r -> assert_string (Option.get (Js.Re.group "name" r)) "abc"
 
 let tests =
   [
-    (* Basic *)
     test "basic: date pattern" basic_named_group;
     test "basic: single group" single_named_group;
     test "basic: multiple groups" multiple_named_groups;
-    (* Access *)
     test "access: by name" group_by_name;
     test "access: nonexistent" nonexistent_group;
     test "access: all groups list" all_groups_list;
-    (* Special patterns *)
     test "pattern: with quantifiers" named_group_with_quantifiers;
     test "pattern: with alternation" named_group_with_alternation;
-    (* Edge cases *)
     test "edge: no named groups" no_named_groups;
     test "edge: mixed named and unnamed" mixed_named_and_unnamed;
   ]

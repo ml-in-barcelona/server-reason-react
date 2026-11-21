@@ -1,4 +1,3 @@
-/* prefetchDNS(href) emits `:HD"<href>"`. */
 module App = {
   [@react.component]
   let make = () => {

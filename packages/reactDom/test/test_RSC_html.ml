@@ -86,10 +86,6 @@ let layout ~children () =
 
 let loading_suspense ~children () = mk_suspense ~fallback:(React.string "Loading...") ~children ()
 
-(* ***** *)
-(* Tests *)
-(* ***** *)
-
 let null_element () =
   let app = React.null in
   assert_html ~shell:"<script data-payload='0:null\n'>window.srr_stream.push()</script>" app []
@@ -143,10 +139,6 @@ let suppress_hydration_warning_in_model () =
        data-payload='0:[\"$\",\"div\",null,{\"children\":\"Hello\",\"suppressHydrationWarning\":true},null,null,0]\n\
        '>window.srr_stream.push()</script>"
     app []
-
-(* ~debug:true emits the same debug-info rows as render_model (see debug_* tests in test_RSC_model.ml): the first
-   component attaches its debug rows to the root row; nested components are outlined into their own model row with a
-   D ref, while their HTML stays inline in the shell. *)
 
 let drop_all_frames _ _ = false
 
@@ -608,10 +600,6 @@ let error_in_toplevel_in_async () =
   let main = React.Async_component ("app", app) in
   assert_raises (Failure "lol") (fun () -> assert_html main ~disable_backtrace:true [])
 
-(* Errors inside a client tree (client_to_html): a Suspense boundary inside the client tree turns the error into a
-   client-rendered boundary (<!--$!--> pre-flush, $RX post-flush); without one the render fails. *)
-
-(* React's $RX instruction, vendored in Fizz_instructions.ml (a private module, hence the copy) *)
 let rx_definition =
   {|$RX=function(b,c,d,e,f){var a=document.getElementById(b);a&&(b=a.previousSibling,b.data="$!",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};|}
 
@@ -634,7 +622,6 @@ let client_with_sync_error_under_client_suspense_in_prod () =
   let app =
     mk_throwing_client_app ~children:(React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")))
   in
-  (* Production must not leak the exception message or backtrace into the HTML: bare template, no data-msg *)
   assert_html app ~env:`Prod ~disable_backtrace:true
     ~shell:
       "<!--$!--><template></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L1\",null,{}]\n\
@@ -672,7 +659,6 @@ let client_with_async_error_under_client_suspense_in_prod () =
           Lwt.fail (Failure "boom") )
   in
   let app = mk_throwing_client_app ~children:failing in
-  (* Production passes no message to $RX, only the digest slot *)
   assert_html app ~env:`Prod ~disable_backtrace:true
     ~shell:
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script data-payload='0:[\"$\",\"$L2\",null,{}]\n\
@@ -683,9 +669,6 @@ let client_with_async_error_under_client_suspense_in_prod () =
     ]
 
 let writer_subtree_with_client_component () =
-  (* The PPX Writer fast path wraps lowercase markup whose children may include client components;
-     its emit closure (ReactDOM.write_to_buffer) raises on them. The RSC HTML path must walk the
-     original tree instead of using the prerendered emit. *)
   let counter =
     React.Client_component
       {
@@ -719,8 +702,6 @@ let client_with_error_without_suspense () =
   assert_raises (Failure "boom") (fun () -> assert_html app ~disable_backtrace:true [])
 
 let client_with_error_under_server_suspense () =
-  (* A server-side Suspense above the client component: the propagated error follows the server path, an E row
-     rejecting the $L reference so the client error boundary takes over *)
   let client = React.Upper_case_component ("throwing", fun () -> raise (Failure "boom")) in
   let client_component =
     React.Client_component { key = None; props = []; client; import_module = "./client.js"; import_name = "Client" }
@@ -924,7 +905,6 @@ let suspense_in_a_list_with_error () =
     ]
 
 let page_with_duplicate_resources () =
-  (* Test that duplicate resources are deduplicated *)
   let app () =
     React.Upper_case_component
       ( "Page",
@@ -961,7 +941,6 @@ let page_with_duplicate_resources () =
     []
 
 let client_component_with_bootstrap_scripts () =
-  (* Test bootstrap scripts are included in the rendered HTML *)
   let app () =
     React.Upper_case_component
       ( "app",
@@ -982,7 +961,6 @@ let client_component_with_bootstrap_scripts () =
         subscribed_elements := !subscribed_elements @ [ element ];
         Lwt.return ())
   in
-  (* Check that bootstrap scripts are included in the HTML *)
   let has_runtime_script = contains_substring html "<script src=\"/runtime.js\" async=\"\"></script>" in
   let has_app_script = contains_substring html "<script src=\"/app.js\" async=\"\"></script>" in
   assert_string (string_of_bool has_runtime_script) "true";
@@ -990,7 +968,6 @@ let client_component_with_bootstrap_scripts () =
   Lwt.return ()
 
 let client_component_with_bootstrap_modules () =
-  (* Test bootstrap modules are included as module scripts *)
   let app () =
     React.Upper_case_component
       ( "app",
@@ -1011,7 +988,6 @@ let client_component_with_bootstrap_modules () =
         subscribed_elements := !subscribed_elements @ [ element ];
         Lwt.return ())
   in
-  (* Check that bootstrap modules are included with type="module" *)
   let has_runtime_module =
     contains_substring html "<script src=\"/runtime.mjs\" async=\"\" type=\"module\"></script>"
   in
@@ -1323,15 +1299,12 @@ let timeout_emits_client_render_instruction_per_pending_boundary () =
   let contains_substring str sub =
     match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
   in
-  (* The shell contains both boundaries as pending fallbacks *)
   Alcotest.(check bool)
     "shell contains the first pending boundary" true
     (contains_substring html {|<!--$?--><template id="B:2"></template>Loading A<!--/$-->|});
   Alcotest.(check bool)
     "shell contains the second pending boundary" true
     (contains_substring html {|<!--$?--><template id="B:3"></template>Loading B<!--/$-->|});
-  (* On timeout: an error row rejects each pending row of the RSC payload, the $RX definition is emitted once, one
-     $RX call per pending boundary (with the error detail in dev), and the stream closes *)
   assert_list_of_strings !subscribed_elements
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
@@ -1358,7 +1331,6 @@ let timeout_in_prod_emits_only_digest () =
         subscribed_elements := !subscribed_elements @ [ element ];
         Lwt.return ())
   in
-  (* In production only the digest is passed to the error row and $RX, no error detail *)
   assert_list_of_strings !subscribed_elements
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";
@@ -1369,9 +1341,6 @@ let timeout_in_prod_emits_only_digest () =
   Lwt.return ()
 
 let timeout_rejects_pending_promise_prop_row () =
-  (* A promise passed as a client component prop is an async row of the RSC payload with no Suspense boundary: on
-     timeout it must be rejected with an error row (so the client-side $@ reference settles) without any $RX script
-     (there is no boundary to flip). *)
   let never_resolves, _resolver = Lwt.wait () in
   let app =
     React.Client_component
@@ -1393,7 +1362,6 @@ let timeout_rejects_pending_promise_prop_row () =
   let contains_substring str sub =
     match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
   in
-  (* The shell references the pending promise row *)
   Alcotest.(check bool) "shell references the pending promise row" true (contains_substring html "$@");
   let all_content = String.concat "" !subscribed_elements in
   Alcotest.(check bool)
@@ -1429,7 +1397,6 @@ let timeout_with_late_resolving_boundary_does_not_crash () =
         subscribed_elements := !subscribed_elements @ [ element ];
         Lwt.return ())
   in
-  (* Let the boundary resolve after the timeout: its completion must not push into the closed stream nor raise *)
   let%lwt () = Lwt_unix.sleep 0.06 in
   Lwt.async_exception_hook := previous_hook;
   assert_list_of_strings !async_exceptions [];
@@ -1460,8 +1427,6 @@ let external_abort_settles_pending_boundary () =
   in
   Lwt.wakeup_later resolve_abort ();
   let%lwt () = subscription in
-  (* On an external abort: an error row with the abort reason rejects the pending row, the $RX call carries the
-     wrapped abort message (dev-only), and the stream closes. *)
   assert_list_of_strings !subscribed_elements
     [
       "<script data-payload='1:\"$Sreact.suspense\"\n'>window.srr_stream.push()</script>";

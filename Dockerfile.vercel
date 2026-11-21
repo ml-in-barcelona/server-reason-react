@@ -3,7 +3,6 @@ FROM ocaml/opam:ubuntu-22.04-ocaml-5.4 AS builder
 RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends curl git libev-dev libssl-dev && \
     sudo apt-get remove -y nodejs npm && sudo apt-get autoremove -y
 
-# Node 22: npm@latest (>= 12) requires node >= 22
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && \
     sudo apt-get update && \
     sudo apt-get install -y --no-install-recommends nodejs && \
@@ -37,7 +36,6 @@ WORKDIR /app
 COPY . .
 RUN sudo chown -R opam:opam /app && DEMO_ENV=production opam exec -- dune build @demo --profile=dev
 
-# Slim runtime: the demo server is a native binary, no opam switch needed
 FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends libev4 libssl3 libgmp10 ca-certificates netbase && \
@@ -45,7 +43,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends libev4 libssl3 
 
 WORKDIR /app
 
-# The server resolves assets relative to the cwd: ./_build/default/demo/...
 COPY --from=builder /app/_build/default/demo/server/server.exe _build/default/demo/server/server.exe
 COPY --from=builder /app/_build/default/demo/output.css _build/default/demo/output.css
 COPY --from=builder /app/_build/default/demo/client/app _build/default/demo/client/app
@@ -57,5 +54,4 @@ RUN test -s demo/server/db/notes.json && \
 
 ENV SERVER_INTERFACE=0.0.0.0
 
-# Listens on $PORT (defaults to 8080), provided by Vercel at runtime
 CMD ["/app/_build/default/demo/server/server.exe"]

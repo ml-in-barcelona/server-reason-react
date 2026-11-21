@@ -42,7 +42,6 @@ let self_closing_tag () =
   assert_string (ReactDOM.renderToStaticMarkup input) "<input />"
 
 let numeric_attributes () =
-  (* Numbers render the way JavaScript stringifies them: 100.0 -> "100", not "100." *)
   let component =
     React.createElement "div"
       [
@@ -57,8 +56,6 @@ let numeric_attributes () =
     "<div tabindex=\"42\" aria-valuemin=\"0.5\" aria-valuemax=\"100\"></div>"
 
 let numeric_children () =
-  (* Number children render the way JavaScript stringifies them: 100.0 ->
-     "100" (not string_of_float's "100."), 3.14 -> "3.14". *)
   let component =
     React.createElement "ul" []
       [
@@ -129,8 +126,6 @@ let inline_styles () =
   assert_string (ReactDOM.renderToStaticMarkup component) "<button style=\"border:none;color:red\"></button>"
 
 let inline_styles_escaping () =
-  (* font-family values are wrapped in double quotes; they must be escaped so the
-     style attribute isn't terminated early (see styled-ppx SSR escaping bug). *)
   let style = ReactDOMStyle.unsafeAddProp (ReactDOMStyle.make ()) "--font" {|"Ahrefs", sans-serif|} in
   let component = React.createElement "p" [ React.JSX.style style ] [] in
   assert_string (ReactDOM.renderToStaticMarkup component) "<p style=\"--font:&quot;Ahrefs&quot;, sans-serif\"></p>"
@@ -315,33 +310,6 @@ let render_svg () =
      3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 \
      12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L 14 5 L 17.585938 5 L 8.2929688 14.292969 L \
      9.7070312 15.707031 L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z\"></path></svg>"
-
-(* TODO: add cases for React.Suspense
-   function Button() {
-      return <button>0</button>;
-    }
-
-    function SuspendedButton() {
-      throw new Promise(() => {});
-      return <button>0</button>;
-    }
-
-
-    ReactDOMServer.renderToString(
-      <Suspense fallback={<p>This is a callback</p>}>
-        <Button />
-      </Suspense>
-    );
-    // <!--$--><button>0</button><!--/$-->
-
-
-    ReactDOMServer.renderToString(
-      <Suspense fallback={<p>This is a callback</p>}>
-        <SuspendedButton />
-      </Suspense>
-    );
-    // <!--$!--><p>This is a callback</p><!--/$-->
-*)
 
 let ref_as_callback_prop_works () =
   let app =

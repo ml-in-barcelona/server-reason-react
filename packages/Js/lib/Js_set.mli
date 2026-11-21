@@ -13,10 +13,8 @@
       whereas JS Set iterators are live. *)
 
 type 'a t
-(** The Set type *)
 
 val make : unit -> 'a t
-(** [make ()] creates a new empty set. *)
 
 val fromArray : 'a array -> 'a t
 (** [fromArray values] creates a set from an array, deduplicating values. A duplicated value keeps the position of its
@@ -26,14 +24,12 @@ val toArray : 'a t -> 'a array
 (** [toArray set] returns the values in insertion order, like JS [Array.from(set)]. *)
 
 val size : 'a t -> int
-(** [size set] returns the number of values in [set]. *)
 
 val add : value:'a -> 'a t -> 'a t
 (** [add ~value set] adds [value] to [set] (mutating it) and returns [set] for chaining. Adding an existing value is a
     no-op that keeps its original position. *)
 
 val clear : 'a t -> unit
-(** [clear set] removes all values from [set]. *)
 
 val delete : value:'a -> 'a t -> bool
 (** [delete ~value set] removes [value] from [set]; returns whether the value was present. *)
@@ -42,7 +38,6 @@ val forEach : f:('a -> unit) -> 'a t -> unit
 (** [forEach ~f set] calls [f value] for each value in insertion order. *)
 
 val has : value:'a -> 'a t -> bool
-(** [has ~value set] returns whether [value] is present in [set]. *)
 
 val values : 'a t -> 'a Js_iterator.t
 (** [values set] returns an iterator over the values in insertion order. *)

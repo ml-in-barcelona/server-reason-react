@@ -13,8 +13,7 @@ module Impl = (T: {
       ? Some(Obj.magic(node)) : None;
 
   [@mel.get] external characterSet: T.t => string = "characterSet";
-  [@mel.get]
-  external compatMode: T.t => string /* compatMode enum */ = "compatMode"; /* experimental */
+  [@mel.get] external compatMode: T.t => string = "compatMode";
   let compatMode: T.t => Webapi__Dom__Types.compatMode = self =>
     Webapi__Dom__Types.decodeCompatMode(compatMode(self));
   [@mel.get] external doctype: T.t => Dom.documentType = "doctype";
@@ -26,7 +25,7 @@ module Impl = (T: {
   [@mel.get] external lastStyleSheetSet: T.t => string = "lastStyleSheetSet";
   [@mel.get] [@mel.return nullable]
   external pointerLockElement: T.t => option(Dom.element) =
-    "pointerLockElement"; /* experimental */
+    "pointerLockElement";
 
   [@mel.get]
   external preferredStyleSheetSet: T.t => string = "preferredStyleSheetSet";
@@ -38,11 +37,9 @@ module Impl = (T: {
   external setSelectedStyleSheetSet: (T.t, string) => unit =
     "selectedStyleSheetSet";
   [@mel.get]
-  external styleSheets: T.t => array(Dom.cssStyleSheet) = "styleSheets"; /* return StyleSheetList, not array */
+  external styleSheets: T.t => array(Dom.cssStyleSheet) = "styleSheets";
   [@mel.get] external styleSheetSets: T.t => array(string) = "styleSheetSets";
-  [@mel.get]
-  external visibilityState: T.t => string /* visibilityState enum */ =
-    "visibilityState";
+  [@mel.get] external visibilityState: T.t => string = "visibilityState";
   let visibilityState: T.t => Webapi__Dom__Types.visibilityState = self =>
     Webapi__Dom__Types.decodeVisibilityState(visibilityState(self));
 
@@ -63,16 +60,16 @@ module Impl = (T: {
   external createElement: string => Dom.element = "createElement";
   [@mel.send.pipe: T.t]
   external createElementWithOptions: (string, Js.t({..})) => Dom.element =
-    "createElement"; /* not widely supported */
+    "createElement";
   [@mel.send.pipe: T.t]
   external createElementNS: (string, string) => Dom.element =
     "createElementNS";
   [@mel.send.pipe: T.t]
   external createElementNSWithOptions:
     (string, string, Js.t({..})) => Dom.element =
-    "createElementNS"; /* not widely supported */
+    "createElementNS";
   [@mel.send.pipe: T.t]
-  external createEvent: string /* large enum */ => Dom.event = "createEvent"; /* discouraged (but not deprecated) in favor of Event constructors */
+  external createEvent: string => Dom.event = "createEvent";
   [@mel.send.pipe: T.t]
   external createNodeIterator: Dom.node_like('a) => Dom.nodeIterator =
     "createNodeIterator";
@@ -84,7 +81,7 @@ module Impl = (T: {
   external createNodeIteratorWithWhatToShowFilter:
     (Dom.node_like('a), Webapi__Dom__Types.WhatToShow.t, Dom.nodeFilter) =>
     Dom.nodeIterator =
-    "createNodeIterator"; /* createProcessingInstruction */
+    "createNodeIterator";
   [@mel.send.pipe: T.t] external createRange: Dom.range = "createRange";
   [@mel.send.pipe: T.t]
   external createTextNode: string => Dom.text = "createTextNode";
@@ -101,15 +98,15 @@ module Impl = (T: {
     Dom.treeWalker =
     "createTreeWalker";
   [@mel.send.pipe: T.t]
-  external elementFromPoint: (int, int) => Dom.element = "elementFromPoint"; /* experimental, but widely supported */
+  external elementFromPoint: (int, int) => Dom.element = "elementFromPoint";
   [@mel.send.pipe: T.t]
   external elementsFromPoint: (int, int) => array(Dom.element) =
-    "elementsFromPoint"; /* experimental */
+    "elementsFromPoint";
   [@mel.send.pipe: T.t]
   external enableStyleSheetsForSet: string => unit = "enableStyleSheetsForSet";
-  [@mel.send.pipe: T.t] external exitPointerLock: unit = "exitPointerLock"; /* experimental */
+  [@mel.send.pipe: T.t] external exitPointerLock: unit = "exitPointerLock";
   [@mel.send.pipe: T.t]
-  external getAnimations: array(Dom.animation) = "getAnimations"; /* experimental */
+  external getAnimations: array(Dom.animation) = "getAnimations";
   [@mel.send.pipe: T.t]
   external getElementsByClassName: string => Dom.htmlCollection =
     "getElementsByClassName";
@@ -128,17 +125,11 @@ module Impl = (T: {
     Dom.element_like('a) =
     "importNode";
   [@mel.send.pipe: T.t]
-  external registerElement: (string, unit) => Dom.element = "registerElement"; /* experimental and deprecated in favor of customElements.define() */
+  external registerElement: (string, unit) => Dom.element = "registerElement";
   [@mel.send.pipe: T.t]
   external registerElementWithOptions:
     (string, Js.t({..}), unit) => Dom.element =
-    "registerElement"; /* experimental and deprecated in favor of customElements.define() */
-
-  /** XPath stuff */;
-  /* createExpression */
-  /* createNSResolver */
-  /* evaluate */
-  /* GlobalEventHandlers interface */
+    "registerElement";
 };
 
 type t = Dom.document;

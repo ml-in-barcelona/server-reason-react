@@ -1,5 +1,3 @@
-(** Provide utilities for {!Js.t} *)
-
 module Internal = struct
   module Registry = Ephemeron.K1.Make (struct
     type t = Obj.t
@@ -22,15 +20,6 @@ module Internal = struct
     entries : (string, entry) Hashtbl.t;
   }
 
-  (* Object registration is on the hot path: every [makeProps] (one per
-     component instantiation) and every [%mel.obj] literal registers its
-     entries. Materializing [metadata] eagerly costs a [Hashtbl.create]
-     plus one [Hashtbl.replace] and one list cons per field — and building
-     an [entry] costs a record plus two boxing closures per field — yet the
-     metadata is only ever consulted by [keys]/[assign]/[merge], which
-     almost never run on these objects. So the generated code registers a
-     single [Deferred] thunk that builds all entries on demand instead of
-     paying that cost per object construction. *)
   type state = Built of metadata | Deferred of (unit -> entry list)
   type slot = { mutable state : state }
 
@@ -75,9 +64,6 @@ module Internal = struct
         Registry.add registry (Obj.repr object_) { state = Built metadata };
         metadata
 
-  (* Builds the [entry] for a field cell on demand; only ever called from a
-     [Deferred] thunk, so the record and its two boxing closures are not
-     allocated on the object-construction hot path. *)
   let deferred_entry ~method_name ~js_name ~present cell =
     {
       method_name;

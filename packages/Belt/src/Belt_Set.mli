@@ -300,7 +300,6 @@ val checkInvariantInternal : _ t -> unit
 
 (**/**)
 
-(****************************************************************************)
 (** Below are operations only when better performance needed, it is still safe API but more verbose. More API will be
     exposed by needs *)
 

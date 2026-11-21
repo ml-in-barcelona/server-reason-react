@@ -32,7 +32,7 @@ let rec getUndefined n (x : key) =
 
 let rec getExn n (x : key) =
   match N.toOpt n with
-  | None -> raise Stdlib.Not_found (* like Melange *)
+  | None -> raise Stdlib.Not_found
   | Some n ->
       let v = N.key n in
       if x = v then N.value n else getExn (if x < v then N.left n else N.right n) x

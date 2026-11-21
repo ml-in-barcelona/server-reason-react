@@ -1,6 +1,3 @@
-// Port of benchmark/scenarios/Ecommerce.re
-// Purpose: real-world SSR performance for e-commerce page
-
 import React from "react";
 import { cx } from "./cx.js";
 
@@ -344,8 +341,6 @@ const Page = ({ products }) => (
   </html>
 );
 
-// Match the OCaml "module Products24 = { let products = generateProducts(24) }"
-// idiom: generate once at module load, then reuse.
 const products24 = generateProducts(24);
 const products48 = generateProducts(48);
 const products100 = generateProducts(100);

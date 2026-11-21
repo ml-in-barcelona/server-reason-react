@@ -14,4 +14,4 @@ include Webapi__Dom__EventTarget.Impl({
 [@mel.get] external value: t => string = "value";
 [@mel.get] [@mel.return nullable]
 external ownerElement: t => option(Dom.element) = "ownerElement";
-[@mel.get] external specified: t => bool = "specified"; /* useless; always returns true (exact wording from spec) */
+[@mel.get] external specified: t => bool = "specified";

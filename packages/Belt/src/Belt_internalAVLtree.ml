@@ -248,7 +248,6 @@ let rec checkInvariantInternal (v : _ t) =
   | Some n ->
       let l, r = (left n, right n) in
       let diff = treeHeight l - treeHeight r in
-      (* Melange uses assert here (Assert_failure) *)
       assert (diff <= 2 && diff >= -2);
       checkInvariantInternal l;
       checkInvariantInternal r
@@ -447,9 +446,7 @@ let rec getUndefined n x ~cmp =
 
 let rec getExn n x ~cmp =
   match toOpt n with
-  | None ->
-      (* Melange raises Not_found here *)
-      raise Stdlib.Not_found
+  | None -> raise Stdlib.Not_found
   | Some n ->
       let v = key n in
       let c = (Belt_Id.getCmpInternal cmp) x v in

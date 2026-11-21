@@ -10,8 +10,6 @@
 (*  the special exception on linking described in file ../LICENSE.     *)
 (*                                                                     *)
 (*  Adapted by authors of ReScript without using functors          *)
-(***********************************************************************)
-
 (** A {i immutable} sorted map module which allows customize {i compare} behavior.
 
     The implementation uses balanced binary trees, and therefore searching and insertion take time logarithmic in the
@@ -79,9 +77,6 @@ type ('key, 'id) id = ('key, 'id) Belt_Id.comparable
     When destructing a value of [_ t], the ['id] parameter is threaded.
 
 *)
-
-(* should not export [Belt_Id.compare].
-   should only export [Belt_Id.t] or [Belt_Id.cmp] instead *)
 
 val make : id:('k, 'id) id -> ('k, 'v, 'id) t
 (** [make ~id] creates a new map by taking in the comparator

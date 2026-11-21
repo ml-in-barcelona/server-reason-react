@@ -15,7 +15,6 @@ let match_substring string substring =
     true
   with Not_found -> false
 
-(* There's no Ppxlib.pexp_list since isn't a parsetree constructor *)
 let pexp_list ~loc xs =
   List.fold_left (List.rev xs) ~init:[%expr []] ~f:(fun xs x ->
       let loc = x.pexp_loc in
@@ -163,8 +162,6 @@ let make_prop ~is_optional ~prop attribute_value =
         match ([%e attribute_value] : bool option) with
         | None -> None
         | Some v -> Some (React.JSX.Bool ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
-  (* BooleanishString stays a boolean until the serialization seams: HTML renders "true"/"false", Flight keeps the raw
-     JSON boolean *)
   | Attribute { type_ = DomProps.BooleanishString; name; jsxName }, false ->
       [%expr
         Some
@@ -379,9 +376,7 @@ let transform_lowercase_props ~loc ~tag_name args =
       let list_of_attributes = attrs |> List.fold_right ~f:(transform_labelled ~loc ~tag_name) ~init:[%expr []] in
       match list_of_attributes with
       | [%expr []] -> [%expr []]
-      | _ ->
-          (* We need to filter attributes since optionals are represented as None *)
-          [%expr Stdlib.List.filter_map Stdlib.Fun.id [%e list_of_attributes]])
+      | _ -> [%expr Stdlib.List.filter_map Stdlib.Fun.id [%e list_of_attributes]])
 
 let generate_create_element ~loc ~tag_name ~key ~props ~children =
   let dom_node_name = estring ~loc tag_name in
@@ -395,18 +390,9 @@ let generate_create_element ~loc ~tag_name ~key ~props ~children =
   | Some key, None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
   | None, None -> [%expr React.createElement [%e dom_node_name] [%e props] []]
 
-(* Emit buffer writes that serialize a single attribute value of the given
-   kind. Mirrors [ReactDOM.write_attribute_to_buffer] exactly so that PPX-
-   lowered output is byte-identical to the variant-tree path.
-
-   [value_expr] is the already-unwrapped (not an option) runtime expression
-   that produces the value. Handles only the kinds declared lowerable in
-   [Static_analysis.is_lowerable_kind]. Mirrored by
-   [Static_analysis.render_static_attr_with_info] on the literal side. *)
 let emit_attr_value_write ~loc ~info ~value_expr =
   let open Static_analysis in
   let name_expr = estring ~loc info.html_name in
-  (* Wrap a value-writing sub-expression with the ` name="…"` skeleton. *)
   let quoted inner =
     [%expr
       Buffer.add_char __buf ' ';
@@ -419,7 +405,6 @@ let emit_attr_value_write ~loc ~info ~value_expr =
   | DomProps.String -> quoted [%expr ReactDOM.escape_to_buffer __buf ([%e value_expr] : string)]
   | DomProps.Int -> quoted [%expr ReactDOM.write_int_to_buffer __buf ([%e value_expr] : int)]
   | DomProps.Bool ->
-      (* Matches [Bool (name, _, true) -> " " ^ name] / [false -> nothing]. *)
       [%expr
         if ([%e value_expr] : bool) then begin
           Buffer.add_char __buf ' ';
@@ -428,27 +413,14 @@ let emit_attr_value_write ~loc ~info ~value_expr =
   | DomProps.BooleanishString ->
       quoted [%expr Buffer.add_string __buf (if ([%e value_expr] : bool) then "true" else "false")]
   | DomProps.Style ->
-      (* Mirrors [ReactDOM.write_attribute_to_buffer]'s [Style] case exactly:
-         serialize the style, then HTML-escape the result (so a quoted value
-         such as a [font-family] cannot break out of the [style="…"] attribute),
-         byte-identical output. *)
       [%expr
         Buffer.add_string __buf " style=\"";
         ReactDOM.escape_to_buffer __buf (ReactDOM.Style.to_string ([%e value_expr] : ReactDOM.Style.t));
         Buffer.add_char __buf '"']
   | DomProps.Float | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
-      (* Unreachable: [is_lowerable_kind] rejects these kinds before we ever
-         reach emission. Fail loud at compile time if the invariant breaks. *)
       Location.raise_errorf ~loc "internal PPX error: attribute kind not lowerable but reached emission (name=%s)"
         info.html_name
 
-(* The concrete (non-option) value type carried by a lowerable attribute
-   kind. Used to annotate an optional attribute's scrutinee as
-   [(expr : t option)] so OCaml's type-directed disambiguation resolves a
-   bare [None]/[Some] in [expr] against [option] — even when a user type in
-   scope shadows them (e.g. [type roundness = … | None]). This mirrors the
-   annotations the variant-tree path emits in [make_prop]; without it the
-   [Writer.emit] fast path is the only place that loses the expected type. *)
 let attr_value_core_type ~loc (kind : DomProps.attributeType) =
   match kind with
   | DomProps.String -> [%type: string]
@@ -456,33 +428,12 @@ let attr_value_core_type ~loc (kind : DomProps.attributeType) =
   | DomProps.Bool | DomProps.BooleanishString -> [%type: bool]
   | DomProps.Style -> [%type: ReactDOM.Style.t]
   | DomProps.Float | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
-      (* Unreachable for the same reason as [emit_attr_value_write]. *)
       Location.raise_errorf ~loc "internal PPX error: attribute kind not lowerable but reached emission"
 
-(* Compile-time knowledge of whether the previously emitted node ended
-   inside a text run. [Ct_unknown] appears only after a [Dynamic_element]
-   hole, whose content is decided at render time. *)
 type compile_time_textness = Ct_text | Ct_markup | Ct_unknown
 
-(* Emit the [Buffer.t -> separators:bool -> unit] body for a
-   [static_part list]. Writes the static skeleton inline; each dynamic hole
-   becomes a [Buffer.add_*] / escape / attribute-emission call that runs at
-   render time with no intermediate allocation.
-
-   Text-separator protocol ([renderToString] parity, required for
-   hydration): adjacent text nodes must be delimited by [<!-- -->] when
-   [separators] is true. The walk threads a compile-time textness state:
-   when both sides of a boundary are known, the separator is emitted behind
-   a plain [if separators] check (or not at all); when the left side is a
-   [Dynamic_element] hole the generated code threads a [prev_text] ref,
-    assigned from [ReactDOM.write_element_to_buffer_internal]'s result. The ref is
-   only read while the compile-time state is [Ct_unknown], so static parts
-   and string holes never need to update it. *)
 let emit_parts_emit_fn ~loc parts =
   let open Static_analysis in
-  (* Emit one [Dynamic_attr_slot] hole. For optional slots we peek through
-     an obvious [Some e]/[None] to skip the runtime [match]; common when a
-     caller writes [?foo=Some x] or [?foo=None] literally. *)
   let write_attr_slot ~info ~expr ~is_optional =
     let loc = expr.pexp_loc in
     if not is_optional then emit_attr_value_write ~loc ~info ~value_expr:expr
@@ -495,8 +446,6 @@ let emit_parts_emit_fn ~loc parts =
           let value_ty = attr_value_core_type ~loc info.kind in
           [%expr match ([%e expr] : [%t value_ty] option) with None -> () | Some v -> [%e write_some]]
   in
-  (* [Dynamic_attr_slot] lives inside the open tag: it doesn't touch the
-     child text run. *)
   let after_part state = function
     | Static_str { ends_text; _ } -> if ends_text then Ct_text else Ct_markup
     | Dynamic_string _ | Dynamic_int _ -> Ct_text
@@ -508,9 +457,6 @@ let emit_parts_emit_fn ~loc parts =
     | Dynamic_string _ | Dynamic_int _ -> true
     | Dynamic_element _ | Dynamic_attr_slot _ -> false
   in
-  (* Prepass: the [prev_text] ref is read when a text-beginning part or a
-     [Dynamic_element] hole runs while the compile-time state is
-     [Ct_unknown]. When that never happens, skip declaring the ref. *)
   let prev_text_ref_needed =
     let rec loop state = function
       | [] -> false
@@ -542,10 +488,7 @@ let emit_parts_emit_fn ~loc parts =
           in
           let write =
             match part with
-            | Static_str { html; _ } when String.length html = 0 ->
-                (* Nothing to write: an empty text chunk only participates
-                   in the text-run tracking (compile-time state). *)
-                None
+            | Static_str { html; _ } when String.length html = 0 -> None
             | Static_str { html; _ } -> Some [%expr Buffer.add_string __buf [%e estring ~loc html]]
             | Dynamic_string e ->
                 let loc = e.pexp_loc in
@@ -666,8 +609,6 @@ let capture_writer_values ~loc args children parts =
     match captures with
     | [] -> body
     | _ ->
-        (* Function parameters preserve the expected types of prop expressions,
-           including option constructors shadowed in the caller's scope. *)
         let fn =
           List.fold_right captures ~init:body ~f:(fun (_, name, _) body ->
               pexp_fun ~loc Nolabel None (pvar ~loc name) body)
@@ -692,12 +633,6 @@ let rewrite_lowercase ~loc tag_name args children =
       let original = original args children in
       [%expr React.Static { prerendered = [%e html_expr]; original = [%e original] }]
   | Static_analysis.Needs_buffer parts ->
-      (* Emit a [Buffer.t -> separators:bool -> unit] that writes directly into the caller's
-         buffer. Avoids the N-per-subtree [Buffer.create] + [Buffer.contents]
-         that a [Static] wrapping would cost.
-
-         [original] rebuilds the variant-tree on demand for [cloneElement] / RSC,
-         sharing the values captured when the Writer was constructed. *)
       let args, children, parts, bind = capture_writer_values ~loc args children parts in
       let parts_with_doctype =
         match tag_name with "html" -> Static_analysis.static_markup "<!DOCTYPE html>" :: parts | _ -> parts
@@ -754,13 +689,11 @@ let remove_warning_16_optional_argument_cannot_be_erased ~loc =
     attr_loc = loc;
   }
 
-(* Finds the name of the variable the binding is assigned to, otherwise raises *)
 let get_function_name binding =
   match binding with
   | { pvb_pat = { ppat_desc = Ppat_var { txt } } } -> txt
   | _ -> raise_errorf ~loc:binding.pvb_loc "react.component calls cannot be destructured."
 
-(* TODO: there are a few unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
 let add_unit_at_the_last_argument expression =
   let loc = expression.pexp_loc in
   let has_final_unit params =
@@ -794,12 +727,9 @@ let add_unit_at_the_last_argument expression =
   let rec inner expression =
     match expression.pexp_desc with
     | Pexp_function _ -> find_innermost_function_and_add_unit expression
-    (* let make = {let foo = bar in (~prop) => ...} *)
     | Pexp_let (recursive, vbs, internalExpression) ->
         pexp_let ~loc:expression.pexp_loc recursive vbs (inner internalExpression)
-    (* let make = React.forwardRef((~prop) => ...) *)
     | Pexp_apply (_, [ (Nolabel, internalExpression) ]) -> inner internalExpression
-    (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
     | Pexp_apply (_, [ (Nolabel, internalExpression); ((Nolabel, { pexp_desc = Pexp_function _; _ }) as _compareProps) ])
       ->
         inner internalExpression
@@ -831,8 +761,6 @@ let safe_type_from_label = function
   | Labelled name | Optional name -> name
   | Nolabel -> "T"
 
-(* Keep this keyword list and translate_mel_obj_label in sync with Melange's
-   Lam_methname.translate implementation. *)
 let mel_obj_keywords =
   [
     "and";
@@ -932,12 +860,6 @@ let js_obj_internal_expression ~loc name =
 let is_literal_bool_expr expr =
   match expr.pexp_desc with Pexp_construct ({ txt = Lident ("true" | "false"); _ }, None) -> true | _ -> false
 
-(* Emits a registered [Js.t] object. Field values live in plain refs read by
-   the object methods; the registry entry is a single [Deferred] thunk that
-   builds the per-field [entry] records (a record plus two boxing closures
-   each) only if [Js.Obj.keys]/[assign]/[merge] ever inspects the object.
-   This keeps object construction — every [makeProps] call and [%mel.obj]
-   literal — free of per-field entry allocation. *)
 let build_registered_js_object_expression ?as_type ?(register_name = "register_deferred") ~loc fields =
   let generated_fields =
     List.mapi fields ~f:(fun index { method_name; js_name; present_expr; value_expr } ->
@@ -945,9 +867,6 @@ let build_registered_js_object_expression ?as_type ?(register_name = "register_d
         let cell_binding =
           value_binding ~loc ~pat:(ppat_var ~loc { loc; txt = cell_name }) ~expr:[%expr Stdlib.ref [%e value_expr]]
         in
-        (* [present] must be evaluated at construction time (it reads the
-           original argument), but literal booleans can be inlined into the
-           thunk directly. *)
         let present_bindings, present_in_thunk =
           if is_literal_bool_expr present_expr then ([], present_expr)
           else
@@ -1195,9 +1114,7 @@ let expand_make_binding binding react_element_variant_wrapping =
   let underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
   let core_type = [%type: string option] in
   let key_pattern = ppat_constraint ~loc underscore core_type in
-  (* Append key argument since we want to allow users of this component to set key (and assign it to _ since it shouldn't be used) *)
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
-  (* Since expand_make_binding is called on both native and js contexts, we need to keep the attributes *)
   { (value_binding ~loc:ghost_loc ~pat:name ~expr:function_body) with pvb_attributes = attributers }
 
 let expand_make_binding_with_key binding react_element_variant_wrapping =
@@ -1272,12 +1189,10 @@ and make_tuple_json_decoder ~loc types =
   let n = List.length types in
   let vars = List.mapi ~f:(fun i _ -> Printf.sprintf "t%d" i) types in
   let decoders = List.map ~f:(make_json_decoder ~loc) types in
-  (* Build pattern: `List [t0; t1; t2; ...] *)
   let list_elements_pat =
     List.fold_right ~f:(fun v acc -> [%pat? [%p ppat_var ~loc { txt = v; loc }] :: [%p acc]]) vars ~init:[%pat? []]
   in
   let match_pat = [%pat? `List [%p list_elements_pat]] in
-  (* Build expression: (decoder0 t0, decoder1 t1, ...) *)
   let tuple_elements = List.map2 ~f:(fun decode v -> [%expr [%e decode] [%e evar ~loc v]]) decoders vars in
   let tuple_expr = pexp_tuple ~loc tuple_elements in
   let error_msg = Printf.sprintf "expected a JSON array of length %d" n in
@@ -1312,7 +1227,6 @@ let props_of_model ~loc (props : (arg_label * expression option * pattern) list)
       | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
-              (* This error is raised by reason-react-ppx as well *)
               let loc = pattern.ppat_loc in
               (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]]) :: fields
           | Labelled label | Optional label ->
@@ -1341,7 +1255,6 @@ let react_component_attribute ~loc =
 
 let mel_obj ~loc fields =
   match fields with
-  (* QUESTION: Maybe unit would work here best, for correctness? *)
   | [] -> [%expr Js.Obj.empty ()]
   | _ ->
       let record = pexp_record ~loc fields None in
@@ -1405,7 +1318,6 @@ let props_to_model ~loc (props : (arg_label * expression option * pattern) list)
       | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
-              (* This error is raised by reason-react-ppx as well *)
               let loc = pattern.ppat_loc in
               [%expr [%ocaml.error "props need to be labelled arguments"] :: [%e acc]]
           | Labelled label | Optional label ->
@@ -1413,7 +1325,6 @@ let props_to_model ~loc (props : (arg_label * expression option * pattern) list)
               let value = make_to_model ~loc core_type prop in
               let name = estring ~loc label in
               [%expr ([%e name], [%e value]) :: [%e acc]])
-      (* TODO: Add all ppat_desc possibilities *)
       | _ ->
           let loc = pattern.ppat_loc in
           let expr =
@@ -1451,7 +1362,6 @@ module ServerFunction = struct
           else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
       | None -> raise_errorf ~loc "Found a server.function without -shared-folder-prefix argument. Provide one."
     in
-    (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
     let file_path = Str.replace_first (Str.regexp replacement) "" file_path in
     let hash = Printf.sprintf "%s_%s_%d" name file_path loc.loc_start.pos_lnum |> Hashtbl.hash |> string_of_int in
     hash
@@ -1639,7 +1549,6 @@ end
 
 let rewrite_structure_item ~nested_module_names structure_item =
   match structure_item.pstr_desc with
-  (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
       match
         List.filter
@@ -1654,7 +1563,6 @@ let rewrite_structure_item ~nested_module_names structure_item =
             "externals aren't supported on server-reason-react. externals are used to bind to React components defined \
              in JavaScript, in the server, that doesn't make sense. If you need to render this on the server, \
              implement a placeholder or an empty element"]])
-  (* let make = ... *)
   | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
       let vb = List.hd value_bindings in
       let loc = structure_item.pstr_loc in
@@ -1784,7 +1692,6 @@ let rewrite_structure_item ~nested_module_names structure_item =
 
 let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
   match structure_item.pstr_desc with
-  (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
       match List.filter ~f:(fun attr -> hasAttr attr react_dot_client_dot_component) pval_attributes with
       | [] -> structure_item
@@ -1794,7 +1701,6 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
   | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
       let vb = List.hd value_bindings in
       ServerFunction.rewrite_client_function ~nested_module_names ~vb ~rec_flag structure_item
-  (* let make = ... *)
   | Pstr_value (rec_flag, value_bindings) when isClientComponentBinding value_bindings ->
       let first_value_binding = List.hd value_bindings in
       let make_client = expand_make_binding_to_client first_value_binding in
@@ -1805,7 +1711,6 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
       let loc = structure_item.pstr_loc in
       let code_path = Expansion_context.Base.code_path ctx in
       let fileName = Code_path.file_path code_path in
-      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
       let replacement =
         match shared_folder_prefix.contents with
         | Some prefix ->
@@ -1847,8 +1752,6 @@ let validate_tag_children tag children attributes : (unit, string) result =
 let traverse =
   object (_)
     inherit [Expansion_context.Base.t] Ast_traverse.map_with_context as super
-
-    (* Since ppxlib doesn't provide a way to get the submodules, we need to keep track of them manually *)
     val mutable nested_module_names = []
 
     method! module_binding ctxt module_binding =
@@ -1875,18 +1778,9 @@ let traverse =
 
     method! expression ctx expr =
       let expr = super#expression ctx expr in
-      (* Rewrite ReactDOM.Style.make(~k:v, ..., ()) to a direct list literal at
-         compile time. On stock OCaml the 347-optional-arg signature forces
-         ~1460 words/call; the PPX elides this entirely when all args are
-         labeled string values. Falls through if optional args or unknown
-         names appear. Native-only: on the JS target [ReactDOM.Style.t] is
-         reason-react's abstract type, so a list literal annotated as
-         [ReactDOM.Style.t] fails to type-check. *)
       let expr = match mode.contents with Native -> Style_rewrite.rewrite_expression expr | Js -> expr in
       match mode.contents with
-      | Js ->
-          (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
-          Styles_attribute.expand expr
+      | Js -> Styles_attribute.expand expr
       | Native -> (
           try
             match expr.pexp_desc with
@@ -1897,25 +1791,17 @@ let traverse =
                 | Error err -> [%expr [%ocaml.error [%e estring ~loc:expr.pexp_loc err]]]
                 | Ok () -> (
                     match tag.pexp_desc with
-                    (* div() [@JSX] *)
                     | Pexp_ident { txt = Lident name; loc = _name_loc } ->
-                        (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
                         let new_args = Styles_attribute.expand_attributes ~loc:tag.pexp_loc rest_of_args in
                         rewrite_lowercase ~loc:expr.pexp_loc name new_args children
-                    (* Reason adds `createElement` as default when an uppercase is found,
-                   we change it back to make *)
-                    (* Foo.createElement() [@JSX] *)
                     | Pexp_ident { txt = Ldot (modulePath, ("createElement" | "make")); loc } ->
                         let id = { loc; txt = Ldot (modulePath, "make") } in
                         rewrite_component ~loc:expr.pexp_loc id rest_of_args children
-                    (* local_function() [@JSX] *)
                     | Pexp_ident id -> rewrite_component ~loc:expr.pexp_loc id rest_of_args children
                     | _ -> assert false))
-            (* div() [@JSX] *)
             | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
                 raise_errorf ~loc:expr.pexp_loc "jsx: %s should be an identifier, not an expression"
                   (Pprintast.string_of_expression tag)
-            (* <> </> is represented as a list in the Parsetree with [@JSX] *)
             | Pexp_construct ({ txt = Lident "::"; loc }, Some { pexp_desc = Pexp_tuple _; _ })
             | Pexp_construct ({ txt = Lident "[]"; loc }, None) -> (
                 let jsx_attr, rest_attributes = List.partition ~f:is_jsx expr.pexp_attributes in

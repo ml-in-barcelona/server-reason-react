@@ -1,6 +1,3 @@
-(** Tests for Js.Global timers (Lwt-backed). Semantics follow WHATWG/node timers: callbacks fire asynchronously after
-    the delay on the event loop; clearTimeout/clearInterval cancel pending callbacks. *)
-
 let test title fn = Alcotest_lwt.test_case title `Quick (fun _switch () -> fn ())
 
 let tests =

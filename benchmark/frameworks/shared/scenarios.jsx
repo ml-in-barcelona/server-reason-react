@@ -1,8 +1,3 @@
-/**
- * Shared benchmark scenarios for JavaScript frameworks
- * These mirror the Reason/OCaml scenarios for fair comparison
- */
-
 import React from "react";
 import { PropsSmall, PropsMedium, PropsLarge } from "./PropsHeavy.jsx";
 import { Ecommerce24, Ecommerce48, Ecommerce100 } from "./Ecommerce.jsx";
@@ -10,14 +5,8 @@ import { Dashboard } from "./Dashboard.jsx";
 import { Blog10, Blog50, Blog100 } from "./Blog.jsx";
 import { Form } from "./Form.jsx";
 
-// ============================================================================
-// Trivial - Baseline
-// ============================================================================
 export const Trivial = () => <div>Hello World</div>;
 
-// ============================================================================
-// ShallowTree - 5 levels deep with props
-// ============================================================================
 const Level5 = ({ title, subtitle, active, count }) => (
   <div className={`p-4 rounded ${active ? "bg-blue-500" : ""}`}>
     <h5 className="font-bold">{title}</h5>
@@ -81,9 +70,6 @@ const Level1 = ({ pageTitle }) => (
 
 export const ShallowTree = () => <Level1 pageTitle="Shallow Tree Benchmark" />;
 
-// ============================================================================
-// DeepTree - 50+ levels deep
-// ============================================================================
 const Wrapper = ({ depth, maxDepth, children }) => {
   const percentage = (depth / maxDepth) * 100;
   return (
@@ -121,9 +107,6 @@ export const DeepTree50 = () => renderDepth(0, 50);
 export const DeepTree100 = () => renderDepth(0, 100);
 export const DeepTree = DeepTree50;
 
-// ============================================================================
-// WideTree - Many siblings
-// ============================================================================
 const Card = ({ id, title, description, price, rating, inStock }) => (
   <article
     className={`border rounded-lg p-4 shadow-sm ${!inStock ? "opacity-50" : ""}`}
@@ -179,9 +162,6 @@ export const WideTree500 = () => <WideTreeBase count={500} cols={5} />;
 export const WideTree1000 = () => <WideTreeBase count={1000} cols={5} />;
 export const WideTree = WideTree100;
 
-// ============================================================================
-// Table - Data table rendering
-// ============================================================================
 const generateUsers = (count) =>
   Array.from({ length: count }, (_, i) => {
     const departments = [
@@ -352,9 +332,6 @@ export const Table100 = () => <DataTable users={generateUsers(100)} />;
 export const Table500 = () => <DataTable users={generateUsers(500)} />;
 export const Table = Table100;
 
-// ============================================================================
-// Export all scenarios with metadata
-// ============================================================================
 export const scenarios = {
   trivial: { component: Trivial, name: "Trivial", description: "Baseline" },
   shallow: {

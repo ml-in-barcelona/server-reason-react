@@ -10,7 +10,6 @@ let is_react_custom_attribute attr =
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning" | "suppressHydrationWarning" -> true
   | _ -> false
 
-(* Writes ` name="value"` for values that need no HTML escaping (numbers, booleanish strings). *)
 let write_raw_attribute buf name value =
   Buffer.add_char buf ' ';
   Buffer.add_string buf name;
@@ -20,13 +19,9 @@ let write_raw_attribute buf name value =
 
 let write_attribute_to_buffer buf (attr : React.JSX.prop) =
   match attr with
-  (* ignores "ref" prop *)
   | Ref _ -> ()
-  (* react custom attributes are not rendered *)
   | Bool (name, _, _) when is_react_custom_attribute name -> ()
-  (* false attributes don't get rendered *)
   | Bool (_name, _, false) -> ()
-  (* true attributes render solely the attribute name *)
   | Bool (name, _, true) ->
       Buffer.add_char buf ' ';
       Buffer.add_string buf name
@@ -52,9 +47,7 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
       write_int_to_buffer buf value;
       Buffer.add_char buf '"'
   | Float (name, _, value) -> write_raw_attribute buf name (Js.Float.toString value)
-  (* Events don't get rendered on SSR *)
   | Event _ -> ()
-  (* Since we extracted the attribute as children, we are sure there's nothing to render here *)
   | DangerouslyInnerHtml _ -> ()
 
 let write_attributes_and_extract_inner_html buf attrs =
@@ -67,13 +60,9 @@ let write_attributes_and_extract_inner_html buf attrs =
 
 let attribute_to_html (attr : React.JSX.prop) =
   match attr with
-  (* ignores "ref" prop *)
   | Ref _ -> Html.omitted ()
-  (* react custom attributes are not rendered *)
   | Bool (name, _, _) when is_react_custom_attribute name -> Html.omitted ()
-  (* false attributes don't get rendered *)
   | Bool (_name, _, false) -> Html.omitted ()
-  (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
   | (BooleanishString (name, _, _) | String (name, _, _) | Int (name, _, _) | Float (name, _, _))
     when is_react_custom_attribute name ->
@@ -84,9 +73,7 @@ let attribute_to_html (attr : React.JSX.prop) =
   | String (name, _, value) -> Html.attribute name value
   | Int (name, _, value) -> Html.attribute name (Int.to_string value)
   | Float (name, _, value) -> Html.attribute name (Js.Float.toString value)
-  (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
-  (* Since we extracted the attribute as children, we are sure there's nothing to render here *)
   | DangerouslyInnerHtml _ -> Html.omitted ()
 
 let attributes_to_html attrs = List.map attribute_to_html attrs
@@ -96,8 +83,6 @@ let getDangerouslyInnerHtml attributes =
 
 type mode = String | Markup
 
-(* Text-like elements (Text, Int, Float) render as text nodes: user strings are HTML-escaped, numbers are stringified
-   the way JavaScript does ("2", not OCaml's "2."). Callers handle their own text-node separator semantics. *)
 let write_text_node buf (element : React.element) =
   match element with
   | Text text -> Html.escape buf text
@@ -119,22 +104,13 @@ let is_unsupported_sync_message message =
   String.equal message async_component_sync_error
   || String.starts_with ~prefix:client_component_sync_error_prefix message
 
-(* The sync tree walker behind renderToString, renderToStaticMarkup and the
-   ppx Writer fast path. [separators] and [prev_text] are documented on
-   [write_element_to_buffer] in the mli; [doctype] is false for Writer emit
-   bodies because the ppx bakes the doctype into its prerendered chunks.
-   [buf] stays positional on every recursive function: partial applications
-   allocate a closure per parent node (benchmark/perf-work/PERF_NEXT.md, H1). *)
 let render_tree buf ~separators ~doctype ~prev_text element : bool =
-  (* Render-scoped and monotonic (true until the first emitting node), so a
-     single ref is simpler than threading it alongside [prev_text]. *)
   let doctype_pending = ref doctype in
   let rec render buf prev_text (element : React.element) : bool =
     match element with
     | Empty -> prev_text
     | Static { prerendered; _ } ->
         doctype_pending := false;
-        (* Prerendered chunks are complete elements: they end the current text run *)
         Buffer.add_string buf prerendered;
         false
     | Writer { emit; _ } ->
@@ -282,13 +258,6 @@ let write_to_buffer buf element =
   ()
 
 let escape_to_buffer = Html.escape
-
-(* Steady-state SSR renders similarly-sized documents back to back. Seeding
-   the render buffer with the previous render's size lets the common case
-   skip the doubling-resize ladder from 1KB (each rung reallocates and
-   memcpys the whole buffer so far). The clamp keeps a one-off huge render
-   from pinning large allocations onto subsequent small renders. The ref is
-   a heuristic: a race across domains only produces a suboptimal hint. *)
 let min_render_buffer_size = 1024
 let max_render_buffer_hint = 131072
 let last_render_size = ref min_render_buffer_size
@@ -302,7 +271,6 @@ let remember_render_size size =
   if clamped <> !last_render_size then last_render_size := clamped
 
 let render_sync ~mode ?identifier_prefix element =
-  (* TODO: try catch to avoid React.use usages *)
   React.reset_id_rendering ?prefix:identifier_prefix ();
   let buf = Buffer.create !last_render_size in
   let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
@@ -320,8 +288,6 @@ type stream_context = {
   mutable has_rx_script_been_injected : bool;
   mutable boundary_id : int;
   mutable waiting : int;
-  (* Suspense boundaries whose async content is still rendering, in registration order (most recent first). Used by
-     [abort] to emit a $RX client-render instruction per still-pending boundary. *)
   mutable pending_boundaries : int list;
 }
 
@@ -355,7 +321,6 @@ let render_error_message exn =
 
 let write_inline_client_render_boundary_script buf ~env ~include_definition ~message boundary_id =
   let rx_call =
-    (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
     match env with
     | `Prod -> Printf.sprintf {|$RX("B:%i","")|} boundary_id
     | `Dev -> Printf.sprintf {|$RX("B:%i","","%s")|} boundary_id (Html.escape_for_inline_script message)
@@ -382,7 +347,6 @@ let write_suspense_fallback buf ~boundary_id fallback =
   Buffer.add_string buf "<!--/$-->"
 
 let write_suspense_fallback_error buf ~env ~detail fallback =
-  (* Error detail is dev-only: production must not leak exception messages or backtraces into HTML. *)
   (match env with
   | `Prod -> Buffer.add_string buf "<!--$!--><template></template>"
   | `Dev ->
@@ -392,9 +356,6 @@ let write_suspense_fallback_error buf ~env ~detail fallback =
   Buffer.add_string buf fallback;
   Buffer.add_string buf "<!--/$-->"
 
-(* Output is a tree of segments, as in Fizz. A node that suspends leaves a slot in its segment and is
-   rendered later into a segment of its own, so the siblings that already rendered are kept and each Suspense
-   boundary is rendered once. *)
 type segment = {
   buf : Buffer.t;
   mutable slots : (int * slot) list;
@@ -500,7 +461,6 @@ let settle_boundary ~env ~stream_context boundary error =
          stream_context.push (Buffer.contents buf);
          stream_context.has_rc_script_been_injected <- true
      | Some exn ->
-         (* A boundary that fails after its fallback flushed is client-rendered via $RX. *)
          write_inline_client_render_boundary_script buf ~env
            ~include_definition:(not stream_context.has_rx_script_been_injected)
            ~message:(render_error_message exn) boundary.id;
@@ -601,7 +561,6 @@ let render_to_segment ~env ~stream_context =
           segment.previous_node_was_text <- saved_previous_node_was_text;
           render context (original ())
         in
-        (* [renderToString] hydration relies on the [<!-- -->] text separators *)
         match emit segment.buf ~separators:true with
         | () -> ()
         | exception Invalid_argument message when is_unsupported_sync_message message -> render_original ()
@@ -757,9 +716,6 @@ let renderToStream ?(env = `Prod) ?identifier_prefix element =
           push = push_to_stream;
           close;
           closed = false;
-          (* The root walk counts as a pending unit (decremented after the shell push below). Otherwise a boundary
-             whose promise resolves while the main walk is parked at an Lwt yield would drop [waiting] to 0 and close
-             the stream before the shell is pushed. *)
           waiting = 1;
           boundary_id = 0;
           has_rc_script_been_injected = false;
@@ -767,9 +723,6 @@ let renderToStream ?(env = `Prod) ?identifier_prefix element =
           pending_boundaries = [];
         }
       in
-      (* Aborting while Suspense boundaries are pending emits a $RX client-render instruction per still-pending
-         boundary (so the client flips each boundary to errored and retries rendering it there), then closes the
-         stream. Closing sets [closed], which guards the async pushes of boundary promises that resolve later. *)
       let abort () =
         if not stream_context.closed then (
           (match List.rev stream_context.pending_boundaries with
@@ -804,8 +757,6 @@ let renderToStream ?(env = `Prod) ?identifier_prefix element =
       if stream_context.waiting = 0 then close_stream stream_context;
       Lwt.return (stream, abort))
 
-(* Dedup keys copy React's request.hints keys verbatim; the "null" slot in preconnect's key is the (unsupported)
-   crossOrigin option. *)
 let preload ~href ~as_ =
   Flight_hints.emit { dedup_key = "L[" ^ as_ ^ "]" ^ href; code = "L"; payload = `List [ `String href; `String as_ ] }
 
@@ -815,8 +766,6 @@ let preinitScript ~href = Flight_hints.emit { dedup_key = "X|" ^ href; code = "X
 let querySelector _str = Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
 let render _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.render"
 let hydrate _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.hydrate"
-
-(* TODO: Should this fail_impossible_action_in_ssr? *)
 let createPortal _reactElement _domElement = _reactElement
 
 let createDOMElementVariadic (tag : string) ~props (childrens : React.element array) =
@@ -826,12 +775,9 @@ let add kind value map = match value with Some i -> map |> List.cons (kind i) | 
 
 type dangerouslySetInnerHTML = < __html : string >
 
-(* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
 let booleanish_string = React.JSX.booleanishString
 
 [@@@ocamlformat "disable"]
-(* domProps isn't used by the generated code from the ppx, and it's purpose is to
-   allow usages from user's code via createElementVariadic and custom usages outside JSX. It needs to be in sync with domProps *)
 let domProps
   ?key
   ?ref
@@ -1456,7 +1402,7 @@ let domProps
   |> add (React.JSX.bool "playsInline" "playsInline") playsInline
   |> add (React.JSX.string "poster" "poster") poster
   |> add (React.JSX.string "preload" "preload") preload
-  |> add (React.JSX.string "radioGroup" "radioGroup") radioGroup (* Unsure if it exists? *)
+  |> add (React.JSX.string "radioGroup" "radioGroup") radioGroup
   |> add (React.JSX.bool "readonly" "readOnly") readOnly
   |> add (React.JSX.string "rel" "rel") rel
   |> add (React.JSX.bool "required" "required") required
@@ -1566,14 +1512,14 @@ let domProps
   |> add (React.JSX.string "accumulate" "accumulate") accumulate
   |> add (React.JSX.string "additive" "additive") additive
   |> add (React.JSX.string "alignment-baseline" "alignmentBaseline") alignmentBaseline
-  |> add (React.JSX.string "allowReorder" "allowReorder") allowReorder (* Does it exist? *)
+  |> add (React.JSX.string "allowReorder" "allowReorder") allowReorder
   |> add (React.JSX.string "alphabetic" "alphabetic") alphabetic
   |> add (React.JSX.string "amplitude" "amplitude") amplitude
   |> add (React.JSX.string "arabic-form" "arabicForm") arabicForm
   |> add (React.JSX.string "ascent" "ascent") ascent
   |> add (React.JSX.string "attributeName" "attributeName") attributeName
   |> add (React.JSX.string "attributeType" "attributeType") attributeType
-  |> add (React.JSX.string "autoReverse" "autoReverse") autoReverse (* Does it exist? *)
+  |> add (React.JSX.string "autoReverse" "autoReverse") autoReverse
   |> add (React.JSX.string "azimuth" "azimuth") azimuth
   |> add (React.JSX.string "baseFrequency" "baseFrequency") baseFrequency
   |> add (React.JSX.string "baseProfile" "baseProfile") baseProfile
@@ -1645,7 +1591,6 @@ let domProps
   |> add (React.JSX.string "hanging" "hanging") hanging
   |> add (React.JSX.string "horiz-adv-x" "horizAdvX") horizAdvX
   |> add (React.JSX.string "horiz-origin-x" "horizOriginX") horizOriginX
-  (* |> add (React.JSX.string "horiz-origin-y" "horizOriginY") horizOriginY *) (* Should be added *)
   |> add (React.JSX.string "ideographic" "ideographic") ideographic
   |> add (React.JSX.string "image-rendering" "imageRendering") imageRendering
   |> add (React.JSX.string "in" "in") in_
@@ -1709,10 +1654,10 @@ let domProps
   |> add (React.JSX.string "radius" "radius") radius
   |> add (React.JSX.string "refX" "refX") refX
   |> add (React.JSX.string "refY" "refY") refY
-  |> add (React.JSX.string "renderingIntent" "renderingIntent") renderingIntent (* Does it exist? *)
+  |> add (React.JSX.string "renderingIntent" "renderingIntent") renderingIntent
   |> add (React.JSX.string "repeatCount" "repeatCount") repeatCount
   |> add (React.JSX.string "repeatDur" "repeatDur") repeatDur
-  |> add (React.JSX.string "requiredExtensions" "requiredExtensions") requiredExtensions (* Does it exists? *)
+  |> add (React.JSX.string "requiredExtensions" "requiredExtensions") requiredExtensions
   |> add (React.JSX.string "requiredFeatures" "requiredFeatures") requiredFeatures
   |> add (React.JSX.string "restart" "restart") restart
   |> add (React.JSX.string "result" "result") result
@@ -1767,7 +1712,7 @@ let domProps
   |> add (React.JSX.string "v-alphabetic" "vAlphabetic") vAlphabetic
   |> add (React.JSX.string "v-hanging" "vHanging") vHanging
   |> add (React.JSX.string "v-ideographic" "vIdeographic") vIdeographic
-  |> add (React.JSX.string "vMathematical" "vMathematical") vMathematical (* Does it exists? *)
+  |> add (React.JSX.string "vMathematical" "vMathematical") vMathematical
   |> add (React.JSX.string "values" "values") values
   |> add (React.JSX.string "vector-effect" "vectorEffect") vectorEffect
   |> add (React.JSX.string "version" "version") version

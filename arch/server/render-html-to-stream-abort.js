@@ -37,7 +37,6 @@ const App = () => (
 	</html>
 );
 
-// Case 1: abort() before boundaries resolve — what does React flush?
 async function abortCase() {
 	const controller = new AbortController();
 	const stream = await ReactDOM.renderToReadableStream(<App />, {
@@ -46,7 +45,6 @@ async function abortCase() {
 			console.log("[onError]", err && err.message ? err.message : err);
 		},
 	});
-	// Abort shortly after the shell is produced, while boundaries are still pending.
 	setTimeout(() => controller.abort(new Error("aborted by server")), 100);
 	await drain(stream, "ABORT (boundaries pending)");
 }

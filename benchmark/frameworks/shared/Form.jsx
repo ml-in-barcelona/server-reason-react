@@ -1,6 +1,3 @@
-// Port of benchmark/scenarios/Form.re
-// Purpose: form-heavy page rendering
-
 import React from "react";
 import { cx } from "./cx.js";
 

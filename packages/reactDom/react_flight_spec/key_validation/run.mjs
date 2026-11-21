@@ -223,7 +223,6 @@ async function runCase(environment, fixture) {
 try {
   for (const environment of ["development", "production"]) {
     for (const fixture of [...controls, ...native]) {
-      // React's production decoder rejects debug rows (error 504).
       if (environment === "production" && fixture.debug) continue;
       if (environment === "development" && fixture.env !== "Dev" && fixture.env !== "control") continue;
       if (!filter || fixture.name.includes(filter)) await runCase(environment, fixture);

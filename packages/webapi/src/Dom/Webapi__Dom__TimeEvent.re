@@ -8,4 +8,4 @@ include Webapi__Dom__Event.Impl({
 [@mel.new] external makeWithOptions: (string, Js.t({..})) => t = "TimeEvent";
 
 [@mel.get] external detail: t => int = "detail";
-[@mel.get] external view: t => Dom.window = "view"; /* technically returns a `WindowProxy` */
+[@mel.get] external view: t => Dom.window = "view";

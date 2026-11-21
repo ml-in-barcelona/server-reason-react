@@ -8,8 +8,6 @@ let reset = () => {
 let record = event => events := [event, ...events^];
 let events = () => List.rev(events^);
 
-/* [Plan.apply_layouts] folds from the right, so it applies the innermost
-   layout first and prepending yields outermost-first. */
 let recordLayout = event => layoutEvents := [event, ...layoutEvents^];
 let layouts = () => layoutEvents^;
 

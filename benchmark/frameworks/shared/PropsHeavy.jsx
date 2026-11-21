@@ -1,6 +1,3 @@
-// Port of benchmark/scenarios/PropsHeavy.re
-// Purpose: test attribute serialization performance
-
 import React from "react";
 import { cx } from "./cx.js";
 

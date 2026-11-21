@@ -1,5 +1,3 @@
-/* A promise prop resolving to a React ELEMENT: the resolution row carries an
-   element tuple, not a JSON scalar. */
 let app = () =>
   Spec.client_component(
     ~importModule="spec/Await.js",

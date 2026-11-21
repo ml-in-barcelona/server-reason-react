@@ -7,34 +7,25 @@ type request
 type requestInit
 type signal = { aborted : bool; onabort : (unit -> unit) option; reason : string option }
 type abortController = { signal : signal; abort : unit -> unit }
-
-(* external *)
-type arrayBuffer (* TypedArray *)
-type bufferSource (* Web IDL, either an arrayBuffer or arrayBufferView *)
-type formData (* XMLHttpRequest *)
-type readableStream (* Streams *)
-type urlSearchParams (* URL *)
+type arrayBuffer
+type bufferSource
+type formData
+type readableStream
+type urlSearchParams
 type blob
 type file
 
 module AbortController = struct
   type t = abortController
 
-  (* external signal : t -> signal = "signal" [@@mel.get] *)
   let signal controller = controller.signal
-
-  (* external abort : unit = "abort" [@@mel.send.pipe: t] *)
   let abort controller = controller.abort ()
-
-  (* external make : unit -> t = "AbortController" [@@mel.new] *)
   let make () = { signal = { aborted = false; onabort = None; reason = None }; abort = (fun _ -> ()) }
 end
 
 type requestMethod = Get | Head | Post | Put | Delete | Connect | Options | Trace | Patch | Other of string
 
-let encodeRequestMethod =
-  (* internal *)
-  function
+let encodeRequestMethod = function
   | Get -> "GET"
   | Head -> "HEAD"
   | Post -> "POST"
@@ -46,9 +37,7 @@ let encodeRequestMethod =
   | Patch -> "PATCH"
   | Other method_ -> method_
 
-let decodeRequestMethod =
-  (* internal *)
-  function
+let decodeRequestMethod = function
   | "GET" -> Get
   | "HEAD" -> Head
   | "POST" -> Post
@@ -71,9 +60,7 @@ type referrerPolicy =
   | StrictOriginWhenCrossOrigin
   | UnsafeUrl
 
-let encodeReferrerPolicy =
-  (* internal *)
-  function
+let encodeReferrerPolicy = function
   | NoReferrer -> "no-referrer"
   | None -> ""
   | NoReferrerWhenDowngrade -> "no-referrer-when-downgrade"
@@ -84,9 +71,7 @@ let encodeReferrerPolicy =
   | StrictOriginWhenCrossOrigin -> "strict-origin-when-cross-origin"
   | UnsafeUrl -> "unsafe-url"
 
-let decodeReferrerPolicy =
-  (* internal *)
-  function
+let decodeReferrerPolicy = function
   | "no-referrer" -> NoReferrer
   | "" -> None
   | "no-referrer-when-downgrade" -> NoReferrerWhenDowngrade
@@ -98,19 +83,9 @@ let decodeReferrerPolicy =
   | "unsafe-url" -> UnsafeUrl
   | e -> raise (Failure ("Unknown referrerPolicy: " ^ e))
 
-type requestType =
-  | None (* default? unknown? just empty string in spec *)
-  | Audio
-  | Font
-  | Image
-  | Script
-  | Style
-  | Track
-  | Video
+type requestType = None | Audio | Font | Image | Script | Style | Track | Video
 
-let decodeRequestType =
-  (* internal *)
-  function
+let decodeRequestType = function
   | "audio" -> Audio
   | "" -> None
   | "font" -> Font
@@ -122,7 +97,7 @@ let decodeRequestType =
   | e -> raise (Failure ("Unknown requestType: " ^ e))
 
 type requestDestination =
-  | None (* default? unknown? just empty string in spec *)
+  | None
   | Document
   | Embed
   | Font
@@ -138,9 +113,7 @@ type requestDestination =
   | Worker
   | Xslt
 
-let decodeRequestDestination =
-  (* internal *)
-  function
+let decodeRequestDestination = function
   | "document" -> Document
   | "" -> None
   | "embed" -> Embed
@@ -160,17 +133,13 @@ let decodeRequestDestination =
 
 type requestMode = Navigate | SameOrigin | NoCORS | CORS
 
-let encodeRequestMode =
-  (* internal *)
-  function
+let encodeRequestMode = function
   | Navigate -> "navigate"
   | SameOrigin -> "same-origin"
   | NoCORS -> "no-cors"
   | CORS -> "cors"
 
-let decodeRequestMode =
-  (* internal *)
-  function
+let decodeRequestMode = function
   | "navigate" -> Navigate
   | "same-origin" -> SameOrigin
   | "no-cors" -> NoCORS
@@ -179,16 +148,9 @@ let decodeRequestMode =
 
 type requestCredentials = Omit | SameOrigin | Include
 
-let encodeRequestCredentials =
-  (* internal *)
-  function
-  | Omit -> "omit"
-  | SameOrigin -> "same-origin"
-  | Include -> "include"
+let encodeRequestCredentials = function Omit -> "omit" | SameOrigin -> "same-origin" | Include -> "include"
 
-let decodeRequestCredentials =
-  (* internal *)
-  function
+let decodeRequestCredentials = function
   | "omit" -> Omit
   | "same-origin" -> SameOrigin
   | "include" -> Include
@@ -196,9 +158,7 @@ let decodeRequestCredentials =
 
 type requestCache = Default | NoStore | Reload | NoCache | ForceCache | OnlyIfCached
 
-let encodeRequestCache =
-  (* internal *)
-  function
+let encodeRequestCache = function
   | Default -> "default"
   | NoStore -> "no-store"
   | Reload -> "reload"
@@ -206,9 +166,7 @@ let encodeRequestCache =
   | ForceCache -> "force-cache"
   | OnlyIfCached -> "only-if-cached"
 
-let decodeRequestCache =
-  (* internal *)
-  function
+let decodeRequestCache = function
   | "default" -> Default
   | "no-store" -> NoStore
   | "reload" -> Reload
@@ -219,16 +177,9 @@ let decodeRequestCache =
 
 type requestRedirect = Follow | Error | Manual
 
-let encodeRequestRedirect =
-  (* internal *)
-  function
-  | Follow -> "follow"
-  | Error -> "error"
-  | Manual -> "manual"
+let encodeRequestRedirect = function Follow -> "follow" | Error -> "error" | Manual -> "manual"
 
-let decodeRequestRedirect =
-  (* internal *)
-  function
+let decodeRequestRedirect = function
   | "follow" -> Follow
   | "error" -> Error
   | "manual" -> Manual
@@ -240,7 +191,6 @@ module HeadersInit = struct
   external make : < .. > Js.t -> t = "%identity"
   external makeWithDict : string Js.Dict.t -> t = "%identity"
 
-  (* external makeWithArray : (string * string) array -> t = "%identity" *)
   let makeWithArray arr =
     let dict = Js.Dict.empty () in
     Array.iter (fun (k, v) -> Js.Dict.set dict k v) arr;
@@ -250,23 +200,14 @@ end
 module Headers = struct
   type t = headers
 
-  (* external make : t = "Headers" [@@mel.new] *)
   let make () = Js.Dict.empty ()
 
   external makeWithInit : headersInit -> t = "Headers" [@@mel.new]
   external append : string -> string -> unit = "append" [@@mel.send.pipe: t]
   external delete : string -> unit = "delete" [@@mel.send.pipe: t]
-  (* entries *)
-  (* very experimental *)
-
   external get : string -> string option = "get" [@@mel.send.pipe: t] [@@mel.return { null_to_opt }]
   external has : string -> bool = "has" [@@mel.send.pipe: t]
-  (* keys *)
-  (* very experimental *)
-
   external set : string -> string -> unit = "set" [@@mel.send.pipe: t]
-  (* values *)
-  (* very experimental *)
 end
 
 module BodyInit = struct
@@ -303,10 +244,7 @@ end
 module RequestInit = struct
   type t = requestInit
 
-  let map f = function
-    (* internal *)
-    | Some v -> Some (f v)
-    | None -> None
+  let map f = function Some v -> Some (f v) | None -> None
 
   external make :
     ?_method:string ->
@@ -395,7 +333,7 @@ module Response = struct
 
   external error : unit -> t = "error"
   external redirect : string -> t = "redirect"
-  external redirectWithStatus : string -> int (* enum-ish *) -> t = "redirect"
+  external redirectWithStatus : string -> int -> t = "redirect"
   external headers : t -> headers = "headers" [@@mel.get]
   external ok : t -> bool = "ok" [@@mel.get]
   external redirected : t -> bool = "redirected" [@@mel.get]

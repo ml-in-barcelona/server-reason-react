@@ -1,6 +1,5 @@
 type t = Dom.location;
 
-/* a more ergonomic API would perhaps accept a Window.t directly instead of Location.t */
 [@mel.get] external href: t => string = "href";
 [@mel.set] external setHref: (t, string) => unit = "href";
 [@mel.get] external protocol: t => string = "protocol";

@@ -1,8 +1,3 @@
-(** Ported from Melange's test suite: jscomp/test/js_float_test.ml (melange 6.0.1-54).
-
-    Melange's ThrowAny cases map to [throws]: natively toExponential/toFixed/toPrecision/toString raise on out-of-range
-    digits/radix (see Js_float.mli), matching JS RangeError behaviour. *)
-
 open Helpers
 open Js.Float
 
@@ -18,9 +13,7 @@ let tests =
     test "isFinite - neg_infinity" (fun () -> assert_bool (isFinite neg_infinity) false);
     test "isFinite - _NaN" (fun () -> assert_bool (isFinite _NaN) false);
     test "isFinite - 0." (fun () -> assert_bool (isFinite 0.) true);
-    test "toExponential without digits" (fun () ->
-        (* melange js_float_test.ml; node: (123.456).toExponential() = "1.23456e+2" *)
-        assert_string (Js.Float.toExponential 123.456) "1.23456e+2");
+    test "toExponential without digits" (fun () -> assert_string (Js.Float.toExponential 123.456) "1.23456e+2");
     test "toExponential - large number" (fun () -> assert_string (toExponential 1.2e21) "1.2e+21");
     test "toExponentialWithPrecision - digits:2" (fun () -> assert_string (toExponential 123.456 ~digits:2) "1.23e+2");
     test "toExponentialWithPrecision - digits:4" (fun () -> assert_string (toExponential 123.456 ~digits:4) "1.2346e+2");
@@ -29,9 +22,7 @@ let tests =
     test "toExponentialWithPrecision - digits:101" (fun () -> throws (fun () -> ignore @@ toExponential 0. ~digits:101));
     test "toExponentialWithPrecision - digits:-1" (fun () -> throws (fun () -> ignore @@ toExponential 0. ~digits:(-1)));
     test "toFixed" (fun () -> assert_string (toFixed 123.456) "123");
-    test "toFixed >= 1e21 uses exponential form" (fun () ->
-        (* melange js_float_test.ml; node: (1.2e21).toFixed(1) = "1.2e+21" *)
-        assert_string (Js.Float.toFixed ~digits:1 1.2e21) "1.2e+21");
+    test "toFixed >= 1e21 uses exponential form" (fun () -> assert_string (Js.Float.toFixed ~digits:1 1.2e21) "1.2e+21");
     test "toFixedWithPrecision - digits:2" (fun () -> assert_string (toFixed 123.456 ~digits:2) "123.46");
     test "toFixedWithPrecision - digits:4" (fun () -> assert_string (toFixed 123.456 ~digits:4) "123.4560");
     test "toFixedWithPrecision - digits:20" (fun () -> assert_string (toFixed 0. ~digits:20) "0.00000000000000000000");

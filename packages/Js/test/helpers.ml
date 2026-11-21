@@ -1,5 +1,3 @@
-(** Shared test helpers for test262 tests *)
-
 module BigInt = Js.Bigint
 module Date = Js.Date
 
@@ -17,14 +15,8 @@ let assert_string_equal left right = Alcotest.check Alcotest.string "should be e
 let assert_int left right = Alcotest.check Alcotest.int "should be equal" right left
 let assert_float left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
 let assert_float_exact left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
-
-(* assert_bool for comparing boolean values - compatible with existing tests *)
 let assert_bool left right = Alcotest.check Alcotest.bool "should be equal" right left
-
-(* assert_true for checking a condition with a message *)
 let assert_true msg cond = if not cond then Alcotest.fail msg
-
-(* assert_option for comparing option values with proper Alcotest output *)
 let assert_option ty msg left right = Alcotest.check (Alcotest.option ty) msg right left
 
 let assert_raises fn exn =
@@ -32,7 +24,6 @@ let assert_raises fn exn =
   | exception exn -> assert_string (Printexc.to_string exn) (Printexc.to_string exn)
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
-(* BigInt helpers *)
 let bigint_testable = Alcotest.testable (Fmt.of_to_string BigInt.toString) (fun a b -> BigInt.compare a b = 0)
 let assert_bigint left right = Alcotest.check bigint_testable "should be equal" right left
 let assert_bigint_equal left right = Alcotest.check bigint_testable "should be equal" right left
@@ -42,8 +33,6 @@ let assert_bigint_string left expected_str =
   Alcotest.check bigint_testable "should be equal" expected left
 
 let assert_bigint_raises fn = match fn () with exception _ -> () | _ -> Alcotest.fail "Expected exception"
-
-(* Float/Number helpers *)
 let nan = Float.nan
 let infinity = Float.infinity
 let neg_infinity = Float.neg_infinity

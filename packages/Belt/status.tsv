@@ -1,11 +1,4 @@
-# Hand-maintained status annotations for the generated README.md.
-# Format: <Module.fn | Module.*> <TAB> <green|orange|wontfix|planned> <TAB> <note>
-# See packages/Js/status.tsv for the legend. The generator hard-fails if an
-# entry contradicts the code.
-#
 Belt.Array.push	wontfix	OCaml arrays are fixed-length; raises (previously a silent no-op sentinel). Melange mutates the array.
-#
-# --- Verified by the ported Melange test suites ---
 Belt.Array.blit	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml.
 Belt.Array.cmp	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml.
 Belt.Array.concat	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_MutableSet.ml.
@@ -230,8 +223,6 @@ Belt.SortArray.stableSortInPlaceBy	green	Ported Melange suite: packages/Belt/tes
 Belt.SortArray.strictlySortedLength	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_SortArray.ml.
 Belt.SortArray.union	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_SortArray.ml.
 Belt.SortArray.Int.stableSortInPlace	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_SortArray.ml.
-#
-# --- Verified by ported/authored suites (second pass) ---
 Belt.Array.getExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml.
 Belt.Array.setExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_Array.ml.
 Belt.List.getExn	green	Ported Melange suite: packages/Belt/test/Test_Melange_Belt_List.ml.

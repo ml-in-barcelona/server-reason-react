@@ -12,12 +12,9 @@
 (***********************************************************************)
 (* Adapted significantly by Authors of ReScript *)
 
-(** {!Belt.Array} Utililites for Array functions *)
-
 type 'a t = 'a array
 
 val length : 'a t -> int
-(** [length xs] return the size of the array *)
 
 val size : 'a t -> int
 (** {b See} {!length} *)
@@ -61,9 +58,7 @@ val setExn : 'a t -> int -> 'a -> unit
 (** [setExn arr i x] {b raise} an exception if [i] is out of range *)
 
 val setUnsafe : 'a t -> int -> 'a -> unit
-
 val shuffleInPlace : 'a t -> unit
-(** [shuffleInPlace arr] randomly re-orders the items in [arr] *)
 
 val shuffle : 'a t -> 'a t
 (** [shuffle xs]
@@ -242,8 +237,6 @@ val sliceToEnd : 'a t -> int -> 'a t
       sliceToEnd [| 10; 11; 12; 13; 14; 15; 16 |] (-4) = [| 13; 14; 15; 16 |]
     ]} *)
 
-(* external copy : 'a t -> (_[@mel.as 0]) -> 'a t = "slice"
-   [@@mel.send] *)
 val copy : 'a t -> 'a t
 (** [copy a]
 
@@ -571,9 +564,6 @@ val eq : 'a t -> 'a t -> ('a -> 'a -> bool) -> bool
     {[
       eq [| 1; 2; 3 |] [| -1; -2; -3 |] (fun a b -> abs a = abs b) = true
     ]} *)
-
-(* external truncateToLengthUnsafe : 'a t -> int -> unit = "length"
-   [@@mel.set] *)
 
 val truncateToLengthUnsafe : 'a t -> int -> 'a t
 (** {b Unsafe} Native-only approximation of the JavaScript [truncateToLengthUnsafe].

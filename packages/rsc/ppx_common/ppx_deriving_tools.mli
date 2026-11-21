@@ -5,7 +5,6 @@ open Ppxlib
 (** A deriver is represented by this api *)
 class virtual deriving : object
   method virtual name : label
-  (** name of the deriver *)
 
   method virtual extension : loc:location -> path:label -> core_type -> expression
   (** a deriver can be applied to as type expression as extension node. *)
@@ -17,7 +16,6 @@ class virtual deriving : object
 end
 
 val register : ?deps:Deriving.t list -> deriving -> Deriving.t
-(** handles registration of the deriver *)
 
 val register_combined : ?deps:Deriving.t list -> label -> deriving list -> Deriving.t
 (** multiple derivers can be registered under the same name *)
@@ -54,7 +52,6 @@ module Conv : sig
     derive_of_variant_case:(derive_of_core_type -> variant_case -> expression list -> expression) ->
     unit ->
     deriving
-  (** Define a serializer. *)
 
   val deriving_of :
     name:label ->
@@ -78,7 +75,6 @@ module Conv : sig
       expression) ->
     unit ->
     deriving
-  (** Define a deserializer. *)
 
   val deriving_of_match :
     name:label ->
@@ -104,7 +100,6 @@ val gen_tuple : loc:location -> label -> int -> pattern list * expression
 (** Auxiliary functions to generate record expressions and patterns. *)
 
 val gen_record : loc:location -> label -> (label loc * attributes * 'a) list -> pattern list * expression
-(** [let patts, expr = gen_tuple label n in ...] creates a record expression and a corresponding list of patterns. *)
 
 val gen_pat_tuple : loc:location -> string -> int -> pattern * expression list
 (** [let patt, exprs = gen_pat_tuple ~loc prefix n in ...] generates a pattern to match a tuple of size [n] and a list

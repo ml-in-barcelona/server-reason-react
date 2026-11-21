@@ -1,6 +1,6 @@
 type t = Dom.range;
 
-[@mel.new] external make: unit => t = "Range"; /* experimental */
+[@mel.new] external make: unit => t = "Range";
 
 [@mel.get] external collapsed: t => bool = "collapsed";
 [@mel.get]
@@ -39,9 +39,7 @@ external insertNode: Dom.node_like('a) => unit = "insertNode";
 [@mel.send.pipe: t]
 external surroundContents: Dom.node_like('a) => unit = "surroundContents";
 [@mel.send.pipe: t]
-external compareBoundaryPoints:
-  (int /* compareHow enum */, t) => int /* compareResult enum */ =
-  "compareBoundaryPoints";
+external compareBoundaryPoints: (int, t) => int = "compareBoundaryPoints";
 let compareBoundaryPoint
     : (Webapi__Dom__Types.compareHow, t, t) => Webapi__Dom__Types.compareResult =
     (how, range, self) =>
@@ -56,19 +54,18 @@ let compareBoundaryPoint
 [@mel.send.pipe: t] external detach: unit = "detach";
 [@mel.send.pipe: t] external toString: string = "toString";
 [@mel.send.pipe: t]
-external comparePoint: (Dom.node_like('a), int) => int /* compareRsult enum */ =
-  "comparePoint";
+external comparePoint: (Dom.node_like('a), int) => int = "comparePoint";
 let comparePoint
     : (Dom.node_like('a), int, t) => Webapi__Dom__Types.compareResult =
     (node, offset, self) =>
   Webapi__Dom__Types.decodeCompareResult(comparePoint(node, offset, self));
 [@mel.send.pipe: t]
 external createContextualFragment: string => Dom.documentFragment =
-  "createContextualFragment"; /* experimental, but widely supported */
+  "createContextualFragment";
 [@mel.send.pipe: t]
-external getBoundingClientRect: Dom.domRect = "getBoundingClientRect"; /* experimental, but widely supported */
+external getBoundingClientRect: Dom.domRect = "getBoundingClientRect";
 [@mel.send.pipe: t]
-external getClientRects: array(Dom.domRect) = "getClientRects"; /* experimental, but widely supported */
+external getClientRects: array(Dom.domRect) = "getClientRects";
 [@mel.send.pipe: t]
 external intersectsNode: Dom.node_like('a) => bool = "intersectsNode";
 [@mel.send.pipe: t]

@@ -1,5 +1,3 @@
-(* Ported from melange jscomp/test/bs_queue_test.ml *)
-
 module Q = Belt.MutableQueue
 
 let ( ++ ) q x =

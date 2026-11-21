@@ -1,5 +1,5 @@
 type t = Dom.trackEvent;
-type track; /* TODO: VideoTrack or AudioTrack or TextTrack */
+type track;
 
 include Webapi__Dom__Event.Impl({
   type nonrec t = t;

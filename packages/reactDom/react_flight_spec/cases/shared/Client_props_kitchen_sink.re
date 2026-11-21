@@ -1,6 +1,3 @@
-/* One client component exercising every scalar prop constructor at once,
-   plus the two string edge cases: a user string starting with "$" (must be
-   escaped to "$$" on the wire) and a non-ASCII string (UTF-8, unescaped). */
 let app = () =>
   Spec.client_component(
     ~importModule="spec/Kitchen.js",

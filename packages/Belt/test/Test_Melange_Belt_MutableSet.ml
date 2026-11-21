@@ -1,5 +1,3 @@
-(* Ported from melange jscomp/test/bs_mutable_set_test.ml *)
-
 module N = Belt.MutableSet.Int
 module R = Belt.Range
 module A = Belt.Array
@@ -8,9 +6,6 @@ module L = Belt.List
 let empty = N.make
 let fromArray = N.fromArray
 
-(* The melange source contains this union/intersect/diff block twice (once inside the
-   sealed struct using [empty ()], once at the toplevel using [N.make ()], both
-   identical). It is ported once here and reused by both test cases. *)
 let union_intersect_diff_assertions () =
   let f = fromArray in
   let ( =~ ) = N.eq in

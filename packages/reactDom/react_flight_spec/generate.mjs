@@ -1,13 +1,3 @@
-// Renders every spec case through the REAL react-server-dom-webpack and
-// writes the resulting Flight payload (one row per line, normalized) to
-// fixtures/<case>.flight.
-//
-// Run from this directory with:
-//   NODE_ENV=production node --conditions react-server generate.mjs [--check]
-//
-// --check: re-render and diff against the committed fixtures instead of
-// writing; exits non-zero (with a printed diff) on any mismatch.
-
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Writable } from "node:stream";
@@ -21,12 +11,6 @@ if (process.env.NODE_ENV !== "production") {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const check = process.argv.includes("--check");
-
-// ---------------------------------------------------------------------------
-// Locate the melange-emitted cases and copy them next to this file so that
-// bare imports (react, react/jsx-runtime, react-server-dom-webpack/server)
-// resolve against the exact-pinned node_modules of this directory.
-// ---------------------------------------------------------------------------
 
 const repoRoot = path.resolve(here, "../../..");
 const emitRoot = path.join(repoRoot, "_build/default/packages/reactDom/react_flight_spec/cases/js/flight");
@@ -46,11 +30,6 @@ const { all } = await import(
 );
 const { renderToPipeableStream } = await import("react-server-dom-webpack/server");
 
-// ---------------------------------------------------------------------------
-// Client manifest: echo module/name back so `I` rows come out as
-// ["<module>",[],"<name>"], byte-matching srr's [import_module, [], import_name].
-// ---------------------------------------------------------------------------
-
 const clientManifest = new Proxy(
   {},
   {
@@ -62,11 +41,6 @@ const clientManifest = new Proxy(
     },
   },
 );
-
-// ---------------------------------------------------------------------------
-// Normalization: keep in sync with conformance/flight_spec_conformance.ml and
-// the rules documented in protocol.md.
-// ---------------------------------------------------------------------------
 
 function normalizeRow(row) {
   return row
@@ -98,11 +72,6 @@ async function renderCase(kase) {
       },
     });
     sink.on("error", reject);
-    // Component errors are part of the protocol under test: React catches
-    // them and emits `E` rows (the digest is onError's return value, "" when
-    // undefined; digests are normalized away regardless). Never reject here:
-    // an unexpectedly broken case still surfaces as a fixture/conformance
-    // diff instead of aborting generation.
     const { pipe } = renderToPipeableStream(kase.render(), clientManifest, {
       onError() {},
     });
@@ -110,10 +79,6 @@ async function renderCase(kase) {
   });
   return toRows(Buffer.concat(chunks).toString("utf8"));
 }
-
-// ---------------------------------------------------------------------------
-// Main loop
-// ---------------------------------------------------------------------------
 
 const { runFixtureSuite } = await import(path.join(here, "fixture-suite.mjs"));
 

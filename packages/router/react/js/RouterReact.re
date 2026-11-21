@@ -96,6 +96,7 @@ external removeDocumentListener:
 external preventDefault: RouterPolicy.event => unit = "preventDefault";
 [@mel.set]
 external setReturnValue: (RouterPolicy.event, string) => unit = "returnValue";
+[@mel.get] external persisted: RouterPolicy.event => bool = "persisted";
 [@mel.send]
 external addWindowListener:
   (DOM.Window.t, string, RouterPolicy.event => unit) => unit =
@@ -1270,10 +1271,16 @@ module Provider = {
           preventDefault(event);
           setReturnValue(event, "");
         };
-      let onPageHide = _event =>
+      let onPageHide = _event => {
+        RouterHistory.scrollRestoration("auto");
         rememberScroll(
           Navigation.committed(modelRef.current.navigationState),
         );
+      };
+      let onPageShow = event =>
+        if (persisted(event)) {
+          RouterHistory.scrollRestoration("manual");
+        };
       let hoverTimer = ref(None);
       let cancelHover = _event =>
         switch (hoverTimer^) {
@@ -1305,6 +1312,7 @@ module Provider = {
       addDocumentListener(document, "click", onClick);
       addWindowListener(window, "beforeunload", onBeforeUnload);
       addWindowListener(window, "pagehide", onPageHide);
+      addWindowListener(window, "pageshow", onPageShow);
       let stopListening =
         RouterHistory.listen(() => {
           let current =
@@ -1389,6 +1397,7 @@ module Provider = {
           prefetchAborts.current = [];
           removeWindowListener(window, "beforeunload", onBeforeUnload);
           removeWindowListener(window, "pagehide", onPageHide);
+          removeWindowListener(window, "pageshow", onPageShow);
           stopServerCalls();
           stopActionRedirects();
           Option.iter(RouterAnnouncer.unmount, announcer.current);

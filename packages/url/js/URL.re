@@ -9,9 +9,6 @@ module SearchParams = {
     };
   };
 
-  /* [@mel.new]
-     external makeWithDict: Js.Dict.t(string) => t = "URLSearchParams"; */
-
   [@mel.new]
   external makeWithArray: array((string, string)) => t = "URLSearchParams";
 
@@ -74,9 +71,6 @@ let make = str => {
   };
 };
 
-/*
- TODO: When we have a way to represent JSON universally, implement this. This should be "toJSON"
- [@mel.send] external toJson: t => string = "toJSON"; */
 [@mel.send] external toString: t => string = "toString";
 
 [@mel.get] external getOrigin: t => string = "origin";

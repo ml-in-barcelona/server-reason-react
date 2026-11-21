@@ -3,7 +3,6 @@ open StorageEvent;
 
 let event = make("my-event");
 
-/* Event */
 let _ = bubbles(event);
 let _ = cancelable(event);
 let _ = composed(event);
@@ -19,7 +18,6 @@ preventDefault(event);
 stopImmediatePropagation(event);
 stopPropagation(event);
 
-/* StorageEvent */
 let _ = key(event);
 let _ = newValue(event);
 let _ = oldValue(event);

@@ -48,7 +48,7 @@ let _ = Window.window(window);
 
 Window.alert("hello!", window);
 Window.blur(window);
-let idleId = Window.requestIdleCallback(_ => (), window); /* out of order */
+let idleId = Window.requestIdleCallback(_ => (), window);
 Window.cancelIdleCallback(idleId, window);
 Window.close(window);
 let _ = Window.confirm("is ok?", window);
@@ -67,7 +67,7 @@ let _ =
     window,
   );
 let _ = Window.open_(~url="http://...", ~name="my window", window);
-Window.postMessage("my message", "*", window) /* Currently no way to make transferables */; /*Window.postMessageWithTransfers "my message" "*" transfers window;*/
+Window.postMessage("my message", "*", window);
 Window.print(window);
 let _ = Window.prompt("type you password, please?", window);
 let _ =

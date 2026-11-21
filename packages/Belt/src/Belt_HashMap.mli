@@ -70,16 +70,10 @@ module String = Belt_HashMapString
 (** Specalized when key type is [string], more efficient than the generic type *)
 
 type ('key, 'value, 'id) t
-(** The type of hash tables from type ['key] to type ['value]. *)
-
 type ('a, 'id) id = ('a, 'id) Belt_Id.hashable
 
 val make : hintSize:int -> id:('key, 'id) id -> ('key, 'value, 'id) t
-(*TODO: allow randomization for security *)
-
 val clear : ('key, 'value, 'id) t -> unit
-(** Empty a hash table. *)
-
 val isEmpty : _ t -> bool
 
 val set : ('key, 'value, 'id) t -> 'key -> 'value -> unit
@@ -87,10 +81,7 @@ val set : ('key, 'value, 'id) t -> 'key -> 'value -> unit
 
 val copy : ('key, 'value, 'id) t -> ('key, 'value, 'id) t
 val get : ('key, 'value, 'id) t -> 'key -> 'value option
-
 val has : ('key, 'value, 'id) t -> 'key -> bool
-(** [has tbl x] checks if [x] is bound in [tbl]. *)
-
 val remove : ('key, 'value, 'id) t -> 'key -> unit
 val forEachU : ('key, 'value, 'id) t -> (('key -> 'value -> unit)[@u]) -> unit
 

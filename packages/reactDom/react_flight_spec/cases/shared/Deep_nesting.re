@@ -1,5 +1,3 @@
-/* A 10-deep single-child chain: each level nests as the (non-array)
-   "children" prop of its parent, all within the single root model row. */
 let app = () =>
   <div className="level-1">
     <section>

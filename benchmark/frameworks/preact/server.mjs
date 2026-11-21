@@ -1,8 +1,3 @@
-/**
- * Node.js + Express + Preact SSR Benchmark Server
- * Tests Preact's lighter-weight alternative to React
- */
-
 import express from "express";
 import { h } from "preact";
 import renderToString from "preact-render-to-string";
@@ -10,13 +5,8 @@ import renderToString from "preact-render-to-string";
 const app = express();
 const PORT = process.env.PORT || 3006;
 
-// ============================================================================
-// Preact-native scenarios (mirrors React scenarios)
-// ============================================================================
-
 const Trivial = () => h("div", null, "Hello World");
 
-// ShallowTree
 const Level5 = ({ title, subtitle, active, count }) =>
   h(
     "div",
@@ -63,7 +53,6 @@ const Level1 = ({ pageTitle }) =>
 
 const ShallowTree = () => h(Level1, { pageTitle: "Shallow Tree Benchmark" });
 
-// DeepTree
 const Wrapper = ({ depth, maxDepth, children }) => {
   const percentage = (depth / maxDepth) * 100;
   return h(
@@ -92,7 +81,6 @@ const renderDepth = (current, max) => {
 
 const DeepTree50 = () => renderDepth(0, 50);
 
-// WideTree
 const Card = ({ id, title, description, price, rating, inStock }) =>
   h(
     "article",
@@ -141,7 +129,6 @@ const WideTree100 = () => {
   );
 };
 
-// Table
 const Table100 = () => {
   const users = Array.from({ length: 100 }, (_, i) => ({
     id: i + 1,
@@ -193,7 +180,6 @@ const preactScenarios = {
   table100: { component: Table100, name: "Table 100" },
 };
 
-// Routes
 app.get("/", (req, res) => {
   const scenarioName = req.query.scenario || "table100";
   const scenario = preactScenarios[scenarioName];

@@ -59,10 +59,6 @@ let _ = getElementsByTagName("code", document);
 let _ = getElementsByTagNameNS("http://...", "foo", document);
 let _ = importNode(el, document);
 let _ = importNodeDeep(el, document);
-/* TODO: These get dead code eliminated
-   let _ = registerElement(document, "my-component");
-   let _ = registerElementWithOptions(document, "my-component", [%bs.raw "{}"]);
-   */
 let _ = getElementById("root", document);
 let _ = querySelector(".lstlisting", document);
 let _ = querySelectorAll(".lstlisting", document);

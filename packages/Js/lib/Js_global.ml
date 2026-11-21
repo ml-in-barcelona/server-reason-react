@@ -1,16 +1,5 @@
-(** Contains functions available in the global scope ([window] in a browser context) *)
-
-(* Timers are scheduled on the Lwt event loop: callbacks only fire while an
-   Lwt main loop is running (Lwt_main.run, Dream, etc.), which every
-   server-reason-react deployment does. Like node, an exception raised inside
-   a timer callback reaches Lwt.async_exception_hook and terminates the
-   process by default. JS timers clamp negative delays to 0. *)
-
 type intervalId = unit Lwt.t
-(** Identify an interval started by {! setInterval} *)
-
 type timeoutId = unit Lwt.t
-(** Identify timeout started by {! setTimeout} *)
 
 let sleep_seconds_of_millis millis = if millis <= 0. then 0. else millis /. 1000.
 

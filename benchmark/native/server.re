@@ -1,4 +1,3 @@
-/* Dream + server-reason-react Benchmark Server */
 open Benchmark_scenarios;
 
 let render_scenario = scenario_name => {

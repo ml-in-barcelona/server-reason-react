@@ -132,28 +132,21 @@ let context_default_survives_provider_child_throw () =
   assert_string (ReactDOM.renderToString second) "default"
 
 let inline_style_escaping () =
-  (* A quoted CSS value must be escaped so it doesn't terminate the style="..."
-     attribute early and drop the following custom properties. *)
   let style = ReactDOMStyle.unsafeAddProp (ReactDOMStyle.make ~padding:"8px" ()) "--font" {|"Ahrefs", sans-serif|} in
   let div = React.createElement "div" [ React.JSX.style style ] [] in
   assert_string (ReactDOM.renderToString div) {|<div style="padding:8px;--font:&quot;Ahrefs&quot;, sans-serif"></div>|}
 
 let inline_style_empty_value_skipped () =
-  (* [""] here lives in this compilation unit, so a [v == ""] check inside
-     ReactDOMStyle wouldn't skip it (string constants are only shared per
-     unit). Regression test for the structural check. *)
   let style = ReactDOMStyle.make ~color:"" ~padding:"8px" () in
   let div = React.createElement "div" [ React.JSX.style style ] [] in
   assert_string (ReactDOM.renderToString div) {|<div style="padding:8px"></div>|}
 
 let default_checked_and_value_render_as_checked_and_value () =
-  (* React maps defaultChecked/defaultValue to the checked/value DOM attributes on server output *)
   let props = ReactDOM.domProps ~defaultChecked:true ~defaultValue:"hello" () in
   let input = React.createElement "input" props [] in
   assert_string (ReactDOM.renderToString input) {|<input value="hello" checked />|}
 
 let xlink_and_xmlns_props_render_with_colon_names () =
-  (* xlinkActuate/xlinkArcrole/xmlnsXlink render as xlink:actuate/xlink:arcrole/xmlns:xlink, matching React *)
   let props =
     ReactDOM.domProps ~xlinkActuate:"onLoad" ~xlinkArcrole:"arc" ~xmlnsXlink:"http://www.w3.org/1999/xlink" ()
   in

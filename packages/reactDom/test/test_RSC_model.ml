@@ -47,10 +47,6 @@ let capture_stream () =
 let drop_all_frames _ _ = false
 let text ~children () = React.createElement "span" [] children
 
-(* ***** *)
-(* Tests *)
-(* ***** *)
-
 let null_element () =
   let app = React.null in
   let output, subscribe = capture_stream () in
@@ -66,8 +62,6 @@ let string_element () =
   Lwt.return ()
 
 let dollar_prefixed_strings_are_escaped () =
-  (* User strings starting with '$' get an extra '$' (React's escapeStringValue),
-     since bare "$..." is reference syntax on decode. Only a leading '$' matters. *)
   let app =
     React.createElement "div"
       [ React.JSX.String ("title", "title", "$title") ]
@@ -103,8 +97,6 @@ let dollar_prefixed_json_props_are_escaped () =
   Lwt.return ()
 
 let numeric_props_serialize_as_json_numbers () =
-  (* React emits numeric props as JSON numbers, stringified the way JavaScript
-     does: integral floats lose the decimal part (100.0 -> 100). *)
   let app =
     React.createElement "div"
       [
@@ -138,8 +130,6 @@ let repeated_prop_keeps_last_value () =
   Lwt.return ()
 
 let numeric_children_serialize_as_json_numbers () =
-  (* React.int/React.float children cross the wire as raw JSON numbers,
-     integral floats without the decimal part (100.0 -> 100). *)
   let app = React.createElement "span" [] [ React.int 42; React.float 3.14; React.int 0; React.float 100.0 ] in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
@@ -503,7 +493,6 @@ let error_without_suspense () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe main in
-  (* A failure on the root chain errors the root task's own row. *)
   assert_list_of_strings !output
     [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
@@ -513,7 +502,6 @@ let error_in_toplevel () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe main in
-  (* A failure on the root chain errors the root task's own row. *)
   assert_list_of_strings !output
     [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
@@ -523,7 +511,6 @@ let error_in_toplevel_in_async () =
   let main = React.Async_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe main in
-  (* A failure on the root chain errors the root task's own row. *)
   assert_list_of_strings !output
     [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
@@ -635,7 +622,6 @@ let suspense () =
   Lwt.return ()
 
 let async_component_without_suspense () =
-  (* Because there's no Suspense. We await for the promise to resolve before rendering the component *)
   let app =
     React.Async_component
       ( __FUNCTION__,
@@ -645,7 +631,6 @@ let async_component_without_suspense () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
-  (* The root task retries in place: the async root resolves into row 0 itself. *)
   assert_list_of_strings !output [ "0:\"DONE :)\"\n" ];
   Lwt.return ()
 
@@ -659,7 +644,6 @@ let async_component_without_suspense_immediate () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
-  (* The root task retries in place: the async root resolves into row 0 itself. *)
   assert_list_of_strings !output [ "0:\"DONE :)\"\n" ];
   Lwt.return ()
 
@@ -987,19 +971,11 @@ let act_with_error () =
     ];
   Lwt.return ()
 
-(* Test that simulates the streamFunctionResponse pattern:
-   a failing server function's error is serialized into the RSC stream
-   (not swallowed or re-raised as an HTTP 500). *)
 let act_with_error_from_handler () =
   let output, subscribe = capture_stream () in
-  (* Simulate what streamFunctionResponse does:
-     1. Run the handler (which may fail)
-     2. Capture the outcome as a promise (success or failure)
-     3. Pass the promise to create_action_response *)
   let action_promise =
     Lwt.catch
       (fun () ->
-        (* Simulate a failing server function handler *)
         let%lwt _result = Lwt.fail (Failure "Error from server") in
         Lwt.return (Lwt.return _result))
       (fun exn -> Lwt.return (Lwt.fail exn))
@@ -1013,7 +989,6 @@ let act_with_error_from_handler () =
     ];
   Lwt.return ()
 
-(* Test that a successful action followed by create_action_response works *)
 let act_with_success_from_handler () =
   let output, subscribe = capture_stream () in
   let action_promise =
@@ -1028,7 +1003,6 @@ let act_with_success_from_handler () =
   assert_list_of_strings !output [ "0:\"Success\"\n" ];
   Lwt.return ()
 
-(* Test that decodeReply errors produce Error, not exceptions *)
 let act_decode_error_does_not_raise () =
   (match ReactServerDOM.decodeReply "not valid json at all" with
   | Error msg -> if not (String.length msg > 0) then Alcotest.fail "expected non-empty error message"
@@ -1065,34 +1039,7 @@ let env_development_adds_debug_info () =
     ];
   Lwt.return ()
 
-(* let env_development_adds_debug_info_2 () =
-  let app () =
-    React.Fragment
-      (React.list
-         [
-           React.Upper_case_component ("Text", text ~children:[ React.string "hi" ]);
-           React.Upper_case_component ("Text", text ~children:[ React.string "hola" ]);
-         ])
-  in
-  let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe  (app ()) in
-  assert_list_of_strings !output
-    [
-      "1:{\"name\":\"App\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[[\"module \
-       code\",\"/Users/davesnx/Code/github/ml-in-barcelona/server-reason-react/arch/server/render-rsc-to-stream.js\",54,42]],\"props\":{}}";
-      "0:D\"$1\"";
-      "3:{\"name\":\"Comp\",\"env\":\"Server\",\"key\":null,\"owner\":\"$1\",\"stack\":[[\"App\",\"/Users/davesnx/Code/github/ml-in-barcelona/server-reason-react/arch/server/render-rsc-to-stream.js\",50,15]],\"props\":{\"name\":\"hi\"}}";
-      "2:D\"$3\"";
-      "2:[\"$\",\"h1\",null,{\"children\":[\"Hello \",\"hi\"]},\"$1\",null,1]";
-      "5:{\"name\":\"Comp\",\"env\":\"Server\",\"key\":null,\"owner\":\"$1\",\"stack\":[[\"App\",\"/Users/davesnx/Code/github/ml-in-barcelona/server-reason-react/arch/server/render-rsc-to-stream.js\",51,15]],\"props\":{\"name\":\"Hola\"}}";
-      "4:D\"$5\"";
-      "4:[\"$\",\"h1\",null,{\"children\":[\"Hello \",\"Hola\"]},\"$1\",null,1]";
-      "0:[\"$2\",\"$4\"]";
-    ];
-  Lwt.return () *)
-
 let client_component_with_resources_metadata () =
-  (* Test that resources are tracked in the RSC payload *)
   let app () =
     React.Upper_case_component
       ( "Page",
@@ -1130,10 +1077,8 @@ let client_component_with_resources_metadata () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
-  (* Check that client reference is created *)
   let has_client_ref = List.exists (fun s -> Str.string_match (Str.regexp ".*:I\\[\"./client.js\".*") s 0) !output in
   Alcotest.(check bool) "should have client reference" true has_client_ref;
-  (* Check that the resources are in the model payload *)
   let has_head_with_resources =
     List.exists
       (fun s ->
@@ -1177,7 +1122,6 @@ let client_component_with_async_component () =
   Lwt.return ()
 
 let page_with_hoisted_resources () =
-  (* Test that resources like scripts and styles are properly hoisted *)
   let app () =
     React.Upper_case_component
       ( "Page",
@@ -1202,9 +1146,7 @@ let page_with_hoisted_resources () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
-  (* Check that the output contains the expected structure *)
   Alcotest.(check bool) "should have output" (List.length !output > 0) true;
-  (* Check that h1 with Page Title is in the output *)
   let has_page_title = List.exists (fun s -> Str.string_match (Str.regexp ".*\"h1\".*\"Page Title\".*") s 0) !output in
   Alcotest.(check bool) "should have page title" true has_page_title;
   Lwt.return ()
@@ -1274,7 +1216,6 @@ let nested_context () =
   Lwt.return ()
 
 let async_component_under_provider_reads_provider_value () =
-  (* The Suspense keeps the Provider below the root chain, whose serializer awaits children before popping. *)
   let context = React.createContext "default" in
   let async_reader =
     React.Async_component
@@ -1299,8 +1240,6 @@ let async_component_under_provider_reads_provider_value () =
   Lwt.return ()
 
 let context_default_survives_provider_child_throw_in_model () =
-  (* The throw must sit on the root chain: the payload serializer catches component throws before they reach a
-     Provider frame. *)
   let context = React.createContext "default" in
   let app =
     mk_context context ~value:"provided"
@@ -1318,7 +1257,6 @@ let context_default_survives_provider_child_throw_in_model () =
   Lwt.return ()
 
 let suspense_with_nested_upper_case () =
-  (* Server components are always inlined, matching React.js behavior. Everything resolves in chunk 0. *)
   let inner () = React.Upper_case_component ("Inner", fun () -> React.string "inner-value") in
   let app () =
     mk_suspense ~fallback:(React.string "Loading...")
@@ -1336,7 +1274,6 @@ let suspense_with_nested_upper_case () =
   Lwt.return ()
 
 let suspense_at_root () =
-  (* React: 1:"$Sreact.suspense" then 0:["$","$1",null,{"children":"Resolved content","fallback":"Loading..."}] *)
   let app = mk_suspense ~fallback:(React.string "Loading...") ~children:(React.string "Resolved content") () in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe app in
@@ -1348,9 +1285,6 @@ let suspense_at_root () =
   Lwt.return ()
 
 let suspense_at_root_with_upper_case_children () =
-  (* Server components inside Suspense are inlined, matching React.js.
-     React: 1:"$Sreact.suspense" then
-     0:["$","$1",null,{"children":["$","div",null,{"children":"Hello"}],"fallback":"Loading..."}] *)
   let app =
     mk_suspense ~fallback:(React.string "Loading...")
       ~children:(React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ]))
@@ -1366,10 +1300,6 @@ let suspense_at_root_with_upper_case_children () =
   Lwt.return ()
 
 let suspense_at_root_with_nested_components () =
-  (* Server components are always inlined, matching React.js behavior.
-       1:"$Sreact.suspense" then
-       0:["$","$1",null,{"children":["$","div",null,{"children":["$","div",null,{"children":"Hello"}]}],
-         "fallback":"Loading..."}] *)
   let inner () =
     React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ])
   in
@@ -1385,8 +1315,6 @@ let suspense_at_root_with_nested_components () =
   Lwt.return ()
 
 let suspense_at_root_with_async () =
-  (* Async children inside root Suspense create a lazy ref.
-     React: 1:"$Sreact.suspense" then 0:["$","$1",null,{"children":"$L2","fallback":"Loading..."}] then 2:resolved *)
   let app =
     mk_suspense ~fallback:(React.string "Loading...")
       ~children:
@@ -1408,8 +1336,6 @@ let suspense_at_root_with_async () =
   Lwt.return ()
 
 let root_async_component_immediate () =
-  (* Immediately resolved async component at root inlines at chunk 0.
-     React: 0:["$","span",null,{"children":"Immediate async"}] *)
   let app =
     React.Async_component
       ("immediate", fun () -> Lwt.return (React.createElement "span" [] [ React.string "Immediate async" ]))
@@ -1420,8 +1346,6 @@ let root_async_component_immediate () =
   Lwt.return ()
 
 let root_upper_case_chain () =
-  (* Chained root server components all inline in chunk 0.
-     React: 0:["$","div",null,{"children":"Hello"}] *)
   let inner () =
     React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ])
   in
@@ -1601,11 +1525,6 @@ let debug_not_emitted_without_flag () =
   assert_list_of_strings !output [ "0:[\"$\",\"div\",null,{\"children\":\"no debug\"},null,null,1]\n" ];
   Lwt.return ()
 
-(* Validates the React 19 RSC wire format for debug info with a 3-level component chain:
-   - Element tuple: ["$", type, key, props, debugOwner, debugStack, validated]
-   - debugOwner must be a "$<hex>" chunk reference (not a bare integer)
-   - debugStack must be null when absent (not an empty list)
-   - Debug info chunks use the D prefix and reference their parent via "$<hex>" *)
 let debug_wire_format () =
   let app =
     React.Upper_case_component
@@ -1620,17 +1539,12 @@ let debug_wire_format () =
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~subscribe ~debug:true ~filter_stack_frame:drop_all_frames app in
   assert_list_of_strings !output
     [
-      (* GrandParent debug info (chunk 1): root component, no owner *)
       "1:{\"name\":\"GrandParent\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
       "0:D\"$1\"\n";
-      (* Parent debug info (chunk 3): owner is GrandParent via "$1" *)
       "3:{\"name\":\"Parent\",\"env\":\"Server\",\"key\":null,\"owner\":\"$1\",\"stack\":[],\"props\":{}}\n";
-      (* Child debug info (chunk 5): owner is Parent via "$3" *)
       "5:{\"name\":\"Child\",\"env\":\"Server\",\"key\":null,\"owner\":\"$3\",\"stack\":[],\"props\":{}}\n";
       "4:D\"$5\"\n";
-      (* Element tuple: debugOwner="$3" (chunk ref, not bare int), debugStack=null, validated=1 *)
       "4:[\"$\",\"em\",null,{\"children\":\"deep\"},\"$3\",null,1]\n";
-      (* Outlined chunks resolve *)
       "2:D\"$3\"\n";
       "2:\"$4\"\n";
       "0:\"$2\"\n";
@@ -1716,7 +1630,6 @@ let flight_hints_emit_h_rows () =
       ( "app",
         fun () ->
           ReactDOM.preload ~href:"/style.css" ~as_:"style";
-          (* Same hint twice: dedup keeps one H row per key per request. *)
           ReactDOM.preload ~href:"/style.css" ~as_:"style";
           React.createElement "span" [] [ React.string "hi" ] )
   in
@@ -1725,10 +1638,6 @@ let flight_hints_emit_h_rows () =
   assert_list_of_strings !output
     [ ":HL[\"/style.css\",\"style\"]\n"; "0:[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1]\n" ];
   Lwt.return ()
-
-(* ***************** *)
-(* Abort and timeout *)
-(* ***************** *)
 
 let never_resolving_component name =
   React.Async_component
@@ -1744,7 +1653,6 @@ let dev_error_row ~message id =
 let dev_aborted_row = dev_error_row ~message:"The render was aborted."
 let dev_timed_out_row = dev_error_row ~message:"The render timed out."
 
-(* A cancelable promise plus a flag observing that the render's abort path reached it through Lwt.cancel. *)
 let cancel_probe () =
   let promise, _resolver = Lwt.task () in
   let canceled = ref false in
@@ -1878,8 +1786,6 @@ let model_timeout_does_not_affect_fast_renders () =
   Lwt.return ()
 
 let completion_does_not_cancel_abort_signal () =
-  (* Lwt.task is cancelable: if the render canceled the caller-owned signal instead of its protected wrapper, the
-     state would be Fail Canceled. *)
   let abort, _resolver = Lwt.task () in
   let app = React.createElement "div" [] [ React.string "Fast" ] in
   let output, subscribe = capture_stream () in
@@ -1922,9 +1828,6 @@ let abort_cancels_pending_task () =
   Lwt.return ()
 
 let late_completion_after_abort_writes_nothing () =
-  (* The gate is non-cancelable (Lwt.wait): the abort cannot stop it. Its late completion serializes a nested client
-     reference and an already-resolved promise; nothing may reach the closed stream and nothing may raise through
-     Lwt.async_exception_hook. *)
   let gate, resolve_gate = Lwt.wait () in
   let app =
     React.Async_component
@@ -1984,8 +1887,6 @@ let canceling_render_promise_cancels_pending_work () =
   Lwt.return ()
 
 let externally_canceled_resource_settles_row () =
-  (* Cancellation that does not come from the renderer's own abort (the caller canceling their own resource promise)
-     settles the row as an error like any other rejection instead of leaving the stream open forever. *)
   let task_promise, _resolver = Lwt.task () in
   let app = mk_suspense ~fallback:(React.string "Loading...") ~children:(cancelable_component task_promise) () in
   let output, subscribe = capture_stream () in
@@ -2017,7 +1918,6 @@ let pending_model_without_controls_returns_immediately () =
   Lwt.return ()
 
 let timeout_without_subscriber_bounds_render () =
-  (* Without a subscriber the stream drains internally: the returned promise still represents the bounded render. *)
   let app = never_resolving_component "NeverResolves" in
   let%lwt () = ReactServerDOM.render_model ~env:`Dev ~timeout:0.02 app in
   Lwt.return ()

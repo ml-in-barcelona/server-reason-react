@@ -18,16 +18,10 @@
     This module implements queues (FIFOs), with in-place modification. *)
 
 type 'a t
-(** The type of queues containing elements of type ['a]. *)
 
 val make : unit -> 'a t
-(** @return a new queue, initially empty. *)
-
 val clear : 'a t -> unit
-(** Discard all elements from the queue. *)
-
 val isEmpty : 'a t -> bool
-(** @return [true] if the given queue is empty, [false] otherwise. *)
 
 val fromArray : 'a array -> 'a t
 (** [fromArray a] is equivalent to [Array.forEach a (add q a)] *)
@@ -64,8 +58,6 @@ val copy : 'a t -> 'a t
     @return a fresh queue *)
 
 val size : 'a t -> int
-(** @return the number of elements in a queue. *)
-
 val mapU : 'a t -> (('a -> 'b)[@u]) -> 'b t
 val map : 'a t -> ('a -> 'b) -> 'b t
 val forEachU : 'a t -> (('a -> unit)[@u]) -> unit

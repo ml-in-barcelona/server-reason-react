@@ -13,10 +13,8 @@
       observed, whereas JS Map iterators are live. *)
 
 type ('k, 'v) t
-(** The Map type *)
 
 val make : unit -> ('k, 'v) t
-(** [make ()] creates a new empty map. *)
 
 val fromArray : ('k * 'v) array -> ('k, 'v) t
 (** [fromArray entries] creates a map from an array of [(key, value)] pairs. Like JS [new Map(entries)], a duplicated
@@ -26,19 +24,13 @@ val toArray : ('k, 'v) t -> ('k * 'v) array
 (** [toArray map] returns the [(key, value)] pairs in insertion order, like JS [Array.from(map)]. *)
 
 val size : ('k, 'v) t -> int
-(** [size map] returns the number of entries in [map]. *)
-
 val has : key:'k -> ('k, 'v) t -> bool
-(** [has ~key map] returns whether [key] is present in [map]. *)
-
 val get : key:'k -> ('k, 'v) t -> 'v option
-(** [get ~key map] returns [Some value] if [key] is present, [None] otherwise. *)
 
 val set : key:'k -> value:'v -> ('k, 'v) t -> ('k, 'v) t
 (** [set ~key ~value map] sets [key] to [value] in [map] (mutating it) and returns [map] for chaining. *)
 
 val clear : ('k, 'v) t -> unit
-(** [clear map] removes all entries from [map]. *)
 
 val delete : key:'k -> ('k, 'v) t -> bool
 (** [delete ~key map] removes [key] from [map]; returns whether the key was present. *)

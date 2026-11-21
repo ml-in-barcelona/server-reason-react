@@ -1,8 +1,3 @@
-/* Scenario: Analytics Dashboard
-      Complex dashboard with stats, charts placeholders, and data tables
-      Purpose: Test admin/dashboard UI rendering performance
-   */
-
 module StatCard = {
   [@react.component]
   let make = (~title, ~value, ~change, ~icon, ~trend) => {

@@ -1,58 +1,3 @@
-(* CPU-cycle profiling runner for SSR rendering.
-
-   Companion to [alloc_profile.ml]. Where the allocation profiler answers
-   "which source location allocated heap?", this runner answers "which
-   source location spent CPU cycles?"
-
-   This binary does not itself read hardware counters — those are unreliable
-   under virtualization and need kernel configuration that varies by host.
-   Instead, the binary is a minimal, deterministic render loop intended to
-   be driven by an external sampling or instrumenting profiler:
-
-     - [valgrind --tool=callgrind]: deterministic instruction/branch counts
-       attributed to OCaml source locations via the debug-info in the
-       unstripped executable. Recommended for ranking hypotheses because
-       the numbers are reproducible across runs.
-
-     - [perf stat -e cycles:u,instructions:u,...]: real hardware counters
-       when the host permits. Faster than callgrind, but noisy and gated on
-       [kernel.perf_event_paranoid]. Use for coarse wall-cycle totals.
-
-     - [perf record -g]: sampled call-graph profile. Good for "where are
-       the cycles?" visual answers (flamegraphs); less good for deciding
-       between two candidate fixes because a 2% shift is inside the noise
-       floor. Prefer callgrind for ranking.
-
-   The companion driver [perf_profile.sh] orchestrates callgrind and perf
-   invocations across all scenarios and aggregates the output into a table
-   matching [alloc_profile.exe]'s format.
-
-   Usage:
-
-     dune build benchmark/perf-work/perf_profile.exe
-     _build/default/benchmark/perf-work/perf_profile.exe --help
-
-     # Standalone wall-clock run (no external profiler):
-     _build/default/benchmark/perf-work/perf_profile.exe --scenario wide500
-
-     # Driven by callgrind (from the driver script):
-     valgrind --tool=callgrind \
-       _build/default/benchmark/perf-work/perf_profile.exe \
-         --scenario wide500 --warmup 50 --iters 500
-
-   Design notes:
-
-   - No [Gc.Memprof] tracker: memprof adds per-alloc callstack capture cost
-     that distorts cycle attribution. Run [alloc_profile.exe] separately
-     for allocation questions.
-
-   - GC behaviour is stabilized with [Gc.full_major] + [Gc.compact] before
-     the timed loop, then a ref-kept [last_result] prevents the compiler
-     from eliding the call to [f ()] entirely.
-
-   - Callgrind profiles the whole short-lived process. With the default 500
-     iterations, startup and summary output are fixed, amortized overhead. *)
-
 open Benchmark_scenarios
 
 type scenario = { name : string; run : unit -> string }
@@ -138,21 +83,11 @@ let scenarios : scenario list =
     { name = "rsc-array500"; run = (fun () -> drain_render_html text_array_500) };
   ]
 
-(* [sink] prevents [run] calls from being dead-code-eliminated. The compiler
-   cannot know [run ()] has no observable effect (it allocates and writes to
-   a buffer), but a redundant [ignore] at every call site risks codegen
-   surprises under future flambda2 experiments. Storing the last result in a
-   ref forces the result to be kept live across iterations. *)
 let sink : string ref = ref ""
 
 let run_loop ~warmup ~iters ~scenario =
-  (* Stabilize GC state before the run so any minor/major collection inside
-     the timed window is attributable to this scenario's allocation rate,
-     not to prior test state. *)
   Gc.full_major ();
   Gc.compact ();
-  (* Warmup is included in external profiler totals, so keep it small
-     relative to the measured loop. *)
   for _ = 1 to warmup do
     sink := scenario.run ()
   done;

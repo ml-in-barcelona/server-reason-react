@@ -878,7 +878,6 @@ let navigateFrom = from =>
     ~baseRevision="base-1",
   );
 
-/* [~revalidate=true] on the client drops the [from] fact. */
 let revalidate =
   Some({
     RouterServer.ServerEngine.from: None,
@@ -924,8 +923,6 @@ let testPatchResponse = () => {
   };
 };
 
-/* [Branch.Scope.instanceKey] prefixes every part with its length so that
-   names and values cannot alias. */
 let frame = value => string_of_int(String.length(value)) ++ ":" ++ value;
 let rootGraft = frame("root");
 let workspaceGraft = workspaceId =>
@@ -992,9 +989,6 @@ let checkFullResponse = (~to_, ~navigation, ~layouts) => {
   checkLayouts(layouts);
 };
 
-/* A patch omits exactly the layouts the client already owns, so the layouts a
-   patch renders plus the layouts above the graft must equal the layouts a full
-   response renders for the same destination. */
 let checkPatchMatchesFull = (~from, ~to_, ~arrange, ~graft, ~above) => {
   resetFixture();
   arrange();

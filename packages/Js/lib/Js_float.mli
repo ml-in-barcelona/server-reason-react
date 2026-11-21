@@ -1,5 +1,3 @@
-(** Provides functions for inspecting and manipulating [float]s *)
-
 type t = float
 
 val _NaN : t

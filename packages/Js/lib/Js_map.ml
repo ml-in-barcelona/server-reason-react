@@ -1,10 +1,4 @@
-(** Provides bindings for ES6 Map
-
-    Backed by a Hashtbl plus an insertion-order log so that iteration (toArray/forEach/keys/values/entries) follows JS
-    Map iteration order: first insertion wins the position, re-setting an existing key keeps it, deleting and re-adding
-    moves it to the end. *)
-
-type ('k, 'v) t = { table : ('k, 'v) Hashtbl.t; mutable order : 'k list (* reversed insertion order *) }
+type ('k, 'v) t = { table : ('k, 'v) Hashtbl.t; mutable order : 'k list }
 
 let make () : ('k, 'v) t = { table = Hashtbl.create 10; order = [] }
 
