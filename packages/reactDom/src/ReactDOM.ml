@@ -104,6 +104,10 @@ let is_unsupported_sync_message message =
   String.equal message async_component_sync_error
   || String.starts_with ~prefix:client_component_sync_error_prefix message
 
+(* Set while renderToStream runs a writer's emit, so a Suspense boundary inside it lets a suspended child escape and
+   the writer falls back to its original element, which can stream the boundary instead of client-rendering it. *)
+let streaming_writer = ref false
+
 let render_tree buf ~separators ~doctype ~prev_text element : bool =
   let doctype_pending = ref doctype in
   let rec render buf prev_text (element : React.element) : bool =
@@ -145,6 +149,7 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
             ends_text
         | exception (Invalid_argument message as unsupported) when is_unsupported_sync_message message ->
             raise unsupported
+        | exception (React.Suspend _ as suspend) when !streaming_writer -> raise suspend
         | exception ((Stack_overflow | Out_of_memory | Assert_failure _) as fatal) -> raise fatal
         | exception _e ->
             Buffer.add_string buf "<!--$!-->";
@@ -561,7 +566,12 @@ let render_to_segment ~env ~stream_context =
           segment.previous_node_was_text <- saved_previous_node_was_text;
           render context (original ())
         in
-        match emit segment.buf ~separators:true with
+        let emit () =
+          let previous = !streaming_writer in
+          streaming_writer := true;
+          Fun.protect ~finally:(fun () -> streaming_writer := previous) (fun () -> emit segment.buf ~separators:true)
+        in
+        match emit () with
         | () -> ()
         | exception Invalid_argument message when is_unsupported_sync_message message -> render_original ()
         | exception React.Suspend _ -> render_original ())

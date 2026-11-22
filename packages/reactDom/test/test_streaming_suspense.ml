@@ -28,6 +28,35 @@ let writer_with_async_suspense_in_stream () =
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
     ]
 
+let writer_with_suspending_component_in_stream () =
+  let promise = Lwt.map (fun () -> "Done") (Lwt.pause ()) in
+  let child () =
+    mk_suspense ~fallback:(React.string "Loading")
+      ~children:
+        (React.Upper_case_component
+           ( "reads_promise",
+             fun () -> React.createElement "span" [] [ React.string (React.Experimental.usePromise promise) ] ))
+      ()
+  in
+  let app =
+    React.Writer
+      {
+        emit =
+          (fun buf ~separators ->
+            Buffer.add_string buf "<div>";
+            let (_ : bool) = ReactDOM.write_element_to_buffer_internal buf ~separators ~prev_text:false (child ()) in
+            Buffer.add_string buf "</div>");
+        original = (fun () -> React.createElement "div" [] [ child () ]);
+      }
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_chunks stream
+    [
+      "<div><!--$?--><template id=\"B:0\"></template>Loading<!--/$--></div>";
+      "<div hidden id=\"S:0\"><span>Done</span></div>";
+      "<script>$RC('B:0','S:0')</script>";
+    ]
+
 let late_failing_app () =
   mk_suspense ~fallback:(React.string "Loading")
     ~children:
@@ -80,6 +109,7 @@ let suspense_rejects_after_flush_in_prod () =
 let tests =
   [
     test "writer_with_async_suspense_in_stream" writer_with_async_suspense_in_stream;
+    test "writer_with_suspending_component_in_stream" writer_with_suspending_component_in_stream;
     test "suspense_with_promise_that_rejects_after_flush" suspense_with_promise_that_rejects_after_flush;
     test "suspense_rejects_after_flush_in_prod" suspense_rejects_after_flush_in_prod;
   ]
