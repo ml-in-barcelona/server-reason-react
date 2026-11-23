@@ -63,7 +63,9 @@ module Primitives = struct
   let promise_to_rsc to_rsc promise =
     Obj.magic (Js.Promise.then_ (fun value -> Js.Promise.resolve (to_rsc value)) promise)
 
-  let server_function_to_rsc action = Obj.magic action
+  let server_function_to_rsc _ =
+    of_rsc_msg_error "encoding Runtime.server_function to RSC values is only supported on the server"
+
   let string_of_rsc rsc = if Js.typeof rsc = "string" then Obj.magic rsc else of_rsc_error ~rsc "expected a string"
   let bool_of_rsc rsc = if Js.typeof rsc = "boolean" then Obj.magic rsc else of_rsc_error ~rsc "expected a bool"
 
