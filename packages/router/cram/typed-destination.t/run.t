@@ -494,21 +494,21 @@ it as their argument, the fallback takes `~context`, and the registry builds
 the server with `Server.makeWithContext`, so `RouterServer.runWithContext
 ~context` reaches them. A redirect ignores it.
 
-  $ server-reason-react.router-gen --mode registry --source context.ml < context.ml | tr -s ' \n' ' ' | grep -Eo '(fun |~context:)\([_a-z]+ : [A-Za-z.]+\)|[A-Za-z]+\.[a-z]+ ~context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c
-        2 NoteHeaders.make ~context
-        1 NoteLoader.load ~context
-        6 RootMetadata.make ~context
-        1 RouterServer.Server.makeWithContext
-        1 fun (_ : Session.t)
-        2 fun (context : Session.t)
-        1 ~context:(context : Session.t)
+  $ server-reason-react.router-gen --mode registry --source context.ml < context.ml | tr -s ' \n' ' ' | grep -Eo '(fun |~context:)\([_a-z]+ : [A-Za-z.]+\)|[A-Za-z]+\.[a-z]+ ~context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c | sed "s/^ *//"
+  2 NoteHeaders.make ~context
+  1 NoteLoader.load ~context
+  6 RootMetadata.make ~context
+  1 RouterServer.Server.makeWithContext
+  1 fun (_ : Session.t)
+  2 fun (context : Session.t)
+  1 ~context:(context : Session.t)
 
 Without `~context`, executions take `()`, nothing mentions a context, and the
 registry uses `Server.make`, so `RouterServer.run` runs it.
 
-  $ server-reason-react.router-gen --mode registry --source loader-label.ml < loader-label.ml | tr -s ' \n' ' ' | grep -Eo '~execution:\(fun [^-]*->|context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c
-        1 RouterServer.Server.make
-        1 ~execution:(fun () ->
+  $ server-reason-react.router-gen --mode registry --source loader-label.ml < loader-label.ml | tr -s ' \n' ' ' | grep -Eo '~execution:\(fun [^-]*->|context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c | sed "s/^ *//"
+  1 RouterServer.Server.make
+  1 ~execution:(fun () ->
 
 `~context` belongs to Router.make only, and reserves the label `context`.
 
@@ -536,30 +536,30 @@ equal another field's label.
   type search = { infoPage: string option }
   type search = { infoPage: string option ; siteTarget: string option ; target: string ; kind: string ; tags: int list }
   val search : ?infoPage:string -> ?siteTarget:string -> ?target:string -> kind:string -> ?tags:int list -> unit -> search
-  $ tr -s ' \n' ' ' < SearchKeyAlias.ml | grep -Eo '~name:"[^"]*"|\("[^"]*", *\[|~owned:\[[^]]*\]' | sort | uniq -c
-        4 ("info-page", [
-        1 ("site", [
-        1 ("target", [
-        1 ("type", [
-        6 ~name:"info-page"
-        3 ~name:"site"
-        3 ~name:"tag"
-        3 ~name:"target"
-        3 ~name:"type"
-        2 ~owned:["info-page"; "target"; "site"; "type"; "tag"]
-        2 ~owned:["info-page"]
-  $ server-reason-react.router-gen --mode registry --source search-key-alias.ml < search-key-alias.ml | tr -s ' \n' ' ' | grep -Eo 'search(Required|Optional|Default|Many) ~input ~name:"[^"]*"|[a-zA-Z.]+ = search_[0-9]+' | sort | uniq -c
-        1 Router.Inspector.kind = search_2
-        1 Router.Inspector.siteTarget = search_0
-        1 Router.Inspector.tags = search_3
-        1 Router.Inspector.target = search_1
-        3 Router.infoPage = search_0
-        1 oldTarget = search_0
-        1 searchDefault ~input ~name:"site"
-        1 searchMany ~input ~name:"tag"
-        3 searchOptional ~input ~name:"info-page"
-        2 searchOptional ~input ~name:"target"
-        1 searchRequired ~input ~name:"type"
+  $ tr -s ' \n' ' ' < SearchKeyAlias.ml | grep -Eo '~name:"[^"]*"|\("[^"]*", *\[|~owned:\[[^]]*\]' | sort | uniq -c | sed "s/^ *//"
+  4 ("info-page", [
+  1 ("site", [
+  1 ("target", [
+  1 ("type", [
+  6 ~name:"info-page"
+  3 ~name:"site"
+  3 ~name:"tag"
+  3 ~name:"target"
+  3 ~name:"type"
+  2 ~owned:["info-page"; "target"; "site"; "type"; "tag"]
+  2 ~owned:["info-page"]
+  $ server-reason-react.router-gen --mode registry --source search-key-alias.ml < search-key-alias.ml | tr -s ' \n' ' ' | grep -Eo 'search(Required|Optional|Default|Many) ~input ~name:"[^"]*"|[a-zA-Z.]+ = search_[0-9]+' | sort | uniq -c | sed "s/^ *//"
+  1 Router.Inspector.kind = search_2
+  1 Router.Inspector.siteTarget = search_0
+  1 Router.Inspector.tags = search_3
+  1 Router.Inspector.target = search_1
+  3 Router.infoPage = search_0
+  1 oldTarget = search_0
+  1 searchDefault ~input ~name:"site"
+  1 searchMany ~input ~name:"tag"
+  3 searchOptional ~input ~name:"info-page"
+  2 searchOptional ~input ~name:"target"
+  1 searchRequired ~input ~name:"type"
 
 A key changes the registry fingerprint.
 
@@ -567,7 +567,7 @@ A key changes the registry fingerprint.
   $ server-reason-react.router-gen --mode registry --source search-key-alias-keyed.ml < search-key-alias-keyed.ml | grep -o 'fingerprint:"[0-9a-f]*"' > keyed.txt
   $ cmp -s plain.txt keyed.txt
   [1]
-  $ wc -l < plain.txt
+  $ wc -l < plain.txt | tr -d " "
   1
 
 Two parameters of one branch cannot share a URL key, whether it comes from a
