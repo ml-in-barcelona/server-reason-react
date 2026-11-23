@@ -1,8 +1,3 @@
-/* Scenario: Blog Article Page
-      Article with comments, sidebar, rich content
-      Purpose: Test content-heavy page rendering
-   */
-
 type comment = {
   id: int,
   author: string,
@@ -495,7 +490,6 @@ module Page = {
   };
 };
 
-/* Different comment counts */
 module Blog10 = {
   [@react.component]
   let make = () => <Page commentCount=10 />;

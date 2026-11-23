@@ -97,10 +97,6 @@ val getExn : ('k, 'a, 'id) t -> 'k -> 'a
 val checkInvariantInternal : _ t -> unit
 (** {b raise} when invariant is not held *)
 
-(****************************************************************************)
-
-(*TODO: add functional [merge, partition, keep, split]*)
-
 val remove : ('k, 'a, 'id) t -> 'k -> unit
 (** [remove m x] do the in-place modification, *)
 

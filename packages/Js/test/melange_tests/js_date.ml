@@ -1,18 +1,9 @@
-(** Ported from Melange's test suite: jscomp/test/js_date_test.ml (melange 6.0.1-54).
-
-    Melange's suite already comments out the locale/timezone-dependent cases (getDate, getHours, toLocaleString,
-    toString, ...); those stay skipped here for the same reason. [toDateString] formats the LOCAL date, so it is pinned
-    to TZ=UTC (at 11:11Z the UTC calendar date matches Melange's expectation) the same way
-    packages/Js/test/date_tests/local_time.ml pins TZ. The remaining local getter/setter cases are TZ-independent: they
-    construct and read back through the same local-time lens. *)
-
 open Helpers
 module N = Js.Date
 
 let ok cond = assert_true "expected true" cond
 let date () = N.fromString "1976-03-08T12:34:56.789+01:23"
 
-(* Same TZ pinning approach as packages/Js/test/date_tests/local_time.ml. *)
 let with_tz tz f =
   let original = Sys.getenv_opt "TZ" in
   Unix.putenv "TZ" tz;
@@ -93,8 +84,6 @@ let tests =
         assert_float_exact (N.getUTCHours d) 3.;
         assert_float_exact (N.getUTCMinutes d) 59.;
         assert_float_exact (N.getUTCSeconds d) 27.);
-    (* skipped (TZ-dependent, also commented out in Melange's suite): getDate, getDay, getHours, getMinutes, getMonth,
-       getTimezoneOffset *)
     test "getFullYear" (fun () -> assert_float_exact (N.getFullYear (date ())) 1976.);
     test "getMilliseconds" (fun () -> assert_float_exact (N.getMilliseconds (date ())) 789.);
     test "getSeconds" (fun () -> assert_float_exact (N.getSeconds (date ())) 56.);
@@ -250,16 +239,11 @@ let tests =
         let _ = N.setUTCSeconds d ~seconds:36. ~milliseconds:420. in
         assert_float_exact (N.getUTCSeconds d) 36.;
         assert_float_exact (N.getUTCMilliseconds d) 420.);
-    (* toDateString formats the LOCAL date, so pin TZ=UTC: at 11:11:56Z the UTC calendar date is Melange's expected
-       "Mon Mar 08 1976". *)
     test "toDateString" (fun () -> with_tz "UTC" (fun () -> assert_string (N.toDateString (date ())) "Mon Mar 08 1976"));
     test "toGMTString" (fun () -> assert_string (N.toUTCString (date ())) "Mon, 08 Mar 1976 11:11:56 GMT");
     test "toISOString" (fun () -> assert_string (N.toISOString (date ())) "1976-03-08T11:11:56.789Z");
     test "toJSON" (fun () -> assert_string (N.toJSON (date ()) |> Option.get) "1976-03-08T11:11:56.789Z");
     test "toJSONUnsafe" (fun () -> assert_string (N.toJSONUnsafe (date ())) "1976-03-08T11:11:56.789Z");
-    (* skipped (TZ/locale-dependent, also commented out in Melange's suite): toLocaleDateString, toLocaleString,
-       toLocaleTimeString, toString, toTimeString. Natively toLocale* are aliased to the non-locale versions anyway
-       (documented divergence: no ICU locale support). *)
     test "toUTCString" (fun () -> assert_string (N.toUTCString (date ())) "Mon, 08 Mar 1976 11:11:56 GMT");
     test "eq" (fun () ->
         let a = N.fromString "2013-03-01T01:10:00" in

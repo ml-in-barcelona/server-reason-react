@@ -1,8 +1,3 @@
-(* Server-side implementation of the JavaScript Date API. Melange's [Js.Date] *)
-
-(* [t] mirrors a JS Date object: a mutable box holding the time value (epoch
-   milliseconds, or NaN for an Invalid Date). Setters mutate the receiver and
-   return the new time value. *)
 type t = { mutable time : float }
 
 let ms_per_second = 1000.
@@ -133,12 +128,6 @@ let time_clip time =
   else if Float.abs time > max_time_value then nan
   else Float.trunc time
 
-(* ==== Local time zone (ES2015+ 21.4.1.7 LocalTZA) ======================= *)
-
-(* Offset in ms between local time and UTC at the given UTC instant, i.e.
-   LocalTZA(t, true). The tm_yday diff is clamped to ±1 day so the arithmetic
-   stays correct across year boundaries. The [with _ -> 0.] guard only fires
-   for instants outside the range representable by [Unix.localtime]. *)
 let tz_offset_at_utc utc_ms =
   if Float.is_nan utc_ms then 0.
   else
@@ -155,16 +144,6 @@ let tz_offset_at_utc utc_ms =
 
 let utc_to_local time = if Float.is_nan time then nan else time +. tz_offset_at_utc time
 
-(* LocalTZA(t, false): convert a local time value to UTC. Near a DST
-   transition the naive "offset at t" answer is wrong, so we sample the zone
-   offset one day before and one day after the local time value (transitions
-   shift the clock by at most a couple of hours, so ±24h safely straddles the
-   transition) and pick the offset the spec mandates:
-   - exactly one candidate offset reconstructs the local time -> use it;
-   - both do (fall-back ambiguity) -> use the pre-transition offset, which
-     selects the earlier UTC instant;
-   - neither does (spring-forward gap) -> also use the pre-transition offset,
-     so the skipped local time overflows past the transition. *)
 let local_to_utc local_ms =
   if Float.is_nan local_ms then nan
   else
@@ -179,8 +158,6 @@ let local_to_utc local_ms =
         | true, false | true, true | false, false -> offset_before
       in
       local_ms -. offset
-
-(* ==== Constructors ====================================================== *)
 
 let compute_utc ~year ?(month = 0.) ?(date = 1.) ?(hours = 0.) ?(minutes = 0.) ?(seconds = 0.) ?(ms = 0.) () =
   let y =
@@ -319,36 +296,10 @@ let toString t =
 let toLocaleString t = toString t
 let toLocaleDateString t = toDateString t
 let toLocaleTimeString t = toTimeString t
-
-(* ==== Date string parsing ================================================
-
-   Two grammars, tried in order, mirroring JS engines:
-
-   - the ISO 8601 date-time string format from the spec (21.4.1.15). Parsing
-     is strict: the whole string must be consumed and malformed components
-     yield NaN, matching V8's behavior for ISO strings. Like V8, days beyond
-     the month length overflow into the next month;
-   - a legacy "toString"/"toUTCString"-style format: optional weekday (with
-     optional trailing comma), "Mon DD YYYY" or "DD Mon YYYY", optional
-     "HH:MM[:SS[.fff]]" time and optional "GMT[±hhmm]" zone. Parsing is
-     strict (full-string consumption, no silent defaults for malformed
-     offsets): current V8 also rejects trailing garbage here
-     ("Jan 1 2000 foo" is NaN in node). Known deliberate divergence: V8's
-     legacy fallback accepts a few degenerate shapes like "2000-" (year 2000,
-     local); we return NaN there, as the existing test suite requires.
-
-   Time zone semantics (ES2016+):
-   - ISO date-only forms ("2024", "2024-06", "2024-06-15") are UTC;
-   - ISO date-time forms without an offset ("2024-06-15T10:00") are LOCAL;
-   - explicit designators ("Z", "+02:00", "GMT+0200") are honored;
-   - legacy forms without a GMT designator are LOCAL. *)
-
 let ( let* ) = Option.bind
 let guard condition = if condition then Some () else None
 let is_ascii_digit c = c >= '0' && c <= '9'
 
-(* Reads exactly [len] ASCII digits at [pos]; returns the value and the
-   position after them. *)
 let parse_fixed_digits s ~pos ~len =
   if pos + len > String.length s then None
   else
@@ -360,7 +311,6 @@ let parse_fixed_digits_in_range s ~pos ~len ~min ~max =
   let* () = guard (value >= min && value <= max) in
   Some (value, pos)
 
-(* YYYY or ±YYYYYY (expanded years). "-000000" is explicitly invalid. *)
 let parse_iso_year s =
   if String.length s = 0 then None
   else
@@ -369,15 +319,11 @@ let parse_iso_year s =
     let* () = guard (not (sign < 0. && year_int = 0)) in
     Some (sign *. Float.of_int year_int, next_pos)
 
-(* Raw field combination without Date.UTC's two-digit-year mapping and without
-   clipping: parsed calendar years are absolute ("0001" is year 1). *)
 let ms_from_fields ~year ~month ~date ~hours ~minutes ~seconds ~ms =
   let d = make_day ~year ~month ~date in
   let time = make_time ~hour:hours ~min:minutes ~sec:seconds ~ms in
   make_date ~day:d ~time
 
-(* HH:mm[:ss[.fff...]] starting at [pos]. JS keeps millisecond precision:
-   fractional digits beyond the third are parsed but ignored. *)
 let parse_iso_clock s ~pos =
   let len = String.length s in
   let* hours, pos = parse_fixed_digits_in_range s ~pos ~len:2 ~min:0 ~max:24 in
@@ -399,12 +345,9 @@ let parse_iso_clock s ~pos =
         Some (int_of_string frac, stop)
     else Some (0, pos)
   in
-  (* "24:00:00.000" is a valid end-of-day timestamp, anything past it is not *)
   let* () = guard (not (hours = 24 && (minutes <> 0 || seconds <> 0 || ms <> 0))) in
   Some (hours, minutes, seconds, ms, pos)
 
-(* Z | ±hh:mm | ±hhmm — anything else is a parse error. V8 rejects a bare ±hh
-   without minutes and accepts a lowercase 'z'. *)
 let parse_tz_designator s ~pos =
   let len = String.length s in
   if pos >= len then None
@@ -433,13 +376,9 @@ let parse_iso8601 s =
       else Some (month, 1, pos)
     else Some (1, 1, pos)
   in
-  (* days beyond the month length overflow into the next month, like V8
-     ("2019-02-29" is 2019-03-01) *)
   let month = Float.of_int (month - 1) in
   let date = Float.of_int date in
-  if pos = len then
-    (* date-only form: interpreted as UTC *)
-    Some (time_clip (ms_from_fields ~year ~month ~date ~hours:0. ~minutes:0. ~seconds:0. ~ms:0.))
+  if pos = len then Some (time_clip (ms_from_fields ~year ~month ~date ~hours:0. ~minutes:0. ~seconds:0. ~ms:0.))
   else if s.[pos] <> 'T' && s.[pos] <> 't' && s.[pos] <> ' ' then None
   else
     let* hours, minutes, seconds, ms, pos = parse_iso_clock s ~pos:(pos + 1) in
@@ -447,20 +386,14 @@ let parse_iso8601 s =
       ms_from_fields ~year ~month ~date ~hours:(Float.of_int hours) ~minutes:(Float.of_int minutes)
         ~seconds:(Float.of_int seconds) ~ms:(Float.of_int ms)
     in
-    if pos = len then
-      (* date-time without offset: interpreted as local time (ES2016+) *)
-      Some (time_clip (local_to_utc raw))
+    if pos = len then Some (time_clip (local_to_utc raw))
     else
       let* offset_ms, pos = parse_tz_designator s ~pos in
       let* () = guard (pos = len) in
       Some (time_clip (raw -. offset_ms))
 
-(* ---- legacy grammar ---- *)
-
 let weekday_names = [ "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" ]
 
-(* Drops a leading weekday token, with or without a trailing comma
-   ("Sat Jan ..." from toString, "Sat, 01 Jan ..." from toUTCString). *)
 let strip_weekday parts =
   match parts with
   | first :: rest ->
@@ -479,12 +412,8 @@ let array_find_index pred arr =
 
 let parse_month_name name = array_find_index (fun m -> String.equal m name) month_names
 let parse_all_digits tok = if tok <> "" && String.for_all is_ascii_digit tok then int_of_string_opt tok else None
-
-(* V8 maps two-digit legacy years: 0-49 -> 2000s, 50-99 -> 1900s. *)
 let expand_legacy_year y = if y < 50 then y + 2000 else if y < 100 then y + 1900 else y
 
-(* "H:MM" or "H:MM:SS[.fff]" with 1-2 digit fields; fractional digits beyond
-   the third are parsed but ignored (millisecond precision), like ISO. *)
 let parse_legacy_clock tok =
   let parse_field ~max str =
     let* () = guard (String.length str >= 1 && String.length str <= 2) in
@@ -515,10 +444,6 @@ let parse_legacy_clock tok =
       Some (hours, minutes, seconds, ms)
   | _ -> None
 
-(* "GMT" | "UTC" | "UT", optionally followed by an offset: ±h/±hh (hours),
-   ±hhmm, or ±h:mm/±hh:mm. Following V8's legacy rule, a bare number smaller
-   than 24 after the sign means hours, anything else is read as hhmm.
-   Malformed offsets are parse errors (NaN), never silently treated as UTC. *)
 let parse_gmt_offset tok =
   let* rest =
     if String.starts_with ~prefix:"GMT" tok then Some (String.sub tok 3 (String.length tok - 3))
@@ -553,7 +478,6 @@ let parse_legacy s =
   let parts = strip_weekday parts in
   match parts with
   | first :: second :: year_tok :: rest ->
-      (* both "Mon DD YYYY" (toString) and "DD Mon YYYY" (toUTCString / RFC 1123) *)
       let* month, day_tok =
         match parse_month_name first with
         | Some m -> Some (m, second)
@@ -564,7 +488,6 @@ let parse_legacy s =
       let* day = parse_all_digits day_tok in
       let* year_int = parse_all_digits year_tok in
       let year = Float.of_int (expand_legacy_year year_int) in
-      (* days beyond the month length overflow, like V8 ("Feb 30" is Mar 2) *)
       let* () = guard (day >= 1 && day <= 31) in
       let* clock, tz_offset =
         match rest with
@@ -599,11 +522,6 @@ let parse s =
 
 let parseAsFloat = parse
 let fromString s = { time = parse s }
-
-(* ==== Setters ============================================================
-
-   Like JS Date.prototype setters: store the clipped time value on the
-   receiver and return it. *)
 
 let update t value =
   let value = time_clip value in
@@ -679,7 +597,6 @@ let setUTCMonth ~month ?date t =
     update t (make_date ~day:d ~time)
 
 let setUTCFullYear ~year ?month ?date t =
-  (* per spec, a NaN receiver is treated as +0 here *)
   let cur = if Float.is_nan t.time then 0. else t.time in
   let m = match month with Some m -> Float.trunc m | None -> month_from_time cur in
   let dt = match date with Some d -> Float.trunc d | None -> date_from_time cur in
@@ -753,7 +670,6 @@ let setMonth ~month ?date t =
     update t (local_to_utc (make_date ~day:d ~time))
 
 let setFullYear ~year ?month ?date t =
-  (* per spec, a NaN receiver is treated as +0 here *)
   let cur = if Float.is_nan t.time then 0. else t.time in
   let local = utc_to_local cur in
   let m = match month with Some m -> Float.trunc m | None -> month_from_time local in

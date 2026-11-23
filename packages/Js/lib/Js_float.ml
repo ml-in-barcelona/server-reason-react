@@ -5,10 +5,6 @@ let isNaN float = Stdlib.Float.is_nan float
 let isFinite float = Stdlib.Float.is_finite float
 let isInteger float = Stdlib.Float.is_finite float && Stdlib.Float.is_integer float
 
-(* Number.prototype.toExponential(undefined) (ECMA-262 21.1.3.2): uses the
-   number of digits necessary to uniquely specify the number. We take the
-   shortest round-trip representation from Number::toString and rewrite it in
-   exponential notation. *)
 let exponential_of_shortest f =
   let s = Quickjs.Number.Prototype.to_string f in
   if s = "NaN" || s = "Infinity" || s = "-Infinity" then s
@@ -25,7 +21,6 @@ let exponential_of_shortest f =
         | None -> (s, "")
       in
       let digits = int_part ^ frac_part in
-      (* Position of the first significant digit determines the exponent. *)
       let first_significant = ref 0 in
       while !first_significant < Stdlib.String.length digits && digits.[!first_significant] = '0' do
         incr first_significant
@@ -37,7 +32,6 @@ let exponential_of_shortest f =
           Stdlib.String.sub digits !first_significant (Stdlib.String.length digits - !first_significant)
         in
         let significant =
-          (* strip trailing zeros *)
           let last = ref (Stdlib.String.length significant) in
           while !last > 1 && significant.[!last - 1] = '0' do
             decr last
@@ -64,8 +58,6 @@ let toExponential ?digits f =
 
 let toFixed ?(digits = 0) f =
   if digits < 0 || digits > 100 then raise (Failure "toFixed() digits argument must be between 0 and 100")
-    (* Number.prototype.toFixed (ECMA-262 21.1.3.3): values >= 1e21 fall back
-       to Number::toString (exponential form). *)
   else if Stdlib.abs_float f >= 1e21 then Quickjs.Number.Prototype.to_string f
   else Quickjs.Number.Prototype.to_fixed digits f
 
@@ -83,9 +75,6 @@ let toString ?radix f =
       if r < 2 || r > 36 then raise (Invalid_argument "toString() radix must be between 2 and 36")
       else Quickjs.Number.Prototype.to_radix r f
 
-(* Whether [str] contains only JavaScript whitespace. Recognizes the ASCII
-   whitespace characters plus the UTF-8 encodings of U+00A0 (no-break space)
-   and U+FEFF (BOM). *)
 let is_js_whitespace_only str =
   let len = String.length str in
   let rec loop i =
@@ -99,18 +88,6 @@ let is_js_whitespace_only str =
   in
   loop 0
 
-(* JavaScript Number(string) semantics (matching Melange's Js.Float.fromString,
-   which is [Number]): the whole string, after trimming whitespace, must be a
-   numeric literal. Empty or whitespace-only strings convert to 0.; anything
-   that fails to parse is NaN. Accepts 0x/0b/0o prefixes and
-   "Infinity"/"+Infinity"/"-Infinity"; rejects trailing garbage ("3.5px" is
-   NaN, unlike parseFloat) and underscore separators ("1_0" is NaN).
-
-   quickjs itself skips leading JavaScript whitespace (full Unicode); the
-   trailing whitespace check only recognizes ASCII whitespace, U+00A0 and
-   U+FEFF. Residual divergence: other Unicode whitespace (e.g. U+2028 or
-   U+3000) in trailing position yields NaN where JavaScript returns the
-   number. *)
 let fromString str =
   match Quickjs.Global.parse_float_partial ~options:Quickjs.Global.js_number_options str with
   | Some (value, rest) when is_js_whitespace_only rest -> value

@@ -156,7 +156,6 @@ let fetch =
                  | _ => (Fetch.Response.body(httpResponse), None)
                  };
                decodeStream
-               // No ~callServer: the call that hydrated the page already registered it globally and this call reuses it.
                |> ReactServerDOMEsbuild.createFromReadableStream
                |> Js.Promise.then_((wire: RSC.t) =>
                     Js.Promise.resolve(

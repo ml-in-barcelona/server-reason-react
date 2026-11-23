@@ -779,8 +779,6 @@ module ServerEngine = struct
                         let shared = Branch.sharedPrefix from_branch target_branch in
                         if shared <= 0 || shared >= List.length target_branch then None
                         else
-                          (* A loader failure drops the failing scope and everything below it from the plan, so the
-                             client no longer owns an outlet at the full shared depth. *)
                           let depth = min shared (Plan.scopeCount plan) in
                           if depth <= 0 then None
                           else
@@ -796,9 +794,6 @@ module ServerEngine = struct
         match Path.stripTrailingSlashes request.pathname with
         | Some canonical -> (
             match trailingSlash with
-            (* A leading "//" would make the Location a protocol-relative URL to another host, and browsers read a slash
-               followed by a backslash the same way. Paths with empty segments are invalid, so such a request is not found instead of being
-               rewritten to a different path. *)
             | TrailingSlash.Redirect
               when String.starts_with ~prefix:"//" canonical || String.starts_with ~prefix:"/\\" canonical ->
                 fail (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.NoMatchingRoute })
@@ -1013,8 +1008,6 @@ module Adapter = struct
     in
     React.list (List.filter_map Fun.id [ title; description ] @ List.map entry metadata.entries)
 
-  (* The marker lets the bootstrap module detect from the DOM whether the server rendered the root markup: it sits next
-     to the routed root, so [skipRoot] drops it together with the markup it signals. *)
   let ssr_marker =
     React.createElementWithKey ~key:"router:ssr" "div"
       [ React.JSX.String ("id", "id", "ssr-query-param"); React.JSX.Style [ ("display", "display", "none") ] ]

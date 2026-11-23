@@ -1,5 +1,3 @@
-(** The React library *)
-
 type domRef
 type 'value ref = { mutable current : 'value }
 
@@ -517,7 +515,6 @@ end
     It currently different from reason-react-ppx due to a need for knowing the types since ReactDOM needs to render
     differently depending on the type. *)
 module JSX : sig
-  (** All event callbacks *)
   type event =
     | Drag of (Event.Drag.t -> unit)
     | Mouse of (Event.Mouse.t -> unit)

@@ -1,6 +1,3 @@
-// Port of benchmark/scenarios/Blog.re
-// Purpose: content-heavy page rendering with nested comments
-
 import React from "react";
 import { cx } from "./cx.js";
 

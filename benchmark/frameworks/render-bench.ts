@@ -1,8 +1,3 @@
-/**
- * Pure Render Benchmark - No HTTP
- * Comparable to streaming_bench.ml
- */
-
 if (process.env.NODE_ENV !== "production") {
   console.error(
     "[render-bench] ERROR: NODE_ENV is not 'production' (got " +
@@ -25,7 +20,7 @@ function measureTimeUs(fn: () => string): [string, number] {
   const start = performance.now();
   const result = fn();
   const end = performance.now();
-  return [result, (end - start) * 1000]; // Convert ms to µs
+  return [result, (end - start) * 1000];
 }
 
 function formatTimeUs(us: number): string {
@@ -72,7 +67,6 @@ const runtime =
 console.log(`Pure Render Benchmark (${runtime} + React, NODE_ENV=production)`);
 console.log(`Iterations per scenario: ${ITERATIONS}\n`);
 
-// Keep this list in sync with benchmark/streaming/streaming_bench.ml.
 const testScenarios = [
   "trivial",
   "shallow",

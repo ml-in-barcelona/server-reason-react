@@ -58,8 +58,8 @@ Single type (invalid OCaml, but valid in Melange)
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
-  File "main.ml", line 12, characters 3-14:
-  12 | [%%ocaml.error
+  File "main.ml", line 11, characters 3-14:
+  11 | [%%ocaml.error
           ^^^^^^^^^^^
   Error: [server-reason-react.melange_ppx] There's an external with
          [%mel.module "..."] in native, which should only happen in JavaScript.

@@ -30,16 +30,11 @@ let pattern = path =>
   | Error(_) => invalid_arg("invalid generated route pattern " ++ path)
   };
 
-/* encodeURIComponent throws on lone surrogates. URLSearchParams, which this
-   replaced, turned them into U+FFFD, so search keeps doing that. */
 let replaceLoneSurrogates: string => string = [%mel.raw
   {|(value) => value.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "�")|}
 ];
 let encodeSearchPart = value => encode(replaceLoneSurrogates(value));
 
-/* UTF-16 order differs from code point order (and from native UTF-8 byte order) when astral
-   characters meet U+E000-U+FFFF. Shifting surrogates above that range fixes the order and is
-   total for lone surrogates. */
 let codePointUnitOrder = unit =>
   if (unit >= 0xd800 && unit <= 0xdfff) {
     unit + 0x2000;

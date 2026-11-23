@@ -1,5 +1,3 @@
-(* Ported from melange/jscomp/test/bs_list_test.ml *)
-
 module N = Belt.List
 module A = Belt.Array
 
@@ -158,7 +156,6 @@ let suites =
             assert_bool true (N.setAssoc [ (1, "a"); (2, "b"); (3, "c") ] 2 "x" ( = ) = [ (1, "a"); (2, "x"); (3, "c") ]);
             assert_bool true (N.setAssoc [ (1, "a"); (3, "c") ] 2 "2" ( = ) = [ (2, "2"); (1, "a"); (3, "c") ]);
             assert_list int_string_pair [ (1, "1") ] (N.setAssoc [] 1 "1" ( = ));
-            (* skipped (melange-only): [%debugger] *)
             assert_list int_string_pair [ (1, "1") ] (N.setAssoc [ (1, "2") ] 1 "1" ( = ));
             assert_list int_string_pair [ (0, "0"); (1, "1") ] (N.setAssoc [ (0, "0"); (1, "2") ] 1 "1" ( = ));
             assert_bool true (N.getAssoc [ (1, "a"); (2, "b"); (3, "c") ] 2 ( = ) = Some "b");

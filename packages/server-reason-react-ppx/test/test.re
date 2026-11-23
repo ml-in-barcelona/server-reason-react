@@ -1,4 +1,3 @@
-/* Since we use -nopervasives to ensure ppx doesn't use the auto-opened Stdlib, we need to define some functions manually */
 let (/.) = (a, b) => Stdlib.(a /. b);
 let (-.) = (a, b) => Stdlib.(a -. b);
 let (>=) = (a, b) => Stdlib.(a >= b);
@@ -103,9 +102,6 @@ let style_attribute = () => {
 };
 
 let style_attribute_escaping = () => {
-  /* A quoted CSS value (e.g. a font-family) must be HTML-escaped so it can't
-     terminate the style="..." attribute early. This inline literal is folded
-     by the PPX static-skeleton path (extract_static_style). */
   let div =
     <div
       style={ReactDOM.Style.make(~fontFamily={|"Ahrefs", sans-serif|}, ())}
@@ -117,8 +113,6 @@ let style_attribute_escaping = () => {
 };
 
 let style_attribute_escaping_dynamic = () => {
-  /* A non-literal style is emitted as a PPX Writer hole that serializes at
-     render time; the quoted value must be escaped there too. */
   let style = ReactDOM.Style.make(~fontFamily={|"Ahrefs", sans-serif|}, ());
   let div = <div style />;
   assert_string(
@@ -432,7 +426,6 @@ let svg_2 = () => {
 };
 
 let booleanish_props_with_ppx = () => {
-  /* This is just a few examples */
   let div =
     <div
       spellCheck=false
@@ -953,13 +946,6 @@ let server_function_reference_form_data_and_args = () => {
   };
 };
 
-/* Text-separator protocol: renderToString must delimit adjacent text nodes
-   with <!-- --> so hydration can split the merged text nodes back apart
-   (react-dom parity), renderToStaticMarkup must not. These shapes go
-   through the PPX static-analysis fast path (React.Static / React.Writer),
-   which used to drop the separators (ahrefs/WEB-844: hydration error #418
-   on every element with adjacent text children). */
-
 let text_separator_static_literals = () => {
   let el = <span> {React.string("beyond")} {React.string(" ")} </span>;
   assert_string(
@@ -1016,8 +1002,6 @@ module Text_separator_msg = {
 };
 
 let text_separator_component_holes = () => {
-  /* Two adjacent component holes both rendering text: the runtime threads
-     the text state across the holes (prev_text ref). */
   let el =
     <span>
       <Text_separator_msg text="a" />
@@ -1028,17 +1012,12 @@ let text_separator_component_holes = () => {
 };
 
 let text_separator_component_then_text = () => {
-  /* Component hole ending with text followed by a text child. */
   let el = <span> <Text_separator_msg text="a" /> {React.string("b")} </span>;
   assert_string(ReactDOM.renderToString(el), {|<span>a<!-- -->b</span>|});
   assert_string(ReactDOM.renderToStaticMarkup(el), {|<span>ab</span>|});
 };
 
 module Text_separator_heading = {
-  /* The ahrefs.com LandingHero H1 shape: a component whose children mix a
-     text run and a trailing element, passed as a single dynamic hole into
-     a static-optimizable wrapper. The adjacency lives inside the hole's
-     subtree, exercising write_element_to_buffer's internal threading. */
   [@react.component]
   let make = (~children) => <span className="text"> children </span>;
 };
@@ -1061,8 +1040,6 @@ let text_separator_inside_single_hole = () => {
 };
 
 let text_separator_empty_strings = () => {
-  /* Empty text nodes participate in the text run like the tree renderer's
-     Text "": they emit nothing but still delimit. */
   let empty = "";
   let static_empty = <span> {React.string("")} {React.string("a")} </span>;
   let dynamic_empty =
@@ -1089,16 +1066,12 @@ module Text_separator_wrapped = {
 };
 
 let text_separator_component_ending_in_element = () => {
-  /* A component hole ending with an element followed by text: no separator
-     (the threaded state must come back as markup, not text). */
   let el =
     <span> <Text_separator_wrapped text="a" /> {React.string("b")} </span>;
   assert_string(ReactDOM.renderToString(el), {|<span><b>a</b>b</span>|});
 };
 
 let text_separator_float_holes = () => {
-  /* Float children stay on the variant-tree path (Dynamic_element); their
-     text runs must still thread through the holes. */
   let f = 1.5;
   let el = <span> {React.float(f)} {React.string("x")} </span>;
   assert_string(ReactDOM.renderToString(el), {|<span>1.5<!-- -->x</span>|});
@@ -1137,8 +1110,6 @@ let text_separator_leaf_holes = () => {
 };
 
 let text_separator_stream = () => {
-  /* renderToStream has renderToString semantics: Writer subtrees must emit
-     the separators there too. */
   let a = "a";
   let el = <span> {React.string(a)} {React.string("b")} </span>;
   let%lwt (stream, _abort) = ReactDOM.renderToStream(el);
@@ -1151,9 +1122,6 @@ let text_separator_stream = () => {
 };
 
 let suspense_markers_inside_optimized_subtree = () => {
-  /* Suspense boundaries inside a Writer-optimized subtree must keep their
-     <!--$--> hydration markers and match the tree renderer byte-for-byte
-     (the write fast path used to drop them). */
   let content = <div> {React.string("ok")} </div>;
   let suspense =
     <React.Suspense fallback={<span> {React.string("loading")} </span>}>
@@ -1176,8 +1144,6 @@ let suspense_markers_inside_optimized_subtree = () => {
 };
 
 let text_separator_matches_unoptimized_tree = () => {
-  /* The optimized Writer/Static output must be byte-identical to the
-     variant-tree renderer's output for the same children. */
   let a = "beyond";
   let optimized = <span> {React.string(a)} {React.string(" ")} </span>;
   let tree =
@@ -1285,20 +1251,11 @@ let styles_attribute_optional_some_with_class_and_style = () => {
   );
 };
 
-/* Regression: expected-type propagation for optional host-element props.
-   `Shadowed_none.None` shadows option's `None` (mirroring ahkit's
-   `roundness`). The Writer fast path must annotate the optional attribute
-   scrutinee with its concrete option type; otherwise the bare `None` in
-   `disabled ? None : Some(href)` resolves to `Shadowed_none.None` and this
-   module fails to type-check. This whole module not compiling *is* the
-   regression — see docs/srr-styled-ppx-jsx-type-propagation-fix-plan.md. */
 module Shadowed_none = {
   type roundness =
     | Full
     | None;
 
-  /* Build both constructors so the shadow is genuine (not a pattern-only
-     constructor) and we don't trip the unused-constructor warning. */
   let _variants = [Full, None];
 
   let link = (~href, ~disabled) =>

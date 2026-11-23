@@ -1,11 +1,3 @@
-/* The single-source registry of spec cases. Compiled both natively (rendered
-   by ReactServerDOM.render_model) and via melange (rendered by the real
-   react-server-dom-webpack in generate.mjs).
-
-   [xfail]: Some(reason) marks a KNOWN divergence between srr and React. The
-   conformance runner asserts that those cases DO mismatch, so they flip
-   loudly once fixed. generate.mjs ignores the annotation. */
-
 type case = {
   name: string,
   render: unit => React.element,

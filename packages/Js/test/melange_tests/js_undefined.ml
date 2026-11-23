@@ -1,8 +1,3 @@
-(** Ported from Melange's test suite: jscomp/test/js_undefined_test.ml (melange 6.0.1-54).
-
-    Skipped: the cases asserting [return () = Js.undefined] — in JS, [unit] compiles to [undefined] so [return ()]
-    {i is} undefined; natively [unit] is a real value and [return () = Some ()]. *)
-
 open Helpers
 open Js.Undefined
 
@@ -26,7 +21,6 @@ let tests =
         assert_int !hit 2);
     test "fromOption - None" (fun () -> ok (fromOption None = empty));
     test "fromOption - Some" (fun () -> ok (fromOption (Some 2) = return 2));
-    (* Extra: melange raises a JS Error with this message (js_undefined.ml getExn). *)
     test "getExn raises Js.Exn.Error" (fun () ->
         (match getExn empty with
         | _ -> Alcotest.fail "expected raise"

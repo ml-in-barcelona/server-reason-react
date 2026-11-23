@@ -1,6 +1,3 @@
-/* A client component with element children: "children" is a prop like any
-   other, so server-rendered elements cross the boundary inside the props
-   object of the client reference element. */
 let app = () =>
   Spec.client_component(
     ~importModule="spec/Layout.js",

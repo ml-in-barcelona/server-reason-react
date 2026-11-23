@@ -149,8 +149,6 @@ let uppercase_component_always_throwing () =
       ReactDOM.renderToStream (React.Upper_case_component ("app", app)))
 
 let suspense_with_always_throwing () =
-  (* This test is very fragile since it relies on the stack trace being the same (so line numbers and methods should match).
-     We disable backtracing to avoid having to match the backtrace *)
   let prev = Printexc.backtrace_status () in
   Printexc.record_backtrace false;
   let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
@@ -160,7 +158,6 @@ let suspense_with_always_throwing () =
     [ "<!--$!--><template data-msg=\"Failure(&quot;always throwing&quot;)\n\"></template>Loading...<!--/$-->" ]
 
 let suspense_with_always_throwing_in_prod () =
-  (* In production no error detail (message/backtrace) may leak into the HTML *)
   let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
   let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Prod (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<!--$!--><template></template>Loading...<!--/$-->" ]
@@ -544,8 +541,6 @@ let abort_shell_chunk =
   "<div><!--$?--><template id=\"B:0\"></template>Loading 1<!--/$--><!--$?--><template id=\"B:1\"></template>Loading \
    2<!--/$--></div>"
 
-(* Records exceptions raised inside Lwt.async while [fn] runs: an unguarded push into the closed stream after abort
-   would crash the process through the default hook. *)
 let with_async_exception_hook fn =
   let async_exceptions = ref [] in
   let previous_hook = !Lwt.async_exception_hook in
@@ -559,11 +554,8 @@ let abort_with_pending_boundaries () =
     with_async_exception_hook (fun () ->
         let%lwt stream, abort = ReactDOM.renderToStream ~env:`Dev (abort_app ()) in
         let%lwt first_chunk = Lwt_stream.get stream in
-        (* Abort while both boundaries are still pending *)
         abort ();
         let%lwt remaining = Lwt_stream.to_list stream in
-        (* Let the deferred components resolve after the abort: their completions must not push into the closed
-           stream nor raise *)
         let%lwt () = Lwt_unix.sleep 0.005 in
         Lwt.return (first_chunk, remaining))
   in
@@ -590,7 +582,6 @@ let abort_with_pending_boundaries_in_prod () =
   (match first_chunk with
   | Some chunk -> assert_string chunk abort_shell_chunk
   | None -> Alcotest.fail "Expected the shell chunk before abort");
-  (* In production only the digest is passed to $RX, no error detail *)
   assert_list Alcotest.string remaining
     [
       "<script>$RX=function(b,c,d,e,f){var \
@@ -603,7 +594,6 @@ let abort_is_idempotent () =
   let%lwt stream, abort = ReactDOM.renderToStream (abort_app ()) in
   let%lwt _first_chunk = Lwt_stream.get stream in
   abort ();
-  (* A second abort on a closed stream must be a no-op *)
   abort ();
   let%lwt remaining = Lwt_stream.to_list stream in
   Alcotest.(check int) "only one $RX chunk per pending boundary" 2 (List.length remaining);
@@ -617,7 +607,6 @@ let abort_after_completed_render_is_noop () =
   in
   let%lwt stream, abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   let%lwt content = Lwt_stream.to_list stream in
-  (* The render is fully flushed and the stream closed, aborting afterwards must not raise nor emit $RX *)
   abort ();
   assert_list Alcotest.string content
     [
@@ -801,13 +790,11 @@ let context_provider_with_suspended_consumer () =
     React.Async_component
       ( "async_consumer",
         fun () ->
-          (* useContext must be called synchronously, before yielding *)
           let value = React.useContext context in
           let%lwt () = Lwt.pause () in
           Lwt.return (React.createElement "span" [] [ React.string value ]) )
   in
   let app () =
-    (* Provider inside Suspense children — so it's re-rendered in the deferred path *)
     mk_suspense ~fallback:(React.string "loading")
       ~children:(mk_context context ~value:"from-provider" ~children:async_consumer ())
       ()
@@ -959,10 +946,6 @@ let dangerous_html_in_suspense () =
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
     ]
 
-(* Pauses on the first render only; subsequent renders resolve synchronously. Needed to reproduce the
-   boundary-completes-while-shell-is-parked race: the boundary's async block re-renders its children after the
-   promise resolves, and only a now-synchronous child lets the block complete (and hit [waiting = 0]) while the main
-   walk is still parked. *)
 let once_pausing_component ~name ~children () =
   let resolved = ref false in
   React.Async_component
@@ -975,8 +958,6 @@ let once_pausing_component ~name ~children () =
           Lwt.return children) )
 
 let boundary_resolves_while_shell_is_suspended () =
-  (* A Suspense boundary that completes while the shell waits for a top-level (unwrapped) async component is written
-     into the shell. The boundary hitting [waiting = 0] must not close the stream before the shell push. *)
   let app =
     React.createElement "div" []
       [

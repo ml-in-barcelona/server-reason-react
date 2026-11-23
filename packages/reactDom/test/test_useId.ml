@@ -1,6 +1,5 @@
 let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
 
-(* Helper components *)
 let div_with_id () =
   React.Upper_case_component
     ( "DivWithId",
@@ -45,9 +44,6 @@ let parent_with_id children =
         React.createElement "div" [ React.JSX.String ("id", "id", id) ] [ children ] )
 
 let mk_provider ctx ~value ~children () = React.Context.provider ctx (React.Context.makeProps ~value ~children ())
-
-(* All expected values verified against React 19.1.0 (bun arch/server/test-useid.js)
-   React 19 ID format: \xc2\xab (U+00AB «) + prefix + R + treeId + \xc2\xbb (U+00BB ») *)
 
 let single_component_with_use_id () =
   let html = ReactDOM.renderToString (div_with_id ()) in
@@ -122,8 +118,6 @@ let static_markup_use_id () =
 let identifier_prefix () =
   let html = ReactDOM.renderToString ~identifier_prefix:"myapp" (div_with_id ()) in
   assert_string html "<div id=\"\xc2\xabmyappR0\xc2\xbb\"></div>"
-
-(* ── Edge case tests (verified against React 19.1.0 output) ────────────────── *)
 
 let use_id_inside_suspense () =
   let el =

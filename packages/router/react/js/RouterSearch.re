@@ -1,4 +1,3 @@
-/* Only called on text that RouterUtf8.valid accepted. */
 let utf8Text: string => string = [%mel.raw
   {|(bytes) => {
   let text = "";
@@ -30,8 +29,6 @@ let utf8Text: string => string = [%mel.raw
 }|}
 ];
 
-/* location.search is ASCII; other input gets the UTF-8 escapes the server
-   would read, and a lone surrogate becomes a malformed escape. */
 let asciiSearch: string => string = [%mel.raw
   {|(search) =>
   /[^\x00-\x7f]/.test(search)
@@ -65,7 +62,5 @@ let toString = values => {
   String.equal(encoded, "") ? "" : "?" ++ encoded;
 };
 
-/* The address bar may hold another spelling of the same values (`+` for a
-   space, another order), so both sides go through the same encoder. */
 let unchanged = (~current, ~next) =>
   String.equal(toString(valuesFromString(current)), toString(next));

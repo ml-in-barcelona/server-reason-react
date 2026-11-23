@@ -8,7 +8,6 @@ let use_state_doesnt_fire () =
       ( "app",
         fun () ->
           let state, setState = React.useState (fun () -> "foo") in
-          (* You wouldn't have this code in prod, but just for testing purposes *)
           setState (fun _prev -> "bar");
           React.createElement "div" [] [ React.string state ] )
   in
@@ -435,7 +434,6 @@ let cache_arg_containing_closure_does_not_crash () =
       ignore (cached g);
       ignore (cached h);
       ignore (cached g);
-      (* enough distinct closures that a structural store would compare functional values and raise *)
       for i = 3 to 22 do
         ignore (cached (fun x -> x + i))
       done);
@@ -450,7 +448,6 @@ let cache_structurally_equal_records_miss () =
         calls := !calls + 1;
         record.a + String.length record.b)
   in
-  (* [Sys.opaque_identity] stops the compiler from statically sharing the two structurally-equal records *)
   let make_record () = { a = Sys.opaque_identity 1; b = "one" } in
   React.Cache.with_request_cache (fun () ->
       ignore (cached (make_record ()));
@@ -526,20 +523,16 @@ let cache_async_concurrent_isolation () =
   let p1 =
     React.Cache.with_request_cache_async (fun () ->
         assert_string (cached "a") "a-ok";
-        (* Yield to scheduler — lets p2 run and install its own cache *)
         let%lwt () = Lwt.pause () in
-        (* Must still hit p1's cache, not p2's *)
         assert_string (cached "a") "a-ok";
         Lwt.return ())
   in
   let p2 =
     React.Cache.with_request_cache_async (fun () ->
-        (* Independent cache — fresh call even though p1 already cached "a" *)
         assert_string (cached "a") "a-ok";
         Lwt.return ())
   in
   Lwt.join [ p1; p2 ];%lwt
-  (* 2 calls total: one per request, each caching "a" independently *)
   assert_int !calls 2;
   Lwt.return ()
 
@@ -554,7 +547,6 @@ let cache_async_no_cross_request_leaking () =
   in
   let p2 =
     React.Cache.with_request_cache_async (fun () ->
-        (* p2 should compute its own value, not see p1's cached result *)
         seen_in_p2 := cached "from-p2";
         Lwt.return ())
   in
@@ -572,7 +564,6 @@ let memo_renders_identically () =
     (ReactDOM.renderToStaticMarkup (memo_component ~name:"foo" ()))
 
 let memo_custom_compare_props_renders_identically () =
-  (* The compare function is ignored on the server: there's no re-render *)
   let memoized = React.memoCustomCompareProps memo_component (fun _prev _next -> true) in
   assert_string
     (ReactDOM.renderToStaticMarkup (memoized ~name:"foo" ()))

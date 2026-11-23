@@ -1,5 +1,3 @@
-/* Two DIFFERENT server functions as props: each gets its own outlined row,
-   numbered in serialization order. */
 let app = () => {
   let save = Spec.server_function(~id="spec/actions#save");
   let remove = Spec.server_function(~id="spec/actions#remove");

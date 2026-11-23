@@ -9,7 +9,6 @@ let getUndefined arr i = if i >= 0 && i < length arr then Js.Undefined.return (g
 let get arr i = if i >= 0 && i < length arr then Some (getUnsafe arr i) else None
 
 let getExn arr i =
-  (* Melange uses assert here (Assert_failure) *)
   assert (i >= 0 && i < length arr);
   getUnsafe arr i
 
@@ -20,7 +19,6 @@ let set arr i v =
   else false
 
 let setExn arr i v =
-  (* Melange uses assert here (Assert_failure) *)
   assert (i >= 0 && i < length arr);
   setUnsafe arr i v
 
@@ -402,7 +400,4 @@ let joinWithU a sep toString =
 let joinWith a sep toString = joinWithU a sep (fun x -> toString x)
 let initU n f = Stdlib.Array.init n f
 let init n f = initU n (fun i -> f i)
-
-(* OCaml arrays are fixed-length: JS Array.prototype.push cannot be
-   implemented. Raising is safer than the previous silent no-op sentinel. *)
 let push _arr _i = Js.notImplemented "Belt.Array" "push"

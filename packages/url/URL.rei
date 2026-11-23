@@ -44,7 +44,7 @@ module SearchParams: {
   let append: (t, string, string) => t;
   let delete: (t, string) => t;
   let entries: t => array((string, string));
-  let forEach: (t, (string, string) => unit) => unit; /* Unsure about unit as returnable */
+  let forEach: (t, (string, string) => unit) => unit;
   let get: (t, string) => option(string);
   let getAll: (t, string) => array(string);
   let has: (t, string) => bool;
@@ -63,7 +63,6 @@ type t;
 
 let makeExn: string => t;
 let make: string => option(t);
-/* https://developer.mozilla.org/en-US/docs/Web/API/URL/canParse_static */
 let makeWith: (string, ~base: string) => t;
 
 let hash: t => option(string);
@@ -90,6 +89,3 @@ let searchParams: t => SearchParams.t;
 let username: t => option(string);
 let setUsername: (t, string) => t;
 let toString: t => string;
-/*
- TODO: When we have a way to represent JSON universally, implement this
- let toJson: t => string; */

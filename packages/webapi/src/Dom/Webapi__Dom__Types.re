@@ -1,4 +1,3 @@
-/*** enums, bitmaks and constants ***/
 type compareHow =
   | StartToStart
   | StartToEnd
@@ -6,7 +5,7 @@ type compareHow =
   | EndToStart;
 
 let encodeCompareHow =
-  fun /* internal */
+  fun
   | StartToStart => 0
   | StartToEnd => 1
   | EndToEnd => 2
@@ -19,7 +18,7 @@ type compareResult =
   | Unknown;
 
 let decodeCompareResult =
-  fun /* internal */
+  fun
   | (-1) => Before
   | 0 => Equal
   | 1 => After
@@ -31,7 +30,7 @@ type compatMode =
   | Unknown;
 
 let decodeCompatMode =
-  fun /* internal */
+  fun
   | "BackCompat" => BackCompat
   | "CSS1Compat" => CSS1Compat
   | _ => Unknown;
@@ -43,14 +42,14 @@ type contentEditable =
   | Unknown;
 
 let encodeContentEditable =
-  fun /* internal */
+  fun
   | True => "true"
   | False => "false"
   | Inherit => "inherit"
   | Unknown => "";
 
 let decodeContentEditable =
-  fun /* internal */
+  fun
   | "true" => True
   | "false" => False
   | "inherit" => Inherit
@@ -62,7 +61,7 @@ type deltaMode =
   | Page;
 
 let decodeDeltaMode =
-  fun /* internal */
+  fun
   | 0 => Pixel
   | 1 => Line
   | 2 => Page
@@ -74,13 +73,13 @@ type designMode =
   | Unknown;
 
 let encodeDesignMode =
-  fun /* internal */
+  fun
   | On => "on"
   | Off => "off"
   | Unknown => "";
 
 let decodeDesignMode =
-  fun /* internal */
+  fun
   | "on" => On
   | "off" => Off
   | _ => Unknown;
@@ -91,18 +90,17 @@ type dir =
   | Unknown;
 
 let encodeDir =
-  fun /* internal */
+  fun
   | Ltr => "ltr"
   | Rtl => "rtl"
   | Unknown => "";
 
 let decodeDir =
-  fun /* internal */
+  fun
   | "ltr" => Ltr
   | "rtl" => Rtl
   | _ => Unknown;
 
-/** @since 0.17.1 */
 module EventPhase = {
   type t =
     | None
@@ -112,7 +110,7 @@ module EventPhase = {
     | Unknown;
 
   let decode =
-    fun /* internal */
+    fun
     | 1 => CapturingPhase
     | 2 => AtTarget
     | 3 => BubblingPhase
@@ -142,7 +140,7 @@ type insertPosition =
   | AfterEnd;
 
 let encodeInsertPosition =
-  fun /* internal */
+  fun
   | BeforeBegin => "beforebegin"
   | AfterBegin => "afterbegin"
   | BeforeEnd => "beforeend"
@@ -165,7 +163,7 @@ type modifierKey =
   | SymbolLock;
 
 let encodeModifierKey =
-  fun /* internal */
+  fun
   | Alt => "Alt"
   | AltGraph => "AltGraph"
   | CapsLock => "CapsLock"
@@ -183,21 +181,21 @@ let encodeModifierKey =
 
 type nodeType =
   | Element
-  | Attribute /* deprecated */
+  | Attribute
   | Text
-  | CDATASection /* deprecated */
-  | EntityReference /* deprecated */
-  | Entity /* deprecated */
+  | CDATASection
+  | EntityReference
+  | Entity
   | ProcessingInstruction
   | Comment
   | Document
   | DocumentType
   | DocumentFragment
-  | Notation /* deprecated */
+  | Notation
   | Unknown;
 
 let decodeNodeType =
-  fun /* internal */
+  fun
   | 1 => Element
   | 2 => Attribute
   | 3 => Text
@@ -219,7 +217,7 @@ type pointerType =
   | Unknown;
 
 let decodePointerType =
-  fun /* itnernal */
+  fun
   | "mouse" => Mouse
   | "pen" => Pen
   | "touch|" => Touch
@@ -232,7 +230,7 @@ type readyState =
   | Unknown;
 
 let decodeReadyState =
-  fun /* internal */
+  fun
   | "loading" => Loading
   | "interactive" => Interactive
   | "complete" => Complete
@@ -243,7 +241,7 @@ type shadowRootMode =
   | Closed;
 
 let decodeShadowRootMode =
-  fun /* internal */
+  fun
   | "open" => Open
   | "closed" => Closed
   | _ => raise(Invalid_argument("Unknown shadowRootMode"));
@@ -256,7 +254,7 @@ type visibilityState =
   | Unknown;
 
 let decodeVisibilityState =
-  fun /* internal */
+  fun
   | "visible" => Visible
   | "hidden" => Hidden
   | "prerender" => Prerender

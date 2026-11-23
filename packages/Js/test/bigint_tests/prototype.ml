@@ -1,18 +1,7 @@
-(** TC39 Test262: BigInt.prototype tests
-
-    Based on: https://github.com/tc39/test262/tree/main/test/built-ins/BigInt/prototype
-
-    Tests for BigInt.prototype.toString, BigInt.prototype.valueOf, BigInt.prototype.toLocaleString *)
-
 open Helpers
 module BigInt = Js.Bigint
 
-(* ===================================================================
-   BigInt.prototype.toString tests
-   =================================================================== *)
-
 let to_string_default_radix () =
-  (* Default radix is 10 *)
   assert_string_equal (BigInt.toString (BigInt.of_int 0)) "0";
   assert_string_equal (BigInt.toString (BigInt.of_int 1)) "1";
   assert_string_equal (BigInt.toString (BigInt.of_int 10)) "10";
@@ -21,7 +10,6 @@ let to_string_default_radix () =
   assert_string_equal (BigInt.toString (BigInt.of_int (-10))) "-10"
 
 let to_string_radix_2 () =
-  (* Binary representation *)
   assert_string_equal (BigInt.to_string ~radix:2 (BigInt.of_int 0)) "0";
   assert_string_equal (BigInt.to_string ~radix:2 (BigInt.of_int 1)) "1";
   assert_string_equal (BigInt.to_string ~radix:2 (BigInt.of_int 2)) "10";
@@ -32,7 +20,6 @@ let to_string_radix_2 () =
   assert_string_equal (BigInt.to_string ~radix:2 (BigInt.of_int (-2))) "-10"
 
 let to_string_radix_8 () =
-  (* Octal representation *)
   assert_string_equal (BigInt.to_string ~radix:8 (BigInt.of_int 0)) "0";
   assert_string_equal (BigInt.to_string ~radix:8 (BigInt.of_int 7)) "7";
   assert_string_equal (BigInt.to_string ~radix:8 (BigInt.of_int 8)) "10";
@@ -41,14 +28,12 @@ let to_string_radix_8 () =
   assert_string_equal (BigInt.to_string ~radix:8 (BigInt.of_int (-8))) "-10"
 
 let to_string_radix_10 () =
-  (* Decimal representation (explicit) *)
   assert_string_equal (BigInt.to_string ~radix:10 (BigInt.of_int 0)) "0";
   assert_string_equal (BigInt.to_string ~radix:10 (BigInt.of_int 123)) "123";
   assert_string_equal (BigInt.to_string ~radix:10 (BigInt.of_int (-456))) "-456";
   assert_string_equal (BigInt.to_string ~radix:10 (BigInt.of_string "9999999999")) "9999999999"
 
 let to_string_radix_16 () =
-  (* Hexadecimal representation *)
   assert_string_equal (BigInt.to_string ~radix:16 (BigInt.of_int 0)) "0";
   assert_string_equal (BigInt.to_string ~radix:16 (BigInt.of_int 10)) "a";
   assert_string_equal (BigInt.to_string ~radix:16 (BigInt.of_int 15)) "f";
@@ -59,7 +44,6 @@ let to_string_radix_16 () =
   assert_string_equal (BigInt.to_string ~radix:16 (BigInt.of_int (-255))) "-ff"
 
 let to_string_radix_36 () =
-  (* Base 36 (max radix) *)
   assert_string_equal (BigInt.to_string ~radix:36 (BigInt.of_int 0)) "0";
   assert_string_equal (BigInt.to_string ~radix:36 (BigInt.of_int 35)) "z";
   assert_string_equal (BigInt.to_string ~radix:36 (BigInt.of_int 36)) "10";
@@ -67,7 +51,6 @@ let to_string_radix_36 () =
   assert_string_equal (BigInt.to_string ~radix:36 (BigInt.of_int 1296)) "100"
 
 let to_string_various_radixes () =
-  (* Test various radixes *)
   let n = BigInt.of_int 100 in
   assert_string_equal (BigInt.to_string ~radix:2 n) "1100100";
   assert_string_equal (BigInt.to_string ~radix:3 n) "10201";
@@ -80,11 +63,9 @@ let to_string_various_radixes () =
   assert_string_equal (BigInt.to_string ~radix:10 n) "100"
 
 let to_string_large_numbers () =
-  (* Test large numbers *)
   let large = BigInt.of_string "123456789012345678901234567890" in
   let s10 = BigInt.to_string ~radix:10 large in
   assert_string_equal s10 "123456789012345678901234567890";
-  (* Verify hex conversion works *)
   let s16 = BigInt.to_string ~radix:16 large in
   assert_true "hex string non-empty" (String.length s16 > 0)
 
@@ -94,15 +75,10 @@ let to_string_negative_large () =
   assert_string_equal s "-123456789012345678901234567890"
 
 let to_string_zero () =
-  (* Zero in various radixes *)
   let zero = BigInt.of_int 0 in
   for r = 2 to 36 do
     assert_string_equal (BigInt.to_string ~radix:r zero) "0"
   done
-
-(* ===================================================================
-   BigInt conversion tests (to_float)
-   =================================================================== *)
 
 let to_float_small () =
   assert_float_exact (BigInt.to_float (BigInt.of_int 0)) 0.;
@@ -112,31 +88,20 @@ let to_float_small () =
   assert_float_exact (BigInt.to_float (BigInt.of_int (-100))) (-100.)
 
 let to_float_large () =
-  (* Large numbers may lose precision *)
   let large = BigInt.of_string "9007199254740992" in
-  (* 2^53 *)
   let f = BigInt.to_float large in
   assert_true "large to_float is finite" (Float.is_finite f)
 
 let to_float_very_large () =
-  (* Very large numbers become infinity *)
   let huge = BigInt.of_string "1" in
   let shifted = BigInt.shift_left huge 10000 in
   let f = BigInt.to_float shifted in
   assert_true "huge number becomes infinity" (f = Float.infinity || f = Float.neg_infinity)
 
-(* ===================================================================
-   Constructor edge cases
-   =================================================================== *)
-
 let of_string_edge_cases () =
-  (* Empty string *)
   assert_bigint_equal (BigInt.of_string "") (BigInt.of_int 0);
-  (* Whitespace *)
   assert_bigint_equal (BigInt.of_string "  123  ") (BigInt.of_int 123);
-  (* Leading zeros *)
   assert_bigint_equal (BigInt.of_string "00123") (BigInt.of_int 123);
-  (* Negative with leading zeros *)
   assert_bigint_equal (BigInt.of_string "-00123") (BigInt.of_int (-123))
 
 let of_string_hex () =
@@ -151,10 +116,6 @@ let of_string_binary () =
 let of_string_octal () =
   assert_bigint_equal (BigInt.of_string "0o10") (BigInt.of_int 8);
   assert_bigint_equal (BigInt.of_string "0o777") (BigInt.of_int 511)
-
-(* ===================================================================
-   Comparison with different representations
-   =================================================================== *)
 
 let compare_equal () =
   let a = BigInt.of_int 42 in
@@ -187,13 +148,8 @@ let compare_large () =
   assert_true "large a < large b" (BigInt.lt a b);
   assert_true "large b > large a" (BigInt.gt b a)
 
-(* ===================================================================
-   Test list
-   =================================================================== *)
-
 let tests =
   [
-    (* toString *)
     test "toString default radix" to_string_default_radix;
     test "toString radix 2 (binary)" to_string_radix_2;
     test "toString radix 8 (octal)" to_string_radix_8;
@@ -204,16 +160,13 @@ let tests =
     test "toString large numbers" to_string_large_numbers;
     test "toString negative large" to_string_negative_large;
     test "toString zero all radixes" to_string_zero;
-    (* to_float *)
     test "to_float small" to_float_small;
     test "to_float large" to_float_large;
     test "to_float very large" to_float_very_large;
-    (* of_string edge cases *)
     test "of_string edge cases" of_string_edge_cases;
     test "of_string hex" of_string_hex;
     test "of_string binary" of_string_binary;
     test "of_string octal" of_string_octal;
-    (* comparison *)
     test "compare equal" compare_equal;
     test "compare less" compare_less;
     test "compare greater" compare_greater;

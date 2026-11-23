@@ -1,5 +1,3 @@
-(* Benchmark runner with JSON output for github-action-benchmark (customBiggerIsBetter) *)
-
 let json_mode = ref false
 let iterations = 10000
 

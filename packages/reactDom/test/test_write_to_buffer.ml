@@ -24,12 +24,10 @@ let text_content () =
   assert_string (write p) "<p>hello</p>"
 
 let no_text_separators () =
-  (* write_to_buffer should NOT add <!-- --> between consecutive text nodes *)
   let div = React.createElement "div" [] [ React.string "hello"; React.string "world" ] in
   assert_string (write div) "<div>helloworld</div>"
 
 let no_doctype () =
-  (* write_to_buffer should NOT inject <!DOCTYPE html> *)
   let html = React.createElement "html" [] [] in
   assert_string (write html) "<html></html>"
 
@@ -54,8 +52,6 @@ let style_attribute () =
   assert_string (write div) {|<div style="border:none;color:red"></div>|}
 
 let style_attribute_escaping () =
-  (* A quote inside a style value must be escaped, otherwise it terminates the
-     style="..." attribute early and the browser drops every property after it. *)
   let style = ReactDOMStyle.unsafeAddProp (ReactDOMStyle.make ()) "--font" {|"Ahrefs", sans-serif|} in
   let div = React.createElement "div" [ React.JSX.style style ] [] in
   assert_string (write div) {|<div style="--font:&quot;Ahrefs&quot;, sans-serif"></div>|}
@@ -89,8 +85,6 @@ let upper_case_component () =
   assert_string (write app) "<div>component</div>"
 
 let suspense_success () =
-  (* Suspense renders with the same boundary markers as the tree renderer:
-     write_to_buffer output must be byte-identical to renderToStaticMarkup. *)
   let el =
     React.Suspense
       {
@@ -103,8 +97,6 @@ let suspense_success () =
   assert_string (write el) (ReactDOM.renderToStaticMarkup el)
 
 let suspense_fallback_on_error () =
-  (* On error, the fallback renders inside the error boundary markers,
-     byte-identical to the tree renderer. *)
   let el =
     React.Suspense
       {

@@ -1,6 +1,3 @@
-/* Fragments returned from a Children.map callback take React's mapped keys:
-   ".$<key>" for a keyed child, ".<index>" for an unkeyed one, and a
-   "<result key>/" prefix when the fragment carries its own key. */
 module Wrap = {
   [@react.component]
   let make = (~children) =>

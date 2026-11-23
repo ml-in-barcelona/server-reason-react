@@ -1,5 +1,3 @@
-/* The SAME promise value passed as two different props. React dedups on the
-   thenable identity (writtenObjects): one $@ row, referenced twice. */
 let app = () => {
   let shared =
     Spec.delay(~ms=5)

@@ -3,11 +3,6 @@
    https://github.com/aantron/promise/blob/master/LICENSE.md. */
 
 module type MutableList = {
-  /* Mutable doubly-linked lists, like in a typical imperative language. These are
-     used for callback lists, because reason-promise needs fast append and fast
-     deletion of any node in the list, when the reference to the target node is
-     already be held by the deleting code. */
-
   type list('a);
   type node('a);
 
@@ -17,9 +12,6 @@ module type MutableList = {
   let iter: ('a => unit, list('a)) => unit;
   let remove: (list('a), node('a)) => unit;
 
-  /* Concatenates list1 and list2. Afterwards, the reference list1 has a correct
-     internal list structure, and the reference list2 should not be used
-     anymore. */
   let concatenate: (list('a), list('a)) => unit;
 };
 
@@ -79,24 +71,13 @@ module MutableList: MutableList = {
 
   let concatenate = (list1, list2) =>
     switch (list2^) {
-    | `Empty =>
-      /* If the second list is empty, we can just return the first list, because
-         it already has the correct final structure, and there is nothing to
-         do. */
-      ()
+    | `Empty => ()
 
     | `NonEmpty(list2Ends) =>
       switch (list1^) {
-      | `Empty =>
-        /* If the second list is non-empty, but the first list is empty, we need
-           to change the end-of-list references in the first list to point to the
-           structure of the second list. This is because the caller depends on the
-           first list having the correct structure after the call. */
-        list1 := list2^
+      | `Empty => list1 := list2^
 
       | `NonEmpty(list1Ends) =>
-        /* Otherwise, we have to splice the ending nodes of the two lists. */
-
         list1Ends.last.next = Some(list2Ends.first);
         list2Ends.first.previous = Some(list1Ends.last);
         list1Ends.last = list2Ends.last;
@@ -120,8 +101,6 @@ module MutableList: MutableList = {
     };
 
   let remove = (list, node) => {
-    /* This function is difficult enough to implement and use that it is
-       probably time to switch representations for callback lists soon. */
     switch (list^) {
     | `Empty => ()
 
@@ -176,22 +155,6 @@ type never;
 type promise('a) = rejectable('a, never);
 type t('a) = promise('a);
 
-/* The `Merged constructor and this function, underlying, are used to avoid a
-   memory leak that arises when flatMap is called on promises in a loop. See the
-   description in the associated test "promise loop memory leak". The rest of
-   this comment is based on that description.
-
-   The solution to the memory leak is to merge nested promises created on the
-   second and subsequent iterations of loops into the outer promise created on
-   the first iteration. This is performed by the internal helper
-   makePromiseBehaveAs, below.
-
-   When promises are merged, the callback lists of the nested promise are
-   merged into the callback lists of the outer promise, and afterwards the
-   nested promise object becomes just a proxy that refers to the outer promise.
-   As a result, most internal operations on promises have to first call
-   underlying, in order to find the true merged (outer) promise on which
-   operations should be performed, rather than working directly on proxies. */
 let rec underlying = p =>
   switch (p^) {
   | `Fulfilled(_)
@@ -253,10 +216,7 @@ let resolveInternal = (p, value) =>
   | `Pending(callbacks) =>
     ReadyCallbacks.deferMultiple(callbacks.onResolve, value);
     p := `Fulfilled(value);
-  | `Merged(_) =>
-    /* This case is impossible, because we called underyling on the promise,
-       above. */
-    assert(false)
+  | `Merged(_) => assert(false)
   };
 
 let rejectInternal = (p, error) =>
@@ -266,10 +226,7 @@ let rejectInternal = (p, error) =>
   | `Pending(callbacks) =>
     ReadyCallbacks.deferMultiple(callbacks.onReject, error);
     p := `Rejected(error);
-  | `Merged(_) =>
-    /* This case is impossible, because we called underyling on the promise,
-       above. */
-    assert(false)
+  | `Merged(_) => assert(false)
   };
 
 let resolved = value => ref(`Fulfilled(value));
@@ -287,26 +244,17 @@ let makePromiseBehaveAs = (outerPromise, nestedPromise) => {
     let underlyingOuter = underlying(outerPromise);
     switch (underlyingOuter^) {
     | `Fulfilled(_)
-    | `Rejected(_) =>
-      /* These two cases are impossible, because if makePromiseBehaveAs is
-         called, flatMap or catch_ called the callback that was passed to it, so
-         the outer promise is still pending. It is this function which resolves
-         the outer promise. */
-      assert(false)
+    | `Rejected(_) => assert(false)
 
     | `Pending(outerCallbacks) =>
       MutableList.concatenate(outerCallbacks.onResolve, callbacks.onResolve);
       MutableList.concatenate(outerCallbacks.onReject, callbacks.onReject);
       underlyingNested := `Merged(underlyingOuter);
 
-    | `Merged(_) =>
-      /* This case is impossible, because we called underlying above. */
-      assert(false)
+    | `Merged(_) => assert(false)
     };
 
-  | `Merged(_) =>
-    /* Impossible because we are working on the underlying promise. */
-    assert(false)
+  | `Merged(_) => assert(false)
   };
 };
 
@@ -328,9 +276,7 @@ let flatMap = (promise, callback) => {
     MutableList.append(callbacks.onReject, rejectInternal(outerPromise))
     |> ignore;
 
-  | `Merged(_) =>
-    /* This case is impossible, cause of the call to underlying above. */
-    assert(false)
+  | `Merged(_) => assert(false)
   };
 
   outerPromise;
@@ -364,16 +310,12 @@ let catch = (promise, callback) => {
     |> ignore;
     MutableList.append(callbacks.onReject, onReject) |> ignore;
 
-  | `Merged(_) =>
-    /* This case is impossible, because of the call to underlying above. */
-    assert(false)
+  | `Merged(_) => assert(false)
   };
 
   outerPromise;
 };
 
-/* Promise.all and Promise.race have to remove callbacks in some circumstances;
-   see test/native/test_ffi.re for details. */
 module CallbackRemovers = {
   let empty = () => ref([]);
 
@@ -427,14 +369,7 @@ let all = promises => {
          let cell = ref(None);
 
          switch ((underlying(promise))^) {
-         | `Fulfilled(value) =>
-           /* It's very important to defer here instead of resolving the final
-              promise immediately. Doing the latter will cause the callback removal
-              mechanism to forget about removing callbacks which will be added later
-              in the iteration over the promise list. It is possible to resolve
-              immediately but then the code has to be changed, probably to perform
-              two passes over the promise list. */
-           ReadyCallbacks.defer(onResolve(cell), value)
+         | `Fulfilled(value) => ReadyCallbacks.defer(onResolve(cell), value)
          | `Rejected(error) =>
            ReadyCallbacks.defer(rejectFinalPromise, error)
 
@@ -457,9 +392,7 @@ let all = promises => {
              callbackNode,
            );
 
-         | `Merged(_) =>
-           /* Impossible because of the call to underlying above. */
-           assert(false)
+         | `Merged(_) => assert(false)
          };
 
          cell;
@@ -470,8 +403,6 @@ let all = promises => {
 
 let allArray = promises => map(all(Array.to_list(promises)), Array.of_list);
 
-/* Not a "legitimate" implementation. To get a legitimate one, the tricky parts
-   of "all," above, should be factoed out. */
 let all2 = (p1, p2) => {
   let promises = [Obj.magic(p1), Obj.magic(p2)];
   map(
@@ -601,9 +532,7 @@ let race = promises => {
            callbackNode,
          );
 
-       | `Merged(_) =>
-         /* Impossible, because of the call to underlying above. */
-         assert(false)
+       | `Merged(_) => assert(false)
        }
      );
 
@@ -760,42 +689,32 @@ let allOkArray = promises => {
     let (callbackRemover, removeCallbacks) = pending();
 
     promises
-    |> Array.iteri((index, promise)
-         /* Because callbacks are added to the user's promises through calls to the
-            JS runtime's Promise.race, this function leaks memory if and only if
-            the JS runtime's Promise functions leak memory. In particular, if one
-            of the promises resolves with Error(_), the callbacks on the other
-            promises should be removed. If not done, and long-pending promises are
-            repeatedly passed to allOk in a loop, they will gradually accumulate
-            huge lists of stale callbacks. This is also true of Promise.race, so we
-            rely on the quality of the runtime's Promise.race implementation to
-            proactively remove these callbacks. */
-         =>
-           race([promise, callbackRemover])
-           |> (
-             wrapped =>
-               get(wrapped, result =>
-                 switch (result) {
-                 | Result.Ok(v) =>
-                   resultValues[index] = Some(v);
-                   incr(resultCount);
-                   if (resultCount^ >= promiseCount) {
-                     resultValues
-                     |> Array.map(v =>
-                          switch (v) {
-                          | Some(v) => v
-                          | None => assert(false)
-                          }
-                        )
-                     |> (values => resolve(Result.Ok(values)));
-                   };
-                 | Result.Error(e) =>
-                   resolve(Result.Error(e));
-                   removeCallbacks(Result.Error(e));
-                 }
-               )
-           )
-         );
+    |> Array.iteri((index, promise) =>
+         race([promise, callbackRemover])
+         |> (
+           wrapped =>
+             get(wrapped, result =>
+               switch (result) {
+               | Result.Ok(v) =>
+                 resultValues[index] = Some(v);
+                 incr(resultCount);
+                 if (resultCount^ >= promiseCount) {
+                   resultValues
+                   |> Array.map(v =>
+                        switch (v) {
+                        | Some(v) => v
+                        | None => assert(false)
+                        }
+                      )
+                   |> (values => resolve(Result.Ok(values)));
+                 };
+               | Result.Error(e) =>
+                 resolve(Result.Error(e));
+                 removeCallbacks(Result.Error(e));
+               }
+             )
+         )
+       );
 
     resultPromise;
   };

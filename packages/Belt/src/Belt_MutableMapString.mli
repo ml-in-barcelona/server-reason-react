@@ -35,10 +35,7 @@ val cmp : 'a t -> 'a t -> ('a -> 'a -> int) -> int
 (** [cmp m1 m2 cmp] First compare by size, if size is the same, compare by key, value pair *)
 
 val eqU : 'a t -> 'a t -> (('a -> 'a -> bool)[@u]) -> bool
-
 val eq : 'a t -> 'a t -> ('a -> 'a -> bool) -> bool
-(** [eq m1 m2 cmp] *)
-
 val forEachU : 'a t -> ((key -> 'a -> unit)[@u]) -> unit
 
 val forEach : 'a t -> (key -> 'a -> unit) -> unit
@@ -89,10 +86,6 @@ val getExn : 'a t -> key -> 'a
 
 val checkInvariantInternal : _ t -> unit
 (** {b raise} when invariant is not held *)
-
-(****************************************************************************)
-
-(*TODO: add functional [merge, partition, keep, split]*)
 
 val remove : 'a t -> key -> unit
 (** [remove m x] do the in-place modification *)

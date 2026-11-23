@@ -2,7 +2,7 @@ module Impl = (T: {
                  type t;
                }) => {
   [@mel.get] external detail: T.t => int = "detail";
-  [@mel.get] external view: T.t => Dom.window = "view"; /* technically returns a `WindowProxy` */
+  [@mel.get] external view: T.t => Dom.window = "view";
 };
 
 type t = Dom.uiEvent;

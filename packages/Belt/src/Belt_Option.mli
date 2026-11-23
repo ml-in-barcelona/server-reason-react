@@ -27,7 +27,6 @@
     Utilities for option data type *)
 
 val keepU : 'a option -> (('a -> bool)[@u]) -> 'a option
-(** Uncurried version of [keep] *)
 
 val keep : 'a option -> ('a -> bool) -> 'a option
 (** [keep optionValue p]
@@ -45,7 +44,6 @@ val keep : 'a option -> ('a -> bool) -> 'a option
     ]} *)
 
 val forEachU : 'a option -> (('a -> unit)[@u]) -> unit
-(** Uncurried version of [forEach] *)
 
 val forEach : 'a option -> ('a -> unit) -> unit
 (** [forEach optionValue f]
@@ -60,19 +58,12 @@ val forEach : 'a option -> ('a -> unit) -> unit
     ]} *)
 
 val getExn : 'a option -> 'a
-(** [getExn optionalValue] Returns [value] if [optionalValue] is [Some value], otherwise raises [getExn]
-
-    {[
-      getExn (Some 3) = 3;;
-      getExn None (* Raises getExn error *)
-    ]} *)
 
 val getUnsafe : 'a option -> 'a
 (** [getUnsafe x] returns the value inside [x], assuming [x] is [Some value]. Calling it on [None] is undefined behavior
     in Melange; on native it raises [Invalid_argument]. *)
 
 val mapWithDefaultU : 'a option -> 'b -> (('a -> 'b)[@u]) -> 'b
-(** Uncurried version of [mapWithDefault] *)
 
 val mapWithDefault : 'a option -> 'b -> ('a -> 'b) -> 'b
 (** [mapWithDefault optionValue default f]
@@ -85,7 +76,6 @@ val mapWithDefault : 'a option -> 'b -> ('a -> 'b) -> 'b
     ]} *)
 
 val mapU : 'a option -> (('a -> 'b)[@u]) -> 'b option
-(** Uncurried version of [map] *)
 
 val map : 'a option -> ('a -> 'b) -> 'b option
 (** [map optionValue f]
@@ -98,7 +88,6 @@ val map : 'a option -> ('a -> 'b) -> 'b option
     ]} *)
 
 val flatMapU : 'a option -> (('a -> 'b option)[@u]) -> 'b option
-(** Uncurried version of [flatMap] *)
 
 val flatMap : 'a option -> ('a -> 'b option) -> 'b option
 (** [flatMap optionValue f]
@@ -136,13 +125,8 @@ val orElse : 'a option -> 'a option -> 'a option
     ]} *)
 
 val isSome : 'a option -> bool
-(** Returns [true] if the argument is [Some value], [false] otherwise *)
-
 val isNone : 'a option -> bool
-(** Returns [true] if the argument is [None], [false] otherwise *)
-
 val eqU : 'a option -> 'b option -> (('a -> 'b -> bool)[@u]) -> bool
-(** Uncurried version of [eq] *)
 
 val eq : 'a option -> 'b option -> ('a -> 'b -> bool) -> bool
 (** [eq optValue1 optvalue2 predicate]
@@ -166,7 +150,6 @@ val eq : 'a option -> 'b option -> ('a -> 'b -> bool) -> bool
     ]} *)
 
 val cmpU : 'a option -> 'b option -> (('a -> 'b -> int)[@u]) -> int
-(** Uncurried version of [cmp] *)
 
 val cmp : 'a option -> 'b option -> ('a -> 'b -> int) -> int
 (** [cmp optValue1 optvalue2 comparisonFcn]

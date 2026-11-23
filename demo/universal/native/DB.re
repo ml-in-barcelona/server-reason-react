@@ -168,7 +168,6 @@ let readNotesCached =
     switch%lwt (readFile("./notes.json")) {
     | Ok(json) => Lwt_result.lift(parseNotes(json))
     | Error(_) => Lwt.return_error("Error reading notes file")
-    /* When something fails, treat it as an empty note db */
     | exception _error => Lwt.return_ok([])
     };
   });

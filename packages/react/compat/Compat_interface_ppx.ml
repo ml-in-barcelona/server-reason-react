@@ -9,7 +9,6 @@ let erase_component_equations item =
       let declarations =
         List.map
           (fun declaration ->
-            (* Native components accept the renderer's optional key argument. *)
             if has_name [ "component"; "componentLike" ] declaration.ptype_name then
               { declaration with ptype_manifest = None }
             else declaration)

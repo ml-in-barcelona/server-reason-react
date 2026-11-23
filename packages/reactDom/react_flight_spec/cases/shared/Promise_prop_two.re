@@ -1,6 +1,3 @@
-/* Two promise props resolving in a controlled order: row ids are assigned in
-   prop-serialization order ($@2 then $@3), and the resolution rows stream in
-   resolution order (2 first, then 3). */
 let app = () =>
   Spec.client_component(
     ~importModule="spec/Await.js",

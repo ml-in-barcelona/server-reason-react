@@ -3,7 +3,6 @@ open TimeEvent;
 
 let event = make("my-event");
 
-/* Event */
 let _ = bubbles(event);
 let _ = cancelable(event);
 let _ = composed(event);
@@ -19,6 +18,5 @@ preventDefault(event);
 stopImmediatePropagation(event);
 stopPropagation(event);
 
-/* TimeEvent */
 let _ = detail(event);
 let _ = view(event);

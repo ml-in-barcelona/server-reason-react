@@ -1,13 +1,3 @@
-/* Melange implementation of the universal Spec seam.
-
-   The same interface is implemented natively in ../native/Spec.re; case files
-   under cases/shared compile against both. Keep the two signatures in sync.
-
-   This module is bindings-level glue: the props of a client component are a
-   heterogeneous JS object, so we build a Js.Dict of an abstract [value] type
-   with zero-cost casts. This is the only place in the spec where such glue is
-   allowed. */
-
 type value;
 
 external value_of_string: string => value = "%identity";
@@ -53,7 +43,6 @@ let promise_element =
   value_of_element_promise(value),
 );
 
-/* Value-level constructors, for nesting inside array/object props. */
 type model = value;
 
 let model_string = value_of_string;
@@ -81,12 +70,6 @@ let object_ = (name: string, fields: list((string, model))): prop => (
   model_object(fields),
 );
 
-/* A server function reference: registerServerReference(fn, id, null) tags
-   [fn] with $$id = "<id>" (no export-name suffix when the third argument is
-   null), which Flight serializes as an outlined {"id","bound"} row plus a
-   "$F<hexid>" reference — no server manifest involved. Created once and
-   reused so that cases can exercise React's per-reference dedup
-   (writtenServerReferences). */
 type server_function;
 
 [@mel.module "react-server-dom-webpack/server"]
@@ -107,8 +90,6 @@ let server_function_prop = (name: string, fn: server_function): prop => (
 let model_server_function = (fn: server_function): model =>
   value_of_server_function(fn);
 
-/* An opaque component type: either a registered client reference or an async
-   function component. Only ever handed back to React.createElement. */
 type component;
 
 [@mel.module "react-server-dom-webpack/server"]
@@ -120,9 +101,6 @@ external createElementWithProps:
   (component, Js.Dict.t(value)) => React.element =
   "createElement";
 
-/* registerClientReference(impl, id, name) tags [impl] with
-   $$id = "<id>#<name>", which the echoing client manifest in generate.mjs
-   resolves back to {id, chunks: [], name}. */
 let client_component =
     (~importModule: string, ~importName: string, ~props: list(prop)=[], ())
     : React.element => {
@@ -135,12 +113,6 @@ external createHostElementWithProps:
   (string, Js.Dict.t(value)) => React.element =
   "createElement";
 
-/* A <form> host element with a server function as its [action] prop. Typed
-   JSX cannot express this single-source (the native ppx takes a polymorphic
-   variant, reason-react a string), so both harnesses build the element
-   directly. [children] goes first in the props object: srr's model
-   serializer prepends the children prop, and JSX (both runtimes) also puts
-   children before the other props. */
 let form_with_action =
     (~action: server_function, children: React.element): React.element =>
   createHostElementWithProps(
@@ -157,8 +129,6 @@ let with_name: (string, unit => Js.Promise.t(React.element)) => component = [%me
 |}
 ];
 
-/* A promise-returning function component: Flight treats the returned thenable
-   exactly like an async function component. */
 let async_component =
     (~name: string, fn: unit => Js.Promise.t(React.element)): React.element =>
   createElementWithProps(with_name(name, fn), Js.Dict.empty());
@@ -170,11 +140,6 @@ let delay_ms: int => Js.Promise.t(unit) = [%mel.raw
 ];
 
 let delay = (~ms: int): Js.Promise.t(unit) => delay_ms(ms);
-
-/* Resource hints: under the react-server condition, react-dom exposes the
-   flight-side preload/preconnect/prefetchDNS/preinit that emit H rows when a
-   request is active. Options objects are built as Js.Dict so `as` (a Reason
-   keyword) stays a plain property name. */
 
 [@mel.module "react-dom"]
 external react_dom_preload: (string, Js.Dict.t(string)) => unit = "preload";

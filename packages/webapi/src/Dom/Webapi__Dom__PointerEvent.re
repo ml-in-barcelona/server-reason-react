@@ -21,8 +21,7 @@ external makeWithOptions: (string, Js.t({..})) => t = "PointerEvent";
 [@mel.get] external pressure: t => float = "pressure";
 [@mel.get] external tiltX: t => int = "tiltX";
 [@mel.get] external tiltY: t => int = "tiltY";
-[@mel.get]
-external pointerType: t => string /* pointerType enum */ = "pointerType";
+[@mel.get] external pointerType: t => string = "pointerType";
 let pointerType: t => Webapi__Dom__Types.pointerType = self =>
   Webapi__Dom__Types.decodePointerType(pointerType(self));
 [@mel.get] external isPrimary: t => bool = "isPrimary";

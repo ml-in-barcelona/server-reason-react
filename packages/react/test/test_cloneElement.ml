@@ -47,7 +47,6 @@ let clone_attributes () =
 
 let clone_order_attributes () =
   let element = React.createElement "div" [] [] in
-  (* spread semantics: new attributes are appended in their original order *)
   let expected =
     React.createElement "div" [ React.JSX.Bool ("lola", "lola", true); React.JSX.String ("val", "val", "31") ] []
   in
@@ -99,7 +98,6 @@ let clone_static_with_new_attributes () =
   let original = React.createElement "div" [ React.JSX.String ("id", "id", "root") ] [] in
   let static_element = React.Static { prerendered = {|<div id="root"></div>|}; original } in
   let cloned = React.cloneElement static_element [ React.JSX.String ("class", "className", "container") ] in
-  (* spread semantics: base attributes first, new attributes appended *)
   let expected =
     React.createElement "div"
       [ React.JSX.String ("id", "id", "root"); React.JSX.String ("class", "className", "container") ]
@@ -128,7 +126,6 @@ let clone_static_preserves_children () =
   let original = React.createElement "div" [ React.JSX.String ("id", "id", "parent") ] children in
   let static_element = React.Static { prerendered = {|<div id="parent"><span></span>hello</div>|}; original } in
   let cloned = React.cloneElement static_element [ React.JSX.String ("class", "className", "wrapper") ] in
-  (* spread semantics: base attributes first, new attributes appended *)
   let expected =
     React.createElement "div"
       [ React.JSX.String ("id", "id", "parent"); React.JSX.String ("class", "className", "wrapper") ]

@@ -1,6 +1,3 @@
-/* The SAME promise passed to two DIFFERENT client components: React's
-   writtenObjects map is request-scoped, so the dedup ("$@<id>" referenced
-   from both prop objects, one resolution row) crosses component boundaries. */
 let app = () => {
   let shared =
     Spec.delay(~ms=5)

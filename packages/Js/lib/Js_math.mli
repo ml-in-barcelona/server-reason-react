@@ -1,5 +1,3 @@
-(** JavaScript Math API *)
-
 val _E : float
 val _LN2 : float
 val _LN10 : float

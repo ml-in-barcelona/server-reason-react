@@ -1,7 +1,3 @@
-/* Suspense inside Suspense, both pending with ordered delays: the outer
-   boundary resolves first (its content contains the inner boundary, still
-   pending as $L), then the inner content streams. The suspense symbol row is
-   emitted once and deduplicated across nesting levels. */
 let app = () =>
   <React.Suspense fallback={<span> {React.string("outer waiting")} </span>}>
     {Spec.async_component(~name="Outer", () =>

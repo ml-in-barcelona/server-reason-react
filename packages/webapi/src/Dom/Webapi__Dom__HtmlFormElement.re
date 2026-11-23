@@ -1,14 +1,8 @@
-/*
- * Spec: https://html.spec.whatwg.org/multipage/forms.html#the-form-element
- * MDN: https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement
- */
-
 module Impl = (T: {
                  type t;
                }) => {
   type t_htmlFormElement = T.t;
 
-  /* TODO: elements: HTMLFormControlsCollection */
   [@mel.get] external length: t_htmlFormElement => int = "length";
   [@mel.get] external name: t_htmlFormElement => string = "name";
   [@mel.set] external setName: (t_htmlFormElement, string) => unit = "name";
@@ -48,9 +42,7 @@ module Impl = (T: {
   [@mel.send.pipe: t_htmlFormElement]
   external reportValidity: bool = "reportValidity";
 
-  /** @since 0.18.0 */
-  [@mel.new]
-  external data: T.t => Fetch.FormData.t = "FormData";
+  [@mel.new] external data: T.t => Fetch.FormData.t = "FormData";
 };
 
 type t = Dom.htmlFormElement;

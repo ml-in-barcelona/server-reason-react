@@ -1,6 +1,3 @@
-/* A component returned from a Children.map callback passes its key path
-   down: through an unkeyed fragment to a single child, and as the key of a
-   fragment that wraps a multi-child fragment or a collection. */
 module Single = {
   [@react.component]
   let make = () => <React.Fragment> <div /> </React.Fragment>;

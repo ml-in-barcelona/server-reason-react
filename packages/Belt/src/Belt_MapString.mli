@@ -1,7 +1,5 @@
 type key = string
-
 type 'value t
-(** The type of maps from type [key] to type ['value]. *)
 
 val empty : 'v t
 val isEmpty : 'v t -> bool

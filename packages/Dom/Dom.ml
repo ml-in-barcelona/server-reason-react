@@ -1,21 +1,9 @@
 type _baseClass
-type animation (* Web Animations API *)
-
-(* TODO: Should we bother with this indirection?
-   (* core *)
-   type domString = string
-   type domTimestamp = float
-*)
-
-(* css *)
+type animation
 type cssStyleDeclaration
 type cssStyleSheet
-
-(* events (early) *)
 type 'a eventTarget_like
 type eventTarget = _baseClass eventTarget_like
-
-(* nodes *)
 type 'a _node
 type 'a node_like = 'a _node eventTarget_like
 type node = _baseClass node_like
@@ -60,12 +48,8 @@ type _shadowRoot
 type shadowRoot = _shadowRoot node_like
 type _text
 type text = _text characterData_like
-
-(* geometry *)
 type domRect
-
-(* html *)
-type dataTransfer (* Drag and Drop API *)
+type dataTransfer
 type domStringMap
 type history
 type _htmlDocument
@@ -205,8 +189,6 @@ type location
 type window
 type _xmlDocument
 type xmlDocument = _xmlDocument document_like
-
-(* events *)
 type 'a event_like
 type event = _baseClass event_like
 type 'a _uiEvent
@@ -265,30 +247,15 @@ type _webGlContextEvent
 type webGlContextEvent = _webGlContextEvent event_like
 type _wheelEvent
 type wheelEvent = _wheelEvent uiEvent_like
-
-(* ranges *)
 type range
-
-(* selection (TODO: move out of dom?) *)
 type selection
-
-(* sets *)
 type domTokenList
 type domSettableTokenList
-
-(* traversal *)
-type nodeFilter = {
-  acceptNode : element -> int; (* return type should be NodeFilter.action, but that would create a cycle *)
-}
-
+type nodeFilter = { acceptNode : element -> int }
 type nodeIterator
 type treeWalker
-
-(* SVG *)
 type svgRect
 type svgPoint
-
-(* special *)
 type eventPointerId
 
 module Storage = Dom_storage

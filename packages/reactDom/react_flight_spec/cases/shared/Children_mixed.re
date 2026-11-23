@@ -1,5 +1,3 @@
-/* Mixed children: text, an element, React.null and a nested array all in one
-   children list. Nulls stay as JSON null slots; the nested array nests. */
 let app = () =>
   <div>
     {React.string("text child")}

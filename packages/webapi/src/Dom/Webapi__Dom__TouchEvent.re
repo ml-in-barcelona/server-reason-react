@@ -1,4 +1,4 @@
-type touchList; /* TODO, Touch Events */
+type touchList;
 
 module Impl = (T: {
                  type t;

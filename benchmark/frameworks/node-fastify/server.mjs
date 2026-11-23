@@ -1,7 +1,3 @@
-/**
- * Node.js + Fastify + React SSR Benchmark Server
- */
-
 import Fastify from "fastify";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
@@ -13,7 +9,6 @@ const fastify = Fastify({
 
 const PORT = process.env.PORT || 3002;
 
-// Scenario selection via query param
 fastify.get("/", async (request, reply) => {
   const scenarioName = request.query.scenario || "table100";
   const scenario = scenarios.scenarios[scenarioName];
@@ -30,12 +25,10 @@ fastify.get("/", async (request, reply) => {
   return `<!DOCTYPE html><html><head><title>Benchmark</title></head><body><div id="root">${html}</div></body></html>`;
 });
 
-// Health check
 fastify.get("/health", async () => {
   return { status: "ok", framework: "node-fastify", pid: process.pid };
 });
 
-// List available scenarios
 fastify.get("/scenarios", async () => {
   return Object.entries(scenarios.scenarios).map(([key, val]) => ({
     key,

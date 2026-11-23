@@ -69,17 +69,7 @@ module Int = Belt_HashSetInt
 module String = Belt_HashSetString
 (** Specalized when key type is [string], more efficient than the generic type *)
 
-(* TODO: add a poly module
-   module Poly = Belt_HashSetPoly
-   challenge:
-   - generic equal handles JS data structure
-   - eq/hash consistent
-*)
-
 type ('a, 'id) t
-
-(** The type of hash tables from type ['a] to type ['b]. *)
-
 type ('a, 'id) id = ('a, 'id) Belt_Id.hashable
 
 val make : hintSize:int -> id:('a, 'id) id -> ('a, 'id) t

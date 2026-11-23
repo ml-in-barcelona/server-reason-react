@@ -185,8 +185,6 @@ let input_and_bootstrap_scripts () =
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script>"
 
 let bootstrap_script_content_cannot_break_out_of_script () =
-  (* "</script>"/"<script>" inside bootstrapScriptContent must not terminate the inline <script> tag early: the 's'
-     is unicode-escaped, mirroring react-dom's escapeEntireInlineScriptContent *)
   let app = React.createElement "input" [] [] in
   assert_html app ~bootstrapScriptContent:{|console.log("</script><script>alert(1)</script>")|}
     ~shell:
@@ -242,7 +240,6 @@ let async_scripts_gets_deduplicated () =
           ];
       ]
   in
-  (* Model faithfully represents the virtual DOM tree: regular DOM elements are not deduplicated in the model. Only client component references (I chunks) are deduplicated, matching React.js behavior. *)
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><script async \
@@ -262,7 +259,6 @@ let async_scripts_gets_deduplicated_2 () =
           ];
       ]
   in
-  (* sync scripts aren't hoisted to the head *)
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><script async src=\"https://cdn.com/duplicated.js\"></script></head><body><script \
@@ -281,7 +277,6 @@ let link_with_rel_and_precedence () =
           ];
       ]
   in
-  (* Here the precedence "high" remains in the head because it's the first one, there's no update with the 2nd link *)
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"high\" \
@@ -302,7 +297,6 @@ let links_gets_pushed_to_the_head () =
           ];
       ]
   in
-  (* Model faithfully represents the virtual DOM tree: regular DOM elements are not deduplicated in the model. Only client component references (I chunks) are deduplicated, matching React.js behavior. Links that aren't hoisted to the head are not deduplicated. Here favicon is duplicated. *)
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"low\" \
@@ -311,9 +305,6 @@ let links_gets_pushed_to_the_head () =
        data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,null,1],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,null,1],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,null,1],[\"$\",\"link\",null,{\"href\":\"http://www.example.com/xmlrpc.php\",\"rel\":\"pingback\"},null,null,1]]},null,null,1]},null,null,0]\n\
        '>window.srr_stream.push()</script></html>"
 
-(* React 19.1 writes the preamble unconditionally for non-document renders: hoistables stream
-   before the root HTML, without a <head> wrapper, in priority-bucket order (stylesheets →
-   async scripts → title/meta in discovery order). Verified against react-dom 19.1.0. *)
 let fragment_root_hoists_resources () =
   let app =
     div []
@@ -345,7 +336,6 @@ let fragment_root_dedupes_stylesheets () =
         React.createElement "span" [] [ React.string "hi" ];
       ]
   in
-  (* Same href: first occurrence wins, matching the html-root dedup behavior *)
   assert_html app
     ~shell:
       "<link href=\"/a.css\" rel=\"stylesheet\" precedence=\"high\" /><div><span>hi</span></div><script \
@@ -353,9 +343,6 @@ let fragment_root_dedupes_stylesheets () =
        '>window.srr_stream.push()</script>"
 
 let static_subtree_hoistables_not_duplicated () =
-  (* The PPX Static/Writer fast path prerenders static subtrees to raw HTML. Hoistables inside it
-     are pushed to the head during the model walk; the prerendered bytes must not render them a
-     second time at their original position. *)
   let original =
     div []
       [
@@ -399,12 +386,7 @@ let no_async_scripts_to_remain () =
 
 let self_closing_with_dangerously () =
   let app =
-    div []
-      [
-        input [];
-        (* When dangerouslySetInnerHtml is used, children gets ignored *)
-        React.createElement "p" [ React.JSX.DangerouslyInnerHtml "unsafe!" ] [ React.string "xxx" ];
-      ]
+    div [] [ input []; React.createElement "p" [ React.JSX.DangerouslyInnerHtml "unsafe!" ] [ React.string "xxx" ] ]
   in
   assert_html
     ~shell:
@@ -462,15 +444,11 @@ let upper_case_component_with_resources () =
        '>window.srr_stream.push()</script></html>"
 
 let hoisted_elements_order_issue () =
-  (* This test demonstrates the ordering issue with hoisted elements.
-     When multiple elements are hoisted (title, meta, link, scripts),
-     their order in the final HTML may not match the order they were defined *)
   let app =
     html
       [
         body
           [
-            (* These elements will be hoisted to head but their order might not be preserved *)
             React.createElement "title" [] [ React.string "First Title" ];
             React.createElement "meta"
               [
@@ -480,14 +458,12 @@ let hoisted_elements_order_issue () =
               [];
             link ~rel:"stylesheet" ~href:"/first.css" ();
             React.createElement "title" [] [ React.string "Second Title" ];
-            (* Will override first *)
             React.createElement "meta"
               [ React.JSX.String ("name", "name", "keywords"); React.JSX.String ("content", "content", "react, ssr") ]
               [];
             link ~rel:"stylesheet" ~href:"/second.css" ();
             script ~async:true ~src:"/first.js" ();
             link ~rel:"stylesheet" ~precedence:"high" ~href:"/third.css" ();
-            (* This is a resource *)
             script ~async:true ~src:"/second.js" ();
             React.createElement "meta"
               [ React.JSX.String ("name", "name", "author"); React.JSX.String ("content", "content", "Developer") ]
