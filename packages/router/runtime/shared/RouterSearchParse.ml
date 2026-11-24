@@ -44,7 +44,7 @@ let decode ~text ~slice search start stop first =
       Bytes.blit_string search start decoded 0 (first - start);
       decodeInto search stop decoded first (first - start);
       let decoded = Bytes.unsafe_to_string decoded in
-      if RouterUtf8.valid decoded then Ok (text decoded) else Error (MalformedEscape (slice search start stop))
+      if RouterPattern.validUtf8 decoded then Ok (text decoded) else Error (MalformedEscape (slice search start stop))
 
 type index = Small | Large of (string, string list ref) Hashtbl.t
 

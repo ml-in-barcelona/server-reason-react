@@ -20,7 +20,6 @@
   RouterSearchParse
   RouterTransaction
   RouterTypes
-  RouterUtf8
   RouterViewTransition)
  (libraries
   melange-webapi
@@ -71,6 +70,3 @@
 
 (copy_files
  (files ../../runtime/shared/RouterSearchParse.ml))
-
-(copy_files
- (files ../../runtime/RouterUtf8.ml))

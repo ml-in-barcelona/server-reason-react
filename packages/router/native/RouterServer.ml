@@ -8,12 +8,7 @@ module Path = struct
 
   type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
 
-  let valid_segment value =
-    RouterUtf8.valid value
-    && String.for_all (fun character -> Char.code character >= 0x20 && Char.code character <> 0x7f) value
-
-  let decoded_segment raw decoded =
-    if decoded = "." || decoded = ".." || not (valid_segment decoded) then Error (InvalidPath raw) else Ok decoded
+  let decoded_segment raw decoded = if RouterPattern.validSegment decoded then Ok decoded else Error (InvalidPath raw)
 
   let decode_segment pathname ~has_escapes ~start ~stop =
     let first =
@@ -112,7 +107,7 @@ module Route = struct
   }
 
   let make ~id ~path =
-    match (RouterUtf8.valid path, RouterPattern.parse path) with
+    match (RouterPattern.validUtf8 path, RouterPattern.parse path) with
     | false, _ -> invalid_arg ("invalid route path " ^ path)
     | true, Ok pattern ->
         let segments = RouterPattern.segments pattern in
@@ -250,7 +245,10 @@ module Match = struct
     let rec loop (node : Registry.node) captured = function
       | _ when node.max_specificity <= best_specificity () -> ()
       | [] -> (
-          match node.route with Some route -> best := Some (route.Route.specificity, route, captured) | None -> ())
+          match node.route with
+          | Some route when route.Route.specificity > best_specificity () ->
+              best := Some (route.Route.specificity, route, captured)
+          | Some _ | None -> ())
       | value :: segments -> (
           (let static = Hashtbl.find_opt node.static_children value in
            let parameter = node.parameter_child in

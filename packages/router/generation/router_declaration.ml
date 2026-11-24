@@ -143,9 +143,10 @@ let parser_of_type ~loc name =
       | _ -> error ~loc "custom search parameter types must end in .t")
 
 let type_name_of_expression expression = longident_of_expression expression |> longident_parts |> String.concat "."
+let max_optional_segments = 5
 
 let pattern_of_path ~loc path =
-  match (RouterUtf8.valid path, RouterPattern.parseTemplate path) with
+  match (RouterPattern.validUtf8 path, RouterPattern.parseTemplate path) with
   | false, _ | true, Error _ -> error ~loc "invalid route path %s" path
   | true, Ok pattern -> pattern
 
@@ -350,7 +351,7 @@ let bool_argument label arguments =
 
 let rec node_of_expression ~address expression =
   let callee, arguments = arguments expression in
-  if is_identifier [ "Router"; "route" ] callee then
+  if is_identifier [ "Router"; "route" ] callee then (
     let () =
       validate_arguments ~loc:expression.pexp_loc
         ~allowed:([ "page"; "path"; "search"; "prefetch" ] @ attachment_labels)
@@ -371,7 +372,13 @@ let rec node_of_expression ~address expression =
       | Some path -> string_of_expression path
       | None -> error ~loc:expression.pexp_loc "route requires ~path"
     in
-    Route { name; page; scope = scope ~id:("route:" ^ name) ~path arguments expression; loc = expression.pexp_loc }
+    let optional = List.length (RouterPattern.optional (pattern_of_path ~loc:expression.pexp_loc path)) in
+    if optional > max_optional_segments then
+      error ~loc:expression.pexp_loc
+        "route path %s has %d optional segments, and a route can have at most %d because each one doubles the patterns \
+         it matches. Declare one route per shape, or move the optional values to ~search"
+        path optional max_optional_segments;
+    Route { name; page; scope = scope ~id:("route:" ^ name) ~path arguments expression; loc = expression.pexp_loc })
   else if is_identifier [ "Router"; "group" ] callee then
     let () =
       match argument (Labelled "search") arguments with
@@ -615,7 +622,7 @@ let declaration_of_expression expression =
       match argument (Labelled "basePath") arguments with
       | Some base_path -> (
           let base_path = string_of_expression base_path in
-          match (RouterUtf8.valid base_path, RouterPattern.parse base_path) with
+          match (RouterPattern.validUtf8 base_path, RouterPattern.parse base_path) with
           | true, Ok pattern when (not (String.equal base_path "")) && RouterPattern.parameters pattern = [] ->
               base_path
           | false, _ | true, Ok _ | true, Error _ ->

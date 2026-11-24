@@ -54,6 +54,14 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   id:"HelpTopic"~path:"/help/:lang<string>/topics/:topic<int>"~activeRoutes:[("Help",["lang"]);("HelpTopic",["lang";"topic"])]
   id:"HelpTopic@/help/topics/:topic<int>"~path:"/help/topics/:topic<int>"~activeRoutes:[("Help",["lang"]);("HelpTopic",["lang";"topic"])]
 
+A route can have five optional segments, since each one doubles the patterns it matches.
+
+  $ server-reason-react.router-gen --mode registry --source optional-five.ml < optional-five.ml > /dev/null
+  $ server-reason-react.router-gen --mode registry --source optional-limit.ml < optional-limit.ml
+  File "optional-limit.ml", lines 4-5, characters 4-104:
+  Error: router: route path /:a?<int>/a1/b1/:b?<int>/a2/b2/:c?<int>/a3/b3/:d?<int>/a4/b4/:e?<int>/a5/b5/:f?<int>/a6/b6 has 6 optional segments, and a route can have at most 5 because each one doubles the patterns it matches. Declare one route per shape, or move the optional values to ~search
+  [2]
+
   $ server-reason-react.router-gen --mode registry --source optional-duplicate.ml < optional-duplicate.ml
   File "optional-duplicate.ml", line 3, characters 2-57:
   Error: router: duplicate route path /x (from /:a?<string>/x)

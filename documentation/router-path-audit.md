@@ -106,7 +106,7 @@ values through `encodeURIComponent`.
 
 References:
 
-- `packages/router/runtime/RouterUtf8.ml`
+- `RouterPattern.validUtf8` in `packages/router/runtime/shared/RouterPattern.re`
 - `parameters_of_path` in `packages/router/generation/router_declaration.ml`
 - `RouterServer.Path.decodePathname` in `packages/router/native/RouterServer.ml`
 
@@ -188,8 +188,9 @@ parameters continue to use `encodeURIComponent`.
 
 The final implementation gives each policy one owner:
 
-- `RouterUtf8.valid` is the native UTF-8 validator used by generation and the
-  server.
+- `RouterPattern.validUtf8` is the UTF-8 validator, and
+  `RouterPattern.validSegment` decides which decoded segments the server,
+  `matchesPath` and native hrefs accept.
 - `RouterPattern.encodeStaticSegment` owns static percent encoding for native,
   Melange, generation, and base-path validation.
 - `RouterPattern.relationship` owns duplicate, ambiguity, and prefix
@@ -209,3 +210,17 @@ The final implementation gives each policy one owner:
 
 Findings 1 through 4 now have regression tests. New syntax work can use the
 coverage plan in `router-path-coverage.md`.
+
+## Property tests (2026-11-24)
+
+`packages/router/native/test/properties` compares the parser, the registry,
+`matchesPath` and href rendering with a reference model of the documented
+syntax. `ROUTER_PROPERTY_COUNT` and `ROUTER_PROPERTY_SEED` widen a run. It
+found three defects, now fixed with regression tests:
+
+- `Match.find` let a route that ends where the trie walk stops replace a
+  better match from another branch, when a more specific route sat deeper on
+  the same trie path.
+- `matchesPath` accepted segments the server rejects: invalid UTF-8, `%2F`,
+  control characters and dot segments.
+- The parser accepted the parameter name `_`, which generated invalid OCaml.

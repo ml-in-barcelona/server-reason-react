@@ -202,6 +202,10 @@ concrete patterns of one route can match the same pathname, as in
 overlaps another route: [/:a?<string>/x] next to [/x] is a duplicate, and
 [/docs/:rest?<string...>] next to a [/docs] route is a duplicate.
 
+A route can have at most five optional segments. Each one doubles the number
+of concrete patterns, so the generator rejects a sixth. Declare one route for
+each shape you need, or pass the optional values through [~search].
+
 [~basePath] uses the static path syntax and cannot contain parameters. The
 registry rejects duplicate paths and patterns that can match the same pathname
 with equal specificity. This includes crossing catch-all patterns such as
@@ -215,6 +219,15 @@ For example, with [/docs/:rest?<string...>], [/docs/:topic<string>], and
 [/docs/api/:name<string>]: [/docs] matches the catch-all with an empty list,
 [/docs/intro] matches [/docs/:topic<string>], [/docs/api/list] matches
 [/docs/api/:name<string>], and [/docs/a/b] matches the catch-all.
+
+Precedence applies to hrefs too. A parameter value that equals a static
+segment of another route produces that route's pathname. With [/notes/new] and
+[/notes/:id<string>], [Router.Note.href(~id="new", ())] gives [/notes/new],
+which opens the [/notes/new] route, not the note. The router does not use a
+parameter's type to choose a route, so an [int] parameter is not safe from it
+either: [/items/:id<int>] next to [/items/7] sends [~id=7] to [/items/7]. Keep
+the values of a parameter apart from the static segments of its sibling
+routes, for example with a prefix ([/notes/new] and [/notes/n/:id<string>]).
 
 {3 Trailing slashes}
 
