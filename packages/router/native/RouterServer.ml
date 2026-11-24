@@ -983,7 +983,7 @@ module Server = struct
     |> List.rev |> Array.of_list
 
   let makeWithContext ~basePath ~registry ?(trailingSlash = TrailingSlash.Redirect) ~fallback ~applicationStatus
-      ?(protocolVersion = 2) ?(interceptLinks = true) ?(viewTransitions = false) ?pageCacheMaxAge () =
+      ?(protocolVersion = 1) ?(interceptLinks = true) ?(viewTransitions = false) ?pageCacheMaxAge () =
     if not (Path.validBasePath basePath) then invalid_arg ("invalid router base path " ^ basePath)
     else
       {

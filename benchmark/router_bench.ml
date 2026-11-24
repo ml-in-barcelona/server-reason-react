@@ -114,7 +114,7 @@ let engine_outcome registry request =
          ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
          ~applicationStatus:(fun () -> RouterRuntime.Status.InternalServerError)
          ~diagnosticId:(fun _ -> "diagnostic")
-         ~protocolVersion:2 request)
+         ~protocolVersion:1 request)
   with
   | Lwt.Return outcome -> outcome
   | Lwt.Fail _ | Lwt.Sleep -> failwith "engine benchmark did not resolve synchronously"
@@ -210,7 +210,7 @@ let () =
   let patch_navigation =
     {
       RouterServer.ServerEngine.from = Some "/teams/7?tab=a";
-      registry = Some ("2." ^ RouterServer.EndpointRegistry.fingerprint pages);
+      registry = Some ("1." ^ RouterServer.EndpointRegistry.fingerprint pages);
       base_revision = Some "base";
     }
   in

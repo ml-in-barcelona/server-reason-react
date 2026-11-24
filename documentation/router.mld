@@ -561,7 +561,7 @@ so the client loads the target as a document. A header value other than
 [Push] or [Replace] navigation then keeps the current page and sets the status
 to [Failed]. A [Pop] navigation hard-navigates to the target, unless a newer
 navigation has replaced it, in which case the [Pop] is canceled. The protocol
-has no [failed] response kind. The protocol version is 2.
+has no [failed] response kind. The protocol version is 1.
 
 A [redirect] response continues on the client when its location has the
 page's origin and is under the base path. The redirect target takes the place

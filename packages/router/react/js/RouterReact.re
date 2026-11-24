@@ -276,7 +276,7 @@ module Provider = {
   let make =
       (
         ~initial: Navigation.committed,
-        ~protocolVersion=2,
+        ~protocolVersion=1,
         ~registryFingerprint,
         ~basePath,
         ~pageCacheCapacity=30,

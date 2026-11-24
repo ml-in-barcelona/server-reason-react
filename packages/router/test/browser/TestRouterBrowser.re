@@ -13,7 +13,7 @@ expect(
 );
 
 module Cache = RouterNavigationCache;
-let scope = Cache.scope(~protocolVersion=2, ~registryFingerprint="f1");
+let scope = Cache.scope(~protocolVersion=1, ~registryFingerprint="f1");
 let full = name =>
   Cache.[
     {
@@ -75,7 +75,7 @@ expect(
 expect(
   "an entry was shared across registry fingerprints",
   read(
-    ~scope=Cache.scope(~protocolVersion=2, ~registryFingerprint="f2"),
+    ~scope=Cache.scope(~protocolVersion=1, ~registryFingerprint="f2"),
     "/one",
   )
   == None,
