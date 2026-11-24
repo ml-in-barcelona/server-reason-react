@@ -168,6 +168,45 @@ let repeated_attribute_keeps_last_value () =
   in
   assert_string (ReactDOM.renderToString div) {|<div id="b" data-url="y" title="t"></div>|}
 
+let suspense_between_text_nodes_has_no_separators () =
+  let ok =
+    React.createElement "div" []
+      [
+        React.string "a";
+        React.Suspense { key = None; children = React.string "b"; fallback = Some (React.string "F") };
+        React.string "c";
+      ]
+  in
+  assert_string (ReactDOM.renderToString ok) "<div>a<!--$-->b<!--/$-->c</div>";
+  let err =
+    React.createElement "div" []
+      [
+        React.string "a";
+        React.Suspense
+          {
+            key = None;
+            children = React.Upper_case_component ("Throws", fun () -> raise (Failure "boom"));
+            fallback = Some (React.string "F");
+          };
+        React.string "c";
+      ]
+  in
+  assert_string (ReactDOM.renderToString err) "<div>a<!--$!-->F<!--/$-->c</div>";
+  let inner_siblings =
+    React.createElement "div" []
+      [
+        React.string "a";
+        React.Suspense
+          {
+            key = None;
+            children = React.list [ React.string "b1"; React.string "b2" ];
+            fallback = Some (React.string "F");
+          };
+        React.string "c";
+      ]
+  in
+  assert_string (ReactDOM.renderToString inner_siblings) "<div>a<!--$-->b1<!-- -->b2<!--/$-->c</div>"
+
 let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
@@ -181,6 +220,7 @@ let tests =
     test "suspense children render exactly once" suspense_children_render_once;
     test "suspense renders fallback on error" suspense_fallback_on_error;
     test "suspense renders fallback on user invalid argument" suspense_fallback_on_invalid_argument;
+    test "suspense between text nodes has no separators" suspense_between_text_nodes_has_no_separators;
     test "async_component_inside_suspense_raises" async_component_inside_suspense_raises;
     test "client_component_inside_suspense_raises" client_component_inside_suspense_raises;
     test "context default survives provider child throw" context_default_survives_provider_child_throw;

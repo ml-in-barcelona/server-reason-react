@@ -104,9 +104,11 @@ let is_unsupported_sync_message message =
   String.equal message async_component_sync_error
   || String.starts_with ~prefix:client_component_sync_error_prefix message
 
-(* Set while renderToStream runs a writer's emit, so a Suspense boundary inside it lets a suspended child escape and
-   the writer falls back to its original element, which can stream the boundary instead of client-rendering it. *)
+(* Set while renderToStream runs a writer's emit, so any Suspense boundary inside it bails out to the writer's
+   original element and is handled by the streaming renderer instead of the sync walker. *)
 let streaming_writer = ref false
+
+exception Streaming_writer_fallback
 
 let render_tree buf ~separators ~doctype ~prev_text element : bool =
   let doctype_pending = ref doctype in
@@ -139,23 +141,23 @@ let render_tree buf ~separators ~doctype ~prev_text element : bool =
         write_text_node buf text_node;
         doctype_pending := false;
         true
+    | Suspense _ when !streaming_writer -> raise Streaming_writer_fallback
     | Suspense { key = _; children; fallback } -> (
         let suspense_inner_buf = Buffer.create 128 in
-        match render suspense_inner_buf prev_text children with
-        | ends_text ->
+        match render suspense_inner_buf false children with
+        | _ ->
             Buffer.add_string buf "<!--$-->";
             Buffer.add_buffer buf suspense_inner_buf;
             Buffer.add_string buf "<!--/$-->";
-            ends_text
+            false
         | exception (Invalid_argument message as unsupported) when is_unsupported_sync_message message ->
             raise unsupported
-        | exception (React.Suspend _ as suspend) when !streaming_writer -> raise suspend
         | exception ((Stack_overflow | Out_of_memory | Assert_failure _) as fatal) -> raise fatal
         | exception _e ->
             Buffer.add_string buf "<!--$!-->";
-            let ends_text = render buf prev_text (Option.value fallback ~default:React.null) in
+            let (_ : bool) = render buf false (Option.value fallback ~default:React.null) in
             Buffer.add_string buf "<!--/$-->";
-            ends_text)
+            false)
   and render_upper_case_component buf prev_text component =
     let saved_ctx = !React.current_tree_context in
     React.reset_component_id_state saved_ctx;
@@ -259,8 +261,14 @@ let write_element_to_buffer buf ~separators ~prev_text element =
   write_element_to_buffer_internal buf ~separators ~prev_text element
 
 let write_to_buffer buf element =
-  let (_ : bool) = render_tree buf ~separators:false ~doctype:false ~prev_text:false element in
-  ()
+  let previous = !streaming_writer in
+  if previous then streaming_writer := false;
+  match render_tree buf ~separators:false ~doctype:false ~prev_text:false element with
+  | (_ : bool) -> if previous then streaming_writer := true
+  | exception exn ->
+      let bt = Printexc.get_raw_backtrace () in
+      if previous then streaming_writer := true;
+      Printexc.raise_with_backtrace exn bt
 
 let escape_to_buffer = Html.escape
 let min_render_buffer_size = 1024
@@ -276,11 +284,22 @@ let remember_render_size size =
   if clamped <> !last_render_size then last_render_size := clamped
 
 let render_sync ~mode ?identifier_prefix element =
-  React.reset_id_rendering ?prefix:identifier_prefix ();
-  let buf = Buffer.create !last_render_size in
-  let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
-  remember_render_size (Buffer.length buf);
-  Buffer.contents buf
+  let previous = !streaming_writer in
+  if previous then streaming_writer := false;
+  match
+    React.reset_id_rendering ?prefix:identifier_prefix ();
+    let buf = Buffer.create !last_render_size in
+    let (_ : bool) = render_tree buf ~separators:(mode = String) ~doctype:true ~prev_text:false element in
+    remember_render_size (Buffer.length buf);
+    Buffer.contents buf
+  with
+  | result ->
+      if previous then streaming_writer := true;
+      result
+  | exception exn ->
+      let bt = Printexc.get_raw_backtrace () in
+      if previous then streaming_writer := true;
+      Printexc.raise_with_backtrace exn bt
 
 let renderToString ?identifier_prefix element = render_sync ~mode:String ?identifier_prefix element
 let renderToStaticMarkup ?identifier_prefix element = render_sync ~mode:Markup ?identifier_prefix element
@@ -566,15 +585,23 @@ let render_to_segment ~env ~stream_context =
           segment.previous_node_was_text <- saved_previous_node_was_text;
           render context (original ())
         in
-        let emit () =
-          let previous = !streaming_writer in
-          streaming_writer := true;
-          Fun.protect ~finally:(fun () -> streaming_writer := previous) (fun () -> emit segment.buf ~separators:true)
-        in
-        match emit () with
-        | () -> ()
-        | exception Invalid_argument message when is_unsupported_sync_message message -> render_original ()
-        | exception React.Suspend _ -> render_original ())
+        let previous = !streaming_writer in
+        streaming_writer := true;
+        match emit segment.buf ~separators:true with
+        | () -> streaming_writer := previous
+        | exception Streaming_writer_fallback ->
+            streaming_writer := previous;
+            render_original ()
+        | exception Invalid_argument message when is_unsupported_sync_message message ->
+            streaming_writer := previous;
+            render_original ()
+        | exception React.Suspend _ ->
+            streaming_writer := previous;
+            render_original ()
+        | exception exn ->
+            let bt = Printexc.get_raw_backtrace () in
+            streaming_writer := previous;
+            Printexc.raise_with_backtrace exn bt)
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
