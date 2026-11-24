@@ -550,6 +550,13 @@ let global_tests =
         assert_string
           (Js.Global.encodeURI "👨‍👩‍👧‍👦")
           "%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%E2%80%8D%F0%9F%91%A6");
+    test "encodeURIComponent - invalid UTF-8" (fun () ->
+        Alcotest.check_raises "lone byte" (Invalid_argument "URI malformed") (fun () ->
+            ignore (Js.Global.encodeURIComponent "a\xff"));
+        Alcotest.check_raises "truncated" (Invalid_argument "URI malformed") (fun () ->
+            ignore (Js.Global.encodeURIComponent "\xe2\x82"));
+        Alcotest.check_raises "encoded surrogate" (Invalid_argument "URI malformed") (fun () ->
+            ignore (Js.Global.encodeURI "\xed\xa0\x80")));
     test "encodeURIComponent" (fun () ->
         assert_string (Js.Global.encodeURIComponent "http://unipro.ru") "http%3A%2F%2Funipro.ru";
         assert_string

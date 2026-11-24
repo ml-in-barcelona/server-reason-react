@@ -31,16 +31,18 @@ let setTimeout ~f millis : timeoutId = start_timeout ~f (Stdlib.float_of_int mil
 let setTimeoutFloat ~f millis : timeoutId = start_timeout ~f millis
 
 module URI = struct
-  let int_of_hex_opt str = try Some (Scanf.sscanf str "%x%!" (fun x -> x)) with _ -> None
+  let hex_value = function
+    | '0' .. '9' as c -> Char.code c - Char.code '0'
+    | 'a' .. 'f' as c -> Char.code c - Char.code 'a' + 10
+    | 'A' .. 'F' as c -> Char.code c - Char.code 'A' + 10
+    | _ -> -1
 
   let hex_decode str pos =
     if pos + 2 >= String.length str then Error "Expecting Hex digit"
     else
-      let first = int_of_hex_opt (Stdlib.String.sub str (pos + 1) 1) in
-      let second = int_of_hex_opt (Stdlib.String.sub str (pos + 2) 1) in
-      match (first, second) with
-      | Some first, Some second -> Ok ((first lsl 4) lor second)
-      | _ -> Error "Invalid hex digit"
+      let first = hex_value (String.unsafe_get str (pos + 1)) in
+      let second = hex_value (String.unsafe_get str (pos + 2)) in
+      if first < 0 || second < 0 then Error "Invalid hex digit" else Ok ((first lsl 4) lor second)
 
   let is_uri_reserved c = Stdlib.String.contains ";/?:@&=+$,#" c
 
@@ -100,12 +102,21 @@ module URI = struct
        || Stdlib.String.contains "-_.!~*'()" (Char.chr c)
        || ((not is_component) && is_uri_reserved (Char.chr c)))
 
+  let hex = "0123456789ABCDEF"
+
+  (* JavaScript throws URIError for a lone surrogate, the only text it cannot
+     encode; native strings are bytes, so invalid UTF-8 is the counterpart. *)
   let encode_uri ~component s =
+    if not (Stdlib.String.is_valid_utf_8 s) then raise (Invalid_argument "URI malformed");
     let buf = Buffer.create (String.length s * 3) in
     String.iter
       (fun ch ->
         let c = Char.code ch in
-        if is_uri_unescaped c component then Buffer.add_char buf ch else Printf.bprintf buf "%%%02X" c)
+        if is_uri_unescaped c component then Buffer.add_char buf ch
+        else (
+          Buffer.add_char buf '%';
+          Buffer.add_char buf (String.unsafe_get hex (c lsr 4));
+          Buffer.add_char buf (String.unsafe_get hex (c land 0x0f))))
       s;
     Buffer.contents buf
 end
