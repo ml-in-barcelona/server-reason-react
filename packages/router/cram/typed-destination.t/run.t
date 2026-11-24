@@ -659,3 +659,34 @@ needs `~key:"type"` on another label, as in `search-key-alias.ml`.
   $ server-reason-react.router-gen --mode handles --source keyword-search-key.ml < keyword-search-key.ml 2>&1 | head -2
   File "keyword-search-key.ml", line 1, characters 82-86:
   Error: Syntax error
+
+User names must not collide with names in the generated code: path
+parameters named like generated helpers, routes named like modules the
+generated code uses, and free names in spliced expressions.
+
+  $ for name in search-values try-destination underscore fun stdlib router-runtime react codec; do
+  >   echo "== $name"
+  >   server-reason-react.router-gen --mode handles --source collision-$name.ml < collision-$name.ml > Collision.ml
+  >   ocamlc -c Collision.ml 2>&1 | grep -E '^Error'
+  > done
+  == search-values
+  Error: The value searchValues has type int
+  == try-destination
+  Error: This expression has type int
+  == underscore
+  Error: Syntax error
+  == fun
+  Error: Unbound value Fun.id
+  == stdlib
+  Error: Unbound module Stdlib.List
+  == router-runtime
+  Error: Unbound value RouterRuntime.pattern
+  == react
+  Error: Unbound type constructor React.element
+  == codec
+  Error: Unbound type constructor NoteId.t
+  $ server-reason-react.router-gen --mode handles --source collision-capture.ml < collision-capture.ml > Collision.ml
+  $ ocamlc -c Collision.ml
+  $ server-reason-react.router-gen --mode registry --source collision-capture.ml < collision-capture.ml | tr -s ' \n' ' ' | grep -Eo 'fun max_int ->|fallback:max_int'
+  fun max_int ->
+  fallback:max_int
