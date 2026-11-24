@@ -75,6 +75,10 @@ Router.make(
         ),
       ],
     ),
+    Router.route(Stdlib, ~page=Pages.Settings, ~path="/stdlib"),
+    Router.route(Js, ~page=Pages.Settings, ~path="/js"),
+    Router.route(React, ~page=Pages.Settings, ~path="/react"),
+    Router.route(ReactDOM, ~page=Pages.Settings, ~path="/react-dom"),
     Router.route(
       Note,
       ~page=Pages.Note,

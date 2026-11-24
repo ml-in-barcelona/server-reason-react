@@ -508,39 +508,68 @@ let shapes path =
   | Ok pattern -> RouterPattern.shapes pattern
   | Error _ -> invalid_arg "validated router path failed to parse"
 
-let generated_labels =
+let keywords =
   [
-    "applicationStatus";
-    "ariaCurrent";
-    "attributes";
-    "basePath";
-    "children";
-    "className";
-    "decodeError";
-    "destination";
-    "download";
-    "error";
-    "fallback";
-    "hash";
-    "history";
-    "href";
-    "input";
-    "item";
-    "make";
-    "pattern";
-    "registry";
-    "revalidate";
-    "routeSearch";
-    "search";
-    "target";
-    "updateSearch";
-    "unsafeDestination";
-    "useNavigation";
-    "useRoute";
-    "useSearch";
-    "useUpdateHash";
-    "value";
-    "values";
+    "and";
+    "as";
+    "assert";
+    "asr";
+    "begin";
+    "class";
+    "constraint";
+    "do";
+    "done";
+    "downto";
+    "effect";
+    "else";
+    "end";
+    "exception";
+    "external";
+    "false";
+    "for";
+    "fun";
+    "function";
+    "functor";
+    "if";
+    "in";
+    "include";
+    "inherit";
+    "initializer";
+    "land";
+    "lazy";
+    "let";
+    "lor";
+    "lsl";
+    "lsr";
+    "lxor";
+    "match";
+    "method";
+    "mod";
+    "module";
+    "mutable";
+    "new";
+    "nonrec";
+    "object";
+    "of";
+    "open";
+    "or";
+    "pri";
+    "private";
+    "pub";
+    "rec";
+    "sig";
+    "struct";
+    "switch";
+    "then";
+    "to";
+    "true";
+    "try";
+    "type";
+    "val";
+    "virtual";
+    "when";
+    "while";
+    "with";
   ]
 
 let endpoints declaration =
@@ -595,26 +624,17 @@ let endpoints declaration =
           error ~loc "duplicate search key %S, used by %s" key (String.concat " and " labels)
       | None -> ());
       let labels = List.map (fun (parameter : parameter) -> parameter.name) parameters @ loader_labels in
-      match duplicate labels with
-      | Some label -> error ~loc "duplicate branch input label %s" label
-      | None ->
-          List.iter
-            (fun label ->
-              if List.mem label generated_labels || (Option.is_some declaration.context && String.equal label "context")
-              then error ~loc "branch input label %s conflicts with a generated router argument" label)
-            labels)
+      (match duplicate labels with Some label -> error ~loc "duplicate branch input label %s" label | None -> ());
+      List.iter
+        (fun label ->
+          if String.equal label "_" || List.mem label keywords then
+            error ~loc "branch input label %s is a keyword or a wildcard; rename it" label)
+        labels)
     endpoints;
   let routes = List.filter_map (function Page route -> Some route | RedirectTo _ -> None) endpoints in
   (match duplicate (List.map (fun (route : route) -> route.name) routes) with
   | Some name -> error ~loc:declaration.loc "duplicate generated route name %s" name
   | None -> ());
-  let reserved =
-    [ "Status"; "Loader"; "Error"; "Metadata"; "Headers"; "Navigation"; "Search"; "Link"; "ActiveSearch" ]
-  in
-  List.iter
-    (fun route ->
-      if List.mem route.name reserved then error ~loc:route.loc "generated route name %s is reserved" route.name)
-    routes;
   let endpoint_path = function Page route -> route.path | RedirectTo redirect -> redirect.path in
   let endpoint_loc = function Page route -> route.loc | RedirectTo redirect -> redirect.loc in
   let describe endpoint shape =
@@ -745,3 +765,30 @@ let find structure =
   | [] -> None
   | [ declaration ] -> Some declaration
   | declaration :: _ -> error ~loc:declaration.loc "expected exactly one Router.make declaration"
+
+let user_expressions declaration =
+  let scope_expressions (scope : scope) =
+    let attachments = scope.attachments in
+    List.filter_map
+      (function { kind = Default fallback; _ } -> Some fallback | { kind = Required | Optional | Many; _ } -> None)
+      scope.search
+    @ List.filter_map Fun.id
+        [
+          attachments.layout;
+          attachments.loading;
+          attachments.not_found;
+          attachments.error;
+          Option.map (fun loader -> loader.run) attachments.loader;
+          attachments.metadata;
+          attachments.headers;
+        ]
+  in
+  let rec node = function
+    | Group group -> scope_expressions group.scope @ List.concat_map node group.children
+    | Route leaf -> leaf.page :: scope_expressions leaf.scope
+    | Redirect leaf -> leaf.target :: scope_expressions leaf.scope
+  in
+  Option.to_list declaration.error_status
+  @ Option.to_list declaration.invalid_search
+  @ scope_expressions declaration.root.scope
+  @ List.concat_map node declaration.root.children

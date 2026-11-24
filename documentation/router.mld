@@ -139,19 +139,27 @@ requests and ignores a header value that is not a level.
 {2 Names and labels}
 
 A route name is a bare constructor, such as [Note]. A dotted name is an error.
-Each route name must be unique, and these names are reserved because the
-generated module already uses them: [Status], [Loader], [Error], [Metadata],
-[Headers], [Navigation], [Search], [Link], and [ActiveSearch].
+Each route name must be unique. A route name cannot be [Status], [Loader],
+[Error], [Metadata], [Headers], [Navigation] or [ActiveSearch], which name
+modules of the generated module, nor [Some] or [None], which the generated
+code uses as constructors. Any other name works, including the name of a
+module that the generated code uses, such as [Stdlib], [React] or
+[RouterRuntime].
 
 Path parameter names and loader result labels become labelled arguments of
-the generated helpers. Within one branch they must be unique. These labels
-belong to the generated API and cannot be used: [applicationStatus],
-[ariaCurrent], [attributes], [basePath], [children], [className], [decodeError],
-[destination], [download], [error], [fallback], [hash], [history], [href],
-[input], [item], [make], [pattern], [registry], [revalidate], [routeSearch],
-[search], [target], [updateSearch], [unsafeDestination], [useNavigation],
-[useRoute], [useSearch], [useUpdateHash], [value], and [values]. The
-generator reports a conflict at the route that uses the label.
+the generated helpers and of the page, layout, loader and boundary functions.
+Within one branch they must be unique, and none can be [_] or a keyword. A
+name conflicts only with a label that the router passes in the same call: a
+path parameter cannot be called [search], [hash], [attributes], [className],
+[target], [download], [ariaCurrent], [history], [revalidate] or [children],
+the labels of the generated route component, and a path parameter or loader
+result cannot be called [search], [children] or [error] where the router
+passes those, nor [context] when [Router.make] declares [~context]. The
+generator reports the conflict at the route, or at the loader or attachment
+that receives both labels. The generated code renames its
+own variables around user names, so names such as [value], [pattern],
+[input], [tryDestination] or [max_int] are free, and a [Router.Search.default]
+expression means what it means in the manifest.
 
 Search parameters are fields of one [search] record, not labelled arguments,
 so these names do not apply to them: a search parameter can be called
