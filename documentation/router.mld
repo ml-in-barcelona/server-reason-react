@@ -272,9 +272,14 @@ construction raises [Invalid_argument] for an empty value, [/], [.], [..],
 control characters, or invalid UTF-8. Valid output is percent-encoded. A failed
 parse produces [InvalidPathParameter].
 
+Search values and [~hash] must be valid text as well: invalid UTF-8 on
+native, or a lone surrogate in the browser, raises [Invalid_argument], as
+[encodeURIComponent] does. Native and the browser print the same bytes for
+the same valid text.
+
 For a value from user input, such as free text, use [tryDestination] or
-[tryHref]. Every route with path parameters has them. They take the same
-arguments and return [Error(message)] instead of raising:
+[tryHref]. Every route has them. They take the same arguments and return
+[Error(message)] instead of raising:
 
 {[
 switch (Router.Topic.tryHref(~name=text, ())) {
@@ -284,7 +289,9 @@ switch (Router.Topic.tryHref(~name=text, ())) {
 ]}
 
 The server rejects an encoded slash ([%2F]) in a path, so a value with [/]
-cannot be a path parameter. Put it in a search parameter, or use a catch-all
+cannot be a path parameter. The client follows the same rule: a link whose
+path has an encoded slash, a [.] or [..] segment, a control character or
+invalid UTF-8 is not handled on the client and loads as a document. Put it in a search parameter, or use a catch-all
 parameter when each part is a segment.
 
 {2 Search parameters}

@@ -36,10 +36,17 @@ let cases = [
     current: false,
   },
   {
-    name: "broken escape as text",
+    name: "broken escape is dropped like in route decode",
     pathname: "/app/notes",
     search: "?q=%zz",
     href: "/app/notes?q=%25zz",
+    current: false,
+  },
+  {
+    name: "malformed pair against no pair",
+    pathname: "/app/notes",
+    search: "?x=%FF&q=1",
+    href: "/app/notes?q=1",
     current: true,
   },
   {

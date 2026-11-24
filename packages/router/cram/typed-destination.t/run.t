@@ -292,9 +292,11 @@ use the names of runtime modules.
   Error: router: invalid router base path /app?preview
   [2]
 
+  $ cp ../../runtime/RouterUtf8.ml ../../runtime/shared/RouterUrl.ml .
+  $ ocamlc -c RouterUtf8.ml RouterUrl.ml
   $ refmt --parse re --print ml ../../runtime/shared/RouterPattern.re > RouterPattern.ml
   $ ocamlc -w -53 -c RouterPattern.ml
-  $ ocamlc -o pattern-test RouterPattern.cmo pattern_test.ml
+  $ ocamlc -o pattern-test RouterUtf8.cmo RouterUrl.cmo RouterPattern.cmo pattern_test.ml
   $ ./pattern-test
   matchesPath passed
   static path grammar and UTF-8 href rendering passed

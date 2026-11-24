@@ -5,4 +5,6 @@
  (deps
   %{bin:refmt}
   %{bin:server-reason-react.router-gen}
-  ../runtime/shared/RouterPattern.re))
+  ../runtime/shared/RouterPattern.re
+  ../runtime/shared/RouterUrl.ml
+  ../runtime/RouterUtf8.ml))

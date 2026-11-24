@@ -403,103 +403,10 @@ let render = (pattern, ~parameter, ~encodeStatic, ~encodeParameter) => {
   loop([], pattern);
 };
 
-let unicodeStrings = String.length({js|é|js}) == 1;
-
-let utf8 = value =>
-  if (!unicodeStrings) {
-    value;
-  } else {
-    let length = String.length(value);
-    let buffer = Buffer.create(length);
-    let add = code => Buffer.add_char(buffer, Char.chr(code));
-    let rec loop = index =>
-      if (index < length) {
-        let unit = Char.code(value.[index]);
-        let low = index + 1 < length ? Char.code(value.[index + 1]) : 0;
-        let (code, next) =
-          if (unit >= 0xd800
-              && unit <= 0xdbff
-              && low >= 0xdc00
-              && low <= 0xdfff) {
-            (0x10000 + (unit - 0xd800) lsl 10 + (low - 0xdc00), index + 2);
-          } else {
-            (unit, index + 1);
-          };
-        if (code < 0x80) {
-          add(code);
-        } else if (code < 0x800) {
-          add(0xc0 lor code lsr 6);
-          add(0x80 lor (code land 0x3f));
-        } else if (code < 0x10000) {
-          add(0xe0 lor code lsr 12);
-          add(0x80 lor (code lsr 6 land 0x3f));
-          add(0x80 lor (code land 0x3f));
-        } else {
-          add(0xf0 lor code lsr 18);
-          add(0x80 lor (code lsr 12 land 0x3f));
-          add(0x80 lor (code lsr 6 land 0x3f));
-          add(0x80 lor (code land 0x3f));
-        };
-        loop(next);
-      };
-    loop(0);
-    Buffer.contents(buffer);
-  };
-
-let hexValue = character =>
-  switch (character) {
-  | '0' .. '9' => Some(Char.code(character) - Char.code('0'))
-  | 'a' .. 'f' => Some(Char.code(character) - Char.code('a') + 10)
-  | 'A' .. 'F' => Some(Char.code(character) - Char.code('A') + 10)
-  | _ => None
-  };
-
-type malformedEscape =
-  | Reject
-  | Keep;
-
-let percentDecode = (~plus, ~malformed, value) => {
-  let length = String.length(value);
-  let buffer = Buffer.create(length);
-  let rec loop = index =>
-    if (index >= length) {
-      Some(Buffer.contents(buffer));
-    } else {
-      switch (value.[index]) {
-      | '+' when plus =>
-        Buffer.add_char(buffer, ' ');
-        loop(index + 1);
-      | '%' =>
-        let escaped =
-          index + 2 < length
-            ? switch (
-                hexValue(value.[index + 1]),
-                hexValue(value.[index + 2]),
-              ) {
-              | (Some(high), Some(low)) => Some(high lsl 4 lor low)
-              | _ => None
-              }
-            : None;
-        switch (escaped, malformed) {
-        | (Some(byte), _) =>
-          Buffer.add_char(buffer, Char.chr(byte));
-          loop(index + 3);
-        | (None, Keep) =>
-          Buffer.add_char(buffer, '%');
-          loop(index + 1);
-        | (None, Reject) => None
-        };
-      | character =>
-        Buffer.add_char(buffer, character);
-        loop(index + 1);
-      };
-    };
-  loop(0);
-};
+let utf8 = RouterUrl.utf8;
 
 let decodeSegment = segment =>
-  segment == ""
-    ? None : percentDecode(~plus=false, ~malformed=Reject, segment);
+  RouterUrl.decodeSegment(utf8(segment)) |> Result.to_option;
 
 let matchesShape = (pattern, pathSegments) => {
   let rec loop = (pattern, pathSegments) =>

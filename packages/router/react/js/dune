@@ -22,6 +22,7 @@
   RouterSearchParse
   RouterTransaction
   RouterTypes
+  RouterUrl
   RouterUtf8
   RouterViewTransition)
  (libraries
@@ -79,3 +80,6 @@
 
 (copy_files
  (files ../shared/RouterErrorBoundary.re))
+
+(copy_files
+ (files ../../runtime/shared/RouterUrl.ml))

@@ -455,22 +455,20 @@ let route_signature ~root_search (route : Router_declaration.route) =
              ~type_:(route_function_type ~loc route.parameters route.search (result_type ~loc "string"))
              ~prim:[]);
       ]
-    @ (match route.parameters with
-      | [] -> []
-      | parameters ->
-          let result typ =
-            B.ptyp_constr ~loc { txt = Longident.Lident "result"; loc } [ typ; result_type ~loc "string" ]
-          in
-          [
-            B.psig_value ~loc
-              (B.value_description ~loc ~name:{ txt = "tryDestination"; loc }
-                 ~type_:(route_function_type ~loc parameters route.search (result destination_type))
-                 ~prim:[]);
-            B.psig_value ~loc
-              (B.value_description ~loc ~name:{ txt = "tryHref"; loc }
-                 ~type_:(route_function_type ~loc parameters route.search (result (result_type ~loc "string")))
-                 ~prim:[]);
-          ])
+    @ (let parameters = route.parameters in
+       let result typ =
+         B.ptyp_constr ~loc { txt = Longident.Lident "result"; loc } [ typ; result_type ~loc "string" ]
+       in
+       [
+         B.psig_value ~loc
+           (B.value_description ~loc ~name:{ txt = "tryDestination"; loc }
+              ~type_:(route_function_type ~loc parameters route.search (result destination_type))
+              ~prim:[]);
+         B.psig_value ~loc
+           (B.value_description ~loc ~name:{ txt = "tryHref"; loc }
+              ~type_:(route_function_type ~loc parameters route.search (result (result_type ~loc "string")))
+              ~prim:[]);
+       ])
     @ [ B.psig_value ~loc link_make ]
   in
   B.psig_module ~loc
@@ -1011,56 +1009,52 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
   in
   let link_expression = route_input_expression ~loc route.parameters route.search link_with_attributes in
   let try_items =
-    match route.parameters with
-    | [] -> []
-    | parameters ->
-        let result_constraint typ =
-          B.ptyp_constr ~loc
-            { txt = Longident.Lident "result"; loc }
-            [ result_type ~loc typ; result_type ~loc "string" ]
-        in
-        let try_body =
-          B.pexp_match ~loc destination_call
-            [
-              B.case
-                ~lhs:(pvar ~loc (g "value"))
-                ~guard:None
-                ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (var ~loc (g "value"))));
-              B.case
-                ~lhs:
-                  (B.ppat_exception ~loc
-                     (B.ppat_construct ~loc
-                        { txt = Longident.Lident "Invalid_argument"; loc }
-                        (Some (pvar ~loc (g "message")))))
-                ~guard:None
-                ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Error"; loc } (Some (var ~loc (g "message"))));
-            ]
-        in
-        let try_href_body =
-          B.pexp_apply ~loc (qualified ~loc "Stdlib.Result.map")
-            [
-              (Nolabel, qualified ~loc "RouterRuntime.href");
-              (Nolabel, apply_route_inputs ~loc (var ~loc (p "tryDestination")) parameters route.search);
-            ]
-        in
+    let parameters = route.parameters in
+    let result_constraint typ =
+      B.ptyp_constr ~loc { txt = Longident.Lident "result"; loc } [ result_type ~loc typ; result_type ~loc "string" ]
+    in
+    let try_body =
+      B.pexp_match ~loc destination_call
         [
-          B.pstr_value ~loc Nonrecursive
-            [
-              B.value_binding ~loc
-                ~pat:(pvar ~loc (p "tryDestination"))
-                ~expr:
-                  (route_function_expression ~loc parameters route.search
-                     (B.pexp_constraint ~loc try_body (result_constraint "destination")));
-            ];
-          B.pstr_value ~loc Nonrecursive
-            [
-              B.value_binding ~loc
-                ~pat:(pvar ~loc (p "tryHref"))
-                ~expr:
-                  (route_function_expression ~loc parameters route.search
-                     (B.pexp_constraint ~loc try_href_body (result_constraint "string")));
-            ];
+          B.case
+            ~lhs:(pvar ~loc (g "value"))
+            ~guard:None
+            ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (var ~loc (g "value"))));
+          B.case
+            ~lhs:
+              (B.ppat_exception ~loc
+                 (B.ppat_construct ~loc
+                    { txt = Longident.Lident "Invalid_argument"; loc }
+                    (Some (pvar ~loc (g "message")))))
+            ~guard:None
+            ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Error"; loc } (Some (var ~loc (g "message"))));
         ]
+    in
+    let try_href_body =
+      B.pexp_apply ~loc (qualified ~loc "Stdlib.Result.map")
+        [
+          (Nolabel, qualified ~loc "RouterRuntime.href");
+          (Nolabel, apply_route_inputs ~loc (var ~loc (p "tryDestination")) parameters route.search);
+        ]
+    in
+    [
+      B.pstr_value ~loc Nonrecursive
+        [
+          B.value_binding ~loc
+            ~pat:(pvar ~loc (p "tryDestination"))
+            ~expr:
+              (route_function_expression ~loc parameters route.search
+                 (B.pexp_constraint ~loc try_body (result_constraint "destination")));
+        ];
+      B.pstr_value ~loc Nonrecursive
+        [
+          B.value_binding ~loc
+            ~pat:(pvar ~loc (p "tryHref"))
+            ~expr:
+              (route_function_expression ~loc parameters route.search
+                 (B.pexp_constraint ~loc try_href_body (result_constraint "string")));
+        ];
+    ]
   in
   let link_binding = B.value_binding ~loc ~pat:(pvar ~loc (p "make")) ~expr:link_expression in
   let link_binding = { link_binding with pvb_attributes = [ react_component_attribute ~loc ] } in

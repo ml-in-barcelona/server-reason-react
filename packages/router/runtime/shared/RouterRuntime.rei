@@ -38,7 +38,8 @@ let href: destination => string;
 let absoluteHref: (~origin: string, destination) => string;
 
 /** Sets the fragment of [destination] to [hash], percent-encoded like a
-    search value. An empty [hash] removes the fragment. */
+    search value. An empty [hash] removes the fragment. Raises
+    [Invalid_argument] for text [encodeURIComponent] cannot encode. */
 let withHash: (destination, ~hash: string) => destination;
 
 /** The prefetch level of the route [destination] points to. Generated
@@ -61,7 +62,9 @@ let withShallowSearch: (destination, list(string)) => destination;
 
 /** Query string without the leading [?]: names sorted, every name and value
     percent-encoded. Destinations and [updateSearch] both use it so one query
-    has one spelling. */
+    has one spelling. Raises [Invalid_argument] for text
+    [encodeURIComponent] cannot encode: invalid UTF-8 on native, a lone
+    surrogate in the browser. */
 let encodeSearch: list((string, list(string))) => string;
 
 module Status: {

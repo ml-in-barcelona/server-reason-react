@@ -1,5 +1,3 @@
-module Percent = RouterQuery.Percent
-
 module Path = struct
   type segment = RouterPattern.segment =
     | Static of string
@@ -8,48 +6,30 @@ module Path = struct
 
   type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
 
-  let valid_segment value =
-    RouterUtf8.valid value
-    && String.for_all (fun character -> Char.code character >= 0x20 && Char.code character <> 0x7f) value
+  let decode_segment pathname ~start ~stop =
+    match RouterUrl.decodeSegmentRange pathname ~start ~stop with
+    | Ok segment -> Ok segment
+    | Error Malformed -> Error (MalformedEscape (RouterUrl.slice pathname start stop))
+    | Error EncodedSlash -> Error (EncodedSlash (RouterUrl.slice pathname start stop))
+    | Error InvalidSegment -> Error (InvalidPath (RouterUrl.slice pathname start stop))
 
-  let decoded_segment raw decoded =
-    if decoded = "." || decoded = ".." || not (valid_segment decoded) then Error (InvalidPath raw) else Ok decoded
-
-  let decode_segment pathname ~has_escapes ~start ~stop =
-    let first =
-      if not has_escapes then -1
-      else match String.index_from_opt pathname start '%' with Some index when index < stop -> index | _ -> -1
-    in
-    if first < 0 then
-      let segment = Percent.slice pathname start stop in
-      decoded_segment segment segment
-    else
-      match Percent.decode_escaped ~reject_slash:true pathname ~start ~stop ~first with
-      | Error `Malformed -> Error (MalformedEscape (Percent.slice pathname start stop))
-      | Error `Encoded_slash -> Error (EncodedSlash (Percent.slice pathname start stop))
-      | Ok decoded -> decoded_segment (Percent.slice pathname start stop) decoded
-
-  let rec decode_segments pathname has_escapes decoded error stop =
+  let rec decode_segments pathname decoded error stop =
     let slash = String.rindex_from pathname (stop - 1) '/' in
     let start = slash + 1 in
     if start = stop then
       if slash = 0 then Error (InvalidPath pathname)
-      else decode_segments pathname has_escapes decoded (Some (InvalidPath pathname)) slash
+      else decode_segments pathname decoded (Some (InvalidPath pathname)) slash
     else
-      match decode_segment pathname ~has_escapes ~start ~stop with
+      match decode_segment pathname ~start ~stop with
       | Ok segment ->
           if slash = 0 then match error with Some error -> Error error | None -> Ok (segment :: decoded)
-          else decode_segments pathname has_escapes (segment :: decoded) error slash
-      | Error current ->
-          if slash = 0 then Error current else decode_segments pathname has_escapes decoded (Some current) slash
+          else decode_segments pathname (segment :: decoded) error slash
+      | Error current -> if slash = 0 then Error current else decode_segments pathname decoded (Some current) slash
 
   let decodePathname pathname =
     if String.equal pathname "/" then Ok []
     else if String.equal pathname "" || pathname.[0] <> '/' then Error (InvalidPath pathname)
-    else
-      let length = String.length pathname in
-      let has_escapes = String.contains pathname '%' in
-      decode_segments pathname has_escapes [] None length
+    else decode_segments pathname [] None (String.length pathname)
 
   let validBasePath pathname =
     if String.contains pathname '?' || String.contains pathname '#' then false
@@ -77,7 +57,7 @@ module Path = struct
             if start >= length || pathname.[start] <> '/' then None
             else
               let stop = Option.value (String.index_from_opt pathname (start + 1) '/') ~default:length in
-              match decode_segment pathname ~has_escapes:true ~start:(start + 1) ~stop with
+              match decode_segment pathname ~start:(start + 1) ~stop with
               | Ok decoded when String.equal decoded segment -> strip stop segments
               | Ok _ | Error _ -> None)
       in

@@ -12,6 +12,7 @@
   RouterSearchKey
   RouterSearchParse
   RouterTypes
+  RouterUrl
   RouterUtf8)
  (libraries
   lwt
@@ -57,3 +58,6 @@
 
 (copy_files
  (files ../react/shared/RouterErrorBoundary.re))
+
+(copy_files
+ (files ../runtime/shared/RouterUrl.ml))
