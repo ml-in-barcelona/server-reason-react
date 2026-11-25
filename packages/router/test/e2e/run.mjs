@@ -343,7 +343,7 @@ check("navigate with resetScroll=false keeps the scroll position", async ({ page
   await response;
   await absenceWindow(page);
   const kept = Math.round(await scrollY(page));
-  await page.evaluate(() => document.querySelector(".link-self").click());
+  await page.evaluate(() => document.querySelector("#navigate-current-revalidate").click());
   const reset = await waitForScroll(page, 0);
   assert.equal(kept, 1500, "the navigation reset the scroll position");
   assert.equal(reset, 0, "a default navigation did not scroll to the top");
