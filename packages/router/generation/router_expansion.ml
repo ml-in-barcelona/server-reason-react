@@ -48,7 +48,8 @@ let navigate_type ~loc =
   B.ptyp_arrow ~loc (Optional "history")
     (result_type ~loc "Navigation.historyAction")
     (B.ptyp_arrow ~loc (Optional "revalidate") (bool_type ~loc)
-       (B.ptyp_arrow ~loc Nolabel (result_type ~loc "destination") result))
+       (B.ptyp_arrow ~loc (Optional "resetScroll") (bool_type ~loc)
+          (B.ptyp_arrow ~loc Nolabel (result_type ~loc "destination") result)))
 
 let update_hash_type ~loc =
   B.ptyp_arrow ~loc (Labelled "hash") (result_type ~loc "string")
@@ -112,7 +113,8 @@ let link_component_type ~loc parameters search =
   let result = result_type ~loc "React.element" in
   let with_unit = B.ptyp_arrow ~loc Nolabel (unit_type ~loc) result in
   let with_children = B.ptyp_arrow ~loc (Labelled "children") (result_type ~loc "React.element") with_unit in
-  let with_revalidate = B.ptyp_arrow ~loc (Optional "revalidate") (bool_type ~loc) with_children in
+  let with_reset_scroll = B.ptyp_arrow ~loc (Optional "resetScroll") (bool_type ~loc) with_children in
+  let with_revalidate = B.ptyp_arrow ~loc (Optional "revalidate") (bool_type ~loc) with_reset_scroll in
   let with_history =
     B.ptyp_arrow ~loc (Optional "history") (result_type ~loc "Navigation.historyAction") with_revalidate
   in
@@ -970,6 +972,7 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
           (Optional "ariaCurrent", var ~loc (g "ariaCurrent"));
           (Optional "history", var ~loc (g "history"));
           (Optional "revalidate", var ~loc (g "revalidate"));
+          (Optional "resetScroll", var ~loc (g "resetScroll"));
           (Labelled "children", B.elist ~loc [ var ~loc (g "children") ]);
           (Nolabel, unit_expression ~loc);
         ]
@@ -982,8 +985,11 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
   let link_with_children =
     typed_function ~loc (Labelled "children") (g "children") (result_type ~loc "React.element") link_with_unit
   in
+  let link_with_reset_scroll =
+    typed_function ~loc (Optional "resetScroll") (g "resetScroll") (bool_type ~loc) link_with_children
+  in
   let link_with_revalidate =
-    typed_function ~loc (Optional "revalidate") (g "revalidate") (bool_type ~loc) link_with_children
+    typed_function ~loc (Optional "revalidate") (g "revalidate") (bool_type ~loc) link_with_reset_scroll
   in
   let link_with_history =
     typed_function ~loc (Optional "history") (g "history")

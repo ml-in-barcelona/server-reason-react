@@ -1168,6 +1168,7 @@ expect(
 expect(
   "a content navigation with a hash did not scroll to the fragment",
   RouterPolicy.scrollFor(
+    ~resetScroll=true,
     ~kind=RouterRuntime.Navigation.Content,
     ~saved=None,
     "#details",
@@ -1177,6 +1178,7 @@ expect(
 expect(
   "an encoded fragment was not decoded",
   RouterPolicy.scrollFor(
+    ~resetScroll=true,
     ~kind=RouterRuntime.Navigation.Content,
     ~saved=None,
     "#caf%C3%A9",
@@ -1186,6 +1188,7 @@ expect(
 expect(
   "a content navigation without a hash did not scroll to the top",
   RouterPolicy.scrollFor(
+    ~resetScroll=true,
     ~kind=RouterRuntime.Navigation.Content,
     ~saved=None,
     "",
@@ -1195,6 +1198,7 @@ expect(
 expect(
   "a shallow navigation without a hash scrolled",
   RouterPolicy.scrollFor(
+    ~resetScroll=true,
     ~kind=RouterRuntime.Navigation.Shallow,
     ~saved=None,
     "",
@@ -1202,8 +1206,29 @@ expect(
   == Stay,
 );
 expect(
+  "a content navigation that keeps its scroll scrolled to the top",
+  RouterPolicy.scrollFor(
+    ~resetScroll=false,
+    ~kind=RouterRuntime.Navigation.Content,
+    ~saved=None,
+    "",
+  )
+  == Stay,
+);
+expect(
+  "a content navigation that keeps its scroll ignored the fragment",
+  RouterPolicy.scrollFor(
+    ~resetScroll=false,
+    ~kind=RouterRuntime.Navigation.Content,
+    ~saved=None,
+    "#details",
+  )
+  == Fragment("details"),
+);
+expect(
   "a saved position did not win over the fragment",
   RouterPolicy.scrollFor(
+    ~resetScroll=true,
     ~kind=RouterRuntime.Navigation.Content,
     ~saved=Some((0.0, 9.0)),
     "#details",

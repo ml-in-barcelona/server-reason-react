@@ -3,6 +3,7 @@ type navigate =
   (
     ~history: RouterRuntime.Navigation.historyAction=?,
     ~revalidate: bool=?,
+    ~resetScroll: bool=?,
     RouterRuntime.destination
   ) =>
   Js.Promise.t(navigationResult);
@@ -186,6 +187,7 @@ module Link: {
       ~onMouseEnter: React.Event.Mouse.t => unit=?,
       ~history: RouterRuntime.Navigation.historyAction=?,
       ~revalidate: bool=?,
+      ~resetScroll: bool=?,
       ~children: React.element,
       unit
     ) =>

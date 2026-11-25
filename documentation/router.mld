@@ -151,7 +151,8 @@ the generated helpers and of the page, layout, loader and boundary functions.
 Within one branch they must be unique, and none can be [_] or a keyword. A
 name conflicts only with a label that the router passes in the same call: a
 path parameter cannot be called [search], [hash], [attributes], [className],
-[target], [download], [ariaCurrent], [history], [revalidate] or [children],
+[target], [download], [ariaCurrent], [history], [revalidate], [resetScroll]
+or [children],
 the labels of the generated route component, and a path parameter or loader
 result cannot be called [search], [children] or [error] where the router
 passes those, nor [context] when [Router.make] declares [~context]. The
@@ -503,7 +504,11 @@ let isPending =
 Navigating to a destination is a {e content} navigation. The client requests a
 Flight model and the server answers with a full model, or with a partial patch
 that reuses unchanged layouts. [~revalidate=true] forces a full response.
-[~history] selects [Push], [Replace], or [Pop].
+[~history] selects [Push], [Replace], or [Pop]. [~resetScroll=false] keeps
+the scroll position and focus after a [Push] or [Replace], for a navigation
+that updates the page in place, such as a refresh after a server function or a
+change of filter. A hash in the destination still scrolls to its element, and
+the position of the entry it leaves is still saved for Back.
 
 {3 Pending navigations}
 
@@ -704,7 +709,8 @@ hands scroll restoration back to the browser, so a reload paints the saved
 position before the router hydrates. Back and Forward restore
 the saved position for content, search-only and hash-only entries. Without a
 saved position, a hash scrolls to and focuses its element; otherwise a content
-navigation focuses [#router-focus-root] when it exists and scrolls to the top.
+navigation focuses [#router-focus-root] when it exists and scrolls to the top,
+unless it was started with [~resetScroll=false].
 
 To also restore an element that scrolls on its own, such as a sidebar list,
 give it a [data-router-scroll] attribute with an id that is unique on the
@@ -910,6 +916,10 @@ props as one [~attributes] value instead:
 
 [RouterReact.Link] takes [~attributes] too. A prop given directly wins over the
 same field of [~attributes], and the [data] entries of both are rendered.
+
+Both kinds of [Link] take [~history], [~revalidate] and [~resetScroll] like
+[navigate]. A [Link] in a server component ignores them, because a click on it
+is handled like a plain anchor.
 
 A [Link] whose destination is the current location renders
 [aria-current="page"], unless [~ariaCurrent] is given. The destination is

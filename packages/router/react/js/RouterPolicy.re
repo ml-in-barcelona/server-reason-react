@@ -370,7 +370,7 @@ type scroll =
   | Top
   | Stay;
 
-let scrollFor = (~kind, ~saved, hash) =>
+let scrollFor = (~kind, ~resetScroll, ~saved, hash) =>
   switch (saved) {
   | Some((x, y)) => ScrollTo(x, y)
   | None =>
@@ -392,6 +392,6 @@ let scrollFor = (~kind, ~saved, hash) =>
     | (Some(id), _) => Fragment(id)
     | (None, RouterRuntime.Navigation.Shallow) => Stay
     | (None, RouterRuntime.Navigation.Content)
-    | (None, RouterRuntime.Navigation.HashOnly) => Top
+    | (None, RouterRuntime.Navigation.HashOnly) => resetScroll ? Top : Stay
     };
   };
