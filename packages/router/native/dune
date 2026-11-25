@@ -11,8 +11,7 @@
   RouterQuery
   RouterSearchKey
   RouterSearchParse
-  RouterTypes
-  RouterUtf8)
+  RouterTypes)
  (libraries
   lwt
   server-reason-react.js
@@ -36,9 +35,6 @@
 
 (copy_files
  (files ../runtime/shared/RouterPattern.rei))
-
-(copy_files
- (files ../runtime/RouterUtf8.ml))
 
 (copy_files
  (files ../react/shared/RouterReact.rei))

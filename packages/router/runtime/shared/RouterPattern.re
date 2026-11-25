@@ -32,6 +32,7 @@ let validLabel = value => {
     && character <= '9'
     || character == '\'';
   length > 0
+  && value != "_"
   && first(value.[0])
   && value
   |> String.to_seq
@@ -497,9 +498,76 @@ let percentDecode = (~plus, ~malformed, value) => {
   loop(0);
 };
 
+let validUtf8 = value => {
+  let length = String.length(value);
+  let byte = index => Char.code(String.unsafe_get(value, index));
+  let continuation = index => index < length && byte(index) land 0xc0 == 0x80;
+  let rec from = index =>
+    if (index >= length) {
+      true;
+    } else {
+      let first = byte(index);
+      if (first < 0x80) {
+        from(index + 1);
+      } else if (first < 0xc2) {
+        false;
+      } else if (first < 0xe0) {
+        continuation(index + 1) && from(index + 2);
+      } else if (index + 1 >= length) {
+        false;
+      } else {
+        let second = byte(index + 1);
+        if (first < 0xf0) {
+          (
+            switch (first) {
+            | 0xe0 => second >= 0xa0
+            | 0xed => second < 0xa0
+            | _ => true
+            }
+          )
+          && continuation(index + 1)
+          && continuation(index + 2)
+          && from(index + 3);
+        } else if (first < 0xf5) {
+          (
+            switch (first) {
+            | 0xf0 => second >= 0x90
+            | 0xf4 => second < 0x90
+            | _ => true
+            }
+          )
+          && continuation(index + 1)
+          && continuation(index + 2)
+          && continuation(index + 3)
+          && from(index + 4);
+        } else {
+          false;
+        };
+      };
+    };
+  from(0);
+};
+
+let validSegment = value =>
+  value != ""
+  && value != "."
+  && value != ".."
+  && !String.contains(value, '/')
+  && validUtf8(value)
+  && String.for_all(
+       character => {
+         let code = Char.code(character);
+         code >= 0x20 && code != 0x7f;
+       },
+       value,
+     );
+
 let decodeSegment = segment =>
-  segment == ""
-    ? None : percentDecode(~plus=false, ~malformed=Reject, segment);
+  switch (percentDecode(~plus=false, ~malformed=Reject, segment)) {
+  | Some(decoded) when validSegment(decoded) => Some(decoded)
+  | Some(_)
+  | None => None
+  };
 
 let matchesShape = (pattern, pathSegments) => {
   let rec loop = (pattern, pathSegments) =>

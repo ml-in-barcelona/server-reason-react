@@ -79,6 +79,20 @@ let catch_all_precedence_and_capture () =
   | _ -> Alcotest.fail "expected catch-all match");
   match find "/assets" with Ok None -> () | _ -> Alcotest.fail "expected no match without a captured segment"
 
+let less_specific_route_below_a_more_specific_subtree () =
+  let registry =
+    registry
+      [
+        route ~id:"docs" ~path:"/docs/:rest<string...>";
+        route ~id:"changes" ~path:"/docs/:version<string>/changes";
+        route ~id:"page" ~path:"/:lang<string>/:page<string>";
+        route ~id:"edit" ~path:"/:lang<string>/:page<string>/edit";
+      ]
+  in
+  match RouterServer.Match.find registry ~pathname:"/docs/intro" with
+  | Ok (Some matched) -> Alcotest.(check string) "more statics wins" "docs" (RouterServer.Route.id matched.route)
+  | _ -> Alcotest.fail "expected catch-all match"
+
 let ambiguous_catch_all_patterns () =
   match
     RouterServer.Registry.make
@@ -2142,6 +2156,8 @@ let () =
           test "encoded static segment" encoded_static_segment;
           test "decoded parameters" decoded_parameters;
           test "catch-all precedence and capture" catch_all_precedence_and_capture;
+          test "a less specific route below a more specific subtree loses"
+            less_specific_route_below_a_more_specific_subtree;
           test "ambiguous catch-all patterns" ambiguous_catch_all_patterns;
           test "crossing catch-all patterns are order independent" crossing_catch_all_patterns_are_order_independent;
           test "catch-all endpoint decoding" catch_all_endpoint_decoding;

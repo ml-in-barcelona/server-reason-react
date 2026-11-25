@@ -1384,6 +1384,24 @@ expect("a catch-all URL was not routed", routed("/app/files/a/b.txt"));
 expect("a URL without a route was routed", !routed("/app/export.csv"));
 expect("a URL past a route was routed", !routed("/app/notes/42/raw"));
 expect("a URL outside the base path was routed", !routed("/notes/42"));
+expect(
+  "an encoded UTF-8 segment was not routed",
+  routed("/app/notes/caf%C3%A9"),
+);
+List.iter(
+  pathname =>
+    expect(
+      "a segment the server rejects was routed: " ++ pathname,
+      !routed(pathname),
+    ),
+  [
+    "/app/notes/%FF",
+    "/app/notes/%2F",
+    "/app/notes/%00",
+    "/app/notes/%2e%2e",
+    "/app/files/a/%2F/b",
+  ],
+);
 let actionRedirect =
   RouterPolicy.actionRedirect(
     ~basePath="/app",

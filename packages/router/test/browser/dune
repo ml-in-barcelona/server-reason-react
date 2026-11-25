@@ -17,7 +17,6 @@
   SearchKeyCases
   SearchParseCases
   RouterTypes
-  RouterUtf8
   RouterViewTransition
   TestRouterBrowser)
  (module_systems commonjs)
@@ -88,6 +87,3 @@
 
 (copy_files
  (files ../../runtime/shared/RouterSearchParse.ml))
-
-(copy_files
- (files ../../runtime/RouterUtf8.ml))
