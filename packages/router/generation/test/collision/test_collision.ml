@@ -1,18 +1,18 @@
 let render pathname =
-  let search = match RouterServer.Search.parse "" with Ok search -> search | Error _ -> assert false in
-  match RouterServer.EndpointRegistry.find RouterRegistry.registry ~pathname with
+  let search = match RouterEngine.Search.parse "" with Ok search -> search | Error _ -> assert false in
+  match RouterEngine.EndpointRegistry.find RouterRegistry.registry ~pathname with
   | Ok (Some matched) -> (
-      match RouterServer.EndpointRegistry.decode matched ~search with
+      match RouterEngine.EndpointRegistry.decode matched ~search with
       | Error _ -> Alcotest.fail ("expected decoded endpoint for " ^ pathname)
       | Ok prepared -> (
-          match Lwt_main.run (RouterServer.Execution.run (RouterServer.Endpoint.execution prepared)) with
+          match Lwt_main.run (RouterEngine.Execution.run (RouterEngine.Endpoint.execution prepared ~context:())) with
           | RouterRuntime.Loader.Data plan ->
               let resolved =
                 Lwt_main.run
-                  (RouterServer.Plan.resolve plan ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError))
+                  (RouterEngine.Plan.resolve plan ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError))
               in
               let html, _ =
-                Lwt_main.run (ReactServerDOM.render_html ~skipRoot:true (RouterServer.Plan.resolvedElement resolved))
+                Lwt_main.run (ReactServerDOM.render_html ~skipRoot:true (RouterEngine.Plan.resolvedElement resolved))
               in
               html
           | _ -> Alcotest.fail ("expected a page plan for " ^ pathname)))

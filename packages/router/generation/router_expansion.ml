@@ -1332,7 +1332,7 @@ let apply_native_component_inputs ~loc component parameters search loaders =
 
 let native_path_decoder ~loc (parameter : Router_declaration.parameter) =
   B.pexp_apply ~loc
-    (qualified ~loc "RouterServer.Decode.path")
+    (qualified ~loc "RouterEngine.Decode.path")
     [
       (Labelled "input", var ~loc (g "input"));
       (Labelled "name", B.estring ~loc parameter.name);
@@ -1342,10 +1342,10 @@ let native_path_decoder ~loc (parameter : Router_declaration.parameter) =
 let native_search_decoder ~loc (search : Router_declaration.search) =
   let callee =
     match search.kind with
-    | Required -> "RouterServer.Decode.searchRequired"
-    | Optional -> "RouterServer.Decode.searchOptional"
-    | Default _ -> "RouterServer.Decode.searchDefault"
-    | Many -> "RouterServer.Decode.searchMany"
+    | Required -> "RouterEngine.Decode.searchRequired"
+    | Optional -> "RouterEngine.Decode.searchOptional"
+    | Default _ -> "RouterEngine.Decode.searchDefault"
+    | Many -> "RouterEngine.Decode.searchMany"
   in
   let arguments =
     [
@@ -1429,11 +1429,11 @@ let branch_scope ~loc (scope : Router_declaration.scope) parameters ~search_keys
     | [] -> B.elist ~loc []
     | keys ->
         B.pexp_apply ~loc
-          (qualified ~loc "RouterServer.Decode.searchValues")
+          (qualified ~loc "RouterEngine.Decode.searchValues")
           [ (Labelled "input", var ~loc (g "input")); (Nolabel, B.elist ~loc (List.map (B.estring ~loc) keys)) ]
   in
   B.pexp_apply ~loc
-    (qualified ~loc "RouterServer.Branch.Scope.make")
+    (qualified ~loc "RouterEngine.Branch.Scope.make")
     [
       (Labelled "id", B.estring ~loc scope.id);
       (Labelled "parameters", parameter_list ~loc parameters);
@@ -1484,7 +1484,7 @@ let scope_plan ~context (scope : Router_declaration.scope) parameters search loa
       | layout, loading, _ ->
           let identity = branch_scope ~loc scope parameters ~search_keys:[] ~reusable in
           let instance_key =
-            B.pexp_apply ~loc (qualified ~loc "RouterServer.Branch.Scope.instanceKey") [ (Nolabel, identity) ]
+            B.pexp_apply ~loc (qualified ~loc "RouterEngine.Branch.Scope.instanceKey") [ (Nolabel, identity) ]
           in
           let children = var ~loc (g "children") in
           let body =
@@ -1522,7 +1522,7 @@ let scope_plan ~context (scope : Router_declaration.scope) parameters search loa
            scope.attachments.headers)
     @ [ (Nolabel, unit_expression ~loc) ]
   in
-  B.pexp_apply ~loc (qualified ~loc "RouterServer.Plan.Scope.make") arguments
+  B.pexp_apply ~loc (qualified ~loc "RouterEngine.Plan.Scope.make") arguments
 
 let failure_plan ~loc scopes error not_found error_boundary =
   let arguments =
@@ -1531,7 +1531,7 @@ let failure_plan ~loc scopes error not_found error_boundary =
     @ optional_argument "errorBoundary" error_boundary
     @ [ (Nolabel, unit_expression ~loc) ]
   in
-  B.pexp_apply ~loc (qualified ~loc "RouterServer.Plan.failure") arguments
+  B.pexp_apply ~loc (qualified ~loc "RouterEngine.Plan.failure") arguments
 
 let loader_execution ~context (route : Router_declaration.route) =
   let loc = route.loc in
@@ -1565,7 +1565,7 @@ let loader_execution ~context (route : Router_declaration.route) =
         in
         let plan =
           B.pexp_apply ~loc
-            (qualified ~loc "RouterServer.Plan.success")
+            (qualified ~loc "RouterEngine.Plan.success")
             [ (Labelled "scopes", B.elist ~loc completed); (Labelled "page", page) ]
         in
         let failure =
@@ -1574,9 +1574,9 @@ let loader_execution ~context (route : Router_declaration.route) =
             (failure_plan ~loc completed (var ~loc (g "error")) not_found error_boundary)
         in
         let plan =
-          B.pexp_apply ~loc (qualified ~loc "RouterServer.Plan.withFailure") [ (Nolabel, plan); (Nolabel, failure) ]
+          B.pexp_apply ~loc (qualified ~loc "RouterEngine.Plan.withFailure") [ (Nolabel, plan); (Nolabel, failure) ]
         in
-        B.pexp_apply ~loc (qualified ~loc "RouterServer.Execution.done_") [ (Nolabel, plan) ]
+        B.pexp_apply ~loc (qualified ~loc "RouterEngine.Execution.done_") [ (Nolabel, plan) ]
     | (scope : Router_declaration.scope) :: rest -> (
         let parameters = parameters @ scope.Router_declaration.parameters in
         let search = scope_search search scope in
@@ -1602,7 +1602,7 @@ let loader_execution ~context (route : Router_declaration.route) =
               match List.assoc_opt loader.result_label started with
               | Some name ->
                   B.pexp_apply ~loc:loader.loc
-                    (qualified ~loc:loader.loc "RouterServer.Execution.await")
+                    (qualified ~loc:loader.loc "RouterEngine.Execution.await")
                     [ (Nolabel, var ~loc:loader.loc name) ]
               | None ->
                   B.pexp_fun ~loc:loader.loc Nolabel None (B.punit ~loc:loader.loc)
@@ -1624,7 +1624,7 @@ let loader_execution ~context (route : Router_declaration.route) =
             in
             let failure = B.pexp_fun ~loc:loader.loc Nolabel None (pvar ~loc:loader.loc (g "error")) failed in
             B.pexp_apply ~loc:loader.loc
-              (qualified ~loc:loader.loc "RouterServer.Execution.loadWithBoundary")
+              (qualified ~loc:loader.loc "RouterEngine.Execution.loadWithBoundary")
               [ (Labelled "run", run); (Labelled "failure", failure); (Labelled "next", next) ])
   in
   List.fold_right
@@ -1632,7 +1632,7 @@ let loader_execution ~context (route : Router_declaration.route) =
       let name = List.assoc loader.result_label started in
       let loc = loader.loc in
       B.pexp_apply ~loc
-        (qualified ~loc "RouterServer.Execution.start")
+        (qualified ~loc "RouterEngine.Execution.start")
         [
           (Labelled "run", B.pexp_fun ~loc Nolabel None (B.punit ~loc) (loader_call loader parameters search []));
           (Labelled "next", B.pexp_fun ~loc Nolabel None (pvar ~loc name) execution);
@@ -1676,11 +1676,11 @@ let recover_decode_failure ~context ~loc ~branch ~scopes ~active_routes error_bo
   let plan = failure_plan ~loc scopes (var ~loc (g "decodeError")) None (Some error_boundary) in
   let execution =
     execution_function ~loc context
-      (B.pexp_apply ~loc (qualified ~loc "RouterServer.Execution.done_") [ (Nolabel, plan) ])
+      (B.pexp_apply ~loc (qualified ~loc "RouterEngine.Execution.done_") [ (Nolabel, plan) ])
   in
   let prepared =
     B.pexp_apply ~loc
-      (qualified ~loc "RouterServer.Endpoint.recovered")
+      (qualified ~loc "RouterEngine.Endpoint.recovered")
       [
         (Labelled "branch", B.elist ~loc branch);
         (Labelled "activeRoutes", B.elist ~loc (List.map (fun route -> B.estring ~loc route) active_routes));
@@ -1826,7 +1826,7 @@ let endpoint ~context ~base_path ~invalid_search ~root_search ~routes ~primary ~
   let execution = loader_execution ~context route in
   let prepared =
     B.pexp_apply ~loc
-      (qualified ~loc "RouterServer.Endpoint.prepared")
+      (qualified ~loc "RouterEngine.Endpoint.prepared")
       [ (Labelled "branch", projected_branch route); (Labelled "execution", execution_function ~loc context execution) ]
     |> fun prepared -> B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some prepared)
   in
@@ -1852,7 +1852,7 @@ let endpoint ~context ~base_path ~invalid_search ~root_search ~routes ~primary ~
   in
   let endpoint =
     B.pexp_apply ~loc
-      (qualified ~loc "RouterServer.Endpoint.make")
+      (qualified ~loc "RouterEngine.Endpoint.make")
       [
         (Labelled "id", B.estring ~loc (if primary then route.name else route.name ^ "@" ^ shape_path));
         (Labelled "path", B.estring ~loc shape_path);
@@ -1865,7 +1865,7 @@ let endpoint ~context ~base_path ~invalid_search ~root_search ~routes ~primary ~
   | Intent -> endpoint
   | level ->
       B.pexp_apply ~loc
-        (qualified ~loc "RouterServer.Endpoint.withPrefetch")
+        (qualified ~loc "RouterEngine.Endpoint.withPrefetch")
         [ (Nolabel, endpoint); (Nolabel, prefetch_level ~loc level) ]
 
 let redirect_search_type (redirect : Router_declaration.redirect) =
@@ -1914,12 +1914,12 @@ let redirect_endpoint ~context ~base_path ~invalid_search ~root_search (redirect
   let execution =
     B.pexp_apply ~loc
       (qualified ~loc
-         (if redirect.permanent then "RouterServer.Execution.permanentRedirect" else "RouterServer.Execution.redirect"))
+         (if redirect.permanent then "RouterEngine.Execution.permanentRedirect" else "RouterEngine.Execution.redirect"))
       [ (Nolabel, destination) ]
   in
   let prepared =
     B.pexp_apply ~loc
-      (qualified ~loc "RouterServer.Endpoint.prepared")
+      (qualified ~loc "RouterEngine.Endpoint.prepared")
       [
         (Labelled "branch", B.elist ~loc []);
         (Labelled "execution", execution_function ~used:false ~loc context execution);
@@ -1968,7 +1968,7 @@ let redirect_endpoint ~context ~base_path ~invalid_search ~root_search (redirect
     |> String.concat "\n" |> Digest.string |> Digest.to_hex
   in
   B.pexp_apply ~loc
-    (qualified ~loc "RouterServer.Endpoint.make")
+    (qualified ~loc "RouterEngine.Endpoint.make")
     [
       (Labelled "id", B.estring ~loc redirect.id);
       (Labelled "path", B.estring ~loc redirect.path);
@@ -2052,7 +2052,7 @@ let fallback (declaration : Router_declaration.t) =
       [
         B.value_binding ~loc
           ~pat:(input_pattern ~loc (search <> []))
-          ~expr:(B.pexp_apply ~loc (qualified ~loc "RouterServer.Input.forSearch") [ (Nolabel, var ~loc (g "search")) ]);
+          ~expr:(B.pexp_apply ~loc (qualified ~loc "RouterEngine.Input.forSearch") [ (Nolabel, var ~loc (g "search")) ]);
       ]
       folded
   in
@@ -2062,7 +2062,7 @@ let fallback (declaration : Router_declaration.t) =
       (B.pexp_fun ~loc (Labelled "error") None (pvar ~loc (g "error")) with_input)
   in
   match declaration.context with
-  | None -> fallback
+  | None -> B.pexp_fun ~loc (Labelled "context") None (B.punit ~loc) fallback
   | Some typ -> B.pexp_fun ~loc (Labelled "context") None (context_pattern ~loc typ fallback) fallback
 
 let raw_registry (declaration : Router_declaration.t) =
@@ -2106,7 +2106,7 @@ let raw_registry (declaration : Router_declaration.t) =
           ~pat:(pvar ~loc (p "registry"))
           ~expr:
             (B.pexp_apply ~loc
-               (qualified ~loc "RouterServer.EndpointRegistry.makeExn")
+               (qualified ~loc "RouterEngine.EndpointRegistry.makeExn")
                [ (Nolabel, B.elist ~loc route_values) ]);
       ]
   in
@@ -2129,17 +2129,14 @@ let raw_registry (declaration : Router_declaration.t) =
     let trailing_slash =
       let constructor =
         match declaration.trailing_slash with
-        | Router_declaration.Redirect -> "RouterServer.TrailingSlash.Redirect"
-        | Router_declaration.Reject -> "RouterServer.TrailingSlash.Reject"
+        | Router_declaration.Redirect -> "RouterEngine.TrailingSlash.Redirect"
+        | Router_declaration.Reject -> "RouterEngine.TrailingSlash.Reject"
       in
       B.pexp_construct ~loc { txt = Longident.parse constructor; loc } None
     in
     let expression =
       B.pexp_apply ~loc
-        (qualified ~loc
-           (match declaration.context with
-           | None -> "RouterServer.Server.make"
-           | Some _ -> "RouterServer.Server.makeWithContext"))
+        (qualified ~loc "RouterEngine.Server.make")
         ([
            (Labelled "basePath", var ~loc (p "basePath"));
            (Labelled "registry", var ~loc (p "registry"));

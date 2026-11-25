@@ -1,0 +1,494 @@
+(** Used by generated [Router.ml], [RouterRegistry.ml] and {!RouterServer}. Not a stable API: applications use
+    {!RouterServer}.
+
+    The server router turns an HTTP location into a renderable response in stages.
+
+    {!Path} and {!Search} first validate the untrusted URL. {!Registry} and {!Match} select a route, then {!Decode}
+    gives the generated endpoint typed inputs. The endpoint describes both its reusable layout {!Branch} and its
+    deferred loader {!Execution}. Finally, {!Plan} assembles the view, metadata, and headers while {!ServerEngine}
+    decides whether the client needs a full response, a branch patch, a redirect, or a reload. *)
+
+(** Validation and decomposition of URL pathnames.
+
+    Segments are decoded only after splitting, so an encoded slash cannot alter the route shape. Dot segments are
+    rejected rather than normalized because matching must use the same pathname the application received. *)
+module Path : sig
+  type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
+
+  val decodePathname : string -> (string list, error) result
+
+  val stripBasePath : basePath:string -> string -> string option
+  (** Returns the part of [pathname] below [basePath], or [None] when [pathname] is outside it. Segments are compared
+      after decoding, as route segments are, so [/app] matches [/app] and [/app/x] but not [/apple], and escapes match
+      in either letter case. *)
+
+  val splitLocation : string -> string * string
+
+  val stripTrailingSlashes : string -> string option
+  (** Returns the canonical pathname when [pathname] ends with one or more slashes, or [None] when it is already
+      canonical. The root pathname ["/"] is canonical. *)
+end
+
+(** Policy for request pathnames that end with a slash. Generated hrefs never end with a slash, so the canonical form of
+    every route is slash-free. [Redirect] answers with a permanent redirect to the canonical pathname; [Reject] treats
+    the request as not found. *)
+module TrailingSlash : sig
+  type t = Redirect | Reject
+end
+
+module Route : sig
+  type t
+
+  val make : id:string -> path:string -> t
+  val id : t -> string
+  val path : t -> string
+end
+
+module Registry : sig
+  type t
+  type error = DuplicateId of string | DuplicatePath of string | AmbiguousPattern of string * string
+
+  val make : Route.t list -> (t, error) result
+  (** Builds a registry after rejecting duplicate identities and patterns that could match the same pathname with equal
+      specificity. *)
+
+  val makeExn : Route.t list -> t
+  val routes : t -> Route.t list
+end
+
+module Match : sig
+  type t = { route : Route.t; parameters : (string * string) list }
+  type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
+
+  val find : Registry.t -> pathname:string -> (t option, error) result
+  (** Validates [pathname], selects the route with the most static segments, and decodes its parameters. Registry
+      validation makes that choice unique. *)
+end
+
+(** Parsed query parameters. Repeated values and first-seen key order are preserved so generated decoders can
+    distinguish one, optional, and many parameters without reparsing the URL. *)
+module Search : sig
+  type t
+  type error = QueryTooLong
+
+  val parse : string -> (t, error) result
+  val values : t -> string -> string list
+  val unknown : t -> owned:string list -> (string * string list) list
+end
+
+module Input : sig
+  type t
+
+  val forSearch : Search.t -> t
+end
+
+module Decode : sig
+  val path :
+    input:Input.t ->
+    name:string ->
+    parse:(string -> ('value, string) result) ->
+    ('value, 'error RouterRuntime.Error.t) result
+
+  val searchRequired :
+    input:Input.t ->
+    name:string ->
+    parse:(string -> ('value, string) result) ->
+    ('value, 'error RouterRuntime.Error.t) result
+
+  val searchOptional :
+    input:Input.t ->
+    name:string ->
+    parse:(string -> ('value, string) result) ->
+    ('value option, 'error RouterRuntime.Error.t) result
+
+  val searchDefault :
+    input:Input.t ->
+    name:string ->
+    parse:(string -> ('value, string) result) ->
+    fallback:'value ->
+    ('value, 'error RouterRuntime.Error.t) result
+
+  val searchMany :
+    input:Input.t ->
+    name:string ->
+    parse:(string -> ('value, string) result) ->
+    ('value list, 'error RouterRuntime.Error.t) result
+
+  val searchValues : input:Input.t -> string list -> (string * string list) list
+  (** The raw values of each named search parameter, in the given order, for {!Branch.Scope.make}. *)
+end
+
+(** A deferred description of route work.
+
+    Generated routes build this value while walking from the outermost layout to the page. Running it later keeps
+    decoding and branch comparison free of loader side effects, which is important when deciding whether a navigation
+    can be sent as a patch. *)
+module Execution : sig
+  type ('result, 'error) t
+
+  val done_ : 'result -> ('result, 'error) t
+
+  val redirect : RouterRuntime.destination -> ('result, 'error) t
+  (** Ends execution with a temporary redirect without running a loader. *)
+
+  val permanentRedirect : RouterRuntime.destination -> ('result, 'error) t
+  (** Ends execution with a permanent redirect without running a loader. *)
+
+  val load :
+    (unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t) -> ('data -> ('result, 'error) t) -> ('result, 'error) t
+  (** Adds a loader whose non-data result leaves the execution immediately. *)
+
+  val loadWithBoundary :
+    run:(unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t) ->
+    failure:('error RouterRuntime.Error.t -> 'result) ->
+    next:('data -> ('result, 'error) t) ->
+    ('result, 'error) t
+  (** Adds a loader with the nearest error boundary. Application errors, not found results, and non-fatal exceptions
+      become [failure] values; redirects and fatal exceptions still escape the boundary. *)
+
+  type ('data, 'error) started
+  (** A loader that already runs. *)
+
+  val start :
+    run:(unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t) ->
+    next:(('data, 'error) started -> ('result, 'error) t) ->
+    ('result, 'error) t
+  (** Calls [run] when the execution reaches this step and goes on with [next] without waiting for the result. An
+      exception from [run] is kept in the result. Pass {!await} as the [run] of a later {!loadWithBoundary} to read the
+      result in its place, so ancestors still decide first. A result that is never awaited is dropped. *)
+
+  val await : ('data, 'error) started -> unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t
+  (** The result of a started loader. *)
+
+  val run : ?diagnosticId:(exn -> string) -> ('result, 'error) t -> ('result, 'error) RouterRuntime.Loader.result Lwt.t
+end
+
+module Branch : sig
+  (** The identity of one layout instance in a matched route branch. *)
+  module Scope : sig
+    type t
+
+    val make :
+      id:string -> parameters:(string * string) list -> search:(string * string list) list -> reusable:bool -> t
+    (** [parameters] are framed into [instanceKey], avoiding ambiguous keys when names or values have shared prefixes.
+        [search] holds the raw values of the search parameters in the scope's reach, by URL key: the scope's own and
+        those of its ancestors. They do not enter [instanceKey], so a layout keeps its React identity across a search
+        change, but {!sharedPrefix} only reuses a scope whose [search] values are unchanged. [reusable] marks a scope
+        that owns an outlet and can therefore receive a navigation patch. *)
+
+    val id : t -> string
+    val instanceKey : t -> string
+    val reusable : t -> bool
+  end
+
+  type t = Scope.t list
+
+  val sharedPrefix : t -> t -> int
+  (** Returns the number of leading layout instances that can survive a navigation: reusable scopes with the same
+      [instanceKey] and the same search values in reach. Comparison stops as soon as either scope is not reusable. The
+      result is an upper bound: {!Plan.scopeCount} bounds it further once loaders have run. *)
+
+  val layouts : t -> RouterRuntime.Navigation.layout list
+end
+
+(** The render plan produced after all route loaders have completed.
+
+    A plan keeps rendering separate from loader execution: scopes contribute layouts and response values, while success
+    or failure supplies the leaf to place inside those layouts. *)
+module Plan : sig
+  module Scope : sig
+    type 'view t
+
+    val make :
+      ?layout:('view -> 'view) ->
+      ?metadata:(unit -> RouterRuntime.Metadata.t Lwt.t) ->
+      ?headers:(unit -> RouterRuntime.Headers.t Lwt.t) ->
+      unit ->
+      'view t
+  end
+
+  type ('view, 'error) t
+
+  type ('view, 'error) resolved = {
+    element : 'view option;
+    error : 'error RouterRuntime.Error.t option;
+    status : RouterRuntime.Status.t;
+    metadata : RouterRuntime.Metadata.t;
+    headers : RouterRuntime.Headers.t;
+  }
+
+  val success : scopes:'view Scope.t list -> page:'view -> ('view, 'error) t
+
+  val withFailure : ('view, 'error) t -> ('error RouterRuntime.Error.t -> ('view, 'error) t) -> ('view, 'error) t
+  (** Gives a successful plan the plan to render when the page itself fails after its loaders ran, for example when a
+      form's server function fails. Generated routes pass a failure plan with the route's nearest boundaries. A plan
+      without one renders the failure in its layouts with the built-in text. *)
+
+  val failure :
+    scopes:'view Scope.t list ->
+    error:'error RouterRuntime.Error.t ->
+    ?notFound:('error RouterRuntime.Error.t -> 'view) ->
+    ?errorBoundary:('error RouterRuntime.Error.t -> 'view) ->
+    unit ->
+    ('view, 'error) t
+
+  val scopeCount : ('view, 'error) t -> int
+  (** The number of layout scopes the plan renders. A loader failure drops the failing scope and everything below it, so
+      this can be shorter than the matched {!Branch.t} and bounds how deep a patch may graft. *)
+
+  type render = Full | Suffix of { omitted_scopes : int }
+
+  val resolve :
+    ?render:render ->
+    ('view, 'error) t ->
+    applicationStatus:('error -> RouterRuntime.Status.t) ->
+    ('view, 'error) resolved Lwt.t
+  (** Resolves metadata and headers from every scope, then renders either the whole layout chain or only its changed
+      suffix. Every scope starts at once; the results merge from the root down, whatever order they resolve in. Omitting
+      layouts for a patch does not omit their response metadata or headers. *)
+
+  val resolvedElement : (React.element, 'error) resolved -> React.element
+  (** The element to render: [resolved.element], or a built-in plain paragraph when the app declares no boundary for the
+      failure ("Not found", "Bad request" or "Something went wrong"). It never includes error details. *)
+end
+
+(** A generated route endpoint.
+
+    Decoding produces one [prepared] value containing the branch identity, publishable active routes, and deferred
+    execution. Keeping them together ensures response state, patch planning, and loader execution use the same decoded
+    parameters. *)
+module Endpoint : sig
+  type ('result, 'error, 'context) t
+  type ('result, 'error, 'context) prepared
+
+  val make :
+    id:string ->
+    path:string ->
+    activeRoutes:(string * string list) list ->
+    fingerprint:string ->
+    decode:(Input.t -> (('result, 'error, 'context) prepared, 'error RouterRuntime.Error.t) result) ->
+    ('result, 'error, 'context) t
+
+  val prepared :
+    branch:Branch.t -> execution:('context -> ('result, 'error) Execution.t) -> ('result, 'error, 'context) prepared
+  (** [execution] is a function so inspecting a candidate branch never starts its loaders. It receives the request
+      context given to {!ServerEngine.run}. *)
+
+  val recovered :
+    branch:Branch.t ->
+    activeRoutes:string list ->
+    execution:('context -> ('result, 'error) Execution.t) ->
+    ('result, 'error, 'context) prepared
+  (** Builds a decode-failure preparation whose response exposes only the listed successfully decoded active routes. *)
+
+  val withPrefetch : ('result, 'error, 'context) t -> RouterRuntime.PrefetchLevel.t -> ('result, 'error, 'context) t
+  (** Sets the route's prefetch level. {!make} gives [Intent]. *)
+
+  val prefetch : ('result, 'error, 'context) t -> RouterRuntime.PrefetchLevel.t
+  val branch : ('result, 'error, 'context) prepared -> Branch.t
+  val execution : ('result, 'error, 'context) prepared -> context:'context -> ('result, 'error) Execution.t
+  val route : ('result, 'error, 'context) t -> Route.t
+end
+
+module EndpointRegistry : sig
+  type ('result, 'error, 'context) t
+  type ('result, 'error, 'context) matched
+
+  val make : ('result, 'error, 'context) Endpoint.t list -> (('result, 'error, 'context) t, Registry.error) result
+  val makeExn : ('result, 'error, 'context) Endpoint.t list -> ('result, 'error, 'context) t
+
+  val find :
+    ('result, 'error, 'context) t -> pathname:string -> (('result, 'error, 'context) matched option, Match.error) result
+
+  val decode :
+    ('result, 'error, 'context) matched ->
+    search:Search.t ->
+    (('result, 'error, 'context) Endpoint.prepared, 'error RouterRuntime.Error.t) result
+
+  val route : ('result, 'error, 'context) matched -> Route.t
+  val parameters : ('result, 'error, 'context) matched -> (string * string) list
+  val prefetch : ('result, 'error, 'context) matched -> RouterRuntime.PrefetchLevel.t
+
+  val matches :
+    ('result, 'error, 'context) matched ->
+    ('result, 'error, 'context) Endpoint.prepared ->
+    RouterRuntime.Navigation.matched list
+
+  val fingerprint : ('result, 'error, 'context) t -> string
+  (** A stable digest of generated endpoint fingerprints, used to detect a client whose route definitions no longer
+      agree with the server. *)
+end
+
+(** The request-level state machine.
+
+    Document requests always produce complete render data. RSC navigations may instead reuse the common prefix of the
+    previous and target branches. A registry mismatch requests a reload before any route loaders run. *)
+module ServerEngine : sig
+  type requestKind = Document | Rsc
+  type navigationFacts = { from : string option; registry : string option; base_revision : string option }
+
+  type request = {
+    pathname : string;
+    search : string;
+    hash : string;
+    kind : requestKind;
+    navigation : navigationFacts option;
+  }
+
+  type ('view, 'error) full = {
+    kind : requestKind;
+    canonical_url : string;
+    revision : string;
+    registry_fingerprint : string;
+    protocol_version : int;
+    matches : RouterRuntime.Navigation.matched list;
+    layouts : RouterRuntime.Navigation.layout list;
+    resolved : ('view, 'error) Plan.resolved;
+  }
+
+  type ('view, 'error) patch = {
+    kind : requestKind;
+    canonical_url : string;
+    base_revision : string;
+    revision : string;
+    registry_fingerprint : string;
+    protocol_version : int;
+    matches : RouterRuntime.Navigation.matched list;
+    layouts : RouterRuntime.Navigation.layout list;
+    replace_from : string;
+    resolved : ('view, 'error) Plan.resolved;
+  }
+
+  type ('view, 'error) outcome =
+    | Full of ('view, 'error) full
+    | Patch of ('view, 'error) patch
+    | ReloadRequired
+    | Redirect of RouterRuntime.destination
+        (** A navigation redirect requested by a route loader. Document adapters answer with a see-other redirect (303).
+        *)
+    | PermanentRedirect of RouterRuntime.destination
+        (** A permanent redirect: pathname canonicalization, a loader that returns [Loader.PermanentRedirect], or a
+            [Router.redirect ~permanent:true]. Adapters answer documents with status 308 so the request method survives
+            the redirect. *)
+    | PrefetchRefused of RouterRuntime.PrefetchLevel.t
+        (** A prefetch asked for a level more eager than the matched route's level, which it carries. No decoder or
+            loader ran. *)
+
+  val run :
+    registry:(('view, 'error) Plan.t, 'error, 'context) EndpointRegistry.t ->
+    basePath:string ->
+    trailingSlash:TrailingSlash.t ->
+    fallback:(context:'context -> search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
+    applicationStatus:('error -> RouterRuntime.Status.t) ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    protocolVersion:int ->
+    ?prefetch:RouterRuntime.PrefetchLevel.t ->
+    ?actionError:'error RouterRuntime.Error.t ->
+    context:'context ->
+    request ->
+    ('view, 'error) outcome Lwt.t
+  (** Validates and matches the request, executes its loaders, resolves the resulting plan, and chooses the smallest
+      safe outcome. Unexpected exceptions are offered to the root fallback before a blank internal-error response is
+      used as a last resort.
+
+      [prefetch] marks the request as a prefetch at that level. When it is more eager than the matched route's level,
+      the outcome is [PrefetchRefused] and no decoder or loader runs. Otherwise, including when no route matches, the
+      outcome is the same as without [prefetch], and its headers add [Router-Prefetch] to [Vary].
+
+      [actionError] renders the page as failed with that error after its loaders ran (see {!Plan.withFailure}). A
+      loader's own redirect or failure still wins.
+
+      [revision] names the deployed build in full and patch responses. The client commits it and sends it back as the
+      base revision of its next navigation; a patch whose base revision is not the committed one is a full load. The
+      default is the constant [""], for an application that does not track deploys.
+
+      [context] is the request context, for example the signed-in session, or [()] for a manifest without [~context].
+      Every route execution and [fallback] receive it, and generated routes pass it to loaders, [~metadata] and
+      [~headers] as [~context]. *)
+end
+
+(** Configured facade shared by the HTTP adapter and the generated client root. *)
+module Server : sig
+  type ('view, 'error, 'context) t
+
+  val make :
+    basePath:string ->
+    registry:(('view, 'error) Plan.t, 'error, 'context) EndpointRegistry.t ->
+    ?trailingSlash:TrailingSlash.t ->
+    fallback:(context:'context -> search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t) ->
+    applicationStatus:('error -> RouterRuntime.Status.t) ->
+    ?protocolVersion:int ->
+    ?interceptLinks:bool ->
+    ?viewTransitions:bool ->
+    ?pageCacheMaxAge:float ->
+    unit ->
+    ('view, 'error, 'context) t
+  (** [trailingSlash] defaults to {!TrailingSlash.Redirect}. [interceptLinks] (default [true]), [viewTransitions]
+      (default [false]) and [pageCacheMaxAge] (seconds, the client's default [0.0] when absent) are passed to the client
+      [Provider] by {!clientRoot} and the [make] given to {!clientRootWith}. *)
+
+  val basePath : ('view, 'error, 'context) t -> string
+  val protocolVersion : ('view, 'error, 'context) t -> int
+  val fingerprint : ('view, 'error, 'context) t -> string
+
+  val routes : ('view, 'error, 'context) t -> string array
+  (** Every concrete route path, optional segments expanded, without the base path, in registry order. The client parses
+      each with [RouterPattern.parse] and matches links with [RouterPattern.matchesPath ~basePath], so a base path that
+      is not valid route syntax, such as [/a%20b], still works. *)
+
+  val clientRoot :
+    ?pageCacheCapacity:int ->
+    (React.element, 'error, 'context) t ->
+    initial:RouterRuntime.Navigation.committed ->
+    metadata:React.element ->
+    children:React.element ->
+    React.element
+  (** The default client root. Without [pageCacheCapacity] the client's default page cache (30 pages) applies. *)
+
+  val clientRootWith :
+    ?pageCacheCapacity:int ->
+    (React.element, 'error, 'context) t ->
+    make:
+      (initial:RouterRuntime.Navigation.committed ->
+      protocolVersion:int ->
+      registryFingerprint:string ->
+      basePath:string ->
+      routes:string array ->
+      interceptLinks:bool ->
+      viewTransitions:bool ->
+      pageCacheCapacity:int option ->
+      pageCacheMaxAge:float option ->
+      metadata:React.element ->
+      children:React.element ->
+      React.element) ->
+    initial:RouterRuntime.Navigation.committed ->
+    metadata:React.element ->
+    children:React.element ->
+    React.element
+  (** Builds the client root with a custom [make], for example a client component that renders [RouterReact.Provider]
+      with [~onNavigationError]. [make] receives every setting the default client root passes to the [Provider]:
+      [interceptLinks] and [viewTransitions] from {!make}, [pageCacheCapacity] as given here, and [pageCacheMaxAge] from
+      {!make}. [None] means the [Provider]'s default; pass the option on with [?pageCacheCapacity]. *)
+
+  val run :
+    ('view, 'error, 'context) t ->
+    diagnosticId:(exn -> string) ->
+    ?revision:(unit -> string) ->
+    ?prefetch:RouterRuntime.PrefetchLevel.t ->
+    ?actionError:'error RouterRuntime.Error.t ->
+    context:'context ->
+    ServerEngine.request ->
+    ('view, 'error) ServerEngine.outcome Lwt.t
+  (** {!ServerEngine.run} with the configuration of the server. *)
+end
+
+val statusOfError :
+  application:('error -> RouterRuntime.Status.t) -> 'error RouterRuntime.Error.t -> RouterRuntime.Status.t
+
+val redirectLocation : RouterRuntime.destination -> string option
+(** See {!RouterServer.redirectLocation}. *)
+
+val unsafeRedirect : RouterRuntime.destination -> exn
+val fatalException : exn -> bool
+val internalErrorText : string

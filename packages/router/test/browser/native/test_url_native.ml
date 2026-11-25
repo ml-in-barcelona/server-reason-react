@@ -12,13 +12,13 @@ let platform =
     encodeSearch = RouterRuntime.encodeSearch;
     parseSearch =
       (fun search ->
-        match RouterServer.Search.parse search with
-        | Ok parsed -> Some (RouterServer.Search.unknown parsed ~owned:[])
+        match RouterEngine.Search.parse search with
+        | Ok parsed -> Some (RouterEngine.Search.unknown parsed ~owned:[])
         | Error _ -> None);
     encodeSegment;
     decodeSegment =
       (fun segment ->
-        match RouterServer.Path.decodePathname ("/" ^ segment) with Ok [ decoded ] -> Some decoded | _ -> None);
+        match RouterEngine.Path.decodePathname ("/" ^ segment) with Ok [ decoded ] -> Some decoded | _ -> None);
   }
 
 let rejects encode = match encode () with _ -> false | exception Invalid_argument _ -> true

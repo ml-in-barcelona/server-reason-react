@@ -59,18 +59,18 @@ let testCatchAllHref = () => {
 
 let testCatchAllActiveRoute = () => {
   let search =
-    switch (RouterServer.Search.parse("")) {
+    switch (RouterEngine.Search.parse("")) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected valid search")
     };
   switch (
-    RouterServer.EndpointRegistry.find(
+    RouterEngine.EndpointRegistry.find(
       RouterRegistry.registry,
       ~pathname="/assets/a/b",
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    switch (RouterEngine.EndpointRegistry.decode(matched, ~search)) {
     | Error(_) => Alcotest.fail("expected catch-all decode")
     | Ok(prepared) =>
       Alcotest.check(
@@ -82,7 +82,7 @@ let testCatchAllActiveRoute = () => {
         ),
         "catch-all active route",
         [("Asset", [("parts", "a/b")])],
-        RouterServer.EndpointRegistry.matches(matched, prepared)
+        RouterEngine.EndpointRegistry.matches(matched, prepared)
         |> List.map(({ RouterRuntime.Navigation.routeId, parameters }) =>
              (routeId, parameters)
            ),
@@ -102,19 +102,19 @@ let testCustomScalarHref = () => {
     href,
   );
   let search =
-    switch (RouterServer.Search.parse("")) {
+    switch (RouterEngine.Search.parse("")) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected valid search")
     };
   ScalarId.reset();
   switch (
-    RouterServer.EndpointRegistry.find(
+    RouterEngine.EndpointRegistry.find(
       RouterRegistry.registry,
       ~pathname="/scalar/caf%C3%A9%2B%40",
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    switch (RouterEngine.EndpointRegistry.decode(matched, ~search)) {
     | Error(_) => Alcotest.fail("expected custom scalar decode")
     | Ok(_) =>
       Alcotest.check(
@@ -192,31 +192,31 @@ let testGeneratedEndpoint = () => {
   WorkspaceLoader.reset();
   Attachments.reset();
   let search =
-    switch (RouterServer.Search.parse("")) {
+    switch (RouterEngine.Search.parse("")) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected valid search")
     };
   switch (
-    RouterServer.EndpointRegistry.find(
+    RouterEngine.EndpointRegistry.find(
       RouterRegistry.registry,
       ~pathname="/workspaces/7/notes/42",
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    switch (RouterEngine.EndpointRegistry.decode(matched, ~search)) {
     | Error(_) => Alcotest.fail("expected decoded endpoint")
     | Ok(prepared) =>
       switch (
         Lwt_main.run(
-          RouterServer.Execution.run(
-            RouterServer.Endpoint.execution(prepared),
+          RouterEngine.Execution.run(
+            RouterEngine.Endpoint.execution(prepared, ~context=()),
           ),
         )
       ) {
       | RouterRuntime.Loader.Data(plan) =>
         let result =
           Lwt_main.run(
-            RouterServer.Plan.resolve(plan, ~applicationStatus=_ =>
+            RouterEngine.Plan.resolve(plan, ~applicationStatus=_ =>
               RouterRuntime.Status.InternalServerError
             ),
           );
@@ -276,21 +276,21 @@ let testGeneratedEndpoint = () => {
 
 let testGeneratedDecodeIsLazy = () => {
   let search =
-    switch (RouterServer.Search.parse("")) {
+    switch (RouterEngine.Search.parse("")) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected valid search")
     };
   NotePage.fail();
   switch (
-    RouterServer.EndpointRegistry.find(
+    RouterEngine.EndpointRegistry.find(
       RouterRegistry.registry,
       ~pathname="/workspaces/7/notes/42",
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    switch (RouterEngine.EndpointRegistry.decode(matched, ~search)) {
     | Ok(prepared) =>
-      let _branch = RouterServer.Endpoint.branch(prepared);
+      let _branch = RouterEngine.Endpoint.branch(prepared);
       NotePage.reset();
     | Error(_) => Alcotest.fail("expected decoded endpoint")
     }
@@ -302,31 +302,31 @@ let testGeneratedDecodeError = () => {
   WorkspaceLoader.reset();
   Attachments.reset();
   let search =
-    switch (RouterServer.Search.parse("")) {
+    switch (RouterEngine.Search.parse("")) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected valid search")
     };
   switch (
-    RouterServer.EndpointRegistry.find(
+    RouterEngine.EndpointRegistry.find(
       RouterRegistry.registry,
       ~pathname="/workspaces/7/notes/nope",
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    switch (RouterEngine.EndpointRegistry.decode(matched, ~search)) {
     | Error(_) => Alcotest.fail("expected recoverable typed path error")
     | Ok(prepared) =>
       switch (
         Lwt_main.run(
-          RouterServer.Execution.run(
-            RouterServer.Endpoint.execution(prepared),
+          RouterEngine.Execution.run(
+            RouterEngine.Endpoint.execution(prepared, ~context=()),
           ),
         )
       ) {
       | RouterRuntime.Loader.Data(plan) =>
         let resolved =
           Lwt_main.run(
-            RouterServer.Plan.resolve(plan, ~applicationStatus=_ =>
+            RouterEngine.Plan.resolve(plan, ~applicationStatus=_ =>
               RouterRuntime.Status.InternalServerError
             ),
           );
@@ -359,31 +359,31 @@ let testGeneratedLoaderShortCircuit = () => {
   Attachments.reset();
   WorkspaceLoader.notFound();
   let search =
-    switch (RouterServer.Search.parse("")) {
+    switch (RouterEngine.Search.parse("")) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected valid search")
     };
   switch (
-    RouterServer.EndpointRegistry.find(
+    RouterEngine.EndpointRegistry.find(
       RouterRegistry.registry,
       ~pathname="/workspaces/7/notes/42",
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    switch (RouterEngine.EndpointRegistry.decode(matched, ~search)) {
     | Error(_) => Alcotest.fail("expected decoded endpoint")
     | Ok(prepared) =>
       switch (
         Lwt_main.run(
-          RouterServer.Execution.run(
-            RouterServer.Endpoint.execution(prepared),
+          RouterEngine.Execution.run(
+            RouterEngine.Endpoint.execution(prepared, ~context=()),
           ),
         )
       ) {
       | RouterRuntime.Loader.Data(plan) =>
         let result =
           Lwt_main.run(
-            RouterServer.Plan.resolve(plan, ~applicationStatus=_ =>
+            RouterEngine.Plan.resolve(plan, ~applicationStatus=_ =>
               RouterRuntime.Status.InternalServerError
             ),
           );
@@ -421,23 +421,23 @@ let testGeneratedLoaderShortCircuit = () => {
 let testGeneratedBadDefaultSearch = () => {
   WorkspaceLoader.reset();
   let search =
-    switch (RouterServer.Search.parse("?page=nope")) {
+    switch (RouterEngine.Search.parse("?page=nope")) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected structurally valid search")
     };
   switch (
-    RouterServer.EndpointRegistry.find(
+    RouterEngine.EndpointRegistry.find(
       RouterRegistry.registry,
       ~pathname="/workspaces/7/notes/42",
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    switch (RouterEngine.EndpointRegistry.decode(matched, ~search)) {
     | Ok(prepared) =>
       ignore(
         Lwt_main.run(
-          RouterServer.Execution.run(
-            RouterServer.Endpoint.execution(prepared),
+          RouterEngine.Execution.run(
+            RouterEngine.Endpoint.execution(prepared, ~context=()),
           ),
         ),
       );
@@ -457,22 +457,23 @@ let runEngine =
     (
       ~pathname,
       ~search="",
-      ~kind=RouterServer.ServerEngine.Rsc,
+      ~kind=RouterEngine.ServerEngine.Rsc,
       ~navigation=None,
       (),
     ) =>
   Lwt_main.run(
-    RouterServer.ServerEngine.run(
+    RouterEngine.ServerEngine.run(
+      ~context=(),
       ~registry=RouterRegistry.registry,
       ~basePath=RouterRegistry.basePath,
-      ~trailingSlash=RouterServer.TrailingSlash.Redirect,
+      ~trailingSlash=RouterEngine.TrailingSlash.Redirect,
       ~fallback=RouterRegistry.fallback,
       ~applicationStatus=RouterRegistry.applicationStatus,
       ~diagnosticId=_ => "diagnostic-1",
       ~revision=() => "revision-1",
       ~protocolVersion=1,
       {
-        RouterServer.ServerEngine.pathname,
+        RouterEngine.ServerEngine.pathname,
         search,
         hash: "",
         kind,
@@ -539,7 +540,7 @@ let testDocumentNotFoundResponse = () => {
   switch (
     runEngine(
       ~pathname="/fixture/missing",
-      ~kind=RouterServer.ServerEngine.Document,
+      ~kind=RouterEngine.ServerEngine.Document,
       (),
     )
   ) {
@@ -862,11 +863,11 @@ let testApplicationErrorPolicy = () => {
 };
 
 let registryFingerprint = () =>
-  "1." ++ RouterServer.EndpointRegistry.fingerprint(RouterRegistry.registry);
+  "1." ++ RouterEngine.EndpointRegistry.fingerprint(RouterRegistry.registry);
 
 let navigationFacts = (~from, ~registry, ~baseRevision) =>
   Some({
-    RouterServer.ServerEngine.from: Some(from),
+    RouterEngine.ServerEngine.from: Some(from),
     registry: Some(registry),
     base_revision: Some(baseRevision),
   });
@@ -880,7 +881,7 @@ let navigateFrom = from =>
 
 let revalidate =
   Some({
-    RouterServer.ServerEngine.from: None,
+    RouterEngine.ServerEngine.from: None,
     registry: Some(registryFingerprint()),
     base_revision: Some("base-1"),
   });

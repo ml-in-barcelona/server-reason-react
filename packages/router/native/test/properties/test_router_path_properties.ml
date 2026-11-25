@@ -401,8 +401,8 @@ let show_routes routes = show_list (fun route -> quote (print route)) routes
 let route_id index = "r" ^ string_of_int index
 
 let routes_registry routes =
-  RouterServer.Registry.make
-    (List.mapi (fun index route -> RouterServer.Route.make ~id:(route_id index) ~path:(print route)) routes)
+  RouterEngine.Registry.make
+    (List.mapi (fun index route -> RouterEngine.Route.make ~id:(route_id index) ~path:(print route)) routes)
 
 let show_registry_case (routes, pathnames) = show_routes routes ^ "\npathnames " ^ show_list quote pathnames
 
@@ -438,7 +438,7 @@ let registry_agrees_with_reference =
       | Ok registry ->
           List.iter
             (fun pathname ->
-              let found = RouterServer.Match.find registry ~pathname in
+              let found = RouterEngine.Match.find registry ~pathname in
               match (reference_decode pathname, found) with
               | None, Error _ -> ()
               | None, Ok _ -> failf "accepted pathname %S" pathname
@@ -455,13 +455,13 @@ let registry_agrees_with_reference =
                   in
                   match (candidates, found) with
                   | [], None -> ()
-                  | [], Some matched -> failf "%S matched %s" pathname (RouterServer.Route.id matched.route)
+                  | [], Some matched -> failf "%S matched %s" pathname (RouterEngine.Route.id matched.route)
                   | (_, id, _) :: _, None -> failf "%S matched nothing, expected %s" pathname id
                   | (best, _, _) :: (next, other, _) :: _, _ when best = next ->
                       failf "registry accepted routes that tie on %S (%s)" pathname other
                   | (_, id, captured) :: _, Some matched ->
-                      if RouterServer.Route.id matched.route <> id then
-                        failf "%S matched %s, expected %s" pathname (RouterServer.Route.id matched.route) id;
+                      if RouterEngine.Route.id matched.route <> id then
+                        failf "%S matched %s, expected %s" pathname (RouterEngine.Route.id matched.route) id;
                       if matched.parameters <> captured then failf "%S captured different parameters" pathname))
             pathnames)
 
@@ -495,11 +495,11 @@ let href_round_trips =
           let shapes = Pattern.shapes pattern in
           let routes =
             List.mapi
-              (fun index shape -> RouterServer.Route.make ~id:(route_id index) ~path:(Pattern.toString shape))
+              (fun index shape -> RouterEngine.Route.make ~id:(route_id index) ~path:(Pattern.toString shape))
               shapes
           in
           (* Shapes that two pathnames share make the template invalid; the generator reports it. *)
-          match RouterServer.Registry.make routes with
+          match RouterEngine.Registry.make routes with
           | Error _ -> ()
           | Ok registry -> (
               let names shape =
@@ -508,10 +508,10 @@ let href_round_trips =
               in
               let given = List.sort compare (List.map fst parameters) in
               let expected = List.filter (fun shape -> names shape = given) shapes in
-              match (RouterServer.Match.find registry ~pathname:href, expected) with
+              match (RouterEngine.Match.find registry ~pathname:href, expected) with
               | Ok (Some matched), [ shape ] ->
-                  if RouterServer.Route.path matched.route <> Pattern.toString shape then
-                    failf "%S matched %S" href (RouterServer.Route.path matched.route);
+                  if RouterEngine.Route.path matched.route <> Pattern.toString shape then
+                    failf "%S matched %S" href (RouterEngine.Route.path matched.route);
                   let sort = List.sort compare in
                   if sort matched.parameters <> sort parameters then failf "%S decoded different parameters" href
               | Ok (Some _), _ -> failf "no unique expected shape"
@@ -550,9 +550,9 @@ let matches_path_agrees_with_server =
     (fun state -> (print (gen_route state 0), gen_pathname state))
     (fun (path, pathname) ->
       let pattern = match Pattern.parse path with Ok pattern -> pattern | Error _ -> failf "invalid route" in
-      let registry = RouterServer.Registry.makeExn [ RouterServer.Route.make ~id:"r" ~path ] in
+      let registry = RouterEngine.Registry.makeExn [ RouterEngine.Route.make ~id:"r" ~path ] in
       let server =
-        match RouterServer.Match.find registry ~pathname with Ok (Some _) -> true | Ok None | Error _ -> false
+        match RouterEngine.Match.find registry ~pathname with Ok (Some _) -> true | Ok None | Error _ -> false
       in
       if Pattern.matchesPath pattern pathname <> server then
         failf "matchesPath %b, server %b" (Pattern.matchesPath pattern pathname) server)
@@ -571,17 +571,17 @@ let base_path_agrees_with_server =
       let pattern = match Pattern.parse "/:x<string>" with Ok pattern -> pattern | Error _ -> assert false in
       let root = match Pattern.parse "/" with Ok pattern -> pattern | Error _ -> assert false in
       let registry =
-        RouterServer.Registry.makeExn
-          [ RouterServer.Route.make ~id:"x" ~path:"/:x<string>"; RouterServer.Route.make ~id:"root" ~path:"/" ]
+        RouterEngine.Registry.makeExn
+          [ RouterEngine.Route.make ~id:"x" ~path:"/:x<string>"; RouterEngine.Route.make ~id:"root" ~path:"/" ]
       in
       (* ServerEngine applies the trailing-slash policy before it strips the base path. *)
-      let canonical = RouterServer.Path.stripTrailingSlashes pathname = None in
+      let canonical = RouterEngine.Path.stripTrailingSlashes pathname = None in
       let server =
-        match if canonical then RouterServer.Path.stripBasePath ~basePath pathname else None with
+        match if canonical then RouterEngine.Path.stripBasePath ~basePath pathname else None with
         | None -> None
         | Some rest -> (
-            match RouterServer.Match.find registry ~pathname:rest with
-            | Ok (Some matched) -> Some (RouterServer.Route.id matched.route)
+            match RouterEngine.Match.find registry ~pathname:rest with
+            | Ok (Some matched) -> Some (RouterEngine.Route.id matched.route)
             | Ok None | Error _ -> None)
       in
       let client =
