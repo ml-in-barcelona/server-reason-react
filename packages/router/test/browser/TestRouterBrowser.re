@@ -13,7 +13,7 @@ expect(
 );
 
 module Cache = RouterNavigationCache;
-let scope = Cache.scope(~protocolVersion=2, ~registryFingerprint="f1");
+let scope = Cache.scope(~protocolVersion=1, ~registryFingerprint="f1");
 let full = name =>
   Cache.[
     {
@@ -75,7 +75,7 @@ expect(
 expect(
   "an entry was shared across registry fingerprints",
   read(
-    ~scope=Cache.scope(~protocolVersion=2, ~registryFingerprint="f2"),
+    ~scope=Cache.scope(~protocolVersion=1, ~registryFingerprint="f2"),
     "/one",
   )
   == None,
@@ -508,15 +508,26 @@ expect(
   == "%EF%BC%A1=1&%F0%9F%98%80=2",
 );
 
+let rejects = encode =>
+  try(
+    {
+      ignore(encode());
+      false;
+    }
+  ) {
+  | Invalid_argument(_) => true
+  };
 expect(
-  "a lone surrogate in a search value did not become U+FFFD",
-  RouterRuntime.encodeSearch([("k", [Js.String.fromCharCode(0xd800)])])
-  == "k=%EF%BF%BD",
+  "a lone surrogate in a search value was printed",
+  rejects(() =>
+    RouterRuntime.encodeSearch([("k", [Js.String.fromCharCode(0xd800)])])
+  ),
 );
 expect(
-  "a lone surrogate in a search name did not become U+FFFD",
-  RouterRuntime.encodeSearch([(Js.String.fromCharCode(0xdc00), ["v"])])
-  == "%EF%BF%BD=v",
+  "a lone surrogate in a search name was printed",
+  rejects(() =>
+    RouterRuntime.encodeSearch([(Js.String.fromCharCode(0xdc00), ["v"])])
+  ),
 );
 expect(
   "a surrogate pair in a search value was replaced",
@@ -542,6 +553,50 @@ List.iter(
     ("", Error("expected an integer")),
     ("-", Error("expected an integer")),
   ],
+);
+
+let badSearch = [
+  ("page", ["nope"]),
+  ("n", ["1", "x", "3", ""]),
+  ("o", ["nope"]),
+  ("r", ["nope"]),
+];
+let parseInt = RouterRuntime.Search.parseInt;
+expect(
+  "a bad optional search value was not read as None",
+  RouterRuntime.Search.optional(~name="o", ~parse=parseInt, badSearch) == None,
+);
+expect(
+  "a bad defaulted search value did not fall back to the default",
+  RouterRuntime.Search.default(
+    ~name="page",
+    ~parse=parseInt,
+    ~fallback=1,
+    badSearch,
+  )
+  == 1,
+);
+expect(
+  "bad repeated search values were not skipped",
+  RouterRuntime.Search.many(~name="n", ~parse=parseInt, badSearch) == [1, 3],
+);
+expect(
+  "a bad required search value was not read as None",
+  RouterRuntime.Search.required(~name="r", ~parse=parseInt, badSearch) == None,
+);
+expect(
+  "a missing required search value was not read as None",
+  RouterRuntime.Search.required(~name="missing", ~parse=parseInt, badSearch)
+  == None,
+);
+expect(
+  "a good required search value was not read",
+  RouterRuntime.Search.required(
+    ~name="r",
+    ~parse=parseInt,
+    [("r", ["7", "8"])],
+  )
+  == Some(7),
 );
 
 let sameSearch = (current, next) => RouterSearch.unchanged(~current, ~next);
@@ -585,6 +640,16 @@ let writeStorage: (string, string) => unit = [%mel.raw
 let storedScrollCount: unit => int = [%mel.raw
   {|() => JSON.parse(globalThis.sessionStorage.getItem("server-reason-react.router.scroll")).length|}
 ];
+let storedScrollEntry: string => string = [%mel.raw
+  {|(id) => JSON.stringify(JSON.parse(globalThis.sessionStorage.getItem("server-reason-react.router.scroll")).find((entry) => entry[0] === id))|}
+];
+let onlyWindow = window =>
+  Some(
+    RouterScroll.{
+      window,
+      containers: [],
+    },
+  );
 let breakStorage: unit => unit = [%mel.raw
   {|() => {
   globalThis.sessionStorage = {
@@ -597,19 +662,57 @@ let breakStorage: unit => unit = [%mel.raw
 installStorage();
 writeStorage(
   RouterScroll.storageKey,
-  {|[["content-previous server",0,480]]|},
+  {|[["content-previous server",0,480],["with-containers",0,20,[["sidebar",0,300],["broken",1],["panel",5,60]]]]|},
 );
 expect(
   "a scroll position saved by a previous document was not restored",
   RouterScroll.find(
     RouterScroll.entryId(~revision="content-previous", ~key="server"),
   )
-  == Some((0.0, 480.0)),
+  == onlyWindow((0.0, 480.0)),
+);
+expect(
+  "stored container positions were not decoded",
+  RouterScroll.find("with-containers")
+  == Some(
+       RouterScroll.{
+         window: (0.0, 20.0),
+         containers: [("sidebar", (0.0, 300.0)), ("panel", (5.0, 60.0))],
+       },
+     ),
+);
+RouterScroll.save(
+  "saved-containers",
+  RouterScroll.{
+    window: (0.0, 10.0),
+    containers: [("list", (0.0, 250.0))],
+  },
+);
+expect(
+  "container positions were not stored with the entry",
+  String.equal(
+    storedScrollEntry("saved-containers"),
+    {|["saved-containers",0,10,[["list",0,250]]]|},
+  ),
+);
+RouterScroll.save(
+  "saved-window",
+  RouterScroll.{
+    window: (0.0, 10.0),
+    containers: [],
+  },
+);
+expect(
+  "an entry without containers was not stored in the original format",
+  String.equal(storedScrollEntry("saved-window"), {|["saved-window",0,10]|}),
 );
 for (index in 0 to 149) {
   RouterScroll.save(
     "entry-" ++ string_of_int(index),
-    (0.0, float_of_int(index)),
+    RouterScroll.{
+      window: (0.0, float_of_int(index)),
+      containers: [],
+    },
   );
 };
 expect(
@@ -622,13 +725,25 @@ expect(
 );
 expect(
   "the newest scroll position was not stored",
-  RouterScroll.find("entry-149") == Some((0.0, 149.0)),
+  RouterScroll.find("entry-149") == onlyWindow((0.0, 149.0)),
 );
 breakStorage();
-RouterScroll.save("unstored", (3.0, 4.0));
+RouterScroll.save(
+  "unstored",
+  RouterScroll.{
+    window: (3.0, 4.0),
+    containers: [("list", (0.0, 7.0))],
+  },
+);
 expect(
   "a scroll position was lost when sessionStorage threw",
-  RouterScroll.find("unstored") == Some((3.0, 4.0)),
+  RouterScroll.find("unstored")
+  == Some(
+       RouterScroll.{
+         window: (3.0, 4.0),
+         containers: [("list", (0.0, 7.0))],
+       },
+     ),
 );
 
 let page =
@@ -862,8 +977,12 @@ expect(
   searchKey("?q=%c3%a9", "/app/notes?q=%C3%A9"),
 );
 expect(
-  "a broken escape did not compare as text",
-  searchKey("?q=%zz", "/app/notes?q=%25zz"),
+  "a broken escape compared as text",
+  !searchKey("?q=%zz", "/app/notes?q=%25zz"),
+);
+expect(
+  "a malformed pair changed whether a link is current",
+  searchKey("?x=%FF&q=1", "/app/notes?q=1"),
 );
 expect(
   "the order of repeated values was ignored",
@@ -962,6 +1081,88 @@ expect(
     "/app/notes?b=1&q=a%20b#details",
   )
   == None,
+);
+
+let unchanged =
+    (
+      ~action=RouterRuntime.Navigation.Push,
+      ~revalidate=false,
+      ~status=RouterRuntime.Navigation.Idle,
+      href,
+    ) =>
+  RouterPolicy.unchangedTarget(
+    ~location=currentLocation,
+    ~status,
+    ~action,
+    ~revalidate,
+    href,
+  );
+expect(
+  "a push to the committed URL was not unchanged",
+  unchanged("/app/notes?q=a%20b&b=1#top"),
+);
+expect(
+  "a replace to the committed URL was not unchanged",
+  unchanged(
+    ~action=RouterRuntime.Navigation.Replace,
+    "/app/notes?b=1&q=a+b#top",
+  ),
+);
+expect(
+  "a navigation after a failed one to the committed URL was not unchanged",
+  unchanged(
+    ~status=
+      RouterRuntime.Navigation.Failed({
+        requestId: 1,
+        message: "failed",
+      }),
+    "/app/notes?b=1&q=a+b#top",
+  ),
+);
+expect(
+  "a revalidating navigation to the committed URL was unchanged",
+  !unchanged(~revalidate=true, "/app/notes?b=1&q=a+b#top"),
+);
+expect(
+  "a pop to the committed URL was unchanged",
+  !
+    unchanged(
+      ~action=RouterRuntime.Navigation.Pop,
+      "/app/notes?b=1&q=a+b#top",
+    ),
+);
+expect(
+  "a navigation to the committed URL during another navigation was unchanged",
+  !
+    unchanged(
+      ~status=
+        RouterRuntime.Navigation.Loading({
+          requestId: 2,
+          fromRevision: "r",
+          to_: {
+            ...currentLocation,
+            pathname: "/app/other",
+          },
+          action: RouterRuntime.Navigation.Push,
+        }),
+      "/app/notes?b=1&q=a+b#top",
+    ),
+);
+expect(
+  "a navigation without the committed hash was unchanged",
+  !unchanged("/app/notes?b=1&q=a+b"),
+);
+expect(
+  "a navigation to another hash was unchanged",
+  !unchanged("/app/notes?b=1&q=a+b#details"),
+);
+expect(
+  "a navigation to another search was unchanged",
+  !unchanged("/app/notes?b=2#top"),
+);
+expect(
+  "a navigation to another path was unchanged",
+  !unchanged("/app/other?b=1&q=a+b#top"),
 );
 
 expect(
@@ -1223,6 +1424,32 @@ expect("a catch-all URL was not routed", routed("/app/files/a/b.txt"));
 expect("a URL without a route was routed", !routed("/app/export.csv"));
 expect("a URL past a route was routed", !routed("/app/notes/42/raw"));
 expect("a URL outside the base path was routed", !routed("/notes/42"));
+expect(
+  "a URL with an encoded slash was routed",
+  !routed("/app/files/a%2Fb"),
+);
+expect(
+  "a URL with an encoded dot segment was routed",
+  !routed("/app/files/%2E"),
+);
+expect(
+  "an encoded UTF-8 segment was not routed",
+  routed("/app/notes/caf%C3%A9"),
+);
+List.iter(
+  pathname =>
+    expect(
+      "a segment the server rejects was routed: " ++ pathname,
+      !routed(pathname),
+    ),
+  [
+    "/app/notes/%FF",
+    "/app/notes/%2F",
+    "/app/notes/%00",
+    "/app/notes/%2e%2e",
+    "/app/files/a/%2F/b",
+  ],
+);
 let actionRedirect =
   RouterPolicy.actionRedirect(
     ~basePath="/app",
@@ -1511,13 +1738,30 @@ switch (
 };
 
 switch (
+  SearchKeyCases.activeFailures((~prefix, ~pathname, href) =>
+    RouterPolicy.linkMatches(
+      ~rule=prefix ? "subtree" : "route",
+      ~location={
+        pathname,
+        search: "",
+        hash: "",
+        key: "k",
+      },
+      href,
+    )
+  )
+) {
+| [] => ()
+| names =>
+  failwith("JS isActive answers differ: " ++ String.concat(", ", names))
+};
+
+switch (
   SearchParseCases.failures(
     ~parse=
       search =>
         switch (RouterSearch.parse(search)) {
         | Ok(values) => Ok(values)
-        | Error(RouterSearchParse.MalformedEscape(raw)) =>
-          Error("malformed " ++ raw)
         | Error(RouterSearchParse.QueryTooLong) => Error("too long")
         },
     ~encode=Js.Global.encodeURIComponent,
@@ -1536,15 +1780,22 @@ expect(
   == Ok([("q", ["caf" ++ Js.String.fromCharCode(0xe9)])]),
 );
 expect(
-  "a lone surrogate in a raw search was accepted",
-  Result.is_error(
-    RouterSearch.parse("?q=" ++ Js.String.fromCharCode(0xd800)),
-  ),
+  "a lone surrogate in a raw search was kept",
+  RouterSearch.parse("?a=1&q=" ++ Js.String.fromCharCode(0xd800))
+  == Ok([("a", ["1"])]),
 );
 expect(
   "a shallow pop to an unreadable search stayed on the client",
-  RouterPolicy.popKind(~search="?text=%FF", RouterRuntime.Navigation.Shallow)
+  RouterPolicy.popKind(
+    ~search="?text=" ++ String.make(8190, 'a'),
+    RouterRuntime.Navigation.Shallow,
+  )
   == RouterRuntime.Navigation.Content,
+);
+expect(
+  "a shallow pop to a search with a malformed pair went to the server",
+  RouterPolicy.popKind(~search="?text=%FF", RouterRuntime.Navigation.Shallow)
+  == RouterRuntime.Navigation.Shallow,
 );
 expect(
   "a hash-only pop on a page with an unreadable search went to the server",

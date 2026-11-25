@@ -65,7 +65,7 @@ let consume_search search () =
   | Error _ -> sink := !sink + 1
 
 let page_registry () =
-  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~reusable:true in
+  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~search:[] ~reusable:true in
   let headers values = match RouterRuntime.Headers.make values with Ok headers -> headers | Error _ -> assert false in
   let root =
     RouterServer.Plan.Scope.make
@@ -94,7 +94,10 @@ let page_registry () =
             Ok
               (RouterServer.Endpoint.prepared
                  ~branch:
-                   [ root_branch; RouterServer.Branch.Scope.make ~id ~parameters:[ ("id", value) ] ~reusable:true ]
+                   [
+                     root_branch;
+                     RouterServer.Branch.Scope.make ~id ~parameters:[ ("id", value) ] ~search:[] ~reusable:true;
+                   ]
                  ~execution:(fun () ->
                    RouterServer.Execution.load
                      (fun () -> Lwt.return (RouterRuntime.Loader.Data value))
@@ -111,8 +114,7 @@ let engine_outcome registry request =
          ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
          ~applicationStatus:(fun () -> RouterRuntime.Status.InternalServerError)
          ~diagnosticId:(fun _ -> "diagnostic")
-         ~revision:(fun () -> "revision")
-         ~protocolVersion:2 request)
+         ~protocolVersion:1 request)
   with
   | Lwt.Return outcome -> outcome
   | Lwt.Fail _ | Lwt.Sleep -> failwith "engine benchmark did not resolve synchronously"
@@ -208,7 +210,7 @@ let () =
   let patch_navigation =
     {
       RouterServer.ServerEngine.from = Some "/teams/7?tab=a";
-      registry = Some ("2." ^ RouterServer.EndpointRegistry.fingerprint pages);
+      registry = Some ("1." ^ RouterServer.EndpointRegistry.fingerprint pages);
       base_revision = Some "base";
     }
   in

@@ -1,5 +1,3 @@
-module Percent = RouterQuery.Percent
-
 module Path = struct
   type segment = RouterPattern.segment =
     | Static of string
@@ -8,48 +6,30 @@ module Path = struct
 
   type error = MalformedEscape of string | EncodedSlash of string | InvalidPath of string
 
-  let valid_segment value =
-    RouterUtf8.valid value
-    && String.for_all (fun character -> Char.code character >= 0x20 && Char.code character <> 0x7f) value
+  let decode_segment pathname ~start ~stop =
+    match RouterUrl.decodeSegmentRange pathname ~start ~stop with
+    | Ok segment -> Ok segment
+    | Error Malformed -> Error (MalformedEscape (RouterUrl.slice pathname start stop))
+    | Error EncodedSlash -> Error (EncodedSlash (RouterUrl.slice pathname start stop))
+    | Error InvalidSegment -> Error (InvalidPath (RouterUrl.slice pathname start stop))
 
-  let decoded_segment raw decoded =
-    if decoded = "." || decoded = ".." || not (valid_segment decoded) then Error (InvalidPath raw) else Ok decoded
-
-  let decode_segment pathname ~has_escapes ~start ~stop =
-    let first =
-      if not has_escapes then -1
-      else match String.index_from_opt pathname start '%' with Some index when index < stop -> index | _ -> -1
-    in
-    if first < 0 then
-      let segment = Percent.slice pathname start stop in
-      decoded_segment segment segment
-    else
-      match Percent.decode_escaped ~reject_slash:true pathname ~start ~stop ~first with
-      | Error `Malformed -> Error (MalformedEscape (Percent.slice pathname start stop))
-      | Error `Encoded_slash -> Error (EncodedSlash (Percent.slice pathname start stop))
-      | Ok decoded -> decoded_segment (Percent.slice pathname start stop) decoded
-
-  let rec decode_segments pathname has_escapes decoded error stop =
+  let rec decode_segments pathname decoded error stop =
     let slash = String.rindex_from pathname (stop - 1) '/' in
     let start = slash + 1 in
     if start = stop then
       if slash = 0 then Error (InvalidPath pathname)
-      else decode_segments pathname has_escapes decoded (Some (InvalidPath pathname)) slash
+      else decode_segments pathname decoded (Some (InvalidPath pathname)) slash
     else
-      match decode_segment pathname ~has_escapes ~start ~stop with
+      match decode_segment pathname ~start ~stop with
       | Ok segment ->
           if slash = 0 then match error with Some error -> Error error | None -> Ok (segment :: decoded)
-          else decode_segments pathname has_escapes (segment :: decoded) error slash
-      | Error current ->
-          if slash = 0 then Error current else decode_segments pathname has_escapes decoded (Some current) slash
+          else decode_segments pathname (segment :: decoded) error slash
+      | Error current -> if slash = 0 then Error current else decode_segments pathname decoded (Some current) slash
 
   let decodePathname pathname =
     if String.equal pathname "/" then Ok []
     else if String.equal pathname "" || pathname.[0] <> '/' then Error (InvalidPath pathname)
-    else
-      let length = String.length pathname in
-      let has_escapes = String.contains pathname '%' in
-      decode_segments pathname has_escapes [] None length
+    else decode_segments pathname [] None (String.length pathname)
 
   let validBasePath pathname =
     if String.contains pathname '?' || String.contains pathname '#' then false
@@ -77,7 +57,7 @@ module Path = struct
             if start >= length || pathname.[start] <> '/' then None
             else
               let stop = Option.value (String.index_from_opt pathname (start + 1) '/') ~default:length in
-              match decode_segment pathname ~has_escapes:true ~start:(start + 1) ~stop with
+              match decode_segment pathname ~start:(start + 1) ~stop with
               | Ok decoded when String.equal decoded segment -> strip stop segments
               | Ok _ | Error _ -> None)
       in
@@ -112,7 +92,7 @@ module Route = struct
   }
 
   let make ~id ~path =
-    match (RouterUtf8.valid path, RouterPattern.parse path) with
+    match (RouterPattern.validUtf8 path, RouterPattern.parse path) with
     | false, _ -> invalid_arg ("invalid route path " ^ path)
     | true, Ok pattern ->
         let segments = RouterPattern.segments pattern in
@@ -250,7 +230,10 @@ module Match = struct
     let rec loop (node : Registry.node) captured = function
       | _ when node.max_specificity <= best_specificity () -> ()
       | [] -> (
-          match node.route with Some route -> best := Some (route.Route.specificity, route, captured) | None -> ())
+          match node.route with
+          | Some route when route.Route.specificity > best_specificity () ->
+              best := Some (route.Route.specificity, route, captured)
+          | Some _ | None -> ())
       | value :: segments -> (
           (let static = Hashtbl.find_opt node.static_children value in
            let parameter = node.parameter_child in
@@ -283,7 +266,7 @@ end
 
 module Search = struct
   type t = (string * string list) list
-  type error = RouterQuery.error = MalformedEscape of string | QueryTooLong
+  type error = RouterQuery.error = QueryTooLong
 
   let parse = RouterQuery.parse
   let values search name = match List.assoc_opt name search with Some values -> values | None -> []
@@ -317,22 +300,17 @@ module Decode = struct
     | [] -> Error (RouterRuntime.Error.InvalidSearchParameter { name })
 
   let searchOptional ~input ~name ~parse =
-    match Search.values input.Input.search name with
-    | value :: _ -> Result.map Option.some (parse_search ~name ~parse value)
-    | [] -> Ok None
+    match Search.values input.Input.search name with value :: _ -> Ok (Result.to_option (parse value)) | [] -> Ok None
 
   let searchDefault ~input ~name ~parse ~fallback =
-    match Search.values input.Input.search name with value :: _ -> parse_search ~name ~parse value | [] -> Ok fallback
+    match Search.values input.Input.search name with
+    | value :: _ -> Ok (Result.value (parse value) ~default:fallback)
+    | [] -> Ok fallback
 
   let searchMany ~input ~name ~parse =
-    let rec loop decoded = function
-      | [] -> Ok (List.rev decoded)
-      | value :: values -> (
-          match parse_search ~name ~parse value with
-          | Ok value -> loop (value :: decoded) values
-          | Error error -> Error error)
-    in
-    loop [] (Search.values input.Input.search name)
+    Ok (List.filter_map (fun value -> Result.to_option (parse value)) (Search.values input.Input.search name))
+
+  let searchValues ~input names = List.map (fun name -> (name, Search.values input.Input.search name)) names
 end
 
 let redirect_location destination =
@@ -351,6 +329,34 @@ let redirect_location destination =
 let unsafe_redirect destination = Invalid_argument ("unsafe redirect target " ^ RouterRuntime.href destination)
 let fatal_exception = function Lwt.Canceled | Out_of_memory | Stack_overflow | Sys.Break -> true | _ -> false
 
+module Render = struct
+  type signal = NotFound | Redirect of RouterRuntime.destination | PermanentRedirect of RouterRuntime.destination
+
+  exception Signal of signal
+
+  let slot : signal option ref Lwt.key = Lwt.new_key ()
+
+  let signal value =
+    (match Lwt.get slot with
+    | Some recorded when Option.is_none !recorded -> recorded := Some value
+    | Some _ | None -> ());
+    raise (Signal value)
+
+  let notFound () = signal NotFound
+
+  let redirect ?(permanent = false) destination =
+    signal (if permanent then PermanentRedirect destination else Redirect destination)
+
+  let recording render =
+    let recorded = ref None in
+    let result =
+      Lwt.catch
+        (fun () -> Lwt.map (fun value -> Ok value) (Lwt.with_value slot (Some recorded) render))
+        (fun exn -> match !recorded with Some _ -> Lwt.return (Error exn) | None -> Lwt.fail exn)
+    in
+    Lwt.map (fun result -> (result, recorded)) result
+end
+
 module Execution = struct
   type ('result, 'error) t =
     | Done : 'result -> ('result, 'error) t
@@ -367,12 +373,21 @@ module Execution = struct
         next : 'data -> ('result, 'error) t;
       }
         -> ('result, 'error) t
+    | Start : {
+        run : unit -> ('data, 'error) RouterRuntime.Loader.result Lwt.t;
+        next : ('data, 'error) RouterRuntime.Loader.result Lwt.t -> ('result, 'error) t;
+      }
+        -> ('result, 'error) t
+
+  type ('data, 'error) started = ('data, 'error) RouterRuntime.Loader.result Lwt.t
 
   let done_ result = Done result
   let redirect destination = Redirect destination
   let permanentRedirect destination = PermanentRedirect destination
   let load run next = Load { run; next }
   let loadWithBoundary ~run ~failure ~next = LoadWithBoundary { run; failure; next }
+  let start ~run ~next = Start { run; next }
+  let await started () = started
 
   let run ?(diagnosticId = fun _ -> "internal") execution =
     let rec loop : type result error. (result, error) t -> (result, error) RouterRuntime.Loader.result Lwt.t = function
@@ -407,6 +422,7 @@ module Execution = struct
                 Lwt.return
                   (RouterRuntime.Loader.Data
                      (loader.failure (RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ }))))
+      | Start loader -> loop (loader.next (Lwt.apply loader.run ()))
     in
     loop execution
 end
@@ -419,13 +435,18 @@ let status_of_error ~application = function
 
 module Branch = struct
   module Scope = struct
-    type t = { id : string; instance_key : string; reusable : bool }
+    type t = { id : string; instance_key : string; search_key : string; reusable : bool }
 
     let frame value = string_of_int (String.length value) ^ ":" ^ value
 
-    let make ~id ~parameters ~reusable =
+    let make ~id ~parameters ~search ~reusable =
       let identity = parameters |> List.map (fun (name, value) -> frame name ^ frame value) |> String.concat "" in
-      { id; instance_key = frame id ^ identity; reusable }
+      let search_key =
+        search
+        |> List.map (fun (name, values) -> frame name ^ frame (String.concat "" (List.map frame values)))
+        |> String.concat ""
+      in
+      { id; instance_key = frame id ^ identity; search_key; reusable }
 
     let id scope = scope.id
     let instanceKey scope = scope.instance_key
@@ -437,7 +458,9 @@ module Branch = struct
   let rec sharedPrefix from target =
     match (from, target) with
     | left :: from, right :: target
-      when left.Scope.reusable && right.Scope.reusable && String.equal left.instance_key right.instance_key ->
+      when left.Scope.reusable && right.Scope.reusable
+           && String.equal left.instance_key right.instance_key
+           && String.equal left.search_key right.search_key ->
         1 + sharedPrefix from target
     | _ -> 0
 
@@ -446,6 +469,8 @@ module Branch = struct
       (fun scope -> RouterRuntime.Navigation.{ id = Scope.id scope; instanceKey = Scope.instanceKey scope })
       branch
 end
+
+let internal_error_text = "Something went wrong"
 
 module Plan = struct
   module Scope = struct
@@ -565,24 +590,24 @@ module Plan = struct
           match resolved.error with
           | Some (RouterRuntime.Error.NotFound _) -> "Not found"
           | Some (InvalidPathParameter _ | InvalidSearchParameter _) -> "Bad request"
-          | Some (Application _ | Internal _) | None -> "Something went wrong"
+          | Some (Application _ | Internal _) | None -> internal_error_text
         in
         React.createElement "p" [] [ React.string text ]
 end
 
 module Endpoint = struct
-  type ('result, 'error) prepared = {
+  type ('result, 'error, 'context) prepared = {
     branch : Branch.t;
     active_routes : string list option;
-    execution : unit -> ('result, 'error) Execution.t;
+    execution : 'context -> ('result, 'error) Execution.t;
   }
 
-  type ('result, 'error) t = {
+  type ('result, 'error, 'context) t = {
     route : Route.t;
     active_routes : (string * string list) list;
     fingerprint : string;
     prefetch : RouterRuntime.PrefetchLevel.t;
-    decode : Input.t -> (('result, 'error) prepared, 'error RouterRuntime.Error.t) result;
+    decode : Input.t -> (('result, 'error, 'context) prepared, 'error RouterRuntime.Error.t) result;
   }
 
   let make ~id ~path ~activeRoutes ~fingerprint ~decode =
@@ -593,22 +618,26 @@ module Endpoint = struct
   let recovered ~branch ~activeRoutes ~execution = { branch; active_routes = Some activeRoutes; execution }
   let route endpoint = endpoint.route
   let active_routes endpoint = endpoint.active_routes
-  let prepared_active_routes (prepared : ('result, 'error) prepared) = prepared.active_routes
+  let prepared_active_routes (prepared : ('result, 'error, 'context) prepared) = prepared.active_routes
   let decode endpoint = endpoint.decode
   let branch prepared = prepared.branch
+  let executionWithContext prepared ~context = prepared.execution context
   let execution prepared = prepared.execution ()
   let fingerprint endpoint = endpoint.fingerprint
   let prefetch endpoint = endpoint.prefetch
 end
 
 module EndpointRegistry = struct
-  type ('result, 'error) t = {
+  type ('result, 'error, 'context) t = {
     raw : Registry.t;
-    endpoints_by_id : (string, ('result, 'error) Endpoint.t) Hashtbl.t;
+    endpoints_by_id : (string, ('result, 'error, 'context) Endpoint.t) Hashtbl.t;
     fingerprint : string;
   }
 
-  type ('result, 'error) matched = { endpoint : ('result, 'error) Endpoint.t; parameters : (string * string) list }
+  type ('result, 'error, 'context) matched = {
+    endpoint : ('result, 'error, 'context) Endpoint.t;
+    parameters : (string * string) list;
+  }
 
   let make endpoints =
     match Registry.make (List.map Endpoint.route endpoints) with
@@ -724,8 +753,8 @@ module ServerEngine = struct
     | Some prefetch -> RouterRuntime.PrefetchLevel.compare prefetch (EndpointRegistry.prefetch matched) > 0
     | None -> false
 
-  let run ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId ~revision ~protocolVersion
-      ?prefetch ?actionError request =
+  let runWithContext ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId
+      ?(revision = fun () -> "") ~protocolVersion ?prefetch ?actionError ~context request =
     let fingerprint = EndpointRegistry.fingerprint registry in
     let canonical_url = request.pathname ^ request.search ^ request.hash in
     let full ~matches ~layouts plan =
@@ -748,7 +777,7 @@ module ServerEngine = struct
             })
         (Plan.resolve plan ~applicationStatus)
     in
-    let fail ?(search = empty_search) error = full ~matches:[] ~layouts:[] (fallback ~search ~error) in
+    let fail ?(search = empty_search) error = full ~matches:[] ~layouts:[] (fallback ~context ~search ~error) in
     let expected_registry = string_of_int protocolVersion ^ "." ^ fingerprint in
     let registry_mismatch =
       match (request.kind, request.navigation) with
@@ -765,27 +794,25 @@ module ServerEngine = struct
       match (request.kind, request.navigation) with
       | Rsc, Some { from = Some from; base_revision = Some base_revision; _ } when String.length from <= 2048 -> (
           let from_pathname, from_search = Path.splitLocation from in
-          if not (String.equal from_search request.search) then None
-          else
-            match Path.stripBasePath ~basePath from_pathname with
-            | None -> None
-            | Some from_path -> (
-                match (Search.parse from_search, EndpointRegistry.find registry ~pathname:from_path) with
-                | Ok from_search, Ok (Some from_match) -> (
-                    match EndpointRegistry.decode from_match ~search:from_search with
-                    | Error _ -> None
-                    | Ok prepared ->
-                        let from_branch = Endpoint.branch prepared in
-                        let shared = Branch.sharedPrefix from_branch target_branch in
-                        if shared <= 0 || shared >= List.length target_branch then None
+          match Path.stripBasePath ~basePath from_pathname with
+          | None -> None
+          | Some from_path -> (
+              match (Search.parse from_search, EndpointRegistry.find registry ~pathname:from_path) with
+              | Ok from_search, Ok (Some from_match) -> (
+                  match EndpointRegistry.decode from_match ~search:from_search with
+                  | Error _ -> None
+                  | Ok prepared ->
+                      let from_branch = Endpoint.branch prepared in
+                      let shared = Branch.sharedPrefix from_branch target_branch in
+                      if shared <= 0 || shared >= List.length target_branch then None
+                      else
+                        let depth = min shared (Plan.scopeCount plan) in
+                        if depth <= 0 then None
                         else
-                          let depth = min shared (Plan.scopeCount plan) in
-                          if depth <= 0 then None
-                          else
-                            Option.map
-                              (fun scope -> (base_revision, depth, Branch.Scope.instanceKey scope))
-                              (List.nth_opt target_branch (depth - 1)))
-                | _ -> None))
+                          Option.map
+                            (fun scope -> (base_revision, depth, Branch.Scope.instanceKey scope))
+                            (List.nth_opt target_branch (depth - 1)))
+              | _ -> None))
       | _ -> None
     in
     let execute () =
@@ -820,7 +847,7 @@ module ServerEngine = struct
                         | Error error -> fail ~search error
                         | Ok prepared ->
                             let target_branch = Endpoint.branch prepared in
-                            let execution = Endpoint.execution prepared in
+                            let execution = Endpoint.executionWithContext prepared ~context in
                             let matches = EndpointRegistry.matches matched prepared in
                             let layouts = Branch.layouts target_branch in
                             Lwt.bind (Execution.run ~diagnosticId execution) (function
@@ -911,19 +938,26 @@ module ServerEngine = struct
             (fun () -> fail error)
             (fun fallback_error ->
               if fatal_exception fallback_error then Lwt.fail fallback_error else blank_internal error))
+
+  let run ~registry ~basePath ~trailingSlash ~fallback ~applicationStatus ~diagnosticId ?revision ~protocolVersion
+      ?prefetch ?actionError request =
+    runWithContext ~registry ~basePath ~trailingSlash
+      ~fallback:(fun ~context:() -> fallback)
+      ~applicationStatus ~diagnosticId ?revision ~protocolVersion ?prefetch ?actionError ~context:() request
 end
 
 module Server = struct
-  type ('view, 'error) t = {
+  type ('view, 'error, 'context) t = {
     base_path : string;
-    registry : (('view, 'error) Plan.t, 'error) EndpointRegistry.t;
+    registry : (('view, 'error) Plan.t, 'error, 'context) EndpointRegistry.t;
     trailing_slash : TrailingSlash.t;
-    fallback : search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t;
+    fallback : context:'context -> search:Search.t -> error:'error RouterRuntime.Error.t -> ('view, 'error) Plan.t;
     application_status : 'error -> RouterRuntime.Status.t;
     protocol_version : int;
     routes : string array;
     intercept_links : bool;
     view_transitions : bool;
+    page_cache_max_age : float option;
   }
 
   let client_routes registry =
@@ -931,8 +965,8 @@ module Server = struct
     |> List.fold_left (fun paths path -> if List.mem path paths then paths else path :: paths) []
     |> List.rev |> Array.of_list
 
-  let make ~basePath ~registry ?(trailingSlash = TrailingSlash.Redirect) ~fallback ~applicationStatus
-      ?(protocolVersion = 2) ?(interceptLinks = true) ?(viewTransitions = false) () =
+  let makeWithContext ~basePath ~registry ?(trailingSlash = TrailingSlash.Redirect) ~fallback ~applicationStatus
+      ?(protocolVersion = 1) ?(interceptLinks = true) ?(viewTransitions = false) ?pageCacheMaxAge () =
     if not (Path.validBasePath basePath) then invalid_arg ("invalid router base path " ^ basePath)
     else
       {
@@ -945,38 +979,92 @@ module Server = struct
         routes = client_routes registry;
         intercept_links = interceptLinks;
         view_transitions = viewTransitions;
+        page_cache_max_age = pageCacheMaxAge;
       }
+
+  let make ~basePath ~registry ?trailingSlash ~fallback ~applicationStatus ?protocolVersion ?interceptLinks
+      ?viewTransitions ?pageCacheMaxAge () =
+    makeWithContext ~basePath ~registry ?trailingSlash
+      ~fallback:(fun ~context:() -> fallback)
+      ~applicationStatus ?protocolVersion ?interceptLinks ?viewTransitions ?pageCacheMaxAge ()
 
   let routes server = Array.copy server.routes
   let basePath server = server.base_path
   let protocolVersion server = server.protocol_version
   let fingerprint server = EndpointRegistry.fingerprint server.registry
 
-  let clientRootWith server ~make ~initial ~metadata ~children =
+  let clientRootWith ?pageCacheCapacity server ~make ~initial ~metadata ~children =
     make ~initial ~protocolVersion:server.protocol_version ~registryFingerprint:(fingerprint server)
-      ~basePath:server.base_path ~routes:(routes server) ~metadata ~children
+      ~basePath:server.base_path ~routes:(routes server) ~interceptLinks:server.intercept_links
+      ~viewTransitions:server.view_transitions ~pageCacheCapacity ~pageCacheMaxAge:server.page_cache_max_age ~metadata
+      ~children
 
   let client_root ?pageCacheCapacity server =
-    clientRootWith server
-      ~make:(fun ~initial ~protocolVersion ~registryFingerprint ~basePath ~routes ~metadata ~children ->
+    clientRootWith server ?pageCacheCapacity
+      ~make:(fun
+          ~initial
+          ~protocolVersion
+          ~registryFingerprint
+          ~basePath
+          ~routes
+          ~interceptLinks
+          ~viewTransitions
+          ~pageCacheCapacity
+          ~pageCacheMaxAge
+          ~metadata
+          ~children
+        ->
         RouterClientRoot.make
           (RouterClientRoot.makeProps ~initial ~protocolVersion ~registryFingerprint ~basePath ?pageCacheCapacity
-             ~routes ~interceptLinks:server.intercept_links ~viewTransitions:server.view_transitions ~metadata ~children
-             ()))
+             ?pageCacheMaxAge ~routes ~interceptLinks ~viewTransitions ~metadata ~children ()))
 
   let clientRootWithCache server ~pageCacheCapacity = client_root ~pageCacheCapacity server
   let clientRoot server = client_root server
 
-  let run server ~diagnosticId ~revision ?prefetch ?actionError request =
-    ServerEngine.run ~registry:server.registry ~basePath:server.base_path ~trailingSlash:server.trailing_slash
-      ~fallback:server.fallback ~applicationStatus:server.application_status ~diagnosticId ~revision
-      ~protocolVersion:server.protocol_version ?prefetch ?actionError request
+  let runWithContext server ~diagnosticId ?revision ?prefetch ?actionError ~context request =
+    ServerEngine.runWithContext ~registry:server.registry ~basePath:server.base_path
+      ~trailingSlash:server.trailing_slash ~fallback:server.fallback ~applicationStatus:server.application_status
+      ~diagnosticId ?revision ~protocolVersion:server.protocol_version ?prefetch ?actionError ~context request
+
+  let run server ~diagnosticId ?revision ?prefetch ?actionError request =
+    runWithContext server ~diagnosticId ?revision ?prefetch ?actionError ~context:() request
 end
 
 module Action = struct
   exception Redirect of RouterRuntime.destination
 
   let redirect destination = raise (Redirect destination)
+end
+
+module Request = struct
+  type 'a key = 'a Type.Id.t
+  type entry = Entry : 'a key * 'a Lwt.t -> entry
+
+  let table : (int * string, entry) Hashtbl.t Lwt.key = Lwt.new_key ()
+  let key () = Type.Id.make ()
+  let scope run = Lwt.with_value table (Some (Hashtbl.create 16)) run
+
+  let reentering body =
+    match Lwt.get table with
+    | None -> body
+    | Some _ as entries -> fun write -> Lwt.with_value table entries (fun () -> body write)
+
+  let memo (type a) (key : a key) argument (run : unit -> a Lwt.t) : a Lwt.t =
+    match Lwt.get table with
+    | None -> run ()
+    | Some entries -> (
+        let slot = (Type.Id.uid key, argument) in
+        let cached =
+          Hashtbl.find_all entries slot
+          |> List.find_map (fun (Entry (stored, promise)) : a Lwt.t option ->
+              match Type.Id.provably_equal stored key with Some Type.Equal -> Some promise | None -> None)
+        in
+        match cached with
+        | Some promise -> promise
+        | None ->
+            let promise = Lwt.apply run () in
+            Hashtbl.add entries slot (Entry (key, promise));
+            promise)
 end
 
 module Adapter = struct
@@ -1001,7 +1089,10 @@ module Adapter = struct
           let extra =
             List.filter_map
               (fun (name, value) ->
-                match String.lowercase_ascii name with "rel" | "href" -> None | _ -> Some (attribute name value))
+                match String.lowercase_ascii name with
+                | "rel" | "href" -> None
+                | _ when not (RouterTypes.validAttributeName name) -> None
+                | _ -> Some (attribute name value))
               attrs
           in
           keyed key "link" (attribute "rel" rel :: attribute "href" href :: extra)
@@ -1018,7 +1109,12 @@ module Adapter = struct
     { location = { RouterRuntime.Navigation.pathname; search; hash = ""; key = "server" }; revision; matches; layouts }
 
   let scoped_element ~committed resolved =
-    RouterReact.locationScope ~committed ~children:(Plan.resolvedElement resolved) ()
+    RouterReact.locationScope ~committed
+      ~children:
+        (RouterReact.errorBoundary
+           ~fallback:(React.createElement "p" [] [ React.string internal_error_text ])
+           ~children:(Plan.resolvedElement resolved) ())
+      ()
 
   let document_element server ?pageCacheCapacity ~document (response : (React.element, 'error) ServerEngine.full) =
     let initial =
@@ -1191,8 +1287,22 @@ module Adapter = struct
         in
         { status; headers; body }
 
-  let formActionReply server ~diagnosticId ~revision ~target ?pageCacheCapacity ~document
-      (request : ServerEngine.request) = function
+  let form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context
+      (request : ServerEngine.request) actionError =
+    Lwt.map
+      (fun (outcome : (React.element, 'error) ServerEngine.outcome) ->
+        match outcome with
+        | Redirect destination | PermanentRedirect destination -> (
+            match redirect_location destination with
+            | Some location -> see_other location
+            | None -> unsafe_redirect_reply)
+        | outcome -> reply server ~target ?pageCacheCapacity ~document ~kind:Document outcome)
+      (Server.runWithContext server ~diagnosticId ?revision ~actionError ~context
+         { request with kind = Document; navigation = None })
+
+  let form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context
+      (request : ServerEngine.request) action =
+    match action with
     | Completed ->
         Lwt.return
           (match redirect_location (RouterRuntime.destination ~path:target) with
@@ -1204,16 +1314,240 @@ module Adapter = struct
           | Some location -> see_other location
           | None -> unsafe_redirect_reply)
     | Failed exception_ ->
-        let actionError = RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ } in
+        form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request
+          (RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ })
+
+  let formActionReplyWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request
+      action =
+    Request.scope (fun () ->
+        form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request action)
+
+  let formActionReply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document request action =
+    formActionReplyWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context:() request
+      action
+
+  type request = { engine : ServerEngine.request; prefetch : RouterRuntime.PrefetchLevel.t option }
+
+  let header headers name =
+    List.find_map
+      (fun (key, value) -> if String.equal (String.lowercase_ascii key) name then Some value else None)
+      headers
+
+  let parseRequest ~target ~headers =
+    let target = match String.index_opt target '#' with Some index -> String.sub target 0 index | None -> target in
+    let pathname, search = Path.splitLocation target in
+    let search = if String.equal search "?" then "" else search in
+    match header headers "accept" with
+    | Some "application/react.component" ->
+        {
+          engine =
+            {
+              pathname;
+              search;
+              hash = "";
+              kind = Rsc;
+              navigation =
+                Some
+                  {
+                    from = header headers "router-navigation-from";
+                    registry = header headers "router-registry";
+                    base_revision = header headers "router-base-revision";
+                  };
+            };
+          prefetch = Option.bind (header headers "router-prefetch") RouterRuntime.PrefetchLevel.fromString;
+        }
+    | Some _ | None -> { engine = { pathname; search; hash = ""; kind = Document; navigation = None }; prefetch = None }
+
+  let defaultAllow = [ "GET"; "HEAD"; "OPTIONS" ]
+
+  let handleWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow = defaultAllow) ~context
+      ~method_ ~target ~headers () =
+    match methodReply ~allow method_ with
+    | Some reply -> Lwt.return reply
+    | None ->
+        let { engine; prefetch } = parseRequest ~target ~headers in
+        Request.scope @@ fun () ->
         Lwt.map
-          (fun (outcome : (React.element, 'error) ServerEngine.outcome) ->
-            match outcome with
-            | Redirect destination | PermanentRedirect destination -> (
-                match redirect_location destination with
-                | Some location -> see_other location
-                | None -> unsafe_redirect_reply)
-            | outcome -> reply server ~target ?pageCacheCapacity ~document ~kind:Document outcome)
-          (Server.run server ~diagnosticId ~revision ~actionError { request with kind = Document; navigation = None })
+          (fun outcome ->
+            let reply = reply server ~target ?pageCacheCapacity ~document ~kind:engine.kind outcome in
+            if String.equal method_ "HEAD" then { reply with body = Empty } else reply)
+          (Server.runWithContext server ~diagnosticId ?revision ?prefetch ~context:(context ()) engine)
+
+  let handle server ~diagnosticId ?revision ?pageCacheCapacity ~document ?allow ~method_ ~target ~headers () =
+    handleWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ?allow
+      ~context:(fun () -> ())
+      ~method_ ~target ~headers ()
+
+  type response = {
+    status : int;
+    headers : (string * string) list;
+    body : ((string -> unit Lwt.t) -> unit Lwt.t) option;
+  }
+
+  let set_header name value headers =
+    let lower = String.lowercase_ascii name in
+    List.filter (fun (key, _) -> not (String.equal (String.lowercase_ascii key) lower)) headers @ [ (name, value) ]
+
+  let response ?env ?timeout ?(skipRoot = false) ?bootstrapModules ?nonce (reply : reply) =
+    match reply.body with
+    | Empty -> { status = reply.status; headers = reply.headers; body = None }
+    | Html element ->
+        {
+          status = reply.status;
+          headers = set_header "Content-Type" "text/html; charset=utf-8" reply.headers;
+          body =
+            Some
+              (fun write ->
+                Lwt.bind (ReactServerDOM.render_html ?env ?timeout ~skipRoot ?bootstrapModules ?nonce element)
+                  (fun (html, rest) -> Lwt.bind (write html) (fun () -> rest write)));
+        }
+    | Model { location; model } ->
+        {
+          status = reply.status;
+          headers =
+            reply.headers
+            |> set_header "Content-Type" "application/react.component"
+            |> set_header "X-Content-Type-Options" "nosniff"
+            |> set_header "X-Location" location;
+          body = Some (fun write -> ReactServerDOM.render_model_value ?env ?timeout ~subscribe:write model);
+        }
+
+  type shell = Committed of response | Signaled of Render.signal | Failed of exn
+
+  let render_html_shell ?env ?timeout ?skipRoot ?bootstrapModules ?nonce (reply : reply) element =
+    let abort, stop = Lwt.wait () in
+    Lwt.map
+      (fun (result, recorded) ->
+        match (!recorded, result) with
+        | Some signal, _ ->
+            Lwt.wakeup_later stop ();
+            Signaled signal
+        | None, Error exn -> Failed exn
+        | None, Ok (html, rest) ->
+            let committed = response ?env ?timeout ?skipRoot ?bootstrapModules ?nonce reply in
+            Committed { committed with body = Some (fun write -> Lwt.bind (write html) (fun () -> rest write)) })
+      (Lwt.catch
+         (fun () ->
+           Render.recording (fun () ->
+               ReactServerDOM.render_html ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~abort element))
+         (fun exn -> if fatal_exception exn then Lwt.fail exn else Lwt.return (Error exn, ref None)))
+
+  let render_model_shell ?env ?timeout (reply : reply) model =
+    let abort, stop = Lwt.wait () in
+    let first, produced = Lwt.wait () in
+    let gate, release = Lwt.wait () in
+    let buffered = Queue.create () in
+    let sink = ref None in
+    let subscribe chunk =
+      match !sink with
+      | Some write -> write chunk
+      | None ->
+          Queue.push chunk buffered;
+          if Lwt.is_sleeping first then Lwt.wakeup_later produced ();
+          gate
+    in
+    let rendering = ref (Lwt.return ()) in
+    Lwt.map
+      (fun (result, recorded) ->
+        match (!recorded, result) with
+        | Some signal, _ ->
+            sink := Some (fun _ -> Lwt.return ());
+            Lwt.wakeup_later release ();
+            Lwt.wakeup_later stop ();
+            Signaled signal
+        | None, Error exn -> raise exn
+        | None, Ok () ->
+            let committed = response ?env ?timeout reply in
+            let body write =
+              let rec drain () =
+                match Queue.take_opt buffered with
+                | Some chunk -> Lwt.bind (write chunk) drain
+                | None ->
+                    sink := Some write;
+                    Lwt.wakeup_later release ();
+                    !rendering
+              in
+              drain ()
+            in
+            Committed { committed with body = Some body })
+      (Render.recording (fun () ->
+           rendering := ReactServerDOM.render_model_value ?env ?timeout ~abort ~subscribe model;
+           Lwt.choose [ first; Lwt.map ignore !rendering ]))
+
+  let render_shell ?env ?timeout ?skipRoot ?bootstrapModules ?nonce (reply : reply) =
+    match reply.body with
+    | Empty -> Lwt.return (Committed (response reply))
+    | Html element -> render_html_shell ?env ?timeout ?skipRoot ?bootstrapModules ?nonce reply element
+    | Model { model; _ } -> render_model_shell ?env ?timeout reply model
+
+  let render_with_signals ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~diagnosticId ~rerun ~redirect first =
+    let render reply = render_shell ?env ?timeout ?skipRoot ?bootstrapModules ?nonce reply in
+    let commit = function
+      | Committed response -> Lwt.return response
+      | Signaled _ -> Lwt.return (response { status = 500; headers = [ ("Vary", "Accept") ]; body = Empty })
+      | Failed exn -> Lwt.fail exn
+    in
+    Lwt.map
+      (fun (response : response) -> { response with body = Option.map Request.reentering response.body })
+      (Lwt.bind (Lwt.bind first render) (function
+        | Committed response -> Lwt.return response
+        | Signaled Render.NotFound ->
+            Lwt.bind
+              (rerun (RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.RenderNotFound }))
+              (fun reply -> Lwt.bind (render reply) commit)
+        | Signaled (Render.Redirect destination) -> Lwt.bind (render (redirect ~permanent:false destination)) commit
+        | Signaled (Render.PermanentRedirect destination) ->
+            Lwt.bind (render (redirect ~permanent:true destination)) commit
+        | Failed exn ->
+            Lwt.bind
+              (rerun (RouterRuntime.Error.Internal { diagnosticId = diagnosticId exn }))
+              (fun reply -> Lwt.bind (render reply) commit)))
+
+  let serveWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow = defaultAllow) ?env ?timeout
+      ?skipRoot ?bootstrapModules ?nonce ~context ~method_ ~target ~headers () =
+    match methodReply ~allow method_ with
+    | Some reply -> Lwt.return (response reply)
+    | None when String.equal method_ "HEAD" ->
+        Lwt.map response
+          (handleWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ~allow ~context ~method_
+             ~target ~headers ())
+    | None ->
+        let { engine; prefetch } = parseRequest ~target ~headers in
+        Request.scope @@ fun () ->
+        let context = context () in
+        let reply_to outcome = reply server ~target ?pageCacheCapacity ~document ~kind:engine.kind outcome in
+        let run ?actionError () =
+          Lwt.map reply_to (Server.runWithContext server ~diagnosticId ?revision ?prefetch ?actionError ~context engine)
+        in
+        render_with_signals ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~diagnosticId
+          ~rerun:(fun actionError -> run ~actionError ())
+          ~redirect:(fun ~permanent destination ->
+            reply_to
+              (if permanent then ServerEngine.PermanentRedirect destination else ServerEngine.Redirect destination))
+          (run ())
+
+  let serveFormActionWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ?env ?timeout
+      ?skipRoot ?bootstrapModules ?nonce ~context request action =
+    Request.scope @@ fun () ->
+    render_with_signals ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~diagnosticId
+      ~rerun:(form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request)
+      ~redirect:(fun ~permanent:_ destination ->
+        match redirect_location destination with Some location -> see_other location | None -> unsafe_redirect_reply)
+      (form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request action)
+
+  let serveFormAction server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ?env ?timeout ?skipRoot
+      ?bootstrapModules ?nonce request action =
+    serveFormActionWithContext server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ?env ?timeout
+      ?skipRoot ?bootstrapModules ?nonce ~context:() request action
+
+  let serve server ~diagnosticId ?revision ?pageCacheCapacity ~document ?allow ?env ?timeout ?skipRoot ?bootstrapModules
+      ?nonce ~method_ ~target ~headers () =
+    serveWithContext server ~diagnosticId ?revision ?pageCacheCapacity ~document ?allow ?env ?timeout ?skipRoot
+      ?bootstrapModules ?nonce
+      ~context:(fun () -> ())
+      ~method_ ~target ~headers ()
 end
 
+let run = Server.run
+let runWithContext = Server.runWithContext
 let statusOfError = status_of_error

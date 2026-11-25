@@ -28,11 +28,10 @@ expect(
   "/site/notes/1#a%20b%23%C3%A9",
   Router.Note.href(~id=1, ~hash="a b#" ++ Js.String.fromCharCode(233), ()),
 );
-expect(
-  "lone surrogate hash",
-  "/site/notes/1#%EF%BF%BD",
-  Router.Note.href(~id=1, ~hash=Js.String.fromCharCode(0xd800), ()),
-);
+switch (Router.Note.href(~id=1, ~hash=Js.String.fromCharCode(0xd800), ())) {
+| href => failwith("lone surrogate hash: expected an error, got " ++ href)
+| exception (Invalid_argument(_)) => ()
+};
 expect("empty hash", "/site/notes/1", Router.Note.href(~id=1, ~hash="", ()));
 expect(
   "search record",
@@ -49,6 +48,125 @@ expect(
   "search elements",
   "2",
   string_of_int(List.length(SearchJsx.elements)),
+);
+
+RouterReact.searchValues :=
+  [
+    ("info-page", ["x"]),
+    ("infoPage", ["label"]),
+    ("resources-projectId", ["7"]),
+    ("a-zone", ["w"]),
+  ];
+let supportSearch = ref(None);
+SearchJsx.renderSupportSearch((search, update) =>
+  supportSearch := Some((search, update))
+)
+|> ignore;
+switch (supportSearch^) {
+| None => failwith("Support.useSearch did not render")
+| Some((search, update)) =>
+  expect(
+    "useSearch reads key",
+    "x",
+    Option.value(search.infoPage, ~default="-"),
+  );
+  expect(
+    "useSearch reads default key",
+    "7",
+    string_of_int(search.resourcesProjectId),
+  );
+  expect("useSearch reads many key", "w", String.concat(",", search.zone));
+  update({
+    ...search,
+    infoPage: Some("y"),
+    alpha: Some("q"),
+  })
+  |> ignore;
+  let describe = values =>
+    values
+    |> List.map(((name, values)) =>
+         name ++ "=" ++ String.concat(",", values)
+       )
+    |> String.concat("&");
+  switch (RouterReact.searchUpdates^) {
+  | [(owned, values)] =>
+    expect(
+      "useSearch owns keys",
+      "info-page resources-projectId z a-zone",
+      String.concat(" ", owned),
+    );
+    expect(
+      "useSearch writes keys",
+      "info-page=y&resources-projectId=7&z=q&a-zone=w",
+      describe(values),
+    );
+  | _ => failwith("expected one search update")
+  };
+};
+
+RouterReact.searchValues := [("info-page", ["x"]), ("other", ["kept"])];
+RouterReact.searchUpdates := [];
+let supportUpdate = ref(None);
+SearchJsx.renderSupportUpdate(update => supportUpdate := Some(update))
+|> ignore;
+switch (supportUpdate^) {
+| None => failwith("Support.useUpdateSearch did not render")
+| Some(update) =>
+  update(search =>
+    {
+      ...search,
+      infoPage: Some(Option.value(search.infoPage, ~default="") ++ "1"),
+    }
+  )
+  |> ignore;
+  update(search =>
+    {
+      ...search,
+      infoPage: Some(Option.value(search.infoPage, ~default="") ++ "2"),
+      alpha: Some("a"),
+    }
+  )
+  |> ignore;
+  expect(
+    "useUpdateSearch composes updates from the latest value",
+    "info-page=x12&other=kept&z=a",
+    RouterReact.searchValues^
+    |> List.sort(((left, _), (right, _)) => String.compare(left, right))
+    |> List.map(((name, values)) =>
+         name ++ "=" ++ String.concat(",", values)
+       )
+    |> String.concat("&"),
+  );
+  expect(
+    "useUpdateSearch owns the route keys",
+    "info-page resources-projectId z a-zone",
+    switch (RouterReact.searchUpdates^) {
+    | [(owned, _), _] => String.concat(" ", owned)
+    | _ => "expected two updates"
+    },
+  );
+};
+
+expect(
+  "shallow search keys",
+  "z",
+  String.concat(
+    ",",
+    RouterRuntime.shallowSearch(Router.Support.destination()),
+  ),
+);
+expect(
+  "no shallow search keys",
+  "",
+  String.concat(
+    ",",
+    RouterRuntime.shallowSearch(
+      Router.Inspector.destination(
+        ~search=Router.Inspector.search(~target="t", ()),
+        (),
+      ),
+    ),
+  ),
 );
 
 let level = destination =>

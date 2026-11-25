@@ -5,7 +5,7 @@
   RouterQuery
   RouterSearchKey
   RouterSearchParse
-  RouterUtf8
+  RouterUrl
   SearchKeyCases
   SearchParseCases
   test_search_key
@@ -23,9 +23,9 @@
 (copy_files
  (files ../../../runtime/shared/RouterPattern.rei))
 
-(test
- (name test_location_scope)
- (modules test_location_scope)
+(tests
+ (names test_location_scope test_active_link)
+ (modules test_location_scope test_active_link)
  (libraries
   lwt
   lwt.unix
@@ -37,10 +37,24 @@
  (files ../../../native/RouterQuery.ml))
 
 (copy_files
- (files ../../../runtime/RouterUtf8.ml))
-
-(copy_files
  (files ../../../runtime/shared/RouterSearchParse.ml))
 
 (copy_files
  (files ../SearchParseCases.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterUrl.ml))
+
+(executable
+ (name test_url_native)
+ (modules UrlCases test_url_native)
+ (libraries server-reason-react.router-native))
+
+(rule
+ (action
+  (with-stdout-to
+   url-native.txt
+   (run %{exe:test_url_native.exe}))))
+
+(copy_files
+ (files ../UrlCases.ml))

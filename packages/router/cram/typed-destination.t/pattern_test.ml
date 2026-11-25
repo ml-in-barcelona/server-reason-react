@@ -49,6 +49,7 @@ let () =
       "/.";
       "/..";
       "/:<int>";
+      "/:_<int>";
       "/:Id<int>";
       "/:1id<int>";
       "/:user-id<int>";
@@ -177,6 +178,12 @@ let () =
   check "/assets/:parts<string...>" "/assets" false;
   check "/assets/:parts<string...>" "/assets/a//b" false;
   check "/a+b" "/a+b" true;
+  check "/app/notes/:id<string>" "/app/notes/a%2Fb" false;
+  check "/app/notes/:id<string>" "/app/notes/%2E" false;
+  check "/app/notes/:id<string>" "/app/notes/%2e%2E" false;
+  check "/app/notes/:id<string>" "/app/notes/%00" false;
+  check "/app/notes/:id<string>" "/app/notes/%FF" false;
+  check "/app/notes/:id<string>" "/app/notes/a%2Cb" true;
   let within basePath path pathname expected =
     let pattern = match RouterPattern.parse path with Ok pattern -> pattern | Error _ -> failwith path in
     if RouterPattern.matchesPath ~basePath pattern pathname <> expected then

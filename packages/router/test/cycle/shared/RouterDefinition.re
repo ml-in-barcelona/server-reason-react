@@ -50,7 +50,7 @@ Router.make(
           ~path="/search",
           ~search={
             filter: Router.Search.optional(Filter.t),
-            view: Router.Search.optional(NoteId.t),
+            view: Router.Search.required(NoteId.t),
           },
         ),
       ],

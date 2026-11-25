@@ -33,6 +33,10 @@ let supported: unit => bool = [%mel.raw
   {|() => typeof document !== "undefined" && typeof document.startViewTransition === "function"|}
 ];
 
+let reducedMotion: unit => bool = [%mel.raw
+  {|() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches|}
+];
+
 let attribute = "data-router-nav";
 
 type t = {
@@ -57,7 +61,7 @@ let supersede = state => {
 };
 
 let run = (state, ~enabled, ~direction, update) =>
-  if (!enabled || !supported()) {
+  if (!enabled || !supported() || reducedMotion()) {
     update();
   } else {
     supersede(state);

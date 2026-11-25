@@ -152,6 +152,27 @@ module ActiveRouteProbe = {
     };
 };
 
+module SearchProbe = {
+  [@react.component]
+  let make = () => {
+    switch (Router.SearchResults.useSearch()) {
+    | (Some(search), _updateSearch) =>
+      React.string(
+        String.concat(
+          "|",
+          [
+            Int.to_string(search.page),
+            Option.value(search.searchText, ~default="-"),
+            Option.value(search.filter, ~default="-"),
+            NoteId.to_string(search.view),
+          ],
+        ),
+      )
+    | (None, _updateSearch) => React.string("missing view")
+    };
+  };
+};
+
 module NoteMetadata = {
   let make =
       (

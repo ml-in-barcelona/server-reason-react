@@ -4,6 +4,8 @@
  (modes melange)
  (wrapped false)
  (private_modules
+  RouterCatch
+  RouterErrorBoundary
   RouterAnnouncer
   RouterBlocker
   RouterClient
@@ -20,7 +22,7 @@
   RouterSearchParse
   RouterTransaction
   RouterTypes
-  RouterUtf8
+  RouterUrl
   RouterViewTransition)
  (libraries
   melange-webapi
@@ -73,4 +75,7 @@
  (files ../../runtime/shared/RouterSearchParse.ml))
 
 (copy_files
- (files ../../runtime/RouterUtf8.ml))
+ (files ../shared/RouterErrorBoundary.re))
+
+(copy_files
+ (files ../../runtime/shared/RouterUrl.ml))

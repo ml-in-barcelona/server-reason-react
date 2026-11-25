@@ -147,6 +147,17 @@ function prefetchOf(page, path, level) {
   );
 }
 
+const clickWithoutHover = (page, selector) => page.$eval(selector, (element) => element.click());
+
+const closeGate = (page) =>
+  page.evaluate(() => {
+    window.routerE2eRendered = null;
+    window.routerE2eGate = null;
+  });
+const renderedInTransition = (page, name) =>
+  page.waitForFunction((name) => window.routerE2eRendered === name, name, { timeout: 5_000 });
+const releaseGate = (page) => page.evaluate(() => window.routerE2eRelease());
+
 const checks = [];
 const check = (name, run) => checks.push({ name, run });
 
@@ -162,6 +173,40 @@ check("link click navigates without a document request", async ({ page, net, ori
   assert.equal(navigations(after, "/demo/router/1").length, 1, "expected one navigation request");
   return `navigation requests: ${navigations(after, "/demo/router/1").length}, documents: 0`;
 });
+
+check("a render error after a client navigation shows the error boundary", async ({ page, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, ".link-crash");
+  await page.click(".link-crash");
+  await page.waitForURL(`${origin}/demo/router/e2e/crash`);
+  await page.waitForFunction(() =>
+    document.querySelector("main")?.innerText.includes("The requested note could not be loaded."),
+  );
+  assert.ok(await page.$(".layout-long"), "the layout around the boundary is gone");
+  await page.click(".layout-long");
+  await page.waitForSelector("#e2e-long");
+  assert.equal(pathOf(page), "/demo/router/e2e/long");
+  return "boundary shown inside the layout, next navigation renders the page";
+});
+
+check("a render error in a transition shows the error boundary and ends the pending state", async ({ browser, origin }) =>
+  withReducedMotion(browser, async (page) => {
+    await page.goto(`${origin}/demo/router/e2e`);
+    await ready(page, ".link-crash");
+    await page.click(".link-crash");
+    await page.waitForURL(`${origin}/demo/router/e2e/crash`);
+    await page.waitForFunction(() =>
+      document.querySelector("main")?.innerText.includes("The requested note could not be loaded."),
+    );
+    await absenceWindow(page);
+    const pending = await page.evaluate(() => document.querySelectorAll("a[data-router-pending]").length);
+    assert.equal(pending, 0, "pending marks stayed after the boundary was shown");
+    await page.click(".layout-long");
+    await page.waitForSelector("#e2e-long");
+    assert.equal(pathOf(page), "/demo/router/e2e/long");
+    return `boundary shown, pending marks ${pending}, next navigation renders the page`;
+  }),
+);
 
 check("plain anchor to a route is intercepted", async ({ page, net, origin }) => {
   await page.goto(`${origin}/demo/router/e2e`);
@@ -225,6 +270,46 @@ check("scroll restores on Back after a reload", async ({ page, origin }) => {
   const back = await waitForScroll(page, 1200);
   assert.equal(back, 1200, "Back after a reload did not restore the scroll position");
   return `Back after reload ${back}`;
+});
+
+const panelTop = (page) => page.evaluate(() => Math.round(document.querySelector("#long-panel").scrollTop));
+
+async function scrollPanel(page, y) {
+  await page.evaluate((y) => document.querySelector("#long-panel").scrollTo(0, y), y);
+  await page.waitForFunction((y) => Math.round(document.querySelector("#long-panel").scrollTop) === y, y);
+}
+
+async function waitForPanel(page, y) {
+  await page
+    .waitForFunction((y) => Math.round(document.querySelector("#long-panel")?.scrollTop) === y, y, { timeout: 5_000 })
+    .catch(() => null);
+  return panelTop(page);
+}
+
+check("scroll container restores on Back and after a reload", async ({ page, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e/long`);
+  await ready(page, ".long-back");
+  await scrollPanel(page, 600);
+  await page.evaluate(() => document.querySelector(".long-back").click());
+  await page.waitForSelector("#e2e-page");
+  await page.goBack();
+  await page.waitForSelector("#e2e-long");
+  const back = await waitForPanel(page, 600);
+  await scrollPanel(page, 900);
+  await page.evaluate(() => document.querySelector(".long-back").click());
+  await page.waitForSelector("#e2e-page");
+  await page.reload();
+  await ready(page, "#plain-route");
+  await page.goBack();
+  await page.waitForSelector("#e2e-long");
+  const afterReload = await waitForPanel(page, 900);
+  await page.reload();
+  await ready(page, ".long-back");
+  const reloaded = await waitForPanel(page, 900);
+  assert.equal(back, 600, "Back did not restore the container position");
+  assert.equal(afterReload, 900, "Back after a reload did not restore the container position");
+  assert.equal(reloaded, 900, "a reload did not restore the container position");
+  return `Back ${back}, Back after reload ${afterReload}, reload ${reloaded}`;
 });
 
 check("reload paints the saved scroll position on its first frame", async ({ page, origin }) => {
@@ -520,6 +605,91 @@ check("hash-only navigate sends no request and scrolls to the fragment", async (
   return "requests: [], section at the top";
 });
 
+check("navigate to the current URL adds no entry and sends no request", async ({ page, net, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#navigate-current");
+  const length = await page.evaluate(() => history.length);
+  const mark = net.mark();
+  await page.click("#navigate-current");
+  await page.waitForFunction(() => document.querySelector("#navigate-result").textContent.startsWith("committed"));
+  const result = await page.textContent("#navigate-result");
+  await page.click(".link-self");
+  await page.click("#plain-self");
+  await absenceWindow(page);
+  const after = net.since(mark).filter((r) => (r.rsc && !r.prefetch) || r.document);
+  assert.equal(result, "committed /demo/router/e2e");
+  assert.deepEqual(after, [], "navigating to the current URL sent a request");
+  assert.equal(await page.evaluate(() => history.length), length, "navigating to the current URL added an entry");
+  assert.equal(page.url(), `${origin}/demo/router/e2e`);
+  return `navigate, Link and a plain anchor: ${result}, requests [], history +0`;
+});
+
+check("navigate to the current URL with revalidate navigates", async ({ page, net, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#navigate-current-revalidate");
+  const length = await page.evaluate(() => history.length);
+  const mark = net.mark();
+  await page.click("#navigate-current-revalidate");
+  await page.waitForFunction(() => document.querySelector("#navigate-result").textContent.startsWith("committed"));
+  const asked = navigations(net.since(mark), "/demo/router/e2e").length;
+  assert.equal(asked, 1, "expected one navigation request");
+  assert.equal(await page.evaluate(() => history.length), length + 1, "the navigation did not add one entry");
+  return `navigation requests ${asked}, history +1`;
+});
+
+check("navigate to the committed URL cancels a pending navigation", async ({ page, net, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#navigate-current");
+  let release;
+  const held = new Promise((resolve) => (release = resolve));
+  await page.route("**/demo/router/e2e/long", async (route) => {
+    if (route.request().headers()["router-prefetch"]) return route.continue();
+    await held;
+    await route.continue().catch(() => null);
+  });
+  const mark = net.mark();
+  const pending = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname === "/demo/router/e2e/long" && !request.headers()["router-prefetch"],
+  );
+  await page.evaluate(() => document.querySelector(".link-long").click());
+  await pending;
+  await page.evaluate(() => document.querySelector("#navigate-current").click());
+  await page.waitForFunction(() => document.querySelector("#navigate-result").textContent.startsWith("committed"));
+  release();
+  await absenceWindow(page);
+  const asked = navigations(net.since(mark), "/demo/router/e2e").length;
+  assert.equal(asked, 1, "navigating back to the committed URL did not run");
+  assert.equal(pathOf(page), "/demo/router/e2e");
+  assert.ok((await page.$("#e2e-long")) === null, "the pending navigation committed");
+  return `navigation requests to the committed URL ${asked}, stayed on the page`;
+});
+
+check("hook functions keep their identity across navigations and search updates", async ({ page, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, "#navigate-current-revalidate");
+  await page.click("#search-update");
+  await page.waitForURL(`${origin}/demo/router/e2e?text=identity`);
+  await page.click("#navigate-current-revalidate");
+  await page.waitForFunction(() => document.querySelector("#navigate-result").textContent.startsWith("committed"));
+  await page.click("#rerender");
+  await absenceWindow(page);
+  const mounted = await page.textContent("#hook-identity");
+  await page.click(".link-long");
+  await page.waitForSelector("#e2e-long");
+  await page.click(".layout-e2e");
+  await page.waitForSelector("#hook-identity");
+  await page.click("#toggle-blocker");
+  await page.click(".link-long");
+  await page.waitForFunction(() => document.querySelector("#blocker-state").textContent.startsWith("blocked"));
+  await page.click("#rerender");
+  await absenceWindow(page);
+  const remounted = await page.textContent("#hook-identity");
+  assert.equal(mounted, "stable", "after a search update and a navigation");
+  assert.equal(remounted, "stable", "after leaving the page, coming back and holding a navigation");
+  return `after a search update and a navigation: ${mounted}; after a remount and a held navigation: ${remounted}`;
+});
+
 check("server function invalidates the cache", async ({ page, net, origin }) => {
   await page.goto(`${origin}/demo/router/e2e`);
   await ready(page, 'a[href="/demo/router/0"]');
@@ -585,13 +755,13 @@ check("layout links move aria-current after a patch and a search update", async 
     ).catch(() => null);
   await page.goto(`${origin}/demo/router/e2e`);
   await ready(page, ".layout-long");
-  await page.click(".link-long");
+  await clickWithoutHover(page, ".link-long");
   await page.waitForSelector("#e2e-long");
-  await page.click(".long-back");
+  await clickWithoutHover(page, ".long-back");
   await page.waitForSelector("#e2e-page");
   await expectCurrent({ e2e: "page", long: null });
   const afterPatchBack = await current();
-  await page.click(".link-long");
+  await clickWithoutHover(page, ".link-long");
   await page.waitForSelector("#e2e-long");
   await expectCurrent({ e2e: null, long: "page" });
   const afterPatch = await current();
@@ -694,36 +864,254 @@ check("a script URL in Router-Redirect is refused", async ({ page, origin }) => 
   return `header ${JSON.stringify(response.headers()["router-redirect"])}, script did not run, URL unchanged`;
 });
 
-check("a shallow entry with an unreadable search asks the server", async ({ page, net, origin }) => {
-  const statuses = [];
-  page.on("response", (response) => {
-    const url = new URL(response.url());
-    if (url.pathname === "/demo/router/e2e" && url.search === "?text=%FF" && response.headers()["router-response"]) {
-      statuses.push(response.status());
-    }
-  });
+check("a shallow entry with a malformed pair stays on the client", async ({ page, net, origin }) => {
   await page.goto(`${origin}/demo/router/e2e`);
   await ready(page, "#e2e-page");
   await page.evaluate(() => history.pushState(history.state, "", "/demo/router/e2e?text=%FF"));
   await page.evaluate(() => history.back());
   await page.waitForFunction(() => location.search === "");
   const mark = net.mark();
-  const answered = page.waitForResponse(
-    (response) => new URL(response.url()).search === "?text=%FF" && response.headers()["router-response"] !== undefined,
-  );
   await page.evaluate(() => history.forward());
-  await answered;
-  await page.waitForFunction(() => !document.querySelector("#e2e-page"));
-  const text = (await page.innerText("main")).trim().slice(0, 120);
-  const asked = net.since(mark).filter((r) => r.rsc && !r.prefetch && r.url === "/demo/router/e2e?text=%FF").length;
+  await page.waitForFunction(() => location.search === "?text=%FF");
+  await absenceWindow(page);
+  const asked = navigations(net.since(mark), "/demo/router/e2e?text=%FF").length;
+  const kept = (await page.$("#e2e-page")) !== null;
   const documentResponse = await page.goto(`${origin}/demo/router/e2e?text=%FF`);
-  const documentText = (await page.innerText("main")).trim().slice(0, 120);
-  assert.equal(asked, 1, "the client read the search without asking the server");
-  assert.deepEqual(statuses, [400]);
-  assert.equal(documentResponse.status(), 400);
-  assert.equal(text, documentText, "the client shows another page than a document load");
-  return `navigation requests ${asked}, status ${JSON.stringify(statuses)}, page ${JSON.stringify(text)}, same as the document load (status ${documentResponse.status()})`;
+  assert.equal(asked, 0, "the client asked the server");
+  assert.ok(kept, "the client left the page");
+  assert.equal(documentResponse.status(), 200);
+  return `navigation requests ${asked}, page kept, document load status ${documentResponse.status()}`;
 });
+
+check("a slow page keeps the old page interactive and marks the pending link", async ({ browser, origin }) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, reducedMotion: "reduce" });
+  const page = await context.newPage();
+  const net = watch(page);
+  try {
+    return await slowPage({ page, net, origin });
+  } finally {
+    await context.close();
+  }
+});
+
+async function slowPage({ page, net, origin }) {
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, ".link-slow");
+  let sawFallback = false;
+  await page.exposeFunction("routerSawFallback", () => (sawFallback = true));
+  await page.evaluate(() => {
+    new MutationObserver(() => {
+      if (document.body.innerText.includes("Loading...")) window.routerSawFallback();
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  });
+  await closeGate(page);
+  await page.click(".link-slow");
+  await page.waitForSelector(".link-slow[data-router-pending]", { timeout: 5_000 });
+  await renderedInTransition(page, "slow");
+  await page.waitForFunction(() => document.querySelector("#slow-pending")?.textContent === "pending");
+  await page.click("#pending-click");
+  await page.waitForFunction(() => document.querySelector("#pending-click")?.textContent === "Clicked 1");
+  const duringOld = await page.evaluate(() => ({
+    page: document.querySelector("#e2e-page") !== null,
+    slow: document.querySelector("#e2e-slow") !== null,
+    pending: Array.from(document.querySelectorAll("a[data-router-pending]"), (a) => a.className).sort(),
+  }));
+  await releaseGate(page);
+  await page.waitForSelector("#e2e-slow", { timeout: 10_000 });
+  const after = await page.evaluate(() => ({
+    pending: document.querySelectorAll("a[data-router-pending]").length,
+    page: document.querySelector("#e2e-page") !== null,
+  }));
+  assert.equal(pathOf(page), "/demo/router/e2e/slow");
+  assert.deepEqual(
+    duringOld,
+    { page: true, slow: false, pending: ["layout-e2e-subtree", "link-slow"] },
+    "the old page was not kept while pending, or the wrong links were pending",
+  );
+  assert.equal(sawFallback, false, "the root loading fallback replaced the old page");
+  assert.deepEqual(after, { pending: 0, page: false }, "pending marks stayed after the commit");
+  assert.deepEqual(reactConsole(net), [], "React errors or warnings in the console");
+  return `while pending ${JSON.stringify(duringOld)}, fallback shown ${sawFallback}, after ${JSON.stringify(after)}`;
+}
+
+check("Link activeWhen=Subtree and useIsActive match the path and the paths below it", async ({ page, net, origin }) => {
+  const state = () =>
+    page.evaluate(() => ({
+      subtree: document.querySelector(".layout-e2e-subtree").getAttribute("aria-current"),
+      url: document.querySelector(".layout-e2e").getAttribute("aria-current"),
+    }));
+  await page.goto(`${origin}/demo/router/e2e`);
+  await ready(page, ".layout-e2e-subtree");
+  const onChecks = await state();
+  const hook = await page.textContent("#checks-active");
+  await page.click(".link-long");
+  await page.waitForSelector("#e2e-long");
+  await page.waitForFunction(() => document.querySelector(".layout-e2e").getAttribute("aria-current") === null);
+  const below = await state();
+  await page.goto(`${origin}/demo/router`);
+  await ready(page, ".layout-e2e-subtree");
+  const outside = await state();
+  assert.deepEqual(onChecks, { subtree: "page", url: "page" });
+  assert.equal(hook, "active");
+  assert.deepEqual(below, { subtree: "page", url: null }, "the subtree link was not current below its path");
+  assert.deepEqual(outside, { subtree: null, url: null });
+  assert.deepEqual(reactConsole(net), [], "React errors or warnings in the console");
+  return `on /e2e ${JSON.stringify(onChecks)} hook ${hook}; on /e2e/long ${JSON.stringify(below)}; on / ${JSON.stringify(outside)}`;
+});
+
+function responseKinds(page) {
+  const kinds = [];
+  page.on("response", (response) => {
+    const kind = response.headers()["router-response"];
+    if (kind && !response.request().headers()["router-prefetch"]) kinds.push(kind);
+  });
+  return kinds;
+}
+
+async function clickHref(page, href) {
+  await page.evaluate((href) => {
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.textContent = href;
+    document.querySelector("#e2e-search").append(anchor);
+    anchor.click();
+  }, href);
+}
+
+check("a change of route search answers a patch, a change of root search a full response", async ({ page, net, origin }) => {
+  const kinds = responseKinds(page);
+  await page.goto(`${origin}/demo/router/e2e/search?view=v1`);
+  await ready(page, "#navigate-view");
+  await page.click("#navigate-view");
+  await page.waitForFunction(() => document.querySelector("#server-view")?.textContent === "v2");
+  await clickHref(page, "/demo/router/e2e/search?view=v3");
+  await page.waitForFunction(() => document.querySelector("#server-view")?.textContent === "v3");
+  await clickHref(page, "/demo/router/e2e/search?text=z&view=v3");
+  await page.waitForFunction(() => location.search.includes("text=z"));
+  await absenceWindow(page);
+  assert.deepEqual(
+    kinds,
+    ["full", "patch", "full"],
+    "expected full for the first navigation, a patch for the route search change, full for the root search change",
+  );
+  assert.deepEqual(reactConsole(net), [], "React errors or warnings in the console");
+  return `responses ${JSON.stringify(kinds)}`;
+});
+
+check("navigate that changes only shallow search keys sends no request", async ({ page, net, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e/search?view=v1`);
+  await ready(page, "#navigate-panel");
+  const before = await page.evaluate(() => history.length);
+  const mark = net.mark();
+  await page.click("#navigate-panel");
+  await page.waitForFunction(() => document.querySelector("#client-panel")?.textContent === "p1");
+  const url = new URL(page.url());
+  const afterPush = await page.evaluate(() => history.length);
+  await page.goBack();
+  await page.waitForFunction(() => document.querySelector("#client-panel")?.textContent === "none");
+  await absenceWindow(page);
+  const requests = net.since(mark).filter((r) => r.rsc || r.document);
+  assert.equal(url.pathname + url.search, "/demo/router/e2e/search?panel=p1&view=v1");
+  assert.equal(afterPush - before, 1, "the shallow navigate did not add one entry");
+  assert.deepEqual(requests, [], "the shallow navigate or its Back asked the server");
+  assert.equal(await page.textContent("#server-view"), "v1");
+  assert.deepEqual(reactConsole(net), [], "React errors or warnings in the console");
+  return `URL ${url.pathname + url.search}, history +${afterPush - before}, requests ${requests.length}`;
+});
+
+check("two functional search updates in one handler compose into one entry", async ({ page, net, origin }) => {
+  await page.goto(`${origin}/demo/router/e2e/search?view=v1`);
+  await ready(page, "#batch-panel");
+  const before = await page.evaluate(() => history.length);
+  const mark = net.mark();
+  await page.click("#batch-panel");
+  await page.waitForFunction(() => document.querySelector("#client-panel")?.textContent === "xx");
+  await absenceWindow(page);
+  const url = new URL(page.url());
+  const after = await page.evaluate(() => history.length);
+  const requests = net.since(mark).filter((r) => r.rsc || r.document);
+  assert.equal(url.search, "?panel=xx&view=v1");
+  assert.equal(after - before, 1, "two pushes in one handler did not make one entry");
+  assert.deepEqual(requests, [], "a search update asked the server");
+  assert.deepEqual(reactConsole(net), [], "React errors or warnings in the console");
+  return `URL ${url.search}, history +${after - before}`;
+});
+
+async function withReducedMotion(browser, run) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, reducedMotion: "reduce" });
+  const page = await context.newPage();
+  const net = watch(page);
+  try {
+    return await run(page, net);
+  } finally {
+    await context.close();
+  }
+}
+
+async function onChecksWithPatchBase(page, origin) {
+  await page.goto(`${origin}/demo/router/e2e/long`);
+  await ready(page, ".long-back");
+  await page.click(".long-back");
+  await page.waitForSelector("#e2e-page");
+  await ready(page, ".link-group-slow");
+}
+
+check("a navigation during a pending page renders its own target", async ({ browser, origin }) =>
+  withReducedMotion(browser, async (page, net) => {
+    const kinds = responseKinds(page);
+    await onChecksWithPatchBase(page, origin);
+    await closeGate(page);
+    await page.click(".link-group-slow");
+    await renderedInTransition(page, "group-slow");
+    await page.click(".link-group-fast");
+    await page.waitForSelector("#e2e-group-fast", { timeout: 10_000 });
+    await releaseGate(page);
+    await absenceWindow(page);
+    const shown = await page.evaluate(() => ({
+      path: location.pathname,
+      group: document.querySelector("#e2e-group") !== null,
+      fast: document.querySelector("#e2e-group-fast") !== null,
+      checks: document.querySelector("#e2e-page") !== null,
+      slow: document.querySelector("#e2e-slow") !== null,
+    }));
+    assert.deepEqual(
+      shown,
+      { path: "/demo/router/e2e/group/fast", group: true, fast: true, checks: false, slow: false },
+      "the second navigation did not show its own page",
+    );
+    assert.deepEqual(reactConsole(net), [], "React errors or warnings in the console");
+    return `responses ${JSON.stringify(kinds)}, shown ${JSON.stringify(shown)}`;
+  }),
+);
+
+check("a search update on the old page during a pending page stays on the old page", async ({ browser, origin }) =>
+  withReducedMotion(browser, async (page, net) => {
+    await page.goto(`${origin}/demo/router/e2e`);
+    await ready(page, ".link-slow");
+    const before = await page.evaluate(() => history.length);
+    await closeGate(page);
+    await page.click(".link-slow");
+    await renderedInTransition(page, "slow");
+    await page.click("#pending-search");
+    await releaseGate(page);
+    await absenceWindow(page);
+    const shown = await page.evaluate(() => ({
+      url: location.pathname + location.search,
+      checks: document.querySelector("#e2e-page") !== null,
+      slow: document.querySelector("#e2e-slow") !== null,
+      pending: document.querySelector("#slow-pending")?.textContent,
+    }));
+    const after = await page.evaluate(() => history.length);
+    assert.deepEqual(
+      shown,
+      { url: "/demo/router/e2e?text=pending", checks: true, slow: false, pending: "idle" },
+      "the search update did not apply to the page on screen",
+    );
+    assert.equal(after - before, 0, "the canceled navigation left a history entry");
+    assert.deepEqual(reactConsole(net), [], "React errors or warnings in the console");
+    return `shown ${JSON.stringify(shown)}, history +${after - before}`;
+  }),
+);
 
 const server = await startServer();
 const browser = await chromium.launch({ executablePath: await chromiumPath() });

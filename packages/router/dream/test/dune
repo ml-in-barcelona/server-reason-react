@@ -1,0 +1,15 @@
+(test
+ (name test_dream_router)
+ (package server-reason-react)
+ (build_if %{lib-available:dream})
+ (libraries
+  alcotest
+  dream
+  lwt
+  lwt.unix
+  server-reason-react.dream
+  server-reason-react.js
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.runtime
+  server-reason-react.router-native))

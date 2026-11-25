@@ -14,9 +14,11 @@ and route-set validation. The main files are:
 - `packages/router/cram/typed-destination.t`
 - `packages/router/native/test/test_router_server.ml`
 
-The current grammar has static segments and whole-segment typed parameters. It
-does not have optional segments, wildcard segments, or mixed static and dynamic
-segments.
+At the time of the audit the grammar had static segments and whole-segment
+typed parameters only. It now also has a final catch-all
+(`:name<string...>`), optional parameters (`:name?<type>`) and a final optional
+catch-all (`:name?<string...>`); see "Path syntax" in `router.mld`. Mixed static
+and dynamic segments, such as `file-:id<int>`, are still not supported.
 
 ## Findings
 
@@ -106,7 +108,7 @@ values through `encodeURIComponent`.
 
 References:
 
-- `packages/router/runtime/RouterUtf8.ml`
+- `RouterPattern.validUtf8` in `packages/router/runtime/shared/RouterPattern.re`
 - `parameters_of_path` in `packages/router/generation/router_declaration.ml`
 - `RouterServer.Path.decodePathname` in `packages/router/native/RouterServer.ml`
 
@@ -188,8 +190,9 @@ parameters continue to use `encodeURIComponent`.
 
 The final implementation gives each policy one owner:
 
-- `RouterUtf8.valid` is the native UTF-8 validator used by generation and the
-  server.
+- `RouterPattern.validUtf8` is the UTF-8 validator, and
+  `RouterPattern.validSegment` decides which decoded segments the server,
+  `matchesPath` and native hrefs accept.
 - `RouterPattern.encodeStaticSegment` owns static percent encoding for native,
   Melange, generation, and base-path validation.
 - `RouterPattern.relationship` owns duplicate, ambiguity, and prefix
@@ -209,3 +212,17 @@ The final implementation gives each policy one owner:
 
 Findings 1 through 4 now have regression tests. New syntax work can use the
 coverage plan in `router-path-coverage.md`.
+
+## Property tests (2026-11-24)
+
+`packages/router/native/test/properties` compares the parser, the registry,
+`matchesPath` and href rendering with a reference model of the documented
+syntax. `ROUTER_PROPERTY_COUNT` and `ROUTER_PROPERTY_SEED` widen a run. It
+found three defects, now fixed with regression tests:
+
+- `Match.find` let a route that ends where the trie walk stops replace a
+  better match from another branch, when a more specific route sat deeper on
+  the same trie path.
+- `matchesPath` accepted segments the server rejects: invalid UTF-8, `%2F`,
+  control characters and dot segments.
+- The parser accepted the parameter name `_`, which generated invalid OCaml.

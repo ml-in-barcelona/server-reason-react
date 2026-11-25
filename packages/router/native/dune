@@ -3,6 +3,8 @@
  (public_name server-reason-react.router-native)
  (wrapped false)
  (private_modules
+  RouterCatch
+  RouterErrorBoundary
   RouterClientRoot
   RouterOutlet
   RouterPattern
@@ -10,7 +12,7 @@
   RouterSearchKey
   RouterSearchParse
   RouterTypes
-  RouterUtf8)
+  RouterUrl)
  (libraries
   lwt
   server-reason-react.js
@@ -36,9 +38,6 @@
  (files ../runtime/shared/RouterPattern.rei))
 
 (copy_files
- (files ../runtime/RouterUtf8.ml))
-
-(copy_files
  (files ../react/shared/RouterReact.rei))
 
 (copy_files
@@ -52,3 +51,9 @@
 
 (copy_files
  (files ../runtime/shared/RouterSearchParse.ml))
+
+(copy_files
+ (files ../react/shared/RouterErrorBoundary.re))
+
+(copy_files
+ (files ../runtime/shared/RouterUrl.ml))

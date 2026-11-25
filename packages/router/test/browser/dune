@@ -14,12 +14,14 @@
   RouterSearch
   RouterSearchKey
   RouterSearchParse
+  RouterUrl
   SearchKeyCases
   SearchParseCases
   RouterTypes
-  RouterUtf8
   RouterViewTransition
-  TestRouterBrowser)
+  TestRouterBrowser
+  UrlCases
+  UrlPropertiesJs)
  (module_systems commonjs)
  (libraries melange-webapi melange.js reason-react server-reason-react.rsc)
  (preprocess
@@ -90,4 +92,21 @@
  (files ../../runtime/shared/RouterSearchParse.ml))
 
 (copy_files
- (files ../../runtime/RouterUtf8.ml))
+ (files ../../runtime/shared/RouterUrl.ml))
+
+(rule
+ (deps
+  (alias melange)
+  (:test test_router_browser/packages/router/test/browser/UrlPropertiesJs.js))
+ (action
+  (with-stdout-to
+   url-js.txt
+   (setenv
+    NODE_PATH
+    %{workspace_root}/demo/client/node_modules
+    (run node %{test})))))
+
+(rule
+ (alias runtest)
+ (action
+  (cmp native/url-native.txt url-js.txt)))

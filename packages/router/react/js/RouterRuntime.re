@@ -3,7 +3,10 @@ include RouterTypes;
 type pattern =
   | Pattern(RouterPattern.t);
 
-let encode = Js.Global.encodeURIComponent;
+let encode = value =>
+  try(Js.Global.encodeURIComponent(value)) {
+  | _ => invalid_arg("URI malformed")
+  };
 let encodeSegment = value => {
   if (value == ""
       || value == "."
@@ -29,11 +32,6 @@ let pattern = path =>
   | Ok(pattern) => Pattern(pattern)
   | Error(_) => invalid_arg("invalid generated route pattern " ++ path)
   };
-
-let replaceLoneSurrogates: string => string = [%mel.raw
-  {|(value) => value.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "�")|}
-];
-let encodeSearchPart = value => encode(replaceLoneSurrogates(value));
 
 let codePointUnitOrder = unit =>
   if (unit >= 0xd800 && unit <= 0xdfff) {
@@ -71,10 +69,7 @@ let encodeSearch = search =>
        compareByCodePoint(left, right)
      )
   |> List.concat_map(((name, values)) =>
-       List.map(
-         value => encodeSearchPart(name) ++ "=" ++ encodeSearchPart(value),
-         values,
-       )
+       List.map(value => encode(name) ++ "=" ++ encode(value), values)
      )
   |> String.concat("&");
 
@@ -89,4 +84,4 @@ let destinationFromPattern = (~pattern, ~parameters, ~search) => {
   );
 };
 
-let withHash = destinationWithHash(~encode=encodeSearchPart);
+let withHash = destinationWithHash(~encode);

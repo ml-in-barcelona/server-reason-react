@@ -12,6 +12,8 @@ module Metadata = struct end
 module Headers = struct end
 
 module Navigation = struct
+  type location = { pathname : string; search : string; hash : string; key : string }
+  type matched = { routeId : string; parameters : (string * string) list }
   type historyAction = Push | Replace | Pop
   type status = Idle
 
@@ -36,7 +38,7 @@ module Search = struct
   let parseBool value =
     match bool_of_string_opt value with Some value -> Ok value | None -> Error "expected true or false"
 
-  let required ~name:_ ~parse:_ _ = failwith "not used"
+  let required ~name:_ ~parse:_ _ = None
   let optional ~name:_ ~parse:_ _ = None
   let default ~name:_ ~parse:_ ~fallback _ = fallback
   let many ~name:_ ~parse:_ _ = []
