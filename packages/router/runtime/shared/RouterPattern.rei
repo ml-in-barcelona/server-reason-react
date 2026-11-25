@@ -36,9 +36,19 @@ let optional: t => list(string);
 let shapes: t => list(t);
 let append: (t, t) => t;
 
+/** Whether a byte string is valid UTF-8. On Melange each UTF-16 code unit
+    counts as one byte, which suits percent-decoded text, and a unit above
+    [0xFF] is invalid. */
+let validUtf8: string => bool;
+
+/** Whether a decoded path segment can be routed: non-empty, not [.] or
+    [..], without [/], valid UTF-8 and free of control characters. */
+let validSegment: string => bool;
+
 /** Whether [pathname], a percent-encoded URL path without search or hash,
     has the shape of [pattern]. Static segments compare after decoding. A
-    parameter matches one non-empty segment without parsing its type. A
+    parameter matches one segment that decodes to a {!validSegment}, without
+    parsing its type. A
     catch-all matches one or more remaining segments. A template matches when
     any of its {!shapes} does. A segment matches only if the server would
     accept it: no empty segment, [.], [..], encoded slash, control

@@ -80,11 +80,38 @@ let decodeEscaped ?(plus = false) ?(rejectSlash = false) value ~start ~stop ~fir
       Bytes.blit_string value start decoded 0 (first - start);
       Ok (decodeValid plus value stop decoded first (first - start))
 
+let continuation value length index = index < length && Char.code (String.unsafe_get value index) land 0xc0 = 0x80
+
+let rec validUtf8From value length index =
+  if index >= length then true
+  else
+    let first = Char.code (String.unsafe_get value index) in
+    if first < 0x80 then validUtf8From value length (index + 1)
+    else if first < 0xc2 then false
+    else if first < 0xe0 then continuation value length (index + 1) && validUtf8From value length (index + 2)
+    else if index + 1 >= length then false
+    else
+      let second = Char.code (String.unsafe_get value (index + 1)) in
+      if first < 0xf0 then
+        (match first with 0xe0 -> second >= 0xa0 | 0xed -> second < 0xa0 | _ -> true)
+        && continuation value length (index + 1)
+        && continuation value length (index + 2)
+        && validUtf8From value length (index + 3)
+      else if first < 0xf5 then
+        (match first with 0xf0 -> second >= 0x90 | 0xf4 -> second < 0x90 | _ -> true)
+        && continuation value length (index + 1)
+        && continuation value length (index + 2)
+        && continuation value length (index + 3)
+        && validUtf8From value length (index + 4)
+      else false
+
+let validUtf8 value = validUtf8From value (String.length value) 0
+
 let validSegment value =
   (not (String.equal value ""))
   && (not (String.equal value "."))
   && (not (String.equal value ".."))
-  && RouterUtf8.valid value
+  && validUtf8 value
   && String.for_all (fun character -> Char.code character >= 0x20 && Char.code character <> 0x7f) value
 
 let rec firstEscape value stop index =

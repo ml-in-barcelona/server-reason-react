@@ -54,6 +54,14 @@ Optional segments: `:name?<type>` and `:name?<string...>`.
   id:"HelpTopic"~path:"/help/:lang<string>/topics/:topic<int>"~activeRoutes:[("Help",["lang"]);("HelpTopic",["lang";"topic"])]
   id:"HelpTopic@/help/topics/:topic<int>"~path:"/help/topics/:topic<int>"~activeRoutes:[("Help",["lang"]);("HelpTopic",["lang";"topic"])]
 
+A route can have five optional segments, since each one doubles the patterns it matches.
+
+  $ server-reason-react.router-gen --mode registry --source optional-five.ml < optional-five.ml > /dev/null
+  $ server-reason-react.router-gen --mode registry --source optional-limit.ml < optional-limit.ml
+  File "optional-limit.ml", lines 4-5, characters 4-104:
+  Error: router: route path /:a?<int>/a1/b1/:b?<int>/a2/b2/:c?<int>/a3/b3/:d?<int>/a4/b4/:e?<int>/a5/b5/:f?<int>/a6/b6 has 6 optional segments, and a route can have at most 5 because each one doubles the patterns it matches. Declare one route per shape, or move the optional values to ~search
+  [2]
+
   $ server-reason-react.router-gen --mode registry --source optional-duplicate.ml < optional-duplicate.ml
   File "optional-duplicate.ml", line 3, characters 2-57:
   Error: router: duplicate route path /x (from /:a?<string>/x)
@@ -292,11 +300,11 @@ use the names of runtime modules.
   Error: router: invalid router base path /app?preview
   [2]
 
-  $ cp ../../runtime/RouterUtf8.ml ../../runtime/shared/RouterUrl.ml .
-  $ ocamlc -c RouterUtf8.ml RouterUrl.ml
+  $ cp ../../runtime/shared/RouterUrl.ml .
+  $ ocamlc -c RouterUrl.ml
   $ refmt --parse re --print ml ../../runtime/shared/RouterPattern.re > RouterPattern.ml
   $ ocamlc -w -53 -c RouterPattern.ml
-  $ ocamlc -o pattern-test RouterUtf8.cmo RouterUrl.cmo RouterPattern.cmo pattern_test.ml
+  $ ocamlc -o pattern-test RouterUrl.cmo RouterPattern.cmo pattern_test.ml
   $ ./pattern-test
   matchesPath passed
   static path grammar and UTF-8 href rendering passed
@@ -668,7 +676,7 @@ keyword label is rejected.
   > done
   $ server-reason-react.router-gen --mode handles --source collision-underscore.ml < collision-underscore.ml
   File "collision-underscore.ml", line 1, characters 28-79:
-  Error: router: branch input label _ is a keyword or a wildcard; rename it
+  Error: router: invalid route path /n/:_<int>
   [2]
   $ server-reason-react.router-gen --mode handles --source collision-capture.ml < collision-capture.ml > Collision.ml
   $ ocamlc -c Collision.ml

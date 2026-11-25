@@ -18,7 +18,6 @@
   SearchKeyCases
   SearchParseCases
   RouterTypes
-  RouterUtf8
   RouterViewTransition
   TestRouterBrowser
   UrlCases
@@ -91,9 +90,6 @@
 
 (copy_files
  (files ../../runtime/shared/RouterSearchParse.ml))
-
-(copy_files
- (files ../../runtime/RouterUtf8.ml))
 
 (copy_files
  (files ../../runtime/shared/RouterUrl.ml))

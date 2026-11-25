@@ -1407,6 +1407,24 @@ expect(
   "a URL with an encoded dot segment was routed",
   !routed("/app/files/%2E"),
 );
+expect(
+  "an encoded UTF-8 segment was not routed",
+  routed("/app/notes/caf%C3%A9"),
+);
+List.iter(
+  pathname =>
+    expect(
+      "a segment the server rejects was routed: " ++ pathname,
+      !routed(pathname),
+    ),
+  [
+    "/app/notes/%FF",
+    "/app/notes/%2F",
+    "/app/notes/%00",
+    "/app/notes/%2e%2e",
+    "/app/files/a/%2F/b",
+  ],
+);
 let actionRedirect =
   RouterPolicy.actionRedirect(
     ~basePath="/app",

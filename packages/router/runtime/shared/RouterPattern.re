@@ -32,6 +32,7 @@ let validLabel = value => {
     && character <= '9'
     || character == '\'';
   length > 0
+  && value != "_"
   && first(value.[0])
   && value
   |> String.to_seq
@@ -404,6 +405,11 @@ let render = (pattern, ~parameter, ~encodeStatic, ~encodeParameter) => {
 };
 
 let utf8 = RouterUrl.utf8;
+
+let validUtf8 = RouterUrl.validUtf8;
+
+let validSegment = value =>
+  !String.contains(value, '/') && RouterUrl.validSegment(value);
 
 let decodeSegment = segment =>
   RouterUrl.decodeSegment(utf8(segment)) |> Result.to_option;

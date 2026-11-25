@@ -11,7 +11,4 @@
  (files ../runtime/shared/RouterPattern.rei))
 
 (copy_files
- (files ../runtime/RouterUtf8.ml))
-
-(copy_files
  (files ../runtime/shared/RouterUrl.ml))

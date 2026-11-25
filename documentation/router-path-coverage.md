@@ -40,7 +40,10 @@ unsupported segment forms. Remaining coverage:
 - Generated routes that use built-in `int` and `string` parameters
 - A custom codec whose `to_string` function canonicalizes its value
 
-## Missing native matching coverage
+## Native matching coverage
+
+The property tests in `packages/router/native/test/properties` cover the
+items below with generated pathnames and route sets.
 
 - Root route matching and a normal no-match result
 - Too few and too many pathname segments
@@ -50,7 +53,9 @@ unsupported segment forms. Remaining coverage:
 - Incomplete escapes such as `%` and `%A`
 - Raw `+` characters in path segments
 - Percent-decoded static segments such as `/%6Eew`
-- Codec input containing Unicode and reserved punctuation
+- Decoded parameter values containing Unicode and reserved punctuation
+
+They do not run parameter codecs.
 
 ## Completion criteria
 
