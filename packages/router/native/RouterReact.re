@@ -73,7 +73,7 @@ module Provider = {
   let make =
       (
         ~initial,
-        ~protocolVersion as _=2,
+        ~protocolVersion as _=1,
         ~registryFingerprint as _,
         ~basePath as _,
         ~pageCacheCapacity as _=30,

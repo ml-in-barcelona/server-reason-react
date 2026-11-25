@@ -7,6 +7,7 @@
   RouterRuntime
   RouterTransaction
   RouterTypes
+  RouterUrl
   SearchJsx)
  (modes melange)
  (wrapped false)
@@ -58,3 +59,6 @@
 
 (copy_files
  (files ../../../runtime/shared/RouterTransaction.rei))
+
+(copy_files
+ (files ../../../runtime/shared/RouterUrl.ml))

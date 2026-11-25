@@ -258,7 +258,7 @@ let registry_mismatch_returns_reload_required () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("Router-Registry", "2.wrong");
+          ("Router-Registry", "1.wrong");
           ("Router-Navigation-From", "/app");
           ("Router-Base-Revision", "base");
         ]
@@ -312,7 +312,7 @@ let patch_payload_is_smaller_than_full () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("Router-Registry", "2." ^ fingerprint);
+          ("Router-Registry", "1." ^ fingerprint);
           ("Router-Navigation-From", "/app");
           ("Router-Base-Revision", "base");
         ]
@@ -332,7 +332,7 @@ let empty_query_keeps_the_patch () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("Router-Registry", "2." ^ RouterServer.EndpointRegistry.fingerprint registry);
+          ("Router-Registry", "1." ^ RouterServer.EndpointRegistry.fingerprint registry);
           ("Router-Navigation-From", "/app");
           ("Router-Base-Revision", "base");
         ]
@@ -362,7 +362,7 @@ let rsc_redirect_uses_navigation_envelope () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("Router-Registry", "2." ^ fingerprint);
+          ("Router-Registry", "1." ^ fingerprint);
           ("Router-Navigation-From", "/app");
           ("Router-Base-Revision", "base");
         ]
@@ -400,7 +400,7 @@ let loader_permanent_redirect_answers_308_and_rsc_envelope () =
          ~headers:
            [
              ("Accept", "application/react.component");
-             ("Router-Registry", "2." ^ fingerprint);
+             ("Router-Registry", "1." ^ fingerprint);
              ("Router-Navigation-From", "/app");
              ("Router-Base-Revision", "base");
            ]

@@ -1,10 +1,34 @@
 open Ppxlib
-module B = Ast_builder.Default
 
+module B = struct
+  include Ast_builder.Default
+
+  let evar = `Use_qualified_or_var [@@warning "-32"]
+  let pvar = `Use_Router_hygiene_pvar [@@warning "-32"]
+end
+
+let qualified ~loc path =
+  if not (String.contains path '.') then invalid_arg ("router: unqualified generated path " ^ path);
+  Ast_builder.Default.evar ~loc path
+
+let var = Router_hygiene.evar
+let pvar = Router_hygiene.pvar
+let p = Router_hygiene.public
+let g = Router_hygiene.generated
+let u = Router_hygiene.user
 let unit_expression ~loc = B.pexp_construct ~loc { txt = Longident.Lident "()"; loc } None
 let optional_argument label = function None -> [] | Some expression -> [ (Labelled label, expression) ]
 let unit_type ~loc = B.ptyp_constr ~loc { txt = Longident.Lident "unit"; loc } []
-let result_type ~loc name = B.ptyp_constr ~loc { txt = Longident.parse name; loc } []
+let own_modules = [ "Status"; "Loader"; "Error"; "Metadata"; "Headers"; "Navigation"; "ActiveSearch" ]
+let own_type ~loc module_name name = B.ptyp_constr ~loc (Router_hygiene.own ~loc module_name [ name ]) []
+
+let result_type ~loc name =
+  match String.split_on_char '.' name with
+  | [ module_name; name ] when List.mem module_name own_modules -> own_type ~loc module_name name
+  | [ module_name; inner; name ] when List.mem module_name own_modules ->
+      B.ptyp_constr ~loc (Router_hygiene.own ~loc module_name [ inner; name ]) []
+  | _ -> B.ptyp_constr ~loc { txt = Longident.parse name; loc } []
+
 let option_type ~loc typ = B.ptyp_constr ~loc { txt = Longident.Lident "option"; loc } [ typ ]
 let list_type ~loc typ = B.ptyp_constr ~loc { txt = Longident.Lident "list"; loc } [ typ ]
 let bool_type ~loc = result_type ~loc "bool"
@@ -36,8 +60,9 @@ let unsafe_destination_type ~loc =
   B.ptyp_arrow ~loc Nolabel (result_type ~loc "string") (result_type ~loc "destination")
 
 let unsafe_destination_expression ~loc =
-  B.pexp_fun ~loc Nolabel None (B.pvar ~loc "href")
-    (B.pexp_apply ~loc (B.evar ~loc "RouterRuntime.destination") [ (Labelled "path", B.evar ~loc "href") ])
+  B.pexp_fun ~loc Nolabel None
+    (pvar ~loc (g "href"))
+    (B.pexp_apply ~loc (qualified ~loc "RouterRuntime.destination") [ (Labelled "path", var ~loc (g "href")) ])
 
 let react_component_attribute ~loc =
   { attr_name = { txt = "react.component"; loc }; attr_payload = PStr []; attr_loc = loc }
@@ -164,7 +189,7 @@ let route_constructor_expression (route : Router_declaration.route) =
           (B.pexp_record ~loc
              (List.map
                 (fun (parameter : Router_declaration.parameter) ->
-                  ({ txt = Longident.Lident parameter.name; loc = parameter.loc }, B.evar ~loc parameter.name))
+                  ({ txt = Longident.Lident parameter.name; loc = parameter.loc }, var ~loc (u parameter.name)))
                 parameters)
              None)
   in
@@ -177,19 +202,20 @@ let absent_value ~loc (parameter : Router_declaration.parameter) =
   | Segment -> invalid_arg "a required route parameter has no absent value"
 
 let option_bind ~loc option name body =
-  B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.bind")
-    [ (Nolabel, option); (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc name) body) ]
+  B.pexp_apply ~loc (qualified ~loc "Stdlib.Option.bind")
+    [ (Nolabel, option); (Nolabel, B.pexp_fun ~loc Nolabel None (pvar ~loc name) body) ]
 
 let decode_route_expression (route : Router_declaration.route) =
   let loc = route.loc in
   let route_parameters = route.parameters in
   let decoded (parameter : Router_declaration.parameter) =
     let decoded =
-      B.pexp_apply ~loc (B.evar ~loc "decodeRouteParameter")
+      B.pexp_apply ~loc
+        (var ~loc (g "decodeRouteParameter"))
         [
           (Labelled "name", B.estring ~loc parameter.name);
           (Labelled "parse", B.pexp_ident ~loc { txt = parameter.parser; loc });
-          (Nolabel, B.evar ~loc "parameters");
+          (Nolabel, var ~loc (g "parameters"));
         ]
     in
     match parameter.presence with
@@ -198,13 +224,14 @@ let decode_route_expression (route : Router_declaration.route) =
         let present =
           match parameter.presence with
           | OptionalSegment ->
-              B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.map")
-                [ (Nolabel, B.evar ~loc "Stdlib.Option.some"); (Nolabel, decoded) ]
+              B.pexp_apply ~loc (qualified ~loc "Stdlib.Option.map")
+                [ (Nolabel, qualified ~loc "Stdlib.Option.some"); (Nolabel, decoded) ]
           | Segment | OptionalRest -> decoded
         in
         B.pexp_match ~loc
-          (B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.assoc_opt")
-             [ (Nolabel, B.estring ~loc parameter.name); (Nolabel, B.evar ~loc "parameters") ])
+          (B.pexp_apply ~loc
+             (qualified ~loc "Stdlib.List.assoc_opt")
+             [ (Nolabel, B.estring ~loc parameter.name); (Nolabel, var ~loc (g "parameters")) ])
           [
             B.case
               ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "None"; loc } None)
@@ -219,16 +246,16 @@ let decode_route_expression (route : Router_declaration.route) =
   match route_parameters with
   | [] -> route
   | parameters ->
-      let some name = B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (B.pvar ~loc name)) in
+      let some name = B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (pvar ~loc name)) in
       let tuple items = match items with [ item ] -> item | items -> B.ppat_tuple ~loc items in
-      let names = List.map (fun (parameter : Router_declaration.parameter) -> parameter.name) parameters in
+      let names = List.map (fun (parameter : Router_declaration.parameter) -> u parameter.name) parameters in
       B.pexp_let ~loc Nonrecursive
         (List.map
            (fun (parameter : Router_declaration.parameter) ->
-             B.value_binding ~loc ~pat:(B.pvar ~loc parameter.name) ~expr:(decoded parameter))
+             B.value_binding ~loc ~pat:(pvar ~loc (u parameter.name)) ~expr:(decoded parameter))
            parameters)
         (B.pexp_match ~loc
-           (match names with [ name ] -> B.evar ~loc name | names -> B.pexp_tuple ~loc (List.map (B.evar ~loc) names))
+           (match names with [ name ] -> var ~loc name | names -> B.pexp_tuple ~loc (List.map (var ~loc) names))
            [
              B.case ~lhs:(tuple (List.map some names)) ~guard:None ~rhs:route;
              B.case ~lhs:(B.ppat_any ~loc) ~guard:None
@@ -237,16 +264,20 @@ let decode_route_expression (route : Router_declaration.route) =
 
 let decode_route_parameter_expression ~loc =
   let parsed =
-    B.pexp_apply ~loc (B.evar ~loc "Stdlib.Result.to_option")
-      [ (Nolabel, B.pexp_apply ~loc (B.evar ~loc "parse") [ (Nolabel, B.evar ~loc "raw") ]) ]
+    B.pexp_apply ~loc
+      (qualified ~loc "Stdlib.Result.to_option")
+      [ (Nolabel, B.pexp_apply ~loc (var ~loc (g "parse")) [ (Nolabel, var ~loc (g "raw")) ]) ]
   in
   let raw =
-    B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.assoc_opt")
-      [ (Nolabel, B.evar ~loc "name"); (Nolabel, B.evar ~loc "parameters") ]
+    B.pexp_apply ~loc
+      (qualified ~loc "Stdlib.List.assoc_opt")
+      [ (Nolabel, var ~loc (g "name")); (Nolabel, var ~loc (g "parameters")) ]
   in
-  B.pexp_fun ~loc (Labelled "name") None (B.pvar ~loc "name")
-    (B.pexp_fun ~loc (Labelled "parse") None (B.pvar ~loc "parse")
-       (B.pexp_fun ~loc Nolabel None (B.pvar ~loc "parameters") (option_bind ~loc raw "raw" parsed)))
+  B.pexp_fun ~loc (Labelled "name") None
+    (pvar ~loc (g "name"))
+    (B.pexp_fun ~loc (Labelled "parse") None
+       (pvar ~loc (g "parse"))
+       (B.pexp_fun ~loc Nolabel None (pvar ~loc (g "parameters")) (option_bind ~loc raw (g "raw") parsed)))
 
 let decode_route_function ~loc routes =
   let has_parameters =
@@ -264,23 +295,26 @@ let decode_route_function ~loc routes =
   in
   let none = B.pexp_construct ~loc { txt = Longident.Lident "None"; loc } None in
   let body =
-    B.pexp_match ~loc (B.evar ~loc "routeId") (route_cases @ [ B.case ~lhs:(B.ppat_any ~loc) ~guard:None ~rhs:none ])
+    B.pexp_match ~loc (var ~loc (g "routeId")) (route_cases @ [ B.case ~lhs:(B.ppat_any ~loc) ~guard:None ~rhs:none ])
   in
   let body =
     if has_parameters then
       B.pexp_let ~loc Nonrecursive
         [
-          B.value_binding ~loc ~pat:(B.pvar ~loc "decodeRouteParameter") ~expr:(decode_route_parameter_expression ~loc);
+          B.value_binding ~loc
+            ~pat:(pvar ~loc (g "decodeRouteParameter"))
+            ~expr:(decode_route_parameter_expression ~loc);
         ]
         body
     else body
   in
-  B.pexp_fun ~loc Nolabel None (B.pvar ~loc "routeId")
-    (B.pexp_fun ~loc Nolabel None (B.pvar ~loc (if has_parameters then "parameters" else "_parameters")) body)
+  B.pexp_fun ~loc Nolabel None
+    (pvar ~loc (g "routeId"))
+    (B.pexp_fun ~loc Nolabel None (if has_parameters then pvar ~loc (g "parameters") else B.ppat_any ~loc) body)
 
 let use_route_expression ~loc =
   let current_route =
-    B.pexp_apply ~loc (B.evar ~loc "RouterReact.useCurrentRoute") [ (Nolabel, unit_expression ~loc) ]
+    B.pexp_apply ~loc (qualified ~loc "RouterReact.useCurrentRoute") [ (Nolabel, unit_expression ~loc) ]
   in
   let body =
     B.pexp_match ~loc current_route
@@ -292,11 +326,12 @@ let use_route_expression ~loc =
         B.case
           ~lhs:
             (B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc }
-               (Some (B.ppat_tuple ~loc [ B.pvar ~loc "routeId"; B.pvar ~loc "parameters" ])))
+               (Some (B.ppat_tuple ~loc [ pvar ~loc (g "routeId"); pvar ~loc (g "parameters") ])))
           ~guard:None
           ~rhs:
-            (B.pexp_apply ~loc (B.evar ~loc "decodeRoute")
-               [ (Nolabel, B.evar ~loc "routeId"); (Nolabel, B.evar ~loc "parameters") ]);
+            (B.pexp_apply ~loc
+               (var ~loc (g "decodeRoute"))
+               [ (Nolabel, var ~loc (g "routeId")); (Nolabel, var ~loc (g "parameters")) ]);
       ]
   in
   B.pexp_fun ~loc Nolabel None (B.punit ~loc) body
@@ -306,34 +341,36 @@ let use_matches_expression ~loc =
     B.pexp_fun ~loc Nolabel None
       (B.ppat_record ~loc
          [
-           ({ txt = Longident.parse "RouterRuntime.Navigation.routeId"; loc }, B.pvar ~loc "routeId");
-           ({ txt = Longident.parse "parameters"; loc }, B.pvar ~loc "parameters");
+           ({ txt = Longident.parse "RouterRuntime.Navigation.routeId"; loc }, pvar ~loc (g "routeId"));
+           ({ txt = Longident.parse "parameters"; loc }, pvar ~loc (g "parameters"));
          ]
          Closed)
-      (B.pexp_apply ~loc (B.evar ~loc "decodeRoute")
-         [ (Nolabel, B.evar ~loc "routeId"); (Nolabel, B.evar ~loc "parameters") ])
+      (B.pexp_apply ~loc
+         (var ~loc (g "decodeRoute"))
+         [ (Nolabel, var ~loc (g "routeId")); (Nolabel, var ~loc (g "parameters")) ])
   in
   B.pexp_fun ~loc Nolabel None (B.punit ~loc)
-    (B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.filter_map")
+    (B.pexp_apply ~loc
+       (qualified ~loc "Stdlib.List.filter_map")
        [
          (Nolabel, matched);
-         (Nolabel, B.pexp_apply ~loc (B.evar ~loc "RouterReact.useMatches") [ (Nolabel, unit_expression ~loc) ]);
+         (Nolabel, B.pexp_apply ~loc (qualified ~loc "RouterReact.useMatches") [ (Nolabel, unit_expression ~loc) ]);
        ])
 
 let typed_function ~loc label name typ body =
   let typ = match label with Optional _ -> option_type ~loc typ | Labelled _ | Nolabel -> typ in
-  B.pexp_fun ~loc label None (B.ppat_constraint ~loc (B.pvar ~loc name) typ) body
+  B.pexp_fun ~loc label None (B.ppat_constraint ~loc (pvar ~loc name) typ) body
 
 let route_input_expression ~loc parameters search body =
-  let body = typed_function ~loc (Optional "hash") "hash" (result_type ~loc "string") body in
+  let body = typed_function ~loc (Optional "hash") (g "hash") (result_type ~loc "string") body in
   let body =
     match search with
     | [] -> body
-    | _ -> typed_function ~loc (search_label search) "search" (result_type ~loc "search") body
+    | _ -> typed_function ~loc (search_label search) (g "search") (result_type ~loc "search") body
   in
   List.fold_right
     (fun (parameter : Router_declaration.parameter) body ->
-      typed_function ~loc (parameter_label parameter) parameter.name parameter.argument body)
+      typed_function ~loc (parameter_label parameter) (u parameter.name) parameter.argument body)
     parameters body
 
 let route_function_expression ~loc parameters search body =
@@ -342,10 +379,10 @@ let route_function_expression ~loc parameters search body =
 let apply_route_inputs ~loc callee parameters search =
   let arguments =
     List.map
-      (fun (parameter : Router_declaration.parameter) -> (parameter_label parameter, B.evar ~loc parameter.name))
+      (fun (parameter : Router_declaration.parameter) -> (parameter_label parameter, var ~loc (u parameter.name)))
       parameters
-    @ (match search with [] -> [] | _ -> [ (search_label search, B.evar ~loc "search") ])
-    @ [ (Optional "hash", B.evar ~loc "hash"); (Nolabel, unit_expression ~loc) ]
+    @ (match search with [] -> [] | _ -> [ (search_label search, var ~loc (g "search")) ])
+    @ [ (Optional "hash", var ~loc (g "hash")); (Nolabel, unit_expression ~loc) ]
   in
   B.pexp_apply ~loc callee arguments
 
@@ -418,28 +455,26 @@ let route_signature ~root_search (route : Router_declaration.route) =
              ~type_:(route_function_type ~loc route.parameters route.search (result_type ~loc "string"))
              ~prim:[]);
       ]
-    @ (match route.parameters with
-      | [] -> []
-      | parameters ->
-          let result typ =
-            B.ptyp_constr ~loc { txt = Longident.Lident "result"; loc } [ typ; result_type ~loc "string" ]
-          in
-          [
-            B.psig_value ~loc
-              (B.value_description ~loc ~name:{ txt = "tryDestination"; loc }
-                 ~type_:(route_function_type ~loc parameters route.search (result destination_type))
-                 ~prim:[]);
-            B.psig_value ~loc
-              (B.value_description ~loc ~name:{ txt = "tryHref"; loc }
-                 ~type_:(route_function_type ~loc parameters route.search (result (result_type ~loc "string")))
-                 ~prim:[]);
-          ])
+    @ (let parameters = route.parameters in
+       let result typ =
+         B.ptyp_constr ~loc { txt = Longident.Lident "result"; loc } [ typ; result_type ~loc "string" ]
+       in
+       [
+         B.psig_value ~loc
+           (B.value_description ~loc ~name:{ txt = "tryDestination"; loc }
+              ~type_:(route_function_type ~loc parameters route.search (result destination_type))
+              ~prim:[]);
+         B.psig_value ~loc
+           (B.value_description ~loc ~name:{ txt = "tryHref"; loc }
+              ~type_:(route_function_type ~loc parameters route.search (result (result_type ~loc "string")))
+              ~prim:[]);
+       ])
     @ [ B.psig_value ~loc link_make ]
   in
   B.psig_module ~loc
     (B.module_declaration ~loc ~name:{ txt = Some route.name; loc } ~type_:(B.pmty_signature ~loc module_items))
 
-let public_modules = [ "Status"; "Loader"; "Error"; "Metadata"; "Headers"; "Navigation" ]
+let public_modules = List.filter (fun name -> not (String.equal name "ActiveSearch")) own_modules
 
 let signature_alias ~loc name =
   B.psig_module ~loc
@@ -473,9 +508,7 @@ let active_search_declaration ~loc routes =
     List.map
       (fun (route : Router_declaration.route) ->
         let args =
-          match route.search with
-          | [] -> Pcstr_tuple []
-          | _ -> Pcstr_tuple [ result_type ~loc (route.name ^ ".search") ]
+          match route.search with [] -> Pcstr_tuple [] | _ -> Pcstr_tuple [ own_type ~loc route.name "search" ]
         in
         B.constructor_declaration ~loc:route.loc ~name:{ txt = route.name; loc = route.loc } ~args ~res:None)
       routes
@@ -496,7 +529,7 @@ let active_search_signature ~loc routes =
          ~prim:[]);
   ]
 
-let signature (declaration : Router_declaration.t) =
+let raw_signature (declaration : Router_declaration.t) =
   let loc = declaration.loc in
   let routes = Router_declaration.routes declaration in
   let root_search = Router_declaration.root_search declaration in
@@ -537,28 +570,29 @@ let parameter_entries ~loc (parameter : Router_declaration.parameter) =
         B.pexp_apply ~loc (B.pexp_ident ~loc { txt = parameter.to_string; loc }) [ (Nolabel, value) ];
       ]
   in
-  let value = B.evar ~loc parameter.name in
+  let value = var ~loc (u parameter.name) in
   match parameter.presence with
   | Segment -> B.elist ~loc [ pair value ]
   | OptionalSegment ->
       let mapped =
-        B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.map")
+        B.pexp_apply ~loc (qualified ~loc "Stdlib.Option.map")
           [
-            (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc "value") (pair (B.evar ~loc "value"))); (Nolabel, value);
+            (Nolabel, B.pexp_fun ~loc Nolabel None (pvar ~loc (g "value")) (pair (var ~loc (g "value"))));
+            (Nolabel, value);
           ]
       in
-      B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.to_list") [ (Nolabel, mapped) ]
+      B.pexp_apply ~loc (qualified ~loc "Stdlib.Option.to_list") [ (Nolabel, mapped) ]
   | OptionalRest ->
       B.pexp_match ~loc value
         [
           B.case
             ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "[]"; loc } None)
             ~guard:None ~rhs:(B.elist ~loc []);
-          B.case ~lhs:(B.pvar ~loc "value") ~guard:None ~rhs:(B.elist ~loc [ pair (B.evar ~loc "value") ]);
+          B.case ~lhs:(pvar ~loc (g "value")) ~guard:None ~rhs:(B.elist ~loc [ pair (var ~loc (g "value")) ]);
         ]
 
 let parameter_list ~loc parameters =
-  B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.concat")
+  B.pexp_apply ~loc (qualified ~loc "Stdlib.List.concat")
     [ (Nolabel, B.elist ~loc (List.map (parameter_entries ~loc) parameters)) ]
 
 let search_decoder ~loc (search : Router_declaration.search) =
@@ -572,21 +606,21 @@ let search_decoder ~loc (search : Router_declaration.search) =
   let arguments =
     [ (Labelled "name", B.estring ~loc search.key); (Labelled "parse", B.pexp_ident ~loc { txt = search.parser; loc }) ]
     @ (match search.kind with Default fallback -> [ (Labelled "fallback", fallback) ] | _ -> [])
-    @ [ (Nolabel, B.evar ~loc "values") ]
+    @ [ (Nolabel, var ~loc (g "values")) ]
   in
-  B.pexp_apply ~loc (B.evar ~loc callee) arguments
+  B.pexp_apply ~loc (qualified ~loc callee) arguments
 
 let search_of_values ?qualify ~loc search =
   let label name = match qualify with None -> Longident.Lident name | Some path -> Longident.Ldot (path, name) in
   let required = List.filter (fun (search : Router_declaration.search) -> search.kind = Required) search in
-  let temporary (search : Router_declaration.search) = "required_" ^ search.name in
+  let temporary (search : Router_declaration.search) = g ("required_" ^ search.name) in
   let record =
     B.pexp_record ~loc
       (List.map
          (fun (search : Router_declaration.search) ->
            ( { txt = label search.name; loc = search.loc },
              match search.kind with
-             | Required -> B.evar ~loc (temporary search)
+             | Required -> var ~loc (temporary search)
              | Optional | Default _ | Many -> search_decoder ~loc:search.loc search ))
          search)
       None
@@ -595,17 +629,17 @@ let search_of_values ?qualify ~loc search =
   | [] -> record
   | required ->
       let some (search : Router_declaration.search) =
-        B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (B.pvar ~loc (temporary search)))
+        B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (pvar ~loc (temporary search)))
       in
       B.pexp_let ~loc Nonrecursive
         (List.map
            (fun (search : Router_declaration.search) ->
-             B.value_binding ~loc ~pat:(B.pvar ~loc (temporary search)) ~expr:(search_decoder ~loc:search.loc search))
+             B.value_binding ~loc ~pat:(pvar ~loc (temporary search)) ~expr:(search_decoder ~loc:search.loc search))
            required)
         (B.pexp_match ~loc
            (match required with
-           | [ search ] -> B.evar ~loc (temporary search)
-           | required -> B.pexp_tuple ~loc (List.map (fun search -> B.evar ~loc (temporary search)) required))
+           | [ search ] -> var ~loc (temporary search)
+           | required -> B.pexp_tuple ~loc (List.map (fun search -> var ~loc (temporary search)) required))
            [
              B.case
                ~lhs:
@@ -631,13 +665,14 @@ let search_values_expression ~loc record search =
               ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "None"; loc } None)
               ~guard:None ~rhs:(B.elist ~loc []);
             B.case
-              ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (B.pvar ~loc "value")))
+              ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (pvar ~loc (g "value"))))
               ~guard:None
-              ~rhs:(pair (B.elist ~loc [ print (B.evar ~loc "value") ]));
+              ~rhs:(pair (B.elist ~loc [ print (var ~loc (g "value")) ]));
           ]
     | Default fallback ->
         B.pexp_ifthenelse ~loc
-          (B.pexp_apply ~loc (B.evar ~loc "Stdlib.String.equal") [ (Nolabel, print value); (Nolabel, print fallback) ])
+          (B.pexp_apply ~loc (qualified ~loc "Stdlib.String.equal")
+             [ (Nolabel, print value); (Nolabel, print fallback) ])
           (B.elist ~loc [])
           (Some (pair (B.elist ~loc [ print value ])))
     | Many ->
@@ -646,21 +681,23 @@ let search_values_expression ~loc record search =
             B.case
               ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "[]"; loc } None)
               ~guard:None ~rhs:(B.elist ~loc []);
-            B.case ~lhs:(B.pvar ~loc "values") ~guard:None
+            B.case
+              ~lhs:(pvar ~loc (g "values"))
+              ~guard:None
               ~rhs:
                 (pair
-                   (B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.map")
-                      [ (Nolabel, B.pexp_ident ~loc { txt = search.to_string; loc }); (Nolabel, B.evar ~loc "values") ]));
+                   (B.pexp_apply ~loc (qualified ~loc "Stdlib.List.map")
+                      [ (Nolabel, B.pexp_ident ~loc { txt = search.to_string; loc }); (Nolabel, var ~loc (g "values")) ]));
           ]
   in
-  B.pexp_apply ~loc (B.evar ~loc "Stdlib.List.concat") [ (Nolabel, B.elist ~loc (List.map entry search)) ]
+  B.pexp_apply ~loc (qualified ~loc "Stdlib.List.concat") [ (Nolabel, B.elist ~loc (List.map entry search)) ]
 
 let search_constructor_expression ~loc search =
   let record =
     B.pexp_record ~loc
       (List.map
          (fun (search : Router_declaration.search) ->
-           ({ txt = Longident.Lident search.name; loc }, B.evar ~loc search.name))
+           ({ txt = Longident.Lident search.name; loc }, var ~loc (u search.name)))
          search)
       None
   in
@@ -674,12 +711,12 @@ let search_constructor_expression ~loc search =
         | Required | Optional -> None
       in
       B.pexp_fun ~loc (search_argument_label search) default
-        (B.ppat_constraint ~loc (B.pvar ~loc search.name) (search_value_type ~loc search))
+        (B.ppat_constraint ~loc (pvar ~loc (u search.name)) (search_value_type ~loc search))
         body)
     search body
 
 let search_codec_structure ~loc ~values search =
-  let primitive name = B.evar ~loc ("RSC.Primitives." ^ name) in
+  let primitive name = qualified ~loc ("RSC.Primitives." ^ name) in
   let codec suffix =
     B.pexp_apply ~loc
       (primitive ("list" ^ suffix))
@@ -695,28 +732,31 @@ let search_codec_structure ~loc ~values search =
   in
   let to_rsc =
     B.pexp_fun ~loc Nolabel None
-      (B.ppat_constraint ~loc (B.pvar ~loc "search") (result_type ~loc "search"))
+      (B.ppat_constraint ~loc (pvar ~loc (g "search")) (result_type ~loc "search"))
       (B.pexp_apply ~loc (codec "_to_rsc") [ (Nolabel, values) ])
   in
   let of_rsc =
-    B.pexp_fun ~loc Nolabel None (B.pvar ~loc "rsc")
+    B.pexp_fun ~loc Nolabel None
+      (pvar ~loc (g "rsc"))
       (B.pexp_let ~loc Nonrecursive
          [
-           B.value_binding ~loc ~pat:(B.pvar ~loc "values")
-             ~expr:(B.pexp_apply ~loc (codec "_of_rsc") [ (Nolabel, B.evar ~loc "rsc") ]);
+           B.value_binding ~loc
+             ~pat:(pvar ~loc (g "values"))
+             ~expr:(B.pexp_apply ~loc (codec "_of_rsc") [ (Nolabel, var ~loc (g "rsc")) ]);
          ]
          (B.pexp_constraint ~loc
             (if has_required search then
                B.pexp_match ~loc (search_of_values ~loc search)
                  [
                    B.case
-                     ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (B.pvar ~loc "search")))
-                     ~guard:None ~rhs:(B.evar ~loc "search");
+                     ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (pvar ~loc (g "search"))))
+                     ~guard:None
+                     ~rhs:(var ~loc (g "search"));
                    B.case
                      ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "None"; loc } None)
                      ~guard:None
                      ~rhs:
-                       (B.pexp_apply ~loc (B.evar ~loc "Stdlib.raise")
+                       (B.pexp_apply ~loc (qualified ~loc "Stdlib.raise")
                           [
                             ( Nolabel,
                               B.pexp_construct ~loc
@@ -731,21 +771,23 @@ let search_codec_structure ~loc ~values search =
             (result_type ~loc "search")))
   in
   [
-    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "search_to_rsc") ~expr:to_rsc ];
-    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "search_of_rsc") ~expr:of_rsc ];
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(pvar ~loc (p "search_to_rsc")) ~expr:to_rsc ];
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(pvar ~loc (p "search_of_rsc")) ~expr:of_rsc ];
   ]
 
 let use_search_structure ~loc ~values search =
   let update =
-    B.pexp_fun ~loc (Optional "history") None (B.pvar ~loc "history")
+    B.pexp_fun ~loc (Optional "history") None
+      (pvar ~loc (g "history"))
       (B.pexp_fun ~loc Nolabel None
-         (B.ppat_constraint ~loc (B.pvar ~loc "search") (result_type ~loc "search"))
-         (B.pexp_apply ~loc (B.evar ~loc "updateSearch")
+         (B.ppat_constraint ~loc (pvar ~loc (g "search")) (result_type ~loc "search"))
+         (B.pexp_apply ~loc
+            (var ~loc (g "updateSearch"))
             [
               ( Labelled "owned",
                 B.elist ~loc (List.map (fun (item : Router_declaration.search) -> B.estring ~loc item.key) search) );
               (Labelled "values", values);
-              (Optional "history", B.evar ~loc "history");
+              (Optional "history", var ~loc (g "history"));
               (Nolabel, unit_expression ~loc);
             ]))
   in
@@ -754,16 +796,16 @@ let use_search_structure ~loc ~values search =
       B.pexp_let ~loc Nonrecursive
         [
           B.value_binding ~loc
-            ~pat:(B.ppat_tuple ~loc [ B.pvar ~loc "values"; B.pvar ~loc "updateSearch" ])
-            ~expr:(B.pexp_apply ~loc (B.evar ~loc "RouterReact.useSearch") [ (Nolabel, unit_expression ~loc) ]);
+            ~pat:(B.ppat_tuple ~loc [ pvar ~loc (g "values"); pvar ~loc (g "updateSearch") ])
+            ~expr:(B.pexp_apply ~loc (qualified ~loc "RouterReact.useSearch") [ (Nolabel, unit_expression ~loc) ]);
         ]
         (B.pexp_tuple ~loc
            [
              search_of_values ~loc search;
-             B.pexp_apply ~loc (B.evar ~loc "React.useMemo1")
+             B.pexp_apply ~loc (qualified ~loc "React.useMemo1")
                [
                  (Nolabel, B.pexp_fun ~loc Nolabel None (B.punit ~loc) update);
-                 (Nolabel, B.pexp_array ~loc [ B.evar ~loc "updateSearch" ]);
+                 (Nolabel, B.pexp_array ~loc [ var ~loc (g "updateSearch") ]);
                ];
            ])
     in
@@ -777,33 +819,37 @@ let use_search_structure ~loc ~values search =
       B.pexp_let ~loc Nonrecursive
         [
           B.value_binding ~loc
-            ~pat:(B.ppat_constraint ~loc (B.pvar ~loc "search") (result_type ~loc "search"))
-            ~expr:(B.pexp_apply ~loc (B.evar ~loc "update") [ (Nolabel, search_of_values ~loc search) ]);
+            ~pat:(B.ppat_constraint ~loc (pvar ~loc (g "search")) (result_type ~loc "search"))
+            ~expr:(B.pexp_apply ~loc (var ~loc (g "update")) [ (Nolabel, search_of_values ~loc search) ]);
         ]
         values
     in
     let update =
-      B.pexp_fun ~loc (Optional "history") None (B.pvar ~loc "history")
-        (B.pexp_fun ~loc Nolabel None (B.pvar ~loc "update")
-           (B.pexp_apply ~loc (B.evar ~loc "updateSearchWith")
+      B.pexp_fun ~loc (Optional "history") None
+        (pvar ~loc (g "history"))
+        (B.pexp_fun ~loc Nolabel None
+           (pvar ~loc (g "update"))
+           (B.pexp_apply ~loc
+              (var ~loc (g "updateSearchWith"))
               [
                 ( Labelled "owned",
                   B.elist ~loc (List.map (fun (item : Router_declaration.search) -> B.estring ~loc item.key) search) );
-                (Optional "history", B.evar ~loc "history");
-                (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc "values") next);
+                (Optional "history", var ~loc (g "history"));
+                (Nolabel, B.pexp_fun ~loc Nolabel None (pvar ~loc (g "values")) next);
               ]))
     in
     let body =
       B.pexp_let ~loc Nonrecursive
         [
-          B.value_binding ~loc ~pat:(B.pvar ~loc "updateSearchWith")
+          B.value_binding ~loc
+            ~pat:(pvar ~loc (g "updateSearchWith"))
             ~expr:
-              (B.pexp_apply ~loc (B.evar ~loc "RouterReact.useUpdateSearchWith") [ (Nolabel, unit_expression ~loc) ]);
+              (B.pexp_apply ~loc (qualified ~loc "RouterReact.useUpdateSearchWith") [ (Nolabel, unit_expression ~loc) ]);
         ]
-        (B.pexp_apply ~loc (B.evar ~loc "React.useMemo1")
+        (B.pexp_apply ~loc (qualified ~loc "React.useMemo1")
            [
              (Nolabel, B.pexp_fun ~loc Nolabel None (B.punit ~loc) update);
-             (Nolabel, B.pexp_array ~loc [ B.evar ~loc "updateSearchWith" ]);
+             (Nolabel, B.pexp_array ~loc [ var ~loc (g "updateSearchWith") ]);
            ])
     in
     B.pexp_constraint ~loc
@@ -811,8 +857,9 @@ let use_search_structure ~loc ~values search =
       (B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (update_search_with_function_type ~loc search))
   in
   [
-    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "useSearch") ~expr:use_search ];
-    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "useUpdateSearch") ~expr:use_update_search ];
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(pvar ~loc (p "useSearch")) ~expr:use_search ];
+    B.pstr_value ~loc Nonrecursive
+      [ B.value_binding ~loc ~pat:(pvar ~loc (p "useUpdateSearch")) ~expr:use_update_search ];
   ]
 
 let route_module ~base_path ~root_search (route : Router_declaration.route) =
@@ -820,42 +867,47 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
   let search_values =
     match (route.search, search_label route.search) with
     | [], _ -> B.elist ~loc []
-    | _, Labelled _ -> B.pexp_apply ~loc (B.evar ~loc "searchValues") [ (Nolabel, B.evar ~loc "search") ]
+    | _, Labelled _ -> B.pexp_apply ~loc (var ~loc (g "searchValues")) [ (Nolabel, var ~loc (g "search")) ]
     | _, (Optional _ | Nolabel) ->
-        B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.fold")
+        B.pexp_apply ~loc (qualified ~loc "Stdlib.Option.fold")
           [
             (Labelled "none", B.elist ~loc []);
-            (Labelled "some", B.evar ~loc "searchValues");
-            (Nolabel, B.evar ~loc "search");
+            (Labelled "some", var ~loc (g "searchValues"));
+            (Nolabel, var ~loc (g "search"));
           ]
   in
   let pattern_source =
     if String.equal route.path "/" && not (String.equal base_path "") then base_path else base_path ^ route.path
   in
-  let pattern = B.pexp_apply ~loc (B.evar ~loc "RouterRuntime.pattern") [ (Nolabel, B.estring ~loc pattern_source) ] in
+  let pattern =
+    B.pexp_apply ~loc (qualified ~loc "RouterRuntime.pattern") [ (Nolabel, B.estring ~loc pattern_source) ]
+  in
   let destination_body =
     B.pexp_apply ~loc
-      (B.evar ~loc "RouterRuntime.destinationFromPattern")
+      (qualified ~loc "RouterRuntime.destinationFromPattern")
       [
-        (Labelled "pattern", B.evar ~loc "pattern");
+        (Labelled "pattern", var ~loc (g "pattern"));
         (Labelled "parameters", parameter_list ~loc route.parameters);
         (Labelled "search", search_values);
       ]
   in
   let destination_body =
     B.pexp_let ~loc Nonrecursive
-      [ B.value_binding ~loc ~pat:(B.pvar ~loc "value") ~expr:destination_body ]
-      (B.pexp_match ~loc (B.evar ~loc "hash")
+      [ B.value_binding ~loc ~pat:(pvar ~loc (g "value")) ~expr:destination_body ]
+      (B.pexp_match ~loc
+         (var ~loc (g "hash"))
          [
            B.case
              ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "None"; loc } None)
-             ~guard:None ~rhs:(B.evar ~loc "value");
+             ~guard:None
+             ~rhs:(var ~loc (g "value"));
            B.case
-             ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (B.pvar ~loc "hash")))
+             ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc } (Some (pvar ~loc (g "hash"))))
              ~guard:None
              ~rhs:
-               (B.pexp_apply ~loc (B.evar ~loc "RouterRuntime.withHash")
-                  [ (Nolabel, B.evar ~loc "value"); (Labelled "hash", B.evar ~loc "hash") ]);
+               (B.pexp_apply ~loc
+                  (qualified ~loc "RouterRuntime.withHash")
+                  [ (Nolabel, var ~loc (g "value")); (Labelled "hash", var ~loc (g "hash")) ]);
          ])
   in
   let destination_body =
@@ -863,7 +915,7 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
     | Intent -> destination_body
     | level ->
         B.pexp_apply ~loc
-          (B.evar ~loc "RouterRuntime.withPrefetch")
+          (qualified ~loc "RouterRuntime.withPrefetch")
           [ (Nolabel, destination_body); (Nolabel, prefetch_level ~loc level) ]
   in
   let destination_body =
@@ -871,7 +923,7 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
     | [] -> destination_body
     | shallow ->
         B.pexp_apply ~loc
-          (B.evar ~loc "RouterRuntime.withShallowSearch")
+          (qualified ~loc "RouterRuntime.withShallowSearch")
           [
             (Nolabel, destination_body);
             ( Nolabel,
@@ -885,10 +937,11 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
         | OptionalRest ->
             B.pexp_let ~loc Nonrecursive
               [
-                B.value_binding ~loc ~pat:(B.pvar ~loc parameter.name)
+                B.value_binding ~loc
+                  ~pat:(pvar ~loc (u parameter.name))
                   ~expr:
-                    (B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.value")
-                       [ (Labelled "default", B.elist ~loc []); (Nolabel, B.evar ~loc parameter.name) ]);
+                    (B.pexp_apply ~loc (qualified ~loc "Stdlib.Option.value")
+                       [ (Labelled "default", B.elist ~loc []); (Nolabel, var ~loc (u parameter.name)) ]);
               ]
               body
         | Segment | OptionalSegment -> body)
@@ -898,8 +951,8 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
     route_function_expression ~loc route.parameters route.search
       (B.pexp_constraint ~loc destination_body (result_type ~loc "destination"))
   in
-  let destination_call = apply_route_inputs ~loc (B.evar ~loc "destination") route.parameters route.search in
-  let href_body = B.pexp_apply ~loc (B.evar ~loc "RouterRuntime.href") [ (Nolabel, destination_call) ] in
+  let destination_call = apply_route_inputs ~loc (var ~loc (p "destination")) route.parameters route.search in
+  let href_body = B.pexp_apply ~loc (qualified ~loc "RouterRuntime.href") [ (Nolabel, destination_call) ] in
   let href_expression =
     route_function_expression ~loc route.parameters route.search
       (B.pexp_constraint ~loc href_body (result_type ~loc "string"))
@@ -907,17 +960,17 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
   let link_body =
     let element =
       B.pexp_apply ~loc
-        (B.evar ~loc "RouterReact.Link.createElement")
+        (qualified ~loc "RouterReact.Link.createElement")
         [
           (Labelled "destination", destination_call);
-          (Optional "attributes", B.evar ~loc "attributes");
-          (Optional "className", B.evar ~loc "className");
-          (Optional "target", B.evar ~loc "target");
-          (Optional "download", B.evar ~loc "download");
-          (Optional "ariaCurrent", B.evar ~loc "ariaCurrent");
-          (Optional "history", B.evar ~loc "history");
-          (Optional "revalidate", B.evar ~loc "revalidate");
-          (Labelled "children", B.elist ~loc [ B.evar ~loc "children" ]);
+          (Optional "attributes", var ~loc (g "attributes"));
+          (Optional "className", var ~loc (g "className"));
+          (Optional "target", var ~loc (g "target"));
+          (Optional "download", var ~loc (g "download"));
+          (Optional "ariaCurrent", var ~loc (g "ariaCurrent"));
+          (Optional "history", var ~loc (g "history"));
+          (Optional "revalidate", var ~loc (g "revalidate"));
+          (Labelled "children", B.elist ~loc [ var ~loc (g "children") ]);
           (Nolabel, unit_expression ~loc);
         ]
     in
@@ -927,83 +980,83 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
     B.pexp_fun ~loc Nolabel None (B.punit ~loc) (B.pexp_constraint ~loc link_body (result_type ~loc "React.element"))
   in
   let link_with_children =
-    typed_function ~loc (Labelled "children") "children" (result_type ~loc "React.element") link_with_unit
+    typed_function ~loc (Labelled "children") (g "children") (result_type ~loc "React.element") link_with_unit
   in
   let link_with_revalidate =
-    typed_function ~loc (Optional "revalidate") "revalidate" (bool_type ~loc) link_with_children
+    typed_function ~loc (Optional "revalidate") (g "revalidate") (bool_type ~loc) link_with_children
   in
   let link_with_history =
-    typed_function ~loc (Optional "history") "history"
+    typed_function ~loc (Optional "history") (g "history")
       (result_type ~loc "Navigation.historyAction")
       link_with_revalidate
   in
   let link_with_aria_current =
-    typed_function ~loc (Optional "ariaCurrent") "ariaCurrent" (result_type ~loc "string") link_with_history
+    typed_function ~loc (Optional "ariaCurrent") (g "ariaCurrent") (result_type ~loc "string") link_with_history
   in
   let link_with_download =
-    typed_function ~loc (Optional "download") "download" (result_type ~loc "string") link_with_aria_current
+    typed_function ~loc (Optional "download") (g "download") (result_type ~loc "string") link_with_aria_current
   in
   let link_with_target =
-    typed_function ~loc (Optional "target") "target" (result_type ~loc "string") link_with_download
+    typed_function ~loc (Optional "target") (g "target") (result_type ~loc "string") link_with_download
   in
   let link_with_class_name =
-    typed_function ~loc (Optional "className") "className" (result_type ~loc "string") link_with_target
+    typed_function ~loc (Optional "className") (g "className") (result_type ~loc "string") link_with_target
   in
   let link_with_attributes =
-    typed_function ~loc (Optional "attributes") "attributes"
+    typed_function ~loc (Optional "attributes") (g "attributes")
       (result_type ~loc "RouterReact.Link.attributes")
       link_with_class_name
   in
   let link_expression = route_input_expression ~loc route.parameters route.search link_with_attributes in
   let try_items =
-    match route.parameters with
-    | [] -> []
-    | parameters ->
-        let result_constraint typ =
-          B.ptyp_constr ~loc
-            { txt = Longident.Lident "result"; loc }
-            [ result_type ~loc typ; result_type ~loc "string" ]
-        in
-        let try_body =
-          B.pexp_match ~loc destination_call
-            [
-              B.case ~lhs:(B.pvar ~loc "value") ~guard:None
-                ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (B.evar ~loc "value")));
-              B.case
-                ~lhs:
-                  (B.ppat_exception ~loc
-                     (B.ppat_construct ~loc
-                        { txt = Longident.Lident "Invalid_argument"; loc }
-                        (Some (B.pvar ~loc "message"))))
-                ~guard:None
-                ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Error"; loc } (Some (B.evar ~loc "message")));
-            ]
-        in
-        let try_href_body =
-          B.pexp_apply ~loc (B.evar ~loc "Stdlib.Result.map")
-            [
-              (Nolabel, B.evar ~loc "RouterRuntime.href");
-              (Nolabel, apply_route_inputs ~loc (B.evar ~loc "tryDestination") parameters route.search);
-            ]
-        in
+    let parameters = route.parameters in
+    let result_constraint typ =
+      B.ptyp_constr ~loc { txt = Longident.Lident "result"; loc } [ result_type ~loc typ; result_type ~loc "string" ]
+    in
+    let try_body =
+      B.pexp_match ~loc destination_call
         [
-          B.pstr_value ~loc Nonrecursive
-            [
-              B.value_binding ~loc ~pat:(B.pvar ~loc "tryDestination")
-                ~expr:
-                  (route_function_expression ~loc parameters route.search
-                     (B.pexp_constraint ~loc try_body (result_constraint "destination")));
-            ];
-          B.pstr_value ~loc Nonrecursive
-            [
-              B.value_binding ~loc ~pat:(B.pvar ~loc "tryHref")
-                ~expr:
-                  (route_function_expression ~loc parameters route.search
-                     (B.pexp_constraint ~loc try_href_body (result_constraint "string")));
-            ];
+          B.case
+            ~lhs:(pvar ~loc (g "value"))
+            ~guard:None
+            ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (var ~loc (g "value"))));
+          B.case
+            ~lhs:
+              (B.ppat_exception ~loc
+                 (B.ppat_construct ~loc
+                    { txt = Longident.Lident "Invalid_argument"; loc }
+                    (Some (pvar ~loc (g "message")))))
+            ~guard:None
+            ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Error"; loc } (Some (var ~loc (g "message"))));
         ]
+    in
+    let try_href_body =
+      B.pexp_apply ~loc (qualified ~loc "Stdlib.Result.map")
+        [
+          (Nolabel, qualified ~loc "RouterRuntime.href");
+          (Nolabel, apply_route_inputs ~loc (var ~loc (p "tryDestination")) parameters route.search);
+        ]
+    in
+    [
+      B.pstr_value ~loc Nonrecursive
+        [
+          B.value_binding ~loc
+            ~pat:(pvar ~loc (p "tryDestination"))
+            ~expr:
+              (route_function_expression ~loc parameters route.search
+                 (B.pexp_constraint ~loc try_body (result_constraint "destination")));
+        ];
+      B.pstr_value ~loc Nonrecursive
+        [
+          B.value_binding ~loc
+            ~pat:(pvar ~loc (p "tryHref"))
+            ~expr:
+              (route_function_expression ~loc parameters route.search
+                 (B.pexp_constraint ~loc try_href_body (result_constraint "string")));
+        ];
+    ]
   in
-  let link_binding = B.value_binding ~loc ~pat:(B.pvar ~loc "make") ~expr:link_expression in
+  let link_binding = B.value_binding ~loc ~pat:(pvar ~loc (p "make")) ~expr:link_expression in
   let link_binding = { link_binding with pvb_attributes = [ react_component_attribute ~loc ] } in
   let search_values_binding =
     match route.search with
@@ -1012,11 +1065,12 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
         [
           B.pstr_value ~loc Nonrecursive
             [
-              B.value_binding ~loc ~pat:(B.pvar ~loc "searchValues")
+              B.value_binding ~loc
+                ~pat:(pvar ~loc (g "searchValues"))
                 ~expr:
                   (B.pexp_fun ~loc Nolabel None
-                     (B.ppat_constraint ~loc (B.pvar ~loc "search") (result_type ~loc "search"))
-                     (search_values_expression ~loc (B.evar ~loc "search") route.search));
+                     (B.ppat_constraint ~loc (pvar ~loc (g "search")) (result_type ~loc "search"))
+                     (search_values_expression ~loc (var ~loc (g "search")) route.search));
             ];
         ]
   in
@@ -1031,10 +1085,12 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
     match route.search with
     | [] -> []
     | _ ->
-        let values = B.pexp_apply ~loc (B.evar ~loc "searchValues") [ (Nolabel, B.evar ~loc "search") ] in
+        let values = B.pexp_apply ~loc (var ~loc (g "searchValues")) [ (Nolabel, var ~loc (g "search")) ] in
         [
           B.pstr_value ~loc Nonrecursive
-            [ B.value_binding ~loc ~pat:(B.pvar ~loc "search") ~expr:(search_constructor_expression ~loc route.search) ];
+            [
+              B.value_binding ~loc ~pat:(pvar ~loc (p "search")) ~expr:(search_constructor_expression ~loc route.search);
+            ];
         ]
         @ search_codec_structure ~loc ~values route.search
         @ if route_owns_search ~root_search route.search then use_search_structure ~loc ~values route.search else []
@@ -1044,7 +1100,7 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
       {
         popen_expr =
           B.pmod_structure ~loc
-            (B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "pattern") ~expr:pattern ]
+            (B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(pvar ~loc (g "pattern")) ~expr:pattern ]
             :: search_values_binding);
         popen_override = Fresh;
         popen_loc = loc;
@@ -1056,8 +1112,8 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
       (search_items @ (private_items :: search_constructor)
       @ [
           B.pstr_value ~loc Nonrecursive
-            [ B.value_binding ~loc ~pat:(B.pvar ~loc "destination") ~expr:destination_expression ];
-          B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "href") ~expr:href_expression ];
+            [ B.value_binding ~loc ~pat:(pvar ~loc (p "destination")) ~expr:destination_expression ];
+          B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(pvar ~loc (p "href")) ~expr:href_expression ];
         ]
       @ try_items
       @ [ B.pstr_value ~loc Nonrecursive [ link_binding ] ])
@@ -1067,14 +1123,14 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
 let search_contract_structure ~loc search =
   if search = [] then []
   else
-    let values = search_values_expression ~loc (B.evar ~loc "search") search in
+    let values = search_values_expression ~loc (var ~loc (g "search")) search in
     (B.pstr_type ~loc Recursive [ search_type_declaration ~loc search ] :: search_codec_structure ~loc ~values search)
     @ use_search_structure ~loc ~values search
 
 let active_search_structure ~loc routes =
   let uses_values = List.exists (fun (route : Router_declaration.route) -> route.search <> []) routes in
   let constructor (route : Router_declaration.route) payload =
-    B.pexp_construct ~loc { txt = Longident.parse ("ActiveSearch." ^ route.name); loc } payload
+    B.pexp_construct ~loc (Router_hygiene.own ~loc "ActiveSearch" [ route.name ]) payload
   in
   let cases =
     List.map
@@ -1083,13 +1139,14 @@ let active_search_structure ~loc routes =
           match route.search with
           | [] -> some_expression ~loc (constructor route None)
           | search ->
-              let decoded = search_of_values ~qualify:(Longident.Lident route.name) ~loc search in
+              let decoded = search_of_values ~qualify:(Router_hygiene.own ~loc route.name []).txt ~loc search in
               if has_required search then
-                B.pexp_apply ~loc (B.evar ~loc "Stdlib.Option.map")
+                B.pexp_apply ~loc (qualified ~loc "Stdlib.Option.map")
                   [
                     ( Nolabel,
-                      B.pexp_fun ~loc Nolabel None (B.pvar ~loc "search")
-                        (constructor route (Some (B.evar ~loc "search"))) );
+                      B.pexp_fun ~loc Nolabel None
+                        (pvar ~loc (g "search"))
+                        (constructor route (Some (var ~loc (g "search")))) );
                     (Nolabel, decoded);
                   ]
               else some_expression ~loc (constructor route (Some decoded))
@@ -1101,25 +1158,30 @@ let active_search_structure ~loc routes =
   let body =
     B.pexp_let ~loc Nonrecursive
       [
-        B.value_binding ~loc ~pat:(B.pvar ~loc "route")
-          ~expr:(B.pexp_apply ~loc (B.evar ~loc "RouterReact.useCurrentRoute") [ (Nolabel, unit_expression ~loc) ]);
+        B.value_binding ~loc
+          ~pat:(pvar ~loc (g "route"))
+          ~expr:(B.pexp_apply ~loc (qualified ~loc "RouterReact.useCurrentRoute") [ (Nolabel, unit_expression ~loc) ]);
       ]
       (B.pexp_let ~loc Nonrecursive
          [
            B.value_binding ~loc
-             ~pat:(B.ppat_tuple ~loc [ B.pvar ~loc (if uses_values then "values" else "_values"); B.ppat_any ~loc ])
-             ~expr:(B.pexp_apply ~loc (B.evar ~loc "RouterReact.useSearch") [ (Nolabel, unit_expression ~loc) ]);
+             ~pat:
+               (B.ppat_tuple ~loc
+                  [ (if uses_values then pvar ~loc (g "values") else B.ppat_any ~loc); B.ppat_any ~loc ])
+             ~expr:(B.pexp_apply ~loc (qualified ~loc "RouterReact.useSearch") [ (Nolabel, unit_expression ~loc) ]);
          ]
-         (B.pexp_match ~loc (B.evar ~loc "route")
+         (B.pexp_match ~loc
+            (var ~loc (g "route"))
             [
               B.case ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "None"; loc } None) ~guard:None ~rhs:none;
               B.case
                 ~lhs:
                   (B.ppat_construct ~loc { txt = Longident.Lident "Some"; loc }
-                     (Some (B.ppat_tuple ~loc [ B.pvar ~loc "routeId"; B.ppat_any ~loc ])))
+                     (Some (B.ppat_tuple ~loc [ pvar ~loc (g "routeId"); B.ppat_any ~loc ])))
                 ~guard:None
                 ~rhs:
-                  (B.pexp_match ~loc (B.evar ~loc "routeId")
+                  (B.pexp_match ~loc
+                     (var ~loc (g "routeId"))
                      (cases @ [ B.case ~lhs:(B.ppat_any ~loc) ~guard:None ~rhs:none ]));
             ]))
   in
@@ -1129,7 +1191,8 @@ let active_search_structure ~loc routes =
          ~expr:(B.pmod_structure ~loc [ B.pstr_type ~loc Recursive [ active_search_declaration ~loc routes ] ]));
     B.pstr_value ~loc Nonrecursive
       [
-        B.value_binding ~loc ~pat:(B.pvar ~loc "useActiveSearch")
+        B.value_binding ~loc
+          ~pat:(pvar ~loc (p "useActiveSearch"))
           ~expr:
             (B.pexp_constraint ~loc
                (B.pexp_fun ~loc Nolabel None (B.punit ~loc) body)
@@ -1137,7 +1200,7 @@ let active_search_structure ~loc routes =
       ];
   ]
 
-let handles (declaration : Router_declaration.t) =
+let raw_handles (declaration : Router_declaration.t) =
   let base_path = if declaration.base_path = "/" then "" else declaration.base_path in
   let loc = declaration.loc in
   let routes = Router_declaration.routes declaration in
@@ -1146,7 +1209,8 @@ let handles (declaration : Router_declaration.t) =
     [ destination_declaration ~loc ~private_:Public ~manifest:(Some (result_type ~loc "RouterRuntime.destination")) ]
   :: B.pstr_value ~loc Nonrecursive
        [
-         B.value_binding ~loc ~pat:(B.pvar ~loc "unsafeDestination")
+         B.value_binding ~loc
+           ~pat:(pvar ~loc (p "unsafeDestination"))
            ~expr:(B.pexp_constraint ~loc (unsafe_destination_expression ~loc) (unsafe_destination_type ~loc));
        ]
   :: List.map (structure_alias ~loc) public_modules
@@ -1154,19 +1218,21 @@ let handles (declaration : Router_declaration.t) =
   @ [
       B.pstr_value ~loc Nonrecursive
         [
-          B.value_binding ~loc ~pat:(B.pvar ~loc "useNavigation")
+          B.value_binding ~loc
+            ~pat:(pvar ~loc (p "useNavigation"))
             ~expr:
               (B.pexp_constraint ~loc
-                 (B.evar ~loc "RouterReact.useNavigation")
+                 (qualified ~loc "RouterReact.useNavigation")
                  (B.ptyp_arrow ~loc Nolabel (unit_type ~loc)
                     (B.ptyp_tuple ~loc [ navigate_type ~loc; result_type ~loc "Navigation.status" ])));
         ];
       B.pstr_value ~loc Nonrecursive
         [
-          B.value_binding ~loc ~pat:(B.pvar ~loc "useUpdateHash")
+          B.value_binding ~loc
+            ~pat:(pvar ~loc (p "useUpdateHash"))
             ~expr:
               (B.pexp_constraint ~loc
-                 (B.evar ~loc "RouterReact.useUpdateHash")
+                 (qualified ~loc "RouterReact.useUpdateHash")
                  (B.ptyp_arrow ~loc Nolabel (unit_type ~loc) (update_hash_type ~loc)));
         ];
       B.pstr_open ~loc
@@ -1175,36 +1241,46 @@ let handles (declaration : Router_declaration.t) =
             B.pmod_structure ~loc
               [
                 B.pstr_value ~loc Nonrecursive
-                  [ B.value_binding ~loc ~pat:(B.pvar ~loc "decodeRoute") ~expr:(decode_route_function ~loc routes) ];
+                  [ B.value_binding ~loc ~pat:(pvar ~loc (g "decodeRoute")) ~expr:(decode_route_function ~loc routes) ];
               ];
           popen_override = Fresh;
           popen_loc = loc;
           popen_attributes = [];
         };
       B.pstr_value ~loc Nonrecursive
-        [ B.value_binding ~loc ~pat:(B.pvar ~loc "useRoute") ~expr:(use_route_expression ~loc) ];
+        [ B.value_binding ~loc ~pat:(pvar ~loc (p "useRoute")) ~expr:(use_route_expression ~loc) ];
     ]
   @ List.map
       (fun (name, typ) ->
         let expression =
-          match name with "useMatches" -> use_matches_expression ~loc | name -> B.evar ~loc ("RouterReact." ^ name)
+          match name with "useMatches" -> use_matches_expression ~loc | name -> qualified ~loc ("RouterReact." ^ name)
         in
         B.pstr_value ~loc Nonrecursive
-          [ B.value_binding ~loc ~pat:(B.pvar ~loc name) ~expr:(B.pexp_constraint ~loc expression typ) ])
+          [ B.value_binding ~loc ~pat:(pvar ~loc (p name)) ~expr:(B.pexp_constraint ~loc expression typ) ])
       (route_hook_types ~loc)
   @ search_contract_structure ~loc root_search
   @ List.map (route_module ~base_path ~root_search) routes
   @ active_search_structure ~loc routes
 
+type framework_input = Search_input | Children_input | Error_input | Context_input
+
+let framework_input_label = function
+  | Search_input -> "search"
+  | Children_input -> "children"
+  | Error_input -> "error"
+  | Context_input -> "context"
+
+let framework_argument (input, expression) = (Labelled (framework_input_label input), expression)
+
 let apply_native_inputs_with ?(context = []) ~loc callee parameters search loaders extra =
   let arguments =
-    context
+    List.map framework_argument context
     @ List.map
-        (fun (parameter : Router_declaration.parameter) -> (Labelled parameter.name, B.evar ~loc parameter.name))
+        (fun (parameter : Router_declaration.parameter) -> (Labelled parameter.name, var ~loc (u parameter.name)))
         parameters
-    @ (match search with None -> [] | Some variable -> [ (Labelled "search", B.evar ~loc variable) ])
-    @ List.map (fun name -> (Labelled name, B.evar ~loc name)) loaders
-    @ extra
+    @ (match search with None -> [] | Some variable -> [ framework_argument (Search_input, var ~loc variable) ])
+    @ List.map (fun name -> (Labelled name, var ~loc (u name))) loaders
+    @ List.map framework_argument extra
     @ [ (Nolabel, unit_expression ~loc) ]
   in
   B.pexp_apply ~loc callee arguments
@@ -1213,23 +1289,21 @@ let apply_native_inputs ?context ~loc callee parameters search loaders =
   apply_native_inputs_with ?context ~loc callee parameters search loaders []
 
 let context_arguments ~loc (context : core_type option) =
-  match context with None -> [] | Some _ -> [ (Labelled "context", B.evar ~loc "context") ]
+  match context with None -> [] | Some _ -> [ (Context_input, var ~loc (g "context")) ]
 
 let references_context expression =
   (object
      inherit [bool] Ast_traverse.fold as super
 
      method! expression expression found =
-       match expression.pexp_desc with
-       | Pexp_ident { txt = Lident "context"; _ } -> true
-       | _ -> super#expression expression found
+       Router_hygiene.is_var (g "context") expression || super#expression expression found
   end)
     #expression
     expression false
 
 let context_pattern ?used ~loc typ body =
   let used = Option.value used ~default:(references_context body) in
-  B.ppat_constraint ~loc (if used then B.pvar ~loc "context" else B.ppat_any ~loc) typ
+  B.ppat_constraint ~loc (if used then pvar ~loc (g "context") else B.ppat_any ~loc) typ
 
 let execution_function ?used ~loc (context : core_type option) body =
   let pattern = match context with None -> B.punit ~loc | Some typ -> context_pattern ?used ~loc typ body in
@@ -1252,9 +1326,9 @@ let apply_native_component_inputs ~loc component parameters search loaders =
 
 let native_path_decoder ~loc (parameter : Router_declaration.parameter) =
   B.pexp_apply ~loc
-    (B.evar ~loc "RouterServer.Decode.path")
+    (qualified ~loc "RouterServer.Decode.path")
     [
-      (Labelled "input", B.evar ~loc "input");
+      (Labelled "input", var ~loc (g "input"));
       (Labelled "name", B.estring ~loc parameter.name);
       (Labelled "parse", B.pexp_ident ~loc { txt = parameter.parser; loc });
     ]
@@ -1269,37 +1343,38 @@ let native_search_decoder ~loc (search : Router_declaration.search) =
   in
   let arguments =
     [
-      (Labelled "input", B.evar ~loc "input");
+      (Labelled "input", var ~loc (g "input"));
       (Labelled "name", B.estring ~loc search.key);
       (Labelled "parse", B.pexp_ident ~loc { txt = search.parser; loc });
     ]
     @ match search.kind with Default fallback -> [ (Labelled "fallback", fallback) ] | _ -> []
   in
-  B.pexp_apply ~loc (B.evar ~loc callee) arguments
+  B.pexp_apply ~loc (qualified ~loc callee) arguments
 
-let input_pattern ~loc used = B.pvar ~loc (if used then "input" else "_input")
+let input_pattern ~loc used = if used then pvar ~loc (g "input") else B.ppat_any ~loc
 
 let bind_decode ~loc name decoder body =
-  B.pexp_apply ~loc (B.evar ~loc "Stdlib.Result.bind")
-    [ (Nolabel, decoder); (Nolabel, B.pexp_fun ~loc Nolabel None (B.pvar ~loc name) body) ]
+  B.pexp_apply ~loc (qualified ~loc "Stdlib.Result.bind")
+    [ (Nolabel, decoder); (Nolabel, B.pexp_fun ~loc Nolabel None (pvar ~loc name) body) ]
 
 let scope_search current (scope : Router_declaration.scope) =
-  match scope.search with [] -> current | _ -> Some (if String.equal scope.id "root" then "search" else "routeSearch")
+  match scope.search with
+  | [] -> current
+  | _ -> Some (g (if String.equal scope.id "root" then "search" else "routeSearch"))
 
 let search_record_decoder ~loc ~path ~typ ~inherited own =
   let label name = Longident.parse (String.concat "." (path @ [ name ])) in
-  let temporary index = "search_" ^ Int.to_string index in
+  let temporary index = g ("search_" ^ Int.to_string index) in
   let inherited_fields =
     List.map
       (fun (search : Router_declaration.search) ->
         ( { txt = label search.name; loc },
-          B.pexp_field ~loc (B.evar ~loc "search") { txt = Longident.parse ("Router." ^ search.name); loc } ))
+          B.pexp_field ~loc (var ~loc (g "search")) { txt = Longident.parse ("Router." ^ search.name); loc } ))
       inherited
   in
   let own_fields =
     List.mapi
-      (fun index (search : Router_declaration.search) ->
-        ({ txt = label search.name; loc }, B.evar ~loc (temporary index)))
+      (fun index (search : Router_declaration.search) -> ({ txt = label search.name; loc }, var ~loc (temporary index)))
       own
   in
   let record = B.pexp_constraint ~loc (B.pexp_record ~loc (inherited_fields @ own_fields) None) typ in
@@ -1322,23 +1397,22 @@ let decode_parameters ~present parameters body =
         let decoder =
           match parameter.presence with
           | OptionalSegment ->
-              B.pexp_apply ~loc (B.evar ~loc "Stdlib.Result.map")
-                [ (Nolabel, B.evar ~loc "Stdlib.Option.some"); (Nolabel, decoder) ]
+              B.pexp_apply ~loc (qualified ~loc "Stdlib.Result.map")
+                [ (Nolabel, qualified ~loc "Stdlib.Option.some"); (Nolabel, decoder) ]
           | Segment | OptionalRest -> decoder
         in
-        bind_decode ~loc parameter.name decoder body
+        bind_decode ~loc (u parameter.name) decoder body
       else
         B.pexp_let ~loc Nonrecursive
-          [ B.value_binding ~loc ~pat:(B.pvar ~loc parameter.name) ~expr:(absent_value ~loc parameter) ]
+          [ B.value_binding ~loc ~pat:(pvar ~loc (u parameter.name)) ~expr:(absent_value ~loc parameter) ]
           body)
     parameters body
 
 let boundary_callback ~loc attachment parameters search loaders =
   let call =
-    apply_native_component_inputs_with ~loc attachment parameters search loaders
-      [ (Labelled "error", B.evar ~loc "error") ]
+    apply_native_component_inputs_with ~loc attachment parameters search loaders [ (Error_input, var ~loc (g "error")) ]
   in
-  B.pexp_fun ~loc Nolabel None (B.pvar ~loc "error") call
+  B.pexp_fun ~loc Nolabel None (pvar ~loc (g "error")) call
 
 let search_keys (scope : Router_declaration.scope) =
   List.map (fun (search : Router_declaration.search) -> search.key) scope.search
@@ -1349,11 +1423,11 @@ let branch_scope ~loc (scope : Router_declaration.scope) parameters ~search_keys
     | [] -> B.elist ~loc []
     | keys ->
         B.pexp_apply ~loc
-          (B.evar ~loc "RouterServer.Decode.searchValues")
-          [ (Labelled "input", B.evar ~loc "input"); (Nolabel, B.elist ~loc (List.map (B.estring ~loc) keys)) ]
+          (qualified ~loc "RouterServer.Decode.searchValues")
+          [ (Labelled "input", var ~loc (g "input")); (Nolabel, B.elist ~loc (List.map (B.estring ~loc) keys)) ]
   in
   B.pexp_apply ~loc
-    (B.evar ~loc "RouterServer.Branch.Scope.make")
+    (qualified ~loc "RouterServer.Branch.Scope.make")
     [
       (Labelled "id", B.estring ~loc scope.id);
       (Labelled "parameters", parameter_list ~loc parameters);
@@ -1379,7 +1453,7 @@ let render_error_boundary ~loc boundary parameters search loaders body =
             ]))
   in
   B.pexp_apply ~loc
-    (B.evar ~loc "RouterReact.errorBoundary")
+    (qualified ~loc "RouterReact.errorBoundary")
     [ (Labelled "fallback", fallback); (Labelled "children", body); (Nolabel, unit_expression ~loc) ]
 
 let scope_plan ~context (scope : Router_declaration.scope) parameters search loaders ~boundary_loaders ~reusable =
@@ -1398,39 +1472,40 @@ let scope_plan ~context (scope : Router_declaration.scope) parameters search loa
       | None, None, None -> []
       | None, None, Some _ ->
           [
-            (Labelled "layout", B.pexp_fun ~loc Nolabel None (B.pvar ~loc "children") (catch (B.evar ~loc "children")));
+            ( Labelled "layout",
+              B.pexp_fun ~loc Nolabel None (pvar ~loc (g "children")) (catch (var ~loc (g "children"))) );
           ]
       | layout, loading, _ ->
           let identity = branch_scope ~loc scope parameters ~search_keys:[] ~reusable in
           let instance_key =
-            B.pexp_apply ~loc (B.evar ~loc "RouterServer.Branch.Scope.instanceKey") [ (Nolabel, identity) ]
+            B.pexp_apply ~loc (qualified ~loc "RouterServer.Branch.Scope.instanceKey") [ (Nolabel, identity) ]
           in
-          let children = B.evar ~loc "children" in
+          let children = var ~loc (g "children") in
           let body =
             match layout with
             | None -> catch children
             | Some layout ->
                 let outlet =
-                  B.pexp_apply ~loc (B.evar ~loc "RouterReact.outlet")
+                  B.pexp_apply ~loc (qualified ~loc "RouterReact.outlet")
                     [
                       (Labelled "owner", instance_key); (Labelled "children", children); (Nolabel, unit_expression ~loc);
                     ]
                 in
                 apply_native_component_inputs_with ~loc layout parameters search loaders
-                  [ (Labelled "children", catch outlet) ]
+                  [ (Children_input, catch outlet) ]
           in
           let body =
             match loading with
             | None -> body
             | Some loading ->
-                B.pexp_apply ~loc (B.evar ~loc "RouterReact.suspense")
+                B.pexp_apply ~loc (qualified ~loc "RouterReact.suspense")
                   [
                     (Labelled "fallback", component loading);
                     (Labelled "children", body);
                     (Nolabel, unit_expression ~loc);
                   ]
           in
-          [ (Labelled "layout", B.pexp_fun ~loc Nolabel None (B.pvar ~loc "children") body) ])
+          [ (Labelled "layout", B.pexp_fun ~loc Nolabel None (pvar ~loc (g "children")) body) ])
     @ optional_argument "metadata"
         (Option.map
            (fun metadata -> B.pexp_fun ~loc Nolabel None (B.punit ~loc) (callback metadata))
@@ -1441,7 +1516,7 @@ let scope_plan ~context (scope : Router_declaration.scope) parameters search loa
            scope.attachments.headers)
     @ [ (Nolabel, unit_expression ~loc) ]
   in
-  B.pexp_apply ~loc (B.evar ~loc "RouterServer.Plan.Scope.make") arguments
+  B.pexp_apply ~loc (qualified ~loc "RouterServer.Plan.Scope.make") arguments
 
 let failure_plan ~loc scopes error not_found error_boundary =
   let arguments =
@@ -1450,7 +1525,7 @@ let failure_plan ~loc scopes error not_found error_boundary =
     @ optional_argument "errorBoundary" error_boundary
     @ [ (Nolabel, unit_expression ~loc) ]
   in
-  B.pexp_apply ~loc (B.evar ~loc "RouterServer.Plan.failure") arguments
+  B.pexp_apply ~loc (qualified ~loc "RouterServer.Plan.failure") arguments
 
 let loader_execution ~context (route : Router_declaration.route) =
   let loc = route.loc in
@@ -1470,23 +1545,10 @@ let loader_execution ~context (route : Router_declaration.route) =
       ([], None, []) route.scopes
     |> fun (_, _, parallel) -> parallel
   in
-  let taken =
-    [ "context"; "search"; "routeSearch"; "error"; "children"; "input"; "prepared"; "decodeError" ]
-    @ List.map (fun (parameter : Router_declaration.parameter) -> parameter.name) route.parameters
-    @ List.filter_map
-        (fun (scope : Router_declaration.scope) ->
-          Option.map (fun (loader : Router_declaration.loader) -> loader.result_label) scope.attachments.loader)
-        route.scopes
-  in
   let started =
-    List.fold_left
-      (fun started ((loader : Router_declaration.loader), _, _) ->
-        let rec fresh name =
-          if List.mem name taken || List.exists (fun (_, used) -> String.equal used name) started then fresh (name ^ "_")
-          else name
-        in
-        started @ [ (loader.result_label, fresh ("started_" ^ loader.result_label)) ])
-      [] parallel
+    List.map
+      (fun ((loader : Router_declaration.loader), _, _) -> (loader.result_label, g ("started_" ^ loader.result_label)))
+      parallel
   in
   let rec build scopes parameters search loader_values completed not_found error_boundary =
     match scopes with
@@ -1497,17 +1559,18 @@ let loader_execution ~context (route : Router_declaration.route) =
         in
         let plan =
           B.pexp_apply ~loc
-            (B.evar ~loc "RouterServer.Plan.success")
+            (qualified ~loc "RouterServer.Plan.success")
             [ (Labelled "scopes", B.elist ~loc completed); (Labelled "page", page) ]
         in
         let failure =
-          B.pexp_fun ~loc Nolabel None (B.pvar ~loc "error")
-            (failure_plan ~loc completed (B.evar ~loc "error") not_found error_boundary)
+          B.pexp_fun ~loc Nolabel None
+            (pvar ~loc (g "error"))
+            (failure_plan ~loc completed (var ~loc (g "error")) not_found error_boundary)
         in
         let plan =
-          B.pexp_apply ~loc (B.evar ~loc "RouterServer.Plan.withFailure") [ (Nolabel, plan); (Nolabel, failure) ]
+          B.pexp_apply ~loc (qualified ~loc "RouterServer.Plan.withFailure") [ (Nolabel, plan); (Nolabel, failure) ]
         in
-        B.pexp_apply ~loc (B.evar ~loc "RouterServer.Execution.done_") [ (Nolabel, plan) ]
+        B.pexp_apply ~loc (qualified ~loc "RouterServer.Execution.done_") [ (Nolabel, plan) ]
     | (scope : Router_declaration.scope) :: rest -> (
         let parameters = parameters @ scope.Router_declaration.parameters in
         let search = scope_search search scope in
@@ -1533,8 +1596,8 @@ let loader_execution ~context (route : Router_declaration.route) =
               match List.assoc_opt loader.result_label started with
               | Some name ->
                   B.pexp_apply ~loc:loader.loc
-                    (B.evar ~loc:loader.loc "RouterServer.Execution.await")
-                    [ (Nolabel, B.evar ~loc:loader.loc name) ]
+                    (qualified ~loc:loader.loc "RouterServer.Execution.await")
+                    [ (Nolabel, var ~loc:loader.loc name) ]
               | None ->
                   B.pexp_fun ~loc:loader.loc Nolabel None (B.punit ~loc:loader.loc)
                     (loader_call loader parameters search loader_values)
@@ -1547,13 +1610,15 @@ let loader_execution ~context (route : Router_declaration.route) =
             let next_body =
               build rest parameters search next_loaders (completed @ [ current ]) not_found error_boundary
             in
-            let next = B.pexp_fun ~loc:loader.loc Nolabel None (B.pvar ~loc:loader.loc loader.result_label) next_body in
-            let failed =
-              failure_plan ~loc:loader.loc completed (B.evar ~loc:loader.loc "error") not_found error_boundary
+            let next =
+              B.pexp_fun ~loc:loader.loc Nolabel None (pvar ~loc:loader.loc (u loader.result_label)) next_body
             in
-            let failure = B.pexp_fun ~loc:loader.loc Nolabel None (B.pvar ~loc:loader.loc "error") failed in
+            let failed =
+              failure_plan ~loc:loader.loc completed (var ~loc:loader.loc (g "error")) not_found error_boundary
+            in
+            let failure = B.pexp_fun ~loc:loader.loc Nolabel None (pvar ~loc:loader.loc (g "error")) failed in
             B.pexp_apply ~loc:loader.loc
-              (B.evar ~loc:loader.loc "RouterServer.Execution.loadWithBoundary")
+              (qualified ~loc:loader.loc "RouterServer.Execution.loadWithBoundary")
               [ (Labelled "run", run); (Labelled "failure", failure); (Labelled "next", next) ])
   in
   List.fold_right
@@ -1561,10 +1626,10 @@ let loader_execution ~context (route : Router_declaration.route) =
       let name = List.assoc loader.result_label started in
       let loc = loader.loc in
       B.pexp_apply ~loc
-        (B.evar ~loc "RouterServer.Execution.start")
+        (qualified ~loc "RouterServer.Execution.start")
         [
           (Labelled "run", B.pexp_fun ~loc Nolabel None (B.punit ~loc) (loader_call loader parameters search []));
-          (Labelled "next", B.pexp_fun ~loc Nolabel None (B.pvar ~loc name) execution);
+          (Labelled "next", B.pexp_fun ~loc Nolabel None (pvar ~loc name) execution);
         ])
     parallel
     (build route.scopes [] None [] [] None None)
@@ -1602,13 +1667,14 @@ let projected_branch (route : Router_declaration.route) =
   build route.scopes [] [] []
 
 let recover_decode_failure ~context ~loc ~branch ~scopes ~active_routes error_boundary =
-  let plan = failure_plan ~loc scopes (B.evar ~loc "decodeError") None (Some error_boundary) in
+  let plan = failure_plan ~loc scopes (var ~loc (g "decodeError")) None (Some error_boundary) in
   let execution =
-    execution_function ~loc context (B.pexp_apply ~loc (B.evar ~loc "RouterServer.Execution.done_") [ (Nolabel, plan) ])
+    execution_function ~loc context
+      (B.pexp_apply ~loc (qualified ~loc "RouterServer.Execution.done_") [ (Nolabel, plan) ])
   in
   let prepared =
     B.pexp_apply ~loc
-      (B.evar ~loc "RouterServer.Endpoint.recovered")
+      (qualified ~loc "RouterServer.Endpoint.recovered")
       [
         (Labelled "branch", B.elist ~loc branch);
         (Labelled "activeRoutes", B.elist ~loc (List.map (fun route -> B.estring ~loc route) active_routes));
@@ -1673,12 +1739,13 @@ let decode_endpoint ~context ~routes ~present ~root_search (route : Router_decla
               B.pexp_match ~loc decoded
                 [
                   B.case
-                    ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (B.pvar ~loc "prepared")))
+                    ~lhs:(B.ppat_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (pvar ~loc (g "prepared"))))
                     ~guard:None
-                    ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (B.evar ~loc "prepared")));
+                    ~rhs:(B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some (var ~loc (g "prepared"))));
                   B.case
                     ~lhs:
-                      (B.ppat_construct ~loc { txt = Longident.Lident "Error"; loc } (Some (B.pvar ~loc "decodeError")))
+                      (B.ppat_construct ~loc { txt = Longident.Lident "Error"; loc }
+                         (Some (pvar ~loc (g "decodeError"))))
                     ~guard:None ~rhs:recover;
                 ])
   in
@@ -1753,7 +1820,7 @@ let endpoint ~context ~base_path ~invalid_search ~root_search ~routes ~primary ~
   let execution = loader_execution ~context route in
   let prepared =
     B.pexp_apply ~loc
-      (B.evar ~loc "RouterServer.Endpoint.prepared")
+      (qualified ~loc "RouterServer.Endpoint.prepared")
       [ (Labelled "branch", projected_branch route); (Labelled "execution", execution_function ~loc context execution) ]
     |> fun prepared -> B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some prepared)
   in
@@ -1779,7 +1846,7 @@ let endpoint ~context ~base_path ~invalid_search ~root_search ~routes ~primary ~
   in
   let endpoint =
     B.pexp_apply ~loc
-      (B.evar ~loc "RouterServer.Endpoint.make")
+      (qualified ~loc "RouterServer.Endpoint.make")
       [
         (Labelled "id", B.estring ~loc (if primary then route.name else route.name ^ "@" ^ shape_path));
         (Labelled "path", B.estring ~loc shape_path);
@@ -1792,7 +1859,7 @@ let endpoint ~context ~base_path ~invalid_search ~root_search ~routes ~primary ~
   | Intent -> endpoint
   | level ->
       B.pexp_apply ~loc
-        (B.evar ~loc "RouterServer.Endpoint.withPrefetch")
+        (qualified ~loc "RouterServer.Endpoint.withPrefetch")
         [ (Nolabel, endpoint); (Nolabel, prefetch_level ~loc level) ]
 
 let redirect_search_type (redirect : Router_declaration.redirect) =
@@ -1817,8 +1884,8 @@ let redirect_endpoint ~context ~base_path ~invalid_search ~root_search (redirect
   let search =
     match (own, root_search) with
     | [], [] -> None
-    | [], _ -> Some ("search", "Router.search")
-    | _, _ -> Some ("routeSearch", redirect_search_type redirect)
+    | [], _ -> Some (g "search", "Router.search")
+    | _, _ -> Some (g "routeSearch", redirect_search_type redirect)
   in
   let target =
     match search with
@@ -1840,13 +1907,13 @@ let redirect_endpoint ~context ~base_path ~invalid_search ~root_search (redirect
   in
   let execution =
     B.pexp_apply ~loc
-      (B.evar ~loc
+      (qualified ~loc
          (if redirect.permanent then "RouterServer.Execution.permanentRedirect" else "RouterServer.Execution.redirect"))
       [ (Nolabel, destination) ]
   in
   let prepared =
     B.pexp_apply ~loc
-      (B.evar ~loc "RouterServer.Endpoint.prepared")
+      (qualified ~loc "RouterServer.Endpoint.prepared")
       [
         (Labelled "branch", B.elist ~loc []);
         (Labelled "execution", execution_function ~used:false ~loc context execution);
@@ -1864,12 +1931,12 @@ let redirect_endpoint ~context ~base_path ~invalid_search ~root_search (redirect
     in
     match root_search with
     | [] -> decoded_own
-    | _ -> bind_decode ~loc "search" (root_search_decoder ~loc root_search) decoded_own
+    | _ -> bind_decode ~loc (g "search") (root_search_decoder ~loc root_search) decoded_own
   in
   let decoded =
     List.fold_right
       (fun (parameter : Router_declaration.parameter) body ->
-        bind_decode ~loc:parameter.loc parameter.name (native_path_decoder ~loc:parameter.loc parameter) body)
+        bind_decode ~loc:parameter.loc (u parameter.name) (native_path_decoder ~loc:parameter.loc parameter) body)
       redirect.parameters decoded_search
   in
   let decode =
@@ -1895,7 +1962,7 @@ let redirect_endpoint ~context ~base_path ~invalid_search ~root_search (redirect
     |> String.concat "\n" |> Digest.string |> Digest.to_hex
   in
   B.pexp_apply ~loc
-    (B.evar ~loc "RouterServer.Endpoint.make")
+    (qualified ~loc "RouterServer.Endpoint.make")
     [
       (Labelled "id", B.estring ~loc redirect.id);
       (Labelled "path", B.estring ~loc redirect.path);
@@ -1920,10 +1987,10 @@ let fallback (declaration : Router_declaration.t) =
     | Some _ -> []
     | None -> [ scope_plan ~context:declaration.context scope [] variable [] ~boundary_loaders:[] ~reusable:true ]
   in
-  let planned = failure_plan ~loc completed (B.evar ~loc "error") not_found error_boundary in
+  let planned = failure_plan ~loc completed (var ~loc (g "error")) not_found error_boundary in
   let decoded =
     let ok = B.pexp_construct ~loc { txt = Longident.Lident "Ok"; loc } (Some planned) in
-    match search with [] -> ok | _ -> bind_decode ~loc "search" (root_search_decoder ~loc search) ok
+    match search with [] -> ok | _ -> bind_decode ~loc (g "search") (root_search_decoder ~loc search) ok
   in
   let decode_failure =
     let invalid_search_boundary =
@@ -1947,7 +2014,7 @@ let fallback (declaration : Router_declaration.t) =
     in
     let failed =
       match invalid_search_boundary with
-      | Some boundary -> failure_plan ~loc [] (B.evar ~loc "decodeError") None (Some boundary)
+      | Some boundary -> failure_plan ~loc [] (var ~loc (g "decodeError")) None (Some boundary)
       | None when Option.is_some error_boundary && List.for_all Option.is_some recovery -> (
           let fields =
             List.filter_map
@@ -1955,42 +2022,44 @@ let fallback (declaration : Router_declaration.t) =
                    ({ txt = Longident.parse ("Router." ^ search.name); loc = search.loc }, expression)))
               recovery
           in
-          let plan = failure_plan ~loc completed (B.evar ~loc "decodeError") not_found error_boundary in
+          let plan = failure_plan ~loc completed (var ~loc (g "decodeError")) not_found error_boundary in
           match fields with
           | [] -> plan
           | _ ->
               B.pexp_let ~loc Nonrecursive
                 [
-                  B.value_binding ~loc ~pat:(B.pvar ~loc "search")
+                  B.value_binding ~loc
+                    ~pat:(pvar ~loc (g "search"))
                     ~expr:(B.pexp_constraint ~loc (B.pexp_record ~loc fields None) (result_type ~loc "Router.search"));
                 ]
                 plan)
-      | None -> failure_plan ~loc [] (B.evar ~loc "decodeError") None None
+      | None -> failure_plan ~loc [] (var ~loc (g "decodeError")) None None
     in
-    B.pexp_fun ~loc Nolabel None (B.pvar ~loc "decodeError") failed
+    B.pexp_fun ~loc Nolabel None (pvar ~loc (g "decodeError")) failed
   in
   let folded =
-    B.pexp_apply ~loc (B.evar ~loc "Stdlib.Result.fold")
-      [ (Labelled "ok", B.evar ~loc "Stdlib.Fun.id"); (Labelled "error", decode_failure); (Nolabel, decoded) ]
+    B.pexp_apply ~loc (qualified ~loc "Stdlib.Result.fold")
+      [ (Labelled "ok", qualified ~loc "Stdlib.Fun.id"); (Labelled "error", decode_failure); (Nolabel, decoded) ]
   in
   let with_input =
     B.pexp_let ~loc Nonrecursive
       [
         B.value_binding ~loc
           ~pat:(input_pattern ~loc (search <> []))
-          ~expr:(B.pexp_apply ~loc (B.evar ~loc "RouterServer.Input.forSearch") [ (Nolabel, B.evar ~loc "search") ]);
+          ~expr:(B.pexp_apply ~loc (qualified ~loc "RouterServer.Input.forSearch") [ (Nolabel, var ~loc (g "search")) ]);
       ]
       folded
   in
   let fallback =
-    B.pexp_fun ~loc (Labelled "search") None (B.pvar ~loc "search")
-      (B.pexp_fun ~loc (Labelled "error") None (B.pvar ~loc "error") with_input)
+    B.pexp_fun ~loc (Labelled "search") None
+      (pvar ~loc (g "search"))
+      (B.pexp_fun ~loc (Labelled "error") None (pvar ~loc (g "error")) with_input)
   in
   match declaration.context with
   | None -> fallback
   | Some typ -> B.pexp_fun ~loc (Labelled "context") None (context_pattern ~loc typ fallback) fallback
 
-let registry (declaration : Router_declaration.t) =
+let raw_registry (declaration : Router_declaration.t) =
   let loc = declaration.loc in
   let endpoints = Router_declaration.endpoints declaration in
   let root_search = Router_declaration.root_search declaration in
@@ -2020,20 +2089,23 @@ let registry (declaration : Router_declaration.t) =
   in
   let base_path =
     B.pstr_value ~loc Nonrecursive
-      [ B.value_binding ~loc ~pat:(B.pvar ~loc "basePath") ~expr:(B.estring ~loc (encoded_path declaration.base_path)) ]
+      [
+        B.value_binding ~loc ~pat:(pvar ~loc (p "basePath")) ~expr:(B.estring ~loc (encoded_path declaration.base_path));
+      ]
   in
   let registry =
     B.pstr_value ~loc Nonrecursive
       [
-        B.value_binding ~loc ~pat:(B.pvar ~loc "registry")
+        B.value_binding ~loc
+          ~pat:(pvar ~loc (p "registry"))
           ~expr:
             (B.pexp_apply ~loc
-               (B.evar ~loc "RouterServer.EndpointRegistry.makeExn")
+               (qualified ~loc "RouterServer.EndpointRegistry.makeExn")
                [ (Nolabel, B.elist ~loc route_values) ]);
       ]
   in
   let fallback =
-    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "fallback") ~expr:(fallback declaration) ]
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(pvar ~loc (p "fallback")) ~expr:(fallback declaration) ]
   in
   let application_status =
     let expression =
@@ -2045,7 +2117,7 @@ let registry (declaration : Router_declaration.t) =
           in
           B.pexp_fun ~loc Nolabel None (B.ppat_any ~loc) body
     in
-    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "applicationStatus") ~expr:expression ]
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(pvar ~loc (p "applicationStatus")) ~expr:expression ]
   in
   let server =
     let trailing_slash =
@@ -2058,16 +2130,16 @@ let registry (declaration : Router_declaration.t) =
     in
     let expression =
       B.pexp_apply ~loc
-        (B.evar ~loc
+        (qualified ~loc
            (match declaration.context with
            | None -> "RouterServer.Server.make"
            | Some _ -> "RouterServer.Server.makeWithContext"))
         ([
-           (Labelled "basePath", B.evar ~loc "basePath");
-           (Labelled "registry", B.evar ~loc "registry");
+           (Labelled "basePath", var ~loc (p "basePath"));
+           (Labelled "registry", var ~loc (p "registry"));
            (Labelled "trailingSlash", trailing_slash);
-           (Labelled "fallback", B.evar ~loc "fallback");
-           (Labelled "applicationStatus", B.evar ~loc "applicationStatus");
+           (Labelled "fallback", var ~loc (p "fallback"));
+           (Labelled "applicationStatus", var ~loc (p "applicationStatus"));
          ]
         @ List.filter_map
             (fun (label, value) -> Option.map (fun value -> (Labelled label, B.ebool ~loc value)) value)
@@ -2078,6 +2150,94 @@ let registry (declaration : Router_declaration.t) =
                declaration.page_cache_max_age)
         @ [ (Nolabel, unit_expression ~loc) ])
     in
-    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(B.pvar ~loc "server") ~expr:expression ]
+    B.pstr_value ~loc Nonrecursive [ B.value_binding ~loc ~pat:(pvar ~loc (p "server")) ~expr:expression ]
   in
   redirect_search_types ~root_search endpoints @ [ base_path; registry; fallback; application_status; server ]
+
+let rec first_duplicate = function
+  | [] -> None
+  | value :: values -> if List.mem value values then Some value else first_duplicate values
+
+let labels arguments =
+  List.filter_map (function Nolabel, _ -> None | (Labelled label | Optional label), _ -> Some label) arguments
+
+let rec arrow_labels typ =
+  match typ.ptyp_desc with
+  | Ptyp_arrow ((Labelled label | Optional label), _, result) -> label :: arrow_labels result
+  | Ptyp_arrow (Nolabel, _, result) -> arrow_labels result
+  | _ -> []
+
+let label_conflict ~loc label =
+  Location.raise_errorf ~loc "router: branch input label %s conflicts with a generated router argument" label
+
+let label_checker =
+  object
+    inherit Ast_traverse.iter as super
+
+    method! core_type typ =
+      (match first_duplicate (arrow_labels typ) with
+      | Some label -> label_conflict ~loc:typ.ptyp_loc label
+      | None -> ());
+      super#core_type typ
+
+    method! expression expression =
+      (match expression.pexp_desc with
+      | Pexp_apply (_, arguments) -> (
+          match first_duplicate (labels arguments) with
+          | Some label -> label_conflict ~loc:expression.pexp_loc label
+          | None -> ())
+      | _ -> ());
+      super#expression expression
+  end
+
+let check_route_modules (declaration : Router_declaration.t) signature =
+  let modules =
+    List.filter_map
+      (fun item -> match item.psig_desc with Psig_module { pmd_name = { txt; _ }; _ } -> txt | _ -> None)
+      signature
+  in
+  List.iter
+    (fun (route : Router_declaration.route) ->
+      if List.length (List.filter (String.equal route.name) modules) > 1 || List.mem route.name [ "None"; "Some" ] then
+        Location.raise_errorf ~loc:route.loc "router: generated route name %s is reserved" route.name)
+    (Router_declaration.routes declaration)
+
+let check (declaration : Router_declaration.t) =
+  let signature = raw_signature declaration in
+  check_route_modules declaration signature;
+  label_checker#signature signature;
+  label_checker#structure (raw_handles declaration);
+  label_checker#structure (raw_registry declaration)
+
+let route_names declaration =
+  List.map (fun (route : Router_declaration.route) -> route.name) (Router_declaration.routes declaration)
+
+let handles_plan declaration =
+  let defined_modules = own_modules @ route_names declaration in
+  Router_hygiene.plan
+    ~user_expressions:(Router_declaration.user_expressions declaration)
+    ~defined_modules
+    [
+      Router_hygiene.scan_structure (raw_handles declaration); Router_hygiene.scan_signature (raw_signature declaration);
+    ]
+
+let handles (declaration : Router_declaration.t) =
+  check declaration;
+  Router_hygiene.structure ~loc:declaration.loc ~restore_in:(route_names declaration) (handles_plan declaration)
+    (raw_handles declaration)
+
+let signature (declaration : Router_declaration.t) =
+  check declaration;
+  Router_hygiene.signature ~loc:declaration.loc ~restore_in:(route_names declaration) (handles_plan declaration)
+    (raw_signature declaration)
+
+let registry (declaration : Router_declaration.t) =
+  check declaration;
+  let structure = raw_registry declaration in
+  let plan =
+    Router_hygiene.plan
+      ~user_expressions:(Router_declaration.user_expressions declaration)
+      ~defined_modules:[]
+      [ Router_hygiene.scan_structure structure ]
+  in
+  Router_hygiene.structure ~loc:declaration.loc ~restore_in:[] plan structure

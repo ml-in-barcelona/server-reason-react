@@ -1153,7 +1153,7 @@ let adapter_reply ?(registry = None) ?(search = "") ~kind pathname =
         Some
           {
             RouterServer.ServerEngine.from = Some "/app";
-            registry = Some (Option.value registry ~default:("2." ^ RouterServer.Server.fingerprint server));
+            registry = Some (Option.value registry ~default:("1." ^ RouterServer.Server.fingerprint server));
             base_revision = Some "base";
           }
   in
@@ -1266,7 +1266,7 @@ let adapter_handle () =
         [
           ("accept", "application/react.component");
           ("router-navigation-from", "/app");
-          ("router-registry", "2." ^ RouterServer.Server.fingerprint (adapter_server ()));
+          ("router-registry", "1." ^ RouterServer.Server.fingerprint (adapter_server ()));
           ("router-base-revision", "");
         ]
       "GET" "/app/item"
@@ -1508,14 +1508,14 @@ let adapter_rsc_reply () =
   Alcotest.(check int) "status" 200 reply.status;
   check_header reply "Vary" (Some "Accept, Router-Prefetch");
   check_header reply "Router-Response" (Some "full");
-  check_header reply "Router-Registry" (Some ("2." ^ RouterServer.Server.fingerprint (adapter_server ())));
+  check_header reply "Router-Registry" (Some ("1." ^ RouterServer.Server.fingerprint (adapter_server ())));
   check_header reply "Cache-Control" (Some "private, no-store");
   match reply.body with
   | Model { location; _ } -> Alcotest.(check string) "x-location" "/app/item" location
   | Empty | Html _ -> Alcotest.fail "expected model"
 
 let adapter_reload_required_reply () =
-  let reply = adapter_reply ~registry:(Some "2.wrong") ~kind:Rsc "/app/item" in
+  let reply = adapter_reply ~registry:(Some "1.wrong") ~kind:Rsc "/app/item" in
   Alcotest.(check int) "status" 409 reply.status;
   check_header reply "Vary" (Some "Accept, Router-Prefetch");
   check_header reply "Router-Response" (Some "reload-required");
@@ -1537,7 +1537,7 @@ let adapter_rsc_redirect_reply () =
   Alcotest.(check int) "status" 200 reply.status;
   check_header reply "Vary" (Some "Accept, Router-Prefetch");
   check_header reply "Router-Response" (Some "redirect");
-  check_header reply "Router-Registry" (Some ("2." ^ RouterServer.Server.fingerprint (adapter_server ())));
+  check_header reply "Router-Registry" (Some ("1." ^ RouterServer.Server.fingerprint (adapter_server ())));
   check_header reply "Cache-Control" (Some "private, no-store");
   check_header reply "Content-Type" (Some "application/react.component");
   match reply.body with

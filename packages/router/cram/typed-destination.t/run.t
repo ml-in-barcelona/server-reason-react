@@ -243,20 +243,12 @@ A route can have five optional segments, since each one doubles the patterns it 
   $ server-reason-react.router-gen --mode handles --source stdlib-shadow.ml < stdlib-shadow.ml > Stdlib_shadow.ml
   $ ocamlc -c Stdlib_shadow.ml
 
-  $ server-reason-react.router-gen --mode handles --source reserved-pattern.ml < reserved-pattern.ml
-  File "reserved-pattern.ml", line 1, characters 28-82:
-  Error: router: branch input label pattern conflicts with a generated router argument
-  [2]
+Path parameters may use the names of generated helpers. Route names may
+use the names of runtime modules.
 
-  $ server-reason-react.router-gen --mode registry --source reserved-input.ml < reserved-input.ml
-  File "reserved-input.ml", line 1, characters 28-80:
-  Error: router: branch input label input conflicts with a generated router argument
-  [2]
-
-  $ server-reason-react.router-gen --mode handles --source reserved-destination.ml < reserved-destination.ml
-  File "reserved-destination.ml", line 1, characters 28-86:
-  Error: router: branch input label destination conflicts with a generated router argument
-  [2]
+  $ server-reason-react.router-gen --mode handles --source helper-names.ml < helper-names.ml > HelperNames.ml
+  $ ocamlc -c HelperNames.ml
+  $ server-reason-react.router-gen --mode registry --source helper-names.ml < helper-names.ml > /dev/null
 
   $ server-reason-react.router-gen --mode registry --source required-root-error.ml < required-root-error.ml
   File "required-root-error.ml", lines 1-2, characters 0-44:
@@ -265,9 +257,9 @@ A route can have five optional segments, since each one doubles the patterns it 
 
   $ server-reason-react.router-gen --mode registry --source required-root-invalid-search.ml < required-root-invalid-search.ml > /dev/null
 
-  $ server-reason-react.router-gen --mode handles --source reserved-link.ml < reserved-link.ml
-  File "reserved-link.ml", line 1, characters 28-70:
-  Error: router: generated route name Link is reserved
+  $ server-reason-react.router-gen --mode handles --source reserved-some.ml < reserved-some.ml
+  File "reserved-some.ml", line 1, characters 28-70:
+  Error: router: generated route name Some is reserved
   [2]
 
   $ server-reason-react.router-gen --mode handles --source reserved-active-search.ml < reserved-active-search.ml
@@ -308,9 +300,11 @@ A route can have five optional segments, since each one doubles the patterns it 
   Error: router: invalid router base path /app?preview
   [2]
 
+  $ cp ../../runtime/shared/RouterUrl.ml .
+  $ ocamlc -c RouterUrl.ml
   $ refmt --parse re --print ml ../../runtime/shared/RouterPattern.re > RouterPattern.ml
   $ ocamlc -w -53 -c RouterPattern.ml
-  $ ocamlc -o pattern-test RouterPattern.cmo pattern_test.ml
+  $ ocamlc -o pattern-test RouterUrl.cmo RouterPattern.cmo pattern_test.ml
   $ ./pattern-test
   matchesPath passed
   static path grammar and UTF-8 href rendering passed
@@ -502,6 +496,7 @@ parameter.
   Router.Note.search)
   type redirect_2_search
   ~search:routeSearch
+  ~search:search
 
 A route that adds search parameters to the root ones gets its own
 `useSearch`. It decodes the root fields and its own, and its update owns both.
@@ -554,14 +549,16 @@ registry uses `Server.make`, so `RouterServer.run` runs it.
   1 RouterServer.Server.make
   1 ~execution:(fun () ->
 
-`~context` belongs to Router.make only, and reserves the label `context`.
+`~context` belongs to Router.make only. Loaders, metadata and headers
+receive it as the label `context`, so a path parameter or loader label
+named `context` conflicts with it.
 
   $ server-reason-react.router-gen --mode handles --source context-group.ml < context-group.ml
   File "context-group.ml", line 2, characters 41-50:
   Error: router: Router.group cannot declare ~context; declare it on Router.make
   [2]
   $ server-reason-react.router-gen --mode handles --source context-label.ml < context-label.ml
-  File "context-label.ml", line 1, characters 47-106:
+  File "context-label.ml", line 2, characters 72-82:
   Error: router: branch input label context conflicts with a generated router argument
   [2]
 
@@ -667,3 +664,22 @@ needs `~key:"type"` on another label, as in `search-key-alias.ml`.
   $ server-reason-react.router-gen --mode handles --source keyword-search-key.ml < keyword-search-key.ml 2>&1 | head -2
   File "keyword-search-key.ml", line 1, characters 82-86:
   Error: Syntax error
+
+User names do not collide with names in the generated code: path
+parameters named like generated helpers, routes named like modules the
+generated code uses, and free names in spliced expressions. A wildcard or
+keyword label is rejected.
+
+  $ for name in search-values try-destination fun stdlib router-runtime react codec; do
+  >   server-reason-react.router-gen --mode handles --source collision-$name.ml < collision-$name.ml > Collision.ml
+  >   ocamlc -c Collision.ml || echo "$name failed"
+  > done
+  $ server-reason-react.router-gen --mode handles --source collision-underscore.ml < collision-underscore.ml
+  File "collision-underscore.ml", line 1, characters 28-79:
+  Error: router: invalid route path /n/:_<int>
+  [2]
+  $ server-reason-react.router-gen --mode handles --source collision-capture.ml < collision-capture.ml > Collision.ml
+  $ ocamlc -c Collision.ml
+  $ server-reason-react.router-gen --mode registry --source collision-capture.ml < collision-capture.ml | tr -s ' \n' ' ' | grep -Eo 'fun max_int[_0-9]* ->|fallback:max_int[_0-9]*'
+  fun max_int_1 ->
+  fallback:max_int

@@ -28,11 +28,10 @@ expect(
   "/site/notes/1#a%20b%23%C3%A9",
   Router.Note.href(~id=1, ~hash="a b#" ++ Js.String.fromCharCode(233), ()),
 );
-expect(
-  "lone surrogate hash",
-  "/site/notes/1#%EF%BF%BD",
-  Router.Note.href(~id=1, ~hash=Js.String.fromCharCode(0xd800), ()),
-);
+switch (Router.Note.href(~id=1, ~hash=Js.String.fromCharCode(0xd800), ())) {
+| href => failwith("lone surrogate hash: expected an error, got " ++ href)
+| exception (Invalid_argument(_)) => ()
+};
 expect("empty hash", "/site/notes/1", Router.Note.href(~id=1, ~hash="", ()));
 expect(
   "search record",

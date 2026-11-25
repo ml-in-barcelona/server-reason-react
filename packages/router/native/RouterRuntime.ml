@@ -13,7 +13,7 @@ module CatchAll = RouterTypes.CatchAll
 module NavigationResponse = RouterTypes.NavigationResponse
 module Link = RouterTypes.Link
 
-let encode = RouterPattern.encodeStaticSegment
+let encode = Js.Global.encodeURIComponent
 
 let encodeSegment value =
   if not (RouterPattern.validSegment value) then invalid_arg "route parameters must be valid non-empty path segments";

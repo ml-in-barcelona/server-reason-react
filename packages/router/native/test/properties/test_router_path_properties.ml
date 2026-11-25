@@ -528,8 +528,9 @@ let segment_encoding_round_trips =
         (list state ~low:0 ~high:6 (fun _ -> if chance state 50 then pick state bytes else pick state value_characters)))
     (fun value ->
       let encoded = Pattern.encodeStaticSegment value in
-      if Pattern.percentDecode ~plus:false ~malformed:Reject encoded <> Some value then failf "decoded differently";
-      if Pattern.percentDecode ~plus:true ~malformed:Keep encoded <> Some value then failf "plus or Keep changed it";
+      let decode ~plus = Url.decodeEscaped ~plus encoded ~start:0 ~stop:(String.length encoded) ~first:0 in
+      if decode ~plus:false <> Ok value then failf "decoded differently";
+      if decode ~plus:true <> Ok value then failf "plus changed it";
       if String.contains encoded '/' then failf "left a slash unescaped";
       let valid = reference_decode_segment encoded <> None in
       match

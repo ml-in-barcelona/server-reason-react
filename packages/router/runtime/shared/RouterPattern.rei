@@ -36,16 +36,6 @@ let optional: t => list(string);
 let shapes: t => list(t);
 let append: (t, t) => t;
 
-type malformedEscape =
-  | Reject
-  | Keep;
-
-/** Decodes [%XX] escapes to bytes, and [+] to a space when [plus]. A [%] that
-    does not start two hex digits gives [None] with [Reject] and stays as is
-    with [Keep]. */
-let percentDecode:
-  (~plus: bool, ~malformed: malformedEscape, string) => option(string);
-
 /** Whether a byte string is valid UTF-8. On Melange each UTF-16 code unit
     counts as one byte, which suits percent-decoded text, and a unit above
     [0xFF] is invalid. */
@@ -60,7 +50,9 @@ let validSegment: string => bool;
     parameter matches one segment that decodes to a {!validSegment}, without
     parsing its type. A
     catch-all matches one or more remaining segments. A template matches when
-    any of its {!shapes} does. Empty segments never match.
+    any of its {!shapes} does. A segment matches only if the server would
+    accept it: no empty segment, [.], [..], encoded slash, control
+    character or invalid UTF-8.
 
     [basePath] is the router's percent-encoded base path (default ["/"]). The
     leading segments of [pathname] must equal its segments after decoding,

@@ -5,6 +5,7 @@
   RouterQuery
   RouterSearchKey
   RouterSearchParse
+  RouterUrl
   SearchKeyCases
   SearchParseCases
   test_search_key
@@ -40,3 +41,20 @@
 
 (copy_files
  (files ../SearchParseCases.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterUrl.ml))
+
+(executable
+ (name test_url_native)
+ (modules UrlCases test_url_native)
+ (libraries server-reason-react.router-native))
+
+(rule
+ (action
+  (with-stdout-to
+   url-native.txt
+   (run %{exe:test_url_native.exe}))))
+
+(copy_files
+ (files ../UrlCases.ml))

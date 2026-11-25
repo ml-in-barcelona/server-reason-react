@@ -96,4 +96,5 @@ val find : structure -> t option
 val root_search : t -> search list
 val endpoints : t -> endpoint list
 val routes : t -> route list
+val user_expressions : t -> expression list
 val shapes : string -> RouterPattern.t list

@@ -13,7 +13,7 @@ expect(
 );
 
 module Cache = RouterNavigationCache;
-let scope = Cache.scope(~protocolVersion=2, ~registryFingerprint="f1");
+let scope = Cache.scope(~protocolVersion=1, ~registryFingerprint="f1");
 let full = name =>
   Cache.[
     {
@@ -75,7 +75,7 @@ expect(
 expect(
   "an entry was shared across registry fingerprints",
   read(
-    ~scope=Cache.scope(~protocolVersion=2, ~registryFingerprint="f2"),
+    ~scope=Cache.scope(~protocolVersion=1, ~registryFingerprint="f2"),
     "/one",
   )
   == None,
@@ -508,15 +508,26 @@ expect(
   == "%EF%BC%A1=1&%F0%9F%98%80=2",
 );
 
+let rejects = encode =>
+  try(
+    {
+      ignore(encode());
+      false;
+    }
+  ) {
+  | Invalid_argument(_) => true
+  };
 expect(
-  "a lone surrogate in a search value did not become U+FFFD",
-  RouterRuntime.encodeSearch([("k", [Js.String.fromCharCode(0xd800)])])
-  == "k=%EF%BF%BD",
+  "a lone surrogate in a search value was printed",
+  rejects(() =>
+    RouterRuntime.encodeSearch([("k", [Js.String.fromCharCode(0xd800)])])
+  ),
 );
 expect(
-  "a lone surrogate in a search name did not become U+FFFD",
-  RouterRuntime.encodeSearch([(Js.String.fromCharCode(0xdc00), ["v"])])
-  == "%EF%BF%BD=v",
+  "a lone surrogate in a search name was printed",
+  rejects(() =>
+    RouterRuntime.encodeSearch([(Js.String.fromCharCode(0xdc00), ["v"])])
+  ),
 );
 expect(
   "a surrogate pair in a search value was replaced",
@@ -966,8 +977,12 @@ expect(
   searchKey("?q=%c3%a9", "/app/notes?q=%C3%A9"),
 );
 expect(
-  "a broken escape did not compare as text",
-  searchKey("?q=%zz", "/app/notes?q=%25zz"),
+  "a broken escape compared as text",
+  !searchKey("?q=%zz", "/app/notes?q=%25zz"),
+);
+expect(
+  "a malformed pair changed whether a link is current",
+  searchKey("?x=%FF&q=1", "/app/notes?q=1"),
 );
 expect(
   "the order of repeated values was ignored",
@@ -1384,6 +1399,14 @@ expect("a catch-all URL was not routed", routed("/app/files/a/b.txt"));
 expect("a URL without a route was routed", !routed("/app/export.csv"));
 expect("a URL past a route was routed", !routed("/app/notes/42/raw"));
 expect("a URL outside the base path was routed", !routed("/notes/42"));
+expect(
+  "a URL with an encoded slash was routed",
+  !routed("/app/files/a%2Fb"),
+);
+expect(
+  "a URL with an encoded dot segment was routed",
+  !routed("/app/files/%2E"),
+);
 expect(
   "an encoded UTF-8 segment was not routed",
   routed("/app/notes/caf%C3%A9"),

@@ -139,19 +139,27 @@ requests and ignores a header value that is not a level.
 {2 Names and labels}
 
 A route name is a bare constructor, such as [Note]. A dotted name is an error.
-Each route name must be unique, and these names are reserved because the
-generated module already uses them: [Status], [Loader], [Error], [Metadata],
-[Headers], [Navigation], [Search], [Link], and [ActiveSearch].
+Each route name must be unique. A route name cannot be [Status], [Loader],
+[Error], [Metadata], [Headers], [Navigation] or [ActiveSearch], which name
+modules of the generated module, nor [Some] or [None], which the generated
+code uses as constructors. Any other name works, including the name of a
+module that the generated code uses, such as [Stdlib], [React] or
+[RouterRuntime].
 
 Path parameter names and loader result labels become labelled arguments of
-the generated helpers. Within one branch they must be unique. These labels
-belong to the generated API and cannot be used: [applicationStatus],
-[ariaCurrent], [attributes], [basePath], [children], [className], [decodeError],
-[destination], [download], [error], [fallback], [hash], [history], [href],
-[input], [item], [make], [pattern], [registry], [revalidate], [routeSearch],
-[search], [target], [updateSearch], [unsafeDestination], [useNavigation],
-[useRoute], [useSearch], [useUpdateHash], [value], and [values]. The
-generator reports a conflict at the route that uses the label.
+the generated helpers and of the page, layout, loader and boundary functions.
+Within one branch they must be unique, and none can be [_] or a keyword. A
+name conflicts only with a label that the router passes in the same call: a
+path parameter cannot be called [search], [hash], [attributes], [className],
+[target], [download], [ariaCurrent], [history], [revalidate] or [children],
+the labels of the generated route component, and a path parameter or loader
+result cannot be called [search], [children] or [error] where the router
+passes those, nor [context] when [Router.make] declares [~context]. The
+generator reports the conflict at the route, or at the loader or attachment
+that receives both labels. The generated code renames its
+own variables around user names, so names such as [value], [pattern],
+[input], [tryDestination] or [max_int] are free, and a [Router.Search.default]
+expression means what it means in the manifest.
 
 Search parameters are fields of one [search] record, not labelled arguments,
 so these names do not apply to them: a search parameter can be called
@@ -277,9 +285,14 @@ construction raises [Invalid_argument] for an empty value, [/], [.], [..],
 control characters, or invalid UTF-8. Valid output is percent-encoded. A failed
 parse produces [InvalidPathParameter].
 
+Search values and [~hash] must be valid text as well: invalid UTF-8 on
+native, or a lone surrogate in the browser, raises [Invalid_argument], as
+[encodeURIComponent] does. Native and the browser print the same bytes for
+the same valid text.
+
 For a value from user input, such as free text, use [tryDestination] or
-[tryHref]. Every route with path parameters has them. They take the same
-arguments and return [Error(message)] instead of raising:
+[tryHref]. Every route has them. They take the same arguments and return
+[Error(message)] instead of raising:
 
 {[
 switch (Router.Topic.tryHref(~name=text, ())) {
@@ -289,7 +302,9 @@ switch (Router.Topic.tryHref(~name=text, ())) {
 ]}
 
 The server rejects an encoded slash ([%2F]) in a path, so a value with [/]
-cannot be a path parameter. Put it in a search parameter, or use a catch-all
+cannot be a path parameter. The client follows the same rule: a link whose
+path has an encoded slash, a [.] or [..] segment, a control character or
+invalid UTF-8 is not handled on the client and loads as a document. Put it in a search parameter, or use a catch-all
 parameter when each part is a segment.
 
 {2 Search parameters}
@@ -574,7 +589,7 @@ so the client loads the target as a document. A header value other than
 [Push] or [Replace] navigation then keeps the current page and sets the status
 to [Failed]. A [Pop] navigation hard-navigates to the target, unless a newer
 navigation has replaced it, in which case the [Pop] is canceled. The protocol
-has no [failed] response kind. The protocol version is 2.
+has no [failed] response kind. The protocol version is 1.
 
 A [redirect] response continues on the client when its location has the
 page's origin and is under the base path. The redirect target takes the place

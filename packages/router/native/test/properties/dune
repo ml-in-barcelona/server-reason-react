@@ -1,5 +1,6 @@
-; Property and fuzz tests for the route path syntax. RouterPattern is private to
-; router-native, so the test compiles its own copy under another name.
+; Property and fuzz tests for the route path syntax. RouterPattern and RouterUrl
+; are private to router-native, so the test compiles its own copies under other
+; names.
 ; ROUTER_PROPERTY_COUNT and ROUTER_PROPERTY_SEED widen a run.
 
 (test
@@ -7,7 +8,15 @@
  (libraries alcotest server-reason-react.router-native))
 
 (rule
- (copy ../../../runtime/shared/RouterPattern.re Pattern.re))
+ (with-stdout-to
+  Pattern.re
+  (run
+   sed
+   "s/RouterUrl\\./Url./g"
+   %{dep:../../../runtime/shared/RouterPattern.re})))
 
 (rule
  (copy ../../../runtime/shared/RouterPattern.rei Pattern.rei))
+
+(rule
+ (copy ../../../runtime/shared/RouterUrl.ml Url.ml))
