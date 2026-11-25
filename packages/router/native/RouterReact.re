@@ -1,7 +1,7 @@
-type navigationResult = RouterRuntime.Navigation.Result.t;
+type navigationResult = RouterTypes.Navigation.Result.t;
 type navigate =
   (
-    ~history: RouterRuntime.Navigation.historyAction=?,
+    ~history: RouterTypes.Navigation.historyAction=?,
     ~revalidate: bool=?,
     ~resetScroll: bool=?,
     RouterRuntime.destination
@@ -11,19 +11,19 @@ type updateSearch =
   (
     ~owned: list(string),
     ~values: list((string, list(string))),
-    ~history: RouterRuntime.Navigation.historyAction=?,
+    ~history: RouterTypes.Navigation.historyAction=?,
     unit
   ) =>
   navigationResult;
 type updateSearchWith =
   (
     ~owned: list(string),
-    ~history: RouterRuntime.Navigation.historyAction=?,
+    ~history: RouterTypes.Navigation.historyAction=?,
     list((string, list(string))) => list((string, list(string)))
   ) =>
   navigationResult;
 type updateHash =
-  (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
+  (~hash: string, ~history: RouterTypes.Navigation.historyAction=?, unit) =>
   navigationResult;
 
 type navigationErrorRecovery =
@@ -40,7 +40,7 @@ type blocker =
   | Unblocked
   | Blocked({
       target: string,
-      action: RouterRuntime.Navigation.historyAction,
+      action: RouterTypes.Navigation.historyAction,
       proceed: unit => unit,
       cancel: unit => unit,
     });
@@ -55,7 +55,7 @@ type activeWhen =
   | Subtree;
 
 type contextValue = {
-  committed: RouterRuntime.Navigation.committed,
+  committed: RouterTypes.Navigation.committed,
   search: list((string, list(string))),
 };
 
@@ -119,7 +119,7 @@ let useContextValue = () =>
   | None => invalid_arg("router hooks require an ancestor Router.Provider")
   };
 
-let useNavigation = () => (navigate, RouterRuntime.Navigation.Idle);
+let useNavigation = () => (navigate, RouterTypes.Navigation.Idle);
 let useCurrentRoute = () =>
   switch (List.rev(useContextValue().committed.matches)) {
   | [{ routeId, parameters }, ..._] => Some((routeId, parameters))
@@ -131,7 +131,7 @@ let useUpdateHash = () => updateHash;
 let useLocation = () => useContextValue().committed.location;
 let useMatches = () => useContextValue().committed.matches;
 let locationScope =
-    (~committed: RouterRuntime.Navigation.committed, ~children, ()) =>
+    (~committed: RouterTypes.Navigation.committed, ~children, ()) =>
   provider(
     React.Context.makeProps(
       ~value=
@@ -146,7 +146,7 @@ let locationScope =
 
 let useInvalidate = ((), _invalidation) => ();
 
-let isCurrent = (~location: RouterRuntime.Navigation.location, href) =>
+let isCurrent = (~location: RouterTypes.Navigation.location, href) =>
   RouterSearchKey.isCurrent(
     ~pathname=location.pathname,
     ~search=location.search,
@@ -156,8 +156,7 @@ let isCurrent = (~location: RouterRuntime.Navigation.location, href) =>
 let useIsCurrent = destination =>
   isCurrent(~location=useLocation(), RouterRuntime.href(destination));
 
-let isActive =
-    (~activeWhen, ~location: RouterRuntime.Navigation.location, href) =>
+let isActive = (~activeWhen, ~location: RouterTypes.Navigation.location, href) =>
   switch (activeWhen) {
   | Url => isCurrent(~location, href)
   | Route =>

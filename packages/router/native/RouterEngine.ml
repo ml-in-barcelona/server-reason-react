@@ -1,3 +1,5 @@
+include RouterEngineRuntime
+
 module Path = struct
   type segment = RouterPattern.segment =
     | Static of string

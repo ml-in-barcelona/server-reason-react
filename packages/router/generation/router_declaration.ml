@@ -137,9 +137,9 @@ let to_string_of_type ~loc name =
 
 let parser_of_type ~loc name =
   match String.split_on_char '.' name with
-  | [ "bool" ] -> Longident.parse "RouterRuntime.Search.parseBool"
-  | [ "int" ] -> Longident.parse "RouterRuntime.Search.parseInt"
-  | [ "string" ] -> Longident.parse "RouterRuntime.Search.parseString"
+  | [ "bool" ] -> Longident.parse "RouterEngine.SearchValues.parseBool"
+  | [ "int" ] -> Longident.parse "RouterEngine.SearchValues.parseInt"
+  | [ "string" ] -> Longident.parse "RouterEngine.SearchValues.parseString"
   | parts -> (
       match List.rev parts with
       | "t" :: module_parts when module_parts <> [] ->
@@ -170,8 +170,8 @@ let parameters_of_path ~loc path =
             presence = (if is_optional then OptionalRest else Segment);
             typ;
             argument = typ;
-            parser = Longident.parse "RouterRuntime.CatchAll.parse";
-            to_string = Longident.parse "RouterRuntime.CatchAll.toString";
+            parser = Longident.parse "RouterEngine.CatchAll.parse";
+            to_string = Longident.parse "RouterEngine.CatchAll.toString";
             loc;
           }
       | type_name ->

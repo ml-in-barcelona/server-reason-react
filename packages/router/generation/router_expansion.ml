@@ -600,10 +600,10 @@ let parameter_list ~loc parameters =
 let search_decoder ~loc (search : Router_declaration.search) =
   let callee =
     match search.kind with
-    | Required -> "RouterRuntime.Search.required"
-    | Optional -> "RouterRuntime.Search.optional"
-    | Default _ -> "RouterRuntime.Search.default"
-    | Many -> "RouterRuntime.Search.many"
+    | Required -> "RouterEngine.SearchValues.required"
+    | Optional -> "RouterEngine.SearchValues.optional"
+    | Default _ -> "RouterEngine.SearchValues.default"
+    | Many -> "RouterEngine.SearchValues.many"
   in
   let arguments =
     [ (Labelled "name", B.estring ~loc search.key); (Labelled "parse", B.pexp_ident ~loc { txt = search.parser; loc }) ]
@@ -882,11 +882,11 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
     if String.equal route.path "/" && not (String.equal base_path "") then base_path else base_path ^ route.path
   in
   let pattern =
-    B.pexp_apply ~loc (qualified ~loc "RouterRuntime.pattern") [ (Nolabel, B.estring ~loc pattern_source) ]
+    B.pexp_apply ~loc (qualified ~loc "RouterEngine.pattern") [ (Nolabel, B.estring ~loc pattern_source) ]
   in
   let destination_body =
     B.pexp_apply ~loc
-      (qualified ~loc "RouterRuntime.destinationFromPattern")
+      (qualified ~loc "RouterEngine.destinationFromPattern")
       [
         (Labelled "pattern", var ~loc (g "pattern"));
         (Labelled "parameters", parameter_list ~loc route.parameters);
@@ -925,7 +925,7 @@ let route_module ~base_path ~root_search (route : Router_declaration.route) =
     | [] -> destination_body
     | shallow ->
         B.pexp_apply ~loc
-          (qualified ~loc "RouterRuntime.withShallowSearch")
+          (qualified ~loc "RouterEngine.withShallowSearch")
           [
             (Nolabel, destination_body);
             ( Nolabel,

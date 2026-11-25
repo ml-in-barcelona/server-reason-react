@@ -58,7 +58,7 @@ let valuesFromString = search =>
   };
 
 let toString = values => {
-  let encoded = RouterRuntime.encodeSearch(values);
+  let encoded = RouterEncoding.encodeSearch(values);
   String.equal(encoded, "") ? "" : "?" ++ encoded;
 };
 

@@ -1,7 +1,7 @@
 [@react.client.component]
 let make =
     (
-      ~initial: RouterRuntime.Navigation.committed,
+      ~initial: RouterTypes.Navigation.committed,
       ~protocolVersion: int,
       ~registryFingerprint: string,
       ~basePath: string,

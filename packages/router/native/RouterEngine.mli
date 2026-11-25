@@ -8,6 +8,8 @@
     deferred loader {!Execution}. Finally, {!Plan} assembles the view, metadata, and headers while {!ServerEngine}
     decides whether the client needs a full response, a branch patch, a redirect, or a reload. *)
 
+include module type of RouterEngineRuntime
+
 (** Validation and decomposition of URL pathnames.
 
     Segments are decoded only after splitting, so an encoded slash cannot alter the route shape. Dot segments are

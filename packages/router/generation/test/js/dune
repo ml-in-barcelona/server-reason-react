@@ -4,6 +4,9 @@
   Router
   RouterPattern
   RouterReact
+  RouterEncoding
+  RouterEngine
+  RouterEngineRuntime
   RouterRuntime
   RouterTransaction
   RouterTypes
@@ -41,6 +44,21 @@
 
 (copy_files
  (files ../../../react/js/RouterRuntime.re))
+
+(copy_files
+ (files ../../../react/js/RouterEncoding.re))
+
+(copy_files
+ (files ../../../react/js/RouterEngine.re))
+
+(copy_files
+ (files ../../../react/js/RouterEngine.rei))
+
+(copy_files
+ (files ../../../runtime/shared/RouterEngineRuntime.re))
+
+(copy_files
+ (files ../../../runtime/shared/RouterEngineRuntime.rei))
 
 (copy_files
  (files ../../../runtime/shared/RouterRuntime.rei))

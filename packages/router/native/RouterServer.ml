@@ -91,9 +91,9 @@ let ssr_marker =
     [ React.JSX.String ("id", "id", "ssr-query-param"); React.JSX.Style [ ("display", "display", "none") ] ]
     []
 
-let committed ~canonical_url ~revision ~matches ~layouts : RouterRuntime.Navigation.committed =
+let committed ~canonical_url ~revision ~matches ~layouts : RouterTypes.Navigation.committed =
   let pathname, search = Path.splitLocation canonical_url in
-  { location = { RouterRuntime.Navigation.pathname; search; hash = ""; key = "server" }; revision; matches; layouts }
+  { location = { RouterTypes.Navigation.pathname; search; hash = ""; key = "server" }; revision; matches; layouts }
 
 let scoped_element ~committed resolved =
   RouterReact.locationScope ~committed
@@ -120,7 +120,7 @@ let document_element server ?pageCacheCapacity ~document (response : (React.elem
   document ~head (React.list [ ssr_marker; root ])
 
 let full_model (response : (React.element, 'error) ServerEngine.full) =
-  let full : React.element RouterRuntime.NavigationResponse.full =
+  let full : React.element RouterTypes.NavigationResponse.full =
     {
       protocolVersion = response.protocol_version;
       registryFingerprint = response.registry_fingerprint;
@@ -138,10 +138,10 @@ let full_model (response : (React.element, 'error) ServerEngine.full) =
           response.resolved;
     }
   in
-  RouterRuntime.NavigationResponse.full_to_rsc RSC.Primitives.react_element_to_rsc full |> RSC.to_model
+  RouterTypes.NavigationResponse.full_to_rsc RSC.Primitives.react_element_to_rsc full |> RSC.to_model
 
 let patch_model (response : (React.element, 'error) ServerEngine.patch) =
-  let patch : React.element RouterRuntime.NavigationResponse.patch =
+  let patch : React.element RouterTypes.NavigationResponse.patch =
     {
       protocolVersion = response.protocol_version;
       registryFingerprint = response.registry_fingerprint;
@@ -161,13 +161,13 @@ let patch_model (response : (React.element, 'error) ServerEngine.patch) =
           response.resolved;
     }
   in
-  RouterRuntime.NavigationResponse.patch_to_rsc RSC.Primitives.react_element_to_rsc patch |> RSC.to_model
+  RouterTypes.NavigationResponse.patch_to_rsc RSC.Primitives.react_element_to_rsc patch |> RSC.to_model
 
 let redirect_model ~protocolVersion ~registryFingerprint destination =
-  let redirect : RouterRuntime.NavigationResponse.redirect =
+  let redirect : RouterTypes.NavigationResponse.redirect =
     { protocolVersion; registryFingerprint; location = RouterRuntime.href destination; status = 200 }
   in
-  RouterRuntime.NavigationResponse.redirect_to_rsc redirect |> RSC.to_model
+  RouterTypes.NavigationResponse.redirect_to_rsc redirect |> RSC.to_model
 
 type request = { engine : ServerEngine.request; prefetch : RouterRuntime.PrefetchLevel.t option }
 type body = Empty | Html of React.element | Model of { location : string; model : React.model_value }

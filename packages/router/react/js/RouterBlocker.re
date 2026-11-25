@@ -1,7 +1,7 @@
 type request = {
   id: int,
   target: string,
-  action: RouterRuntime.Navigation.historyAction,
+  action: RouterTypes.Navigation.historyAction,
   resume: unit => unit,
   drop: unit => unit,
 };
@@ -94,7 +94,7 @@ let pop = (blocker, ~current, ~target, ~content, ~url, ~traverse, ~handle) =>
       hold(
         blocker,
         ~target=url,
-        ~action=RouterRuntime.Navigation.Pop,
+        ~action=RouterTypes.Navigation.Pop,
         ~resume=
           () => {
             blocker.bypassPop = true;

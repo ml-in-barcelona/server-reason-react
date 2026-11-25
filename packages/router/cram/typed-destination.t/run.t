@@ -109,6 +109,7 @@ A route can have five optional segments, since each one doubles the patterns it 
   $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -A2 'id:"Asset"' | tr -d ' ~\n' | grep -Eo 'activeRoutes:\[(\("[A-Za-z]+",\[[^]]*\]\);?)*\]'
   activeRoutes:[("Asset",["parts"])]
   $ ocamlc -c RouterRuntime.ml
+  $ ocamlc -c RouterEngine.ml
   $ ocamlc -c RSC.ml
   $ ocamlc -c Js.ml
   $ ocamlc -c React.ml
@@ -645,7 +646,7 @@ other labelled argument.
 
 `~shallow:true` marks a search parameter whose changes need no server
 response. Generated destinations list the URL keys of their route's shallow
-parameters, root parameters included, with `RouterRuntime.withShallowSearch`.
+parameters, root parameters included, with `RouterEngine.withShallowSearch`.
 The flag is part of the registry fingerprint. It takes a boolean literal.
 
   $ server-reason-react.router-gen --mode handles --source shallow-search.ml < shallow-search.ml | tr -s ' \n' ' ' | grep -Eo 'withShallowSearch|~hash\) \["[^]]*\]'

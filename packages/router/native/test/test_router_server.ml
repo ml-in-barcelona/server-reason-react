@@ -116,7 +116,7 @@ let catch_all_endpoint_decoding () =
   let endpoint =
     RouterEngine.Endpoint.make ~id:"asset" ~path:"/assets/:parts<string...>" ~activeRoutes:[] ~fingerprint:"asset"
       ~decode:(fun input ->
-        match RouterEngine.Decode.path ~input ~name:"parts" ~parse:RouterRuntime.CatchAll.parse with
+        match RouterEngine.Decode.path ~input ~name:"parts" ~parse:RouterEngine.CatchAll.parse with
         | Ok parts ->
             Ok (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () -> RouterEngine.Execution.done_ parts))
         | Error error -> Error error)
@@ -136,12 +136,12 @@ let catch_all_endpoint_decoding () =
   | _ -> Alcotest.fail "expected endpoint match"
 
 let catch_all_to_string_validation () =
-  Alcotest.(check string) "joined" "a/b" (RouterRuntime.CatchAll.toString [ "a"; "b" ]);
+  Alcotest.(check string) "joined" "a/b" (RouterEngine.CatchAll.toString [ "a"; "b" ]);
   List.iter
     (fun segments ->
       let rejected =
         try
-          ignore (RouterRuntime.CatchAll.toString segments);
+          ignore (RouterEngine.CatchAll.toString segments);
           false
         with Invalid_argument _ -> true
       in
@@ -150,9 +150,9 @@ let catch_all_to_string_validation () =
 
 let destination_catch_all_encoding () =
   let destination =
-    RouterRuntime.destinationFromPattern
-      ~pattern:(RouterRuntime.pattern "/assets/:parts<string...>")
-      ~parameters:[ ("parts", RouterRuntime.CatchAll.toString [ "a+b"; "café" ]) ]
+    RouterEngine.destinationFromPattern
+      ~pattern:(RouterEngine.pattern "/assets/:parts<string...>")
+      ~parameters:[ ("parts", RouterEngine.CatchAll.toString [ "a+b"; "café" ]) ]
       ~search:[]
   in
   Alcotest.(check string) "path" "/assets/a%2Bb/caf%C3%A9" (RouterRuntime.href destination)
@@ -231,19 +231,19 @@ let invalid_utf8_path () =
 
 let destination_segment_encoding () =
   let destination =
-    RouterRuntime.destinationFromPattern
-      ~pattern:(RouterRuntime.pattern "/notes/:id<string>")
+    RouterEngine.destinationFromPattern
+      ~pattern:(RouterEngine.pattern "/notes/:id<string>")
       ~parameters:[ ("id", "a+b") ]
       ~search:[]
   in
   Alcotest.(check string) "path" "/notes/a%2Bb" (RouterRuntime.href destination)
 
 let scalar_destinations_round_trip () =
-  let pattern = RouterRuntime.pattern "/notes/:id<string>" in
+  let pattern = RouterEngine.pattern "/notes/:id<string>" in
   let registry = registry [ route ~id:"note" ~path:"/notes/:id<string>" ] in
   List.iter
     (fun (value, expected) ->
-      let destination = RouterRuntime.destinationFromPattern ~pattern ~parameters:[ ("id", value) ] ~search:[] in
+      let destination = RouterEngine.destinationFromPattern ~pattern ~parameters:[ ("id", value) ] ~search:[] in
       let href = RouterRuntime.href destination in
       Alcotest.(check string) value expected href;
       match RouterEngine.Match.find registry ~pathname:href with
@@ -256,12 +256,12 @@ let scalar_destinations_round_trip () =
     ]
 
 let invalid_scalar_destinations () =
-  let pattern = RouterRuntime.pattern "/notes/:id<string>" in
+  let pattern = RouterEngine.pattern "/notes/:id<string>" in
   List.iter
     (fun value ->
       let rejected =
         try
-          ignore (RouterRuntime.destinationFromPattern ~pattern ~parameters:[ ("id", value) ] ~search:[]);
+          ignore (RouterEngine.destinationFromPattern ~pattern ~parameters:[ ("id", value) ] ~search:[]);
           false
         with Invalid_argument _ -> true
       in
@@ -352,7 +352,7 @@ let search_input query =
 let search_result = Alcotest.(result (option int) reject)
 
 let search_decoders_by_kind () =
-  let parse = RouterRuntime.Search.parseInt in
+  let parse = RouterEngine.SearchValues.parseInt in
   let input = search_input "?page=nope&n=1&n=x&n=3&n=&o=nope" in
   let check_error label = function
     | Error (RouterRuntime.Error.InvalidSearchParameter { name }) -> Alcotest.(check string) label "r" name
@@ -662,6 +662,7 @@ let initial_commit revision pathname =
 
 let latest_navigation_wins () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let state = make (initial_commit "r1" "/") in
   let state, first = start state ~to_:(location "first" "/one" "") ~action:Push in
   let state, second = start state ~to_:(location "second" "/two" "") ~action:Push in
@@ -674,6 +675,7 @@ let latest_navigation_wins () =
 
 let stale_revision_rejected () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let state = make (initial_commit "r1" "/") in
   let state, requestId = start state ~to_:(location "next" "/next" "") ~action:Push in
   match commit state ~requestId ~baseRevision:"old" ~next:(initial_commit "r2" "/next") with
@@ -682,6 +684,7 @@ let stale_revision_rejected () =
 
 let shallow_location_commit () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let state = make (initial_commit "r1" "/notes") in
   let state = shallow state ~location:(location "search" "/notes" "?q=cat") ~action:Replace in
   let committed = committed state in
@@ -689,7 +692,7 @@ let shallow_location_commit () =
   Alcotest.(check string) "revision" "r1" committed.revision
 
 let valid_full_navigation_response () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   let response =
     Full
       {
@@ -722,7 +725,7 @@ let valid_full_navigation_response () =
   | Error _ -> Alcotest.fail "expected valid full response"
 
 let navigation_response_rsc_round_trip () =
-  let original : string RouterRuntime.NavigationResponse.full =
+  let original : string RouterEngine.NavigationResponse.full =
     {
       protocolVersion = 1;
       registryFingerprint = "registry";
@@ -735,12 +738,12 @@ let navigation_response_rsc_round_trip () =
       payload = "payload";
     }
   in
-  let encoded = RouterRuntime.NavigationResponse.full_to_rsc RSC.Primitives.string_to_rsc original in
-  let decoded = RouterRuntime.NavigationResponse.full_of_rsc RSC.Primitives.string_of_rsc encoded in
+  let encoded = RouterEngine.NavigationResponse.full_to_rsc RSC.Primitives.string_to_rsc original in
+  let decoded = RouterEngine.NavigationResponse.full_of_rsc RSC.Primitives.string_of_rsc encoded in
   Alcotest.(check bool) "round trip" true (decoded = original)
 
 let superseded_navigation_response_is_canceled () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   let response = ReloadRequired in
   match
     validate ~expectedProtocolVersion:1 ~expectedRegistryFingerprint:"registry" ~activeRequestId:8
@@ -753,7 +756,7 @@ let superseded_navigation_response_is_canceled () =
   | _ -> Alcotest.fail "expected superseded response"
 
 let stale_navigation_response_is_rejected () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   match
     validate ~expectedProtocolVersion:1 ~expectedRegistryFingerprint:"registry" ~activeRequestId:7
       ~committedRevision:"r2"
@@ -765,7 +768,7 @@ let stale_navigation_response_is_rejected () =
   | _ -> Alcotest.fail "expected stale response"
 
 let stale_patch_base_is_rejected () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   let response =
     Patch
       {
@@ -799,12 +802,12 @@ let stale_patch_base_is_rejected () =
   | _ -> Alcotest.fail "expected stale patch response"
 
 let redirect_and_reload_response_kinds () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   Alcotest.(check bool) "redirect" true (kindOfString "redirect" = Some RedirectResponse);
   Alcotest.(check bool) "reload" true (kindOfString "reload-required" = Some ReloadRequiredResponse)
 
 let redirect_and_reload_navigation_responses () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   let validateResponse facts response =
     validate ~expectedProtocolVersion:1 ~expectedRegistryFingerprint:"registry" ~activeRequestId:7
       ~committedRevision:"r1"
@@ -824,12 +827,14 @@ let redirect_and_reload_navigation_responses () =
 
 let history_action_selects_mutation () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   Alcotest.(check bool) "push" true (historyMutation Push = PushEntry);
   Alcotest.(check bool) "replace" true (historyMutation Replace = ReplaceEntry);
   Alcotest.(check bool) "pop fallback replaces" true (historyMutation Pop = ReplaceEntry)
 
 let hash_only_location_commit () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let state = make (initial_commit "r1" "/notes") in
   let location = { (location "hash" "/notes" "?q=cat") with hash = "#details" } in
   let state = hashOnly state ~location ~action:Push in
@@ -838,7 +843,7 @@ let hash_only_location_commit () =
   Alcotest.(check string) "revision" "r1" committed.revision
 
 let builtin_bool_codec () =
-  let open RouterRuntime.Search in
+  let open RouterEngine.SearchValues in
   Alcotest.(check bool) "true" true (parseBool "true" = Ok true);
   Alcotest.(check bool) "false" true (parseBool "false" = Ok false);
   List.iter
@@ -846,7 +851,7 @@ let builtin_bool_codec () =
     [ "True"; "FALSE"; "1"; "0"; ""; "yes" ]
 
 let builtin_int_codec () =
-  let open RouterRuntime.Search in
+  let open RouterEngine.SearchValues in
   List.iter
     (fun (value, expected) -> Alcotest.(check bool) value true (parseInt value = Ok expected))
     [ ("0", 0); ("42", 42); ("-5", -5); ("007", 7); ("2147483647", 2147483647); ("-2147483648", -2147483648) ];
@@ -870,14 +875,14 @@ let builtin_int_codec () =
     ]
 
 let typed_search_decoding () =
-  let open RouterRuntime.Search in
+  let open RouterEngine.SearchValues in
   let values = [ ("page", [ "2" ]); ("tag", [ "one"; "two" ]) ] in
   Alcotest.(check int) "defaulted" 2 (default ~name:"page" ~parse:parseInt ~fallback:1 values);
   Alcotest.(check (option string)) "optional" None (optional ~name:"filter" ~parse:parseString values);
   Alcotest.(check (list string)) "many" [ "one"; "two" ] (many ~name:"tag" ~parse:parseString values)
 
 let shallow_search_preserves_unowned_values () =
-  let open RouterRuntime.Search in
+  let open RouterEngine.SearchValues in
   let current = [ ("searchText", [ "old" ]); ("utm_source", [ "test" ]) ] in
   Alcotest.(check (list (pair string (list string))))
     "search"
@@ -886,6 +891,7 @@ let shallow_search_preserves_unowned_values () =
 
 let pop_navigation_kind () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let committed = initial_commit "r1" "/notes" in
   let hashTarget = { committed.location with hash = "#details" } in
   let searchTarget = { committed.location with search = "?q=cat" } in
@@ -909,7 +915,8 @@ let typed_endpoint_decoding () =
         match
           ( RouterEngine.Decode.path ~input ~name:"id" ~parse:(fun value ->
                 match int_of_string_opt value with Some value -> Ok value | None -> Error "expected integer"),
-            RouterEngine.Decode.searchDefault ~input ~name:"page" ~parse:RouterRuntime.Search.parseInt ~fallback:1 )
+            RouterEngine.Decode.searchDefault ~input ~name:"page" ~parse:RouterEngine.SearchValues.parseInt ~fallback:1
+          )
         with
         | Ok id, Ok page ->
             Ok

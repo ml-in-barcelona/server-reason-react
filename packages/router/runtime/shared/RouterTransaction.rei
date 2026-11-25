@@ -9,8 +9,8 @@ type response('payload) = {
   baseRevision: string,
   canonicalUrl: string,
   targetRevision: string,
-  matches: list(RouterRuntime.Navigation.matched),
-  layouts: list(RouterRuntime.Navigation.layout),
+  matches: list(RouterTypes.Navigation.matched),
+  layouts: list(RouterTypes.Navigation.layout),
   content: content('payload),
 };
 
@@ -24,12 +24,12 @@ type render('payload) =
     });
 
 type prepared('payload) = {
-  navigationState: RouterRuntime.Navigation.state,
-  committed: RouterRuntime.Navigation.committed,
+  navigationState: RouterTypes.Navigation.state,
+  committed: RouterTypes.Navigation.committed,
   key: string,
   url: string,
   render: render('payload),
-  restore: (RouterRuntime.Navigation.historyAction, string, string),
+  restore: (RouterTypes.Navigation.historyAction, string, string),
 };
 
 type error =
@@ -38,15 +38,15 @@ type error =
 
 let prepare:
   (
-    ~action: RouterRuntime.Navigation.historyAction,
+    ~action: RouterTypes.Navigation.historyAction,
     ~requestId: int,
     ~validatedRequestId: int,
-    ~currentState: RouterRuntime.Navigation.state,
-    ~currentCommitted: RouterRuntime.Navigation.committed,
+    ~currentState: RouterTypes.Navigation.state,
+    ~currentCommitted: RouterTypes.Navigation.committed,
     ~targetHash: string,
     ~historyKey: option(string),
     ~locationFromUrl:
-      (~key: string, string) => RouterRuntime.Navigation.location,
+      (~key: string, string) => RouterTypes.Navigation.location,
     response('payload)
   ) =>
   result(prepared('payload), error);

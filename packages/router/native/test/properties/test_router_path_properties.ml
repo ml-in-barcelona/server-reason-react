@@ -489,7 +489,7 @@ let href_round_trips =
       | Ok pattern -> (
           let href =
             RouterRuntime.href
-              (RouterRuntime.destinationFromPattern ~pattern:(RouterRuntime.pattern path) ~parameters ~search:[])
+              (RouterEngine.destinationFromPattern ~pattern:(RouterEngine.pattern path) ~parameters ~search:[])
           in
           if not (Pattern.matchesPath pattern href) then failf "matchesPath rejected %S" href;
           let shapes = Pattern.shapes pattern in
@@ -534,7 +534,7 @@ let segment_encoding_round_trips =
       if String.contains encoded '/' then failf "left a slash unescaped";
       let valid = reference_decode_segment encoded <> None in
       match
-        RouterRuntime.destinationFromPattern ~pattern:(RouterRuntime.pattern "/:v<string>")
+        RouterEngine.destinationFromPattern ~pattern:(RouterEngine.pattern "/:v<string>")
           ~parameters:[ ("v", value) ]
           ~search:[]
       with

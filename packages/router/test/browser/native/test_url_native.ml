@@ -1,15 +1,15 @@
-let pattern = RouterRuntime.pattern "/s/:v<string>"
+let pattern = RouterEngine.pattern "/s/:v<string>"
 
 let encodeSegment value =
   let href =
-    RouterRuntime.href (RouterRuntime.destinationFromPattern ~pattern ~parameters:[ ("v", value) ] ~search:[])
+    RouterRuntime.href (RouterEngine.destinationFromPattern ~pattern ~parameters:[ ("v", value) ] ~search:[])
   in
   String.sub href 3 (String.length href - 3)
 
 let platform =
   {
     UrlCases.text = Fun.id;
-    encodeSearch = RouterRuntime.encodeSearch;
+    encodeSearch = RouterEngine.encodeSearch;
     parseSearch =
       (fun search ->
         match RouterEngine.Search.parse search with
@@ -26,9 +26,9 @@ let rejects encode = match encode () with _ -> false | exception Invalid_argumen
 let () =
   List.iter
     (fun (name, value) ->
-      if not (rejects (fun () -> RouterRuntime.encodeSearch [ ("k", [ value ]) ])) then
+      if not (rejects (fun () -> RouterEngine.encodeSearch [ ("k", [ value ]) ])) then
         failwith ("a search value with " ^ name ^ " was printed");
-      if not (rejects (fun () -> RouterRuntime.encodeSearch [ (value, [ "v" ]) ])) then
+      if not (rejects (fun () -> RouterEngine.encodeSearch [ (value, [ "v" ]) ])) then
         failwith ("a search name with " ^ name ^ " was printed"))
     [ ("a lone byte", "\xff"); ("a truncated sequence", "\xe2\x82"); ("an encoded surrogate", "\xed\xa0\x80") ];
   UrlCases.run platform print_endline
