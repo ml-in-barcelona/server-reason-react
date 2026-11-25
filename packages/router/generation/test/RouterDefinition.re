@@ -3,6 +3,8 @@ Router.make(
   ~error=Pages.AppError,
   ~interceptLinks=false,
   ~viewTransitions=true,
+  ~pageCacheMaxAge=30.0,
+  ~context=string,
   [
     Router.route(Docs, ~page=Pages.Docs, ~path="/docs/:rest?<string...>"),
     Router.route(
@@ -14,6 +16,14 @@ Router.make(
       DocsApi,
       ~page=Pages.DocsApi,
       ~path="/docs/api/:name<string>",
+    ),
+    Router.route(
+      Account,
+      ~page=Pages.Account,
+      ~path="/account",
+      ~loader=Pages.AccountLoader,
+      ~metadata=Pages.AccountMetadata.make,
+      ~headers=Pages.AccountHeaders.make,
     ),
     Router.route(Help, ~page=Pages.Help, ~path="/help/:lang?<string>"),
     Router.route(
@@ -51,6 +61,20 @@ Router.make(
         ),
       ],
     ),
+    Router.group(
+      ~path="/reports/:reportId<string>",
+      ~loader=Pages.ReportLoader,
+      ~error=Pages.ReportError,
+      [
+        Router.route(
+          Report,
+          ~page=Pages.Report,
+          ~path="/",
+          ~loader=Pages.ReportStatsLoader,
+          ~loaderParallel=true,
+        ),
+      ],
+    ),
     Router.route(
       Note,
       ~page=Pages.Note,
@@ -68,6 +92,18 @@ Router.make(
         hash: Router.Search.many(string),
         value: Router.Search.optional(int),
         pattern: Router.Search.optional(string),
+      },
+    ),
+    Router.route(
+      Support,
+      ~page=Pages.Support,
+      ~path="/support",
+      ~search={
+        infoPage: Router.Search.optional(~key="info-page", string),
+        resourcesProjectId:
+          Router.Search.default(~key="resources-projectId", int, 0),
+        alpha: Router.Search.optional(~key="z", ~shallow=true, string),
+        zone: Router.Search.many(~key="a-zone", string),
       },
     ),
     Router.redirect(

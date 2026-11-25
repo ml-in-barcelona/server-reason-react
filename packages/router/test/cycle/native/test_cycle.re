@@ -141,6 +141,33 @@ let testCustomScalarRejectsSlash = () => {
   Alcotest.check(Alcotest.bool, "slash rejected", true, rejected);
 };
 
+let testRouteSearch = () => {
+  let committed: RouterRuntime.Navigation.committed = {
+    location: {
+      pathname: "/fixture/workspaces/7/search",
+      search: "?page=two&view=4&filter=open&searchText=a%20b&other=1",
+      hash: "",
+      key: "search",
+    },
+    matches: [],
+    layouts: [],
+    revision: "r",
+  };
+  Alcotest.check(
+    Alcotest.string,
+    "root and route fields, bad page falls back",
+    "1|a b|open|4",
+    ReactDOM.renderToStaticMarkup(
+      RouterReact.locationScope(
+        ~committed,
+        ~children=
+          Attachments.SearchProbe.make(Attachments.SearchProbe.makeProps()),
+        (),
+      ),
+    ),
+  );
+};
+
 let testGeneratedLink = () => {
   let link =
     <Router.Note
@@ -391,7 +418,7 @@ let testGeneratedLoaderShortCircuit = () => {
   };
 };
 
-let testGeneratedSearchDecodeError = () => {
+let testGeneratedBadDefaultSearch = () => {
   WorkspaceLoader.reset();
   let search =
     switch (RouterServer.Search.parse("?page=nope")) {
@@ -406,14 +433,21 @@ let testGeneratedSearchDecodeError = () => {
   ) {
   | Ok(Some(matched)) =>
     switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
-    | Error(RouterRuntime.Error.InvalidSearchParameter({ name: "page" })) =>
+    | Ok(prepared) =>
+      ignore(
+        Lwt_main.run(
+          RouterServer.Execution.run(
+            RouterServer.Endpoint.execution(prepared),
+          ),
+        ),
+      );
       Alcotest.check(
         Alcotest.list(Alcotest.string),
-        "loaders skipped",
-        [],
+        "loaders read the default page",
+        ["workspace", "note:7:1"],
         WorkspaceLoader.events(),
-      )
-    | _ => Alcotest.fail("expected typed search error")
+      );
+    | Error(_) => Alcotest.fail("expected the default for a bad value")
     }
   | _ => Alcotest.fail("expected generated endpoint")
   };
@@ -534,6 +568,22 @@ let testDocumentNotFoundResponse = () => {
       RouterRuntime.Headers.toList(response.resolved.headers)
       |> List.assoc("Content-Type"),
     );
+    Alcotest.check(
+      Alcotest.option(Alcotest.string),
+      "root metadata",
+      Some("Root"),
+      response.resolved.metadata.title,
+    );
+  };
+  switch (runEngine(~pathname="/fixture/missing", ())) {
+  | Full(response) =>
+    Alcotest.check(
+      Alcotest.option(Alcotest.string),
+      "root metadata on navigation",
+      Some("Root"),
+      response.resolved.metadata.title,
+    )
+  | _ => Alcotest.fail("expected full navigation response")
   };
 };
 
@@ -700,13 +750,13 @@ let testNestedSearchDecodeError = () => {
   };
 };
 
-let testInvalidRootSearchBoundary = () => {
+let testBadRootSearchRendersPage = () => {
   WorkspaceLoader.reset();
   Attachments.reset();
   switch (
     runEngine(
       ~pathname="/fixture/workspaces/7/notes/42",
-      ~search="?page=nope",
+      ~search="?page=nope&searchText=%FF&filter=open",
       (),
     )
   ) {
@@ -719,31 +769,19 @@ let testInvalidRootSearchBoundary = () => {
     Alcotest.check(
       Alcotest.int,
       "status",
-      400,
+      200,
       RouterRuntime.Status.toInt(response.resolved.status),
     );
     Alcotest.check(
       Alcotest.bool,
-      "boundary",
-      true,
-      Option.is_some(response.resolved.element),
-    );
-    Alcotest.check(
-      Alcotest.bool,
-      "root invalid-search fallback",
-      true,
+      "root invalid-search fallback skipped",
+      false,
       List.mem("invalid-search", Attachments.events()),
     );
     Alcotest.check(
-      Alcotest.bool,
-      "nested boundary skipped",
-      false,
-      List.mem("workspace-error", Attachments.events()),
-    );
-    Alcotest.check(
       Alcotest.list(Alcotest.string),
-      "loaders skipped",
-      [],
+      "loaders read the default page",
+      ["workspace", "note:7:1"],
       WorkspaceLoader.events(),
     );
   };
@@ -966,6 +1004,57 @@ let checkPatchMatchesFull = (~from, ~to_, ~arrange, ~graft, ~above) => {
     Attachments.layouts(),
     above @ patchLayouts,
   );
+};
+
+let searchNavigation = (~from, ~search) =>
+  runEngine(
+    ~pathname="/fixture/workspaces/7/notes/42",
+    ~search,
+    ~navigation=navigateFrom(from),
+    (),
+  );
+
+let testPatchRouteSearchChange = () => {
+  resetFixture();
+  switch (
+    searchNavigation(
+      ~from="/fixture/workspaces/7/notes/42?filter=open",
+      ~search="?filter=closed",
+    )
+  ) {
+  | Patch(response) =>
+    Alcotest.check(
+      Alcotest.string,
+      "graft",
+      workspaceGraft("7"),
+      response.replace_from,
+    );
+    checkLayouts([]);
+  | Full(_)
+  | ReloadRequired
+  | Redirect(_)
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) =>
+    Alcotest.fail("a route search change did not answer a patch")
+  };
+};
+
+let testFullRootSearchChange = () => {
+  resetFixture();
+  switch (
+    searchNavigation(
+      ~from="/fixture/workspaces/7/notes/42?filter=open",
+      ~search="?filter=open&page=2",
+    )
+  ) {
+  | Full(_) => checkLayouts(["root-layout", "workspace-layout"])
+  | Patch(_)
+  | ReloadRequired
+  | Redirect(_)
+  | PermanentRedirect(_)
+  | PrefetchRefused(_) =>
+    Alcotest.fail("a root search change did not answer a full response")
+  };
 };
 
 let testPatchLoaderGroupRegularNavigation = () => {
@@ -1211,6 +1300,7 @@ let () =
             testCustomScalarRejectsSlash,
           ),
           Alcotest.test_case("generated link", `Quick, testGeneratedLink),
+          Alcotest.test_case("route search", `Quick, testRouteSearch),
           Alcotest.test_case(
             "generated endpoint",
             `Quick,
@@ -1232,9 +1322,9 @@ let () =
             testGeneratedLoaderShortCircuit,
           ),
           Alcotest.test_case(
-            "generated search decode error",
+            "generated bad default search",
             `Quick,
-            testGeneratedSearchDecodeError,
+            testGeneratedBadDefaultSearch,
           ),
           Alcotest.test_case(
             "RSC full response",
@@ -1262,9 +1352,9 @@ let () =
             testNestedSearchDecodeError,
           ),
           Alcotest.test_case(
-            "invalid root search boundary",
+            "bad root search renders the page",
             `Quick,
-            testInvalidRootSearchBoundary,
+            testBadRootSearchRendersPage,
           ),
           Alcotest.test_case("engine redirect", `Quick, testEngineRedirect),
           Alcotest.test_case(
@@ -1278,6 +1368,16 @@ let () =
             testApplicationErrorPolicy,
           ),
           Alcotest.test_case("patch response", `Quick, testPatchResponse),
+          Alcotest.test_case(
+            "route search change patch",
+            `Quick,
+            testPatchRouteSearchChange,
+          ),
+          Alcotest.test_case(
+            "root search change full",
+            `Quick,
+            testFullRootSearchChange,
+          ),
           Alcotest.test_case(
             "loader group patch",
             `Quick,

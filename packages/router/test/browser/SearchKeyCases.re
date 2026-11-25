@@ -94,3 +94,76 @@ let failures = isCurrent =>
         ? None : Some(case.name),
     cases,
   );
+
+type activeCase = {
+  activeName: string,
+  rule: string,
+  currentPath: string,
+  linkHref: string,
+  active: bool,
+};
+
+let activeCases = [
+  {
+    activeName: "route ignores the search",
+    rule: "route",
+    currentPath: "/app/notes",
+    linkHref: "/app/notes?page=2#top",
+    active: true,
+  },
+  {
+    activeName: "route is exact on the path",
+    rule: "route",
+    currentPath: "/app/notes/1",
+    linkHref: "/app/notes",
+    active: false,
+  },
+  {
+    activeName: "subtree matches below",
+    rule: "subtree",
+    currentPath: "/app/notes/1/edit",
+    linkHref: "/app/notes",
+    active: true,
+  },
+  {
+    activeName: "subtree compares whole segments",
+    rule: "subtree",
+    currentPath: "/app/notes-archive",
+    linkHref: "/app/notes",
+    active: false,
+  },
+  {
+    activeName: "subtree compares decoded segments",
+    rule: "subtree",
+    currentPath: "/app/caf%c3%a9/1",
+    linkHref: "/app/caf%C3%A9",
+    active: true,
+  },
+  {
+    activeName: "subtree of the root",
+    rule: "subtree",
+    currentPath: "/app",
+    linkHref: "/",
+    active: true,
+  },
+  {
+    activeName: "subtree does not match above",
+    rule: "subtree",
+    currentPath: "/app",
+    linkHref: "/app/notes",
+    active: false,
+  },
+];
+
+let activeFailures = isActive =>
+  List.filter_map(
+    case =>
+      isActive(
+        ~prefix=String.equal(case.rule, "subtree"),
+        ~pathname=case.currentPath,
+        case.linkHref,
+      )
+      == case.active
+        ? None : Some(case.activeName),
+    activeCases,
+  );

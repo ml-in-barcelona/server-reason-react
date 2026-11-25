@@ -207,14 +207,54 @@ let routerLinks: unit => array(anchor) = [%mel.raw
   {|() => Array.from(document.querySelectorAll("a[data-router-link]"))|}
 ];
 
+let routerPendingAttribute = "data-router-pending";
+
+let linkMatches = (~rule, ~location: RouterRuntime.Navigation.location, href) =>
+  switch (rule) {
+  | "route" =>
+    RouterSearchKey.isActive(~prefix=false, ~pathname=location.pathname, href)
+  | "subtree" =>
+    RouterSearchKey.isActive(~prefix=true, ~pathname=location.pathname, href)
+  | _ => isCurrent(~location, href)
+  };
+
+let anchorMatches = (~location, anchor) =>
+  switch (getAttribute(anchor, "href")) {
+  | Some(href) =>
+    Some(
+      linkMatches(
+        ~rule=
+          Option.value(
+            getAttribute(anchor, routerLinkAttribute),
+            ~default="",
+          ),
+        ~location,
+        href,
+      ),
+    )
+  | None => None
+  };
+
 let markCurrentLinks = (~location, anchors) =>
   Array.iter(
     anchor =>
-      switch (getAttribute(anchor, "href")) {
-      | Some(href) when isCurrent(~location, href) =>
-        setAttribute(anchor, "aria-current", "page")
-      | Some(_) => removeAttribute(anchor, "aria-current")
+      switch (anchorMatches(~location, anchor)) {
+      | Some(true) => setAttribute(anchor, "aria-current", "page")
+      | Some(false) => removeAttribute(anchor, "aria-current")
       | None => ()
+      },
+    anchors,
+  );
+
+let markPendingLinks = (~target, anchors) =>
+  Array.iter(
+    anchor =>
+      switch (
+        Option.bind(target, location => anchorMatches(~location, anchor))
+      ) {
+      | Some(true) => setAttribute(anchor, routerPendingAttribute, "")
+      | Some(false)
+      | None => removeAttribute(anchor, routerPendingAttribute)
       },
     anchors,
   );
@@ -264,6 +304,64 @@ let hashOnlyTarget =
     let hash = hashOf(href);
     !revalidate && hash != "" && isCurrent(~location, href)
       ? Some(hash) : None;
+  };
+
+let unchangedTarget =
+    (
+      ~location: RouterRuntime.Navigation.location,
+      ~status: RouterRuntime.Navigation.status,
+      ~action,
+      ~revalidate,
+      href,
+    ) =>
+  switch (action, status) {
+  | (RouterRuntime.Navigation.Pop, _)
+  | (_, RouterRuntime.Navigation.Loading(_)) => false
+  | (
+      RouterRuntime.Navigation.Push | RouterRuntime.Navigation.Replace,
+      RouterRuntime.Navigation.Idle | RouterRuntime.Navigation.Failed(_),
+    ) =>
+    !revalidate
+    && String.equal(hashOf(href), location.hash)
+    && isCurrent(~location, href)
+  };
+
+let changedSearchKeys = (~current, ~next) => {
+  let values = (search, key) =>
+    Option.value(List.assoc_opt(key, search), ~default=[]);
+  List.map(fst, current @ next)
+  |> List.sort_uniq(String.compare)
+  |> List.filter(key => values(current, key) != values(next, key));
+};
+
+let shallowSearchTarget =
+    (
+      ~location: RouterRuntime.Navigation.location,
+      ~action,
+      ~revalidate,
+      ~shallowKeys,
+      href,
+    ) =>
+  switch (action, shallowKeys) {
+  | (RouterRuntime.Navigation.Pop, _)
+  | (_, []) => None
+  | (RouterRuntime.Navigation.Push | RouterRuntime.Navigation.Replace, _) =>
+    let (_, search) = RouterSearchKey.splitHref(href);
+    let next = RouterSearch.valuesFromString(search);
+    let changed =
+      changedSearchKeys(
+        ~current=RouterSearch.valuesFromString(location.search),
+        ~next,
+      );
+    !revalidate
+    && changed != []
+    && List.for_all(key => List.mem(key, shallowKeys), changed)
+    && RouterSearchKey.isActive(
+         ~prefix=false,
+         ~pathname=location.pathname,
+         href,
+       )
+      ? Some((RouterSearch.toString(next), hashOf(href))) : None;
   };
 
 type scroll =

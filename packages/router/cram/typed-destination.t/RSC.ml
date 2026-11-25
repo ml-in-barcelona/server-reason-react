@@ -1,4 +1,7 @@
 type t = unit
+type of_rsc_error = Rsc_error of string
+
+exception Of_rsc_error of of_rsc_error
 
 module Primitives = struct
   let string_to_rsc _ = ()

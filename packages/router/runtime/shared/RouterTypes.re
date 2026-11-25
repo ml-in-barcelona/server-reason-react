@@ -33,21 +33,57 @@ module PrefetchLevel = {
 type destination = {
   href: string,
   prefetch: PrefetchLevel.t,
+  shallowSearch: list(string),
 };
 
 let makeDestination: string => destination = href => {
   href,
   prefetch: PrefetchLevel.Intent,
+  shallowSearch: [],
 };
 let destinationHref = destination => destination.href;
 let destinationPrefetch = destination => destination.prefetch;
 
 let destination = (~path) => makeDestination(path);
+
+let validAttributeName = name =>
+  name != ""
+  && String.for_all(
+       character =>
+         switch (character) {
+         | 'a' .. 'z'
+         | 'A' .. 'Z'
+         | '0' .. '9'
+         | '_'
+         | '.'
+         | ':'
+         | '-' => true
+         | _ => false
+         },
+       name,
+     );
 let href = destinationHref;
 let prefetchLevel = destinationPrefetch;
 let withPrefetch = (destination, prefetch) => {
   ...destination,
   prefetch,
+};
+let shallowSearch = destination => destination.shallowSearch;
+let withShallowSearch = (destination, shallowSearch) => {
+  ...destination,
+  shallowSearch,
+};
+
+let absoluteHref = (~origin, destination) => {
+  let href = destination.href;
+  if (String.length(href) > 0 && href.[0] == '/') {
+    let length = String.length(origin);
+    let rec stop = index =>
+      index > 0 && origin.[index - 1] == '/' ? stop(index - 1) : index;
+    String.sub(origin, 0, stop(length)) ++ href;
+  } else {
+    href;
+  };
 };
 
 let destinationWithHash = (~encode, destination, ~hash) => {
@@ -85,9 +121,13 @@ module Status = {
   type t =
     | Ok
     | BadRequest
+    | Unauthorized
     | Forbidden
     | NotFound
+    | Gone
+    | TooManyRequests
     | InternalServerError
+    | ServiceUnavailable
     | TemporaryRedirect
     | PermanentRedirect;
 
@@ -95,9 +135,13 @@ module Status = {
     switch (status) {
     | Ok => 200
     | BadRequest => 400
+    | Unauthorized => 401
     | Forbidden => 403
     | NotFound => 404
+    | Gone => 410
+    | TooManyRequests => 429
     | InternalServerError => 500
+    | ServiceUnavailable => 503
     | TemporaryRedirect => 307
     | PermanentRedirect => 308
     };
@@ -115,7 +159,8 @@ module Loader = {
 module Error = {
   type notFoundReason =
     | NoMatchingRoute
-    | LoaderNotFound;
+    | LoaderNotFound
+    | RenderNotFound;
 
   type t('applicationError) =
     | NotFound({reason: notFoundReason})
@@ -556,33 +601,27 @@ module Search = {
     | None => []
     };
 
-  let parseOne = (~name, ~parse, value) =>
-    switch (parse(value)) {
-    | Ok(value) => value
-    | Error(message) =>
-      invalid_arg("invalid search parameter " ++ name ++ ": " ++ message)
-    };
-
   let required = (~name, ~parse, search) =>
     switch (values(name, search)) {
-    | [value, ..._] => parseOne(~name, ~parse, value)
-    | [] => invalid_arg("missing required search parameter " ++ name)
+    | [value, ..._] => Result.to_option(parse(value))
+    | [] => None
     };
 
   let optional = (~name, ~parse, search) =>
     switch (values(name, search)) {
-    | [value, ..._] => Some(parseOne(~name, ~parse, value))
+    | [value, ..._] => Result.to_option(parse(value))
     | [] => None
     };
 
   let default = (~name, ~parse, ~fallback, search) =>
     switch (values(name, search)) {
-    | [value, ..._] => parseOne(~name, ~parse, value)
+    | [value, ..._] => Result.value(parse(value), ~default=fallback)
     | [] => fallback
     };
 
   let many = (~name, ~parse, search) =>
-    values(name, search) |> List.map(value => parseOne(~name, ~parse, value));
+    values(name, search)
+    |> List.filter_map(value => Result.to_option(parse(value)));
 
   let update = (~owned, ~values, search) =>
     List.filter(((name, _)) => !List.mem(name, owned), search)

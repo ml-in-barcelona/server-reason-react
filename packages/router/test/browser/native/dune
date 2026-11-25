@@ -22,9 +22,9 @@
 (copy_files
  (files ../../../runtime/shared/RouterPattern.rei))
 
-(test
- (name test_location_scope)
- (modules test_location_scope)
+(tests
+ (names test_location_scope test_active_link)
+ (modules test_location_scope test_active_link)
  (libraries
   lwt
   lwt.unix

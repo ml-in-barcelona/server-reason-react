@@ -88,9 +88,14 @@ each module:
 - [~loader] resolves [Module.load]. The scope's components receive the loader
   result under the module name ([Pages.NoteLoader] becomes [~noteLoader]), or
   under the [~loaderLabel] name when given.
+- [~loaderParallel=true] starts the scope's loader together with its ancestor
+  loaders. See "Loaders".
 - [~error] resolves a boundary component, at the root as on groups and routes.
 - [~errorStatus], on [Router.make] only, is a function from an application
   error to a [Router.Status.t]. Without it, an application error answers 500.
+- [~context], on [Router.make] only, names the type of the request context
+  that loaders, [~metadata] and [~headers] receive. See "Request context"
+  under "Loaders".
 - [~metadata] and [~headers] are plain functions, not modules.
 
 {2 Prefetch levels}
@@ -126,7 +131,7 @@ answers 204 with [Router-Prefetch-Refused: <route level>] and runs no loader.
 Otherwise it answers exactly as it answers the navigation. Every navigation
 reply carries [Vary: Accept, Router-Prefetch], so a shared cache never
 answers a prefetch with a stored navigation or the other way round. A path
-that matches no route answers as a navigation does. An adapter passes the header's level to [Server.run] as
+that matches no route answers as a navigation does. An adapter passes the header's level to [RouterServer.run] as
 [?prefetch]. A refusal is the outcome [PrefetchRefused(level)], and
 [Adapter.reply] turns it into the 204. [DreamRouter] does this for RSC
 requests and ignores a header value that is not a level.
@@ -136,12 +141,12 @@ requests and ignores a header value that is not a level.
 A route name is a bare constructor, such as [Note]. A dotted name is an error.
 Each route name must be unique, and these names are reserved because the
 generated module already uses them: [Status], [Loader], [Error], [Metadata],
-[Headers], [Navigation], [Search], and [Link].
+[Headers], [Navigation], [Search], [Link], and [ActiveSearch].
 
 Path parameter names and loader result labels become labelled arguments of
 the generated helpers. Within one branch they must be unique. These labels
 belong to the generated API and cannot be used: [applicationStatus],
-[ariaCurrent], [basePath], [children], [className], [decodeError],
+[ariaCurrent], [attributes], [basePath], [children], [className], [decodeError],
 [destination], [download], [error], [fallback], [hash], [history], [href],
 [input], [item], [make], [pattern], [registry], [revalidate], [routeSearch],
 [search], [target], [updateSearch], [unsafeDestination], [useNavigation],
@@ -151,7 +156,9 @@ generator reports a conflict at the route that uses the label.
 Search parameters are fields of one [search] record, not labelled arguments,
 so these names do not apply to them: a search parameter can be called
 [target], [error], [input] or [hash]. Search parameter names must be unique
-within a branch, and a path parameter may share a name with one.
+within a branch, and a path parameter may share a name with one. A search
+parameter also has a URL key, its name unless [~key] gives another one. URL
+keys must be unique within a branch too, root parameters included.
 
 {2 Path syntax}
 
@@ -270,6 +277,21 @@ construction raises [Invalid_argument] for an empty value, [/], [.], [..],
 control characters, or invalid UTF-8. Valid output is percent-encoded. A failed
 parse produces [InvalidPathParameter].
 
+For a value from user input, such as free text, use [tryDestination] or
+[tryHref]. Every route with path parameters has them. They take the same
+arguments and return [Error(message)] instead of raising:
+
+{[
+switch (Router.Topic.tryHref(~name=text, ())) {
+| Ok(href) => <a href> {React.string(text)} </a>
+| Error(_) => React.string(text)
+};
+]}
+
+The server rejects an encoded slash ([%2F]) in a path, so a value with [/]
+cannot be a path parameter. Put it in a search parameter, or use a catch-all
+parameter when each part is a segment.
+
 {2 Search parameters}
 
 [Router.make], [Router.route] and [Router.redirect] declare search parameters
@@ -289,7 +311,31 @@ A route or redirect sees the root parameters as well as its own. Canonical
 URLs omit values that equal their declared default. A required root search
 parameter together with a root [~error] boundary also requires [~invalidSearch].
 
-The field name is the query key, so a key must be a valid record label.
+A value that its parser rejects is ignored, on the server and on the client:
+[optional] reads [None], [default] reads its default, and [many] skips the
+value. [optional] and [default] read only the first value of a name. Only a
+[required] parameter that is missing or rejected makes the request fail with
+[InvalidSearchParameter], which answers 400.
+
+The field name is the query key. When the key is not a valid record label,
+or a different name reads better in code, give it with [~key]. The record
+field, the constructor argument and the code keep the label. URLs, decoders
+and [useSearch] updates use the key:
+
+{[
+~search={
+  infoPage: Router.Search.optional(~key="info-page", string),
+  kind: Router.Search.default(~key="type", string, "all"),
+}
+]}
+
+[required], [optional], [default] and [many] all take [~key] and
+[~shallow], a boolean literal (see "Shallow search parameters" under Search
+updates). [~shallow] is part of the registry fingerprint. [~key] is a
+non-empty string literal that is valid UTF-8. Two parameters of one branch
+cannot share a key, so [~key="target"] on [siteTarget] next to a [target]
+field without [~key] is an error. Names are sorted by key in URLs, and a key
+change changes the registry fingerprint.
 
 {3 The search record}
 
@@ -347,15 +393,14 @@ the same search values on both sides:
   skipped.
 - A pair splits at its first [=]. A pair without [=] has the value [""].
 - [+] is a space and [%2B] is a plus. Hex digits may be upper or lower case.
-- A [%] not followed by two hex digits, or escapes that do not decode to valid
-  UTF-8 (such as [%FF], overlong forms or encoded surrogates), make the whole
-  query invalid.
+- A pair with a [%] not followed by two hex digits, or with escapes that do
+  not decode to valid UTF-8 (such as [%FF], overlong forms or encoded
+  surrogates), is dropped. The other pairs are read.
 - A name keeps all its values in order. Names keep the order of their first
   appearance.
 - A query longer than 8192 bytes is invalid.
 
-The server answers an invalid query with status 400 and the [~invalidSearch]
-boundary, or the root error page when there is none. When Back or Forward reaches an entry whose query is invalid,
+The server answers an invalid query with status 400. When Back or Forward reaches an entry whose query is invalid,
 for example after a [history.pushState] by other code, the client does not
 read it: it asks the server, and shows the same page as a document load.
 
@@ -376,7 +421,35 @@ switch Router.useRoute() {
 ]}
 
 [Router.useRoute] returns the active route as a generated variant with decoded
-path parameters. It returns [None] when no route matched.
+path parameters. It returns [None] when no route matched, and when the route id
+or its parameters do not decode, which happens only when the client and the
+server disagree on the manifest. It never raises.
+
+[Router.useMatches] returns every active route, outermost first, decoded the
+same way: the matched route and each route whose path is a prefix of it. A
+match that does not decode is left out. [RouterReact.useMatches] returns them
+undecoded, as route ids and string parameters.
+
+[Router.useActiveSearch] returns the active route with its search record,
+without naming the route. [Router.ActiveSearch.t] has one constructor per
+route, with the route's search record when the route has search parameters:
+
+{[
+let scrollKey =
+  switch (Router.useActiveSearch()) {
+  | Some(Router.ActiveSearch.Results(search)) => string_of_int(search.page)
+  | Some(Router.ActiveSearch.Note(_)) => "note"
+  | Some(_)
+  | None => ""
+  };
+]}
+
+It returns [None] when no route matched, and when the route's record has a
+[required] parameter that the URL lacks.
+
+The generated module also re-exports [useLocation], [useIsCurrent],
+[useBlocker] and [useInvalidate] from [RouterReact], so an application can use
+[Router] for every hook.
 
 Every generated [destination], [href], and route component also takes
 [?hash: string]. The router percent-encodes the value like a search value and
@@ -392,7 +465,11 @@ server does not include it.
 {2 Navigation}
 
 [Router.useNavigation] returns the imperative navigate function and the
-current navigation status:
+current navigation status. The navigate function is the same value for the
+provider's lifetime, so it is safe in [React.useCallback] or [React.useEffect]
+dependencies. So are the update functions of [useSearch], [useUpdateHash] and
+[useInvalidate]; a generated [useSearch] update function keeps its identity
+while its component stays mounted:
 
 {[
 let (navigate, status) = Router.useNavigation();
@@ -413,6 +490,51 @@ Flight model and the server answers with a full model, or with a partial patch
 that reuses unchanged layouts. [~revalidate=true] forces a full response.
 [~history] selects [Push], [Replace], or [Pop].
 
+{3 Pending navigations}
+
+The provider renders the new page inside React [startTransition]. While the
+request runs, and while parts of the new page that have no [~loading] of their
+own are still streaming, the old page stays on screen and keeps working:
+clicks, typing and state updates still apply to it. A [~loading] boundary
+that the new page mounts shows its fallback at once, as before. The status
+stays [Loading] until the new page is on screen, so a global indicator can
+read it from [useNavigation]. The URL, the history entry and the [navigate]
+result change when the new page is on screen too. A navigation, search update
+or hash update that starts while the new page is still waiting cancels it: it
+applies to the page on screen, and the canceled [navigate] resolves to
+[Canceled].
+
+With [~viewTransitions=true] the provider still commits each navigation at
+once inside the view transition, because the browser takes its snapshot of
+the old page when the transition starts. A boundary of the old page that the
+new content suspends then shows its fallback. When the user prefers reduced
+motion ([prefers-reduced-motion: reduce]), the provider runs no view
+transition and renders the new page in a transition.
+
+[RouterReact.useIsPending destination] is true while a navigation to that
+destination is in flight, until its page is on screen. It takes the same
+[~activeWhen] as [useIsActive] (see Links), [Route] by default:
+
+{[
+let pending = RouterReact.useIsPending(Router.Results.destination());
+<span> {pending ? React.string("Loading results") : React.null} </span>
+]}
+
+While a navigation is in flight, the provider also sets [data-router-pending]
+on every [Link] whose destination matches its target by the link's own
+[~activeWhen] rule, and removes it when the navigation ends. Style pending
+links with [a[data-router-pending]]. Like [aria-current], this also reaches
+links in layouts that a patch does not render again, and links in server
+components. A [Link] with an explicit [~ariaCurrent] is not marked. On the
+server [useIsPending] is false.
+
+A [Push] or [Replace] to the committed URL (path, search in any order, and
+hash), without [~revalidate=true] and with no navigation in flight, does
+nothing: it adds no history entry, sends no request, and resolves to
+[Committed] with the committed location. The same holds for a [Link] or an
+intercepted click to the current page. While a navigation to another URL is
+in flight, a navigation to the committed URL runs and replaces it.
+
 A [Push] or [Replace] to a destination with the committed path and search and
 a non-empty hash, without [~revalidate=true], sends no request. It commits the
 hash like [updateHash] and scrolls to the fragment. A content navigation to a
@@ -420,9 +542,29 @@ URL with a hash also scrolls to and focuses the fragment's element.
 
 A patch grafts into the outlet of the deepest scope both locations share. A
 scope is shared when it declares [~layout], its path parameters are unchanged,
-and the search string is unchanged. Navigating between two routes of the same
+and the values of the search parameters in its reach are unchanged. The root
+and its groups reach the root search parameters; a route reaches the root
+parameters and its own. A route is the last scope of its branch and is always
+rendered again, so a change of a route's own search parameters keeps every
+layout above it, and a change of a root parameter renders the whole page.
+Values are compared as they appear in the URL, by key, before decoding, so a
+change between two spellings that decode the same, or to a value the parser
+rejects, also counts as a change. Navigating between two routes of the same
 group therefore replaces only that group's outlet and leaves every enclosing
-layout mounted. When a loader fails, its scope and everything below it leave
+layout mounted.
+
+A shared layout is not rendered again. Its server components read the request
+that rendered them: a server component inside a root or group layout that
+reads a route's own search parameters through a hook keeps the old value after
+a patch. Read route search parameters in the route's page, or navigate with
+[~revalidate=true].
+
+The rule trusts the scope's inputs. A root or group loader, [~metadata] or
+[~headers] reads search only through its [~search] record, which holds the
+root parameters. Do not read a route's own query key from the raw request,
+for example through [~context] built from the request by
+[DreamRouter.routesWithContext]: a patch that changes only that key keeps the
+layout rendered from the old value, even though the loader runs again. When a loader fails, its scope and everything below it leave
 the response, and the graft moves up to the deepest scope the response still
 renders.
 
@@ -441,8 +583,8 @@ redirects adds one entry. After five redirects in a row, or for any other
 [http:] or [https:] location, the client loads the location as a document. A
 location with another scheme, such as [javascript:], fails the navigation.
 
-The default client root passes no optional provider props. To set
-[~onNavigationError], [~viewTransitions] or [~interceptLinks], render
+The default client root passes the router's settings to the provider (see
+Server integration). To set [~onNavigationError], render
 [RouterReact.Provider] from your own client component and give it to
 [RouterServer.Server.clientRootWith ~make].
 
@@ -468,11 +610,14 @@ its request. Every other [Push] and [Replace] still asks the server.
 - Back and Forward use a cached page of any age.
 - [Push] and [Replace] use a cached page only when it is younger than
   [~pageCacheMaxAge] seconds. The default [0.0] means never, except for a
-  prefetched page (see Prefetching).
+  prefetched page (see Prefetching). Set it on the manifest with
+  [Router.make(~pageCacheMaxAge=30.0, ...)], a float literal, or with
+  [?pageCacheMaxAge] on [RouterServer.Server.make]; the default client root
+  passes it to the provider.
 - [~revalidate=true] does not read the cache. Its response is stored.
 - Only successful pages are stored: the HTTP status and the page status are
-  both 2xx. An error page, a not-found page or a 401 and 403 page is always
-  asked for again.
+  both 2xx. An error page, a not-found page, or a page with another status
+  that [~errorStatus] gives, such as 401 or 403, is always asked for again.
 
 On a miss the client sends [Router-Navigation-From] as usual, so the server
 can answer with a patch. After a patch commits, the cache stores the page as
@@ -546,6 +691,27 @@ the saved position for content, search-only and hash-only entries. Without a
 saved position, a hash scrolls to and focuses its element; otherwise a content
 navigation focuses [#router-focus-root] when it exists and scrolls to the top.
 
+To also restore an element that scrolls on its own, such as a sidebar list,
+give it a [data-router-scroll] attribute with an id that is unique on the
+page:
+
+{[
+<nav className="h-full overflow-y-auto" dataRouterScroll="sidebar">
+  children
+</nav>
+]}
+
+The router saves the position of each such element with the entry, at the
+same times as the window position, and restores it when it restores the
+window position: on Back and Forward, and after a reload. It does this after
+the new content is on the page, so an element inside that content gets its
+saved position too. An element without an id, or one that is not on the page
+when the entry is restored, is skipped; when two elements have the same id,
+only the first is saved and restored. A new navigation by [Link], [navigate]
+or a redirect does not move these elements: an element in a layout that stays
+on the page keeps its position, and an element in new content starts at its
+natural position.
+
 After each content navigation the provider writes the new [document.title]
 into a visually hidden [aria-live="polite"] region, so screen readers
 announce the new page.
@@ -608,10 +774,81 @@ let (search, updateSearch) = Router.useSearch();
 let onChange = value => updateSearch({...search, text: Some(value)}) |> ignore;
 ]}
 
+A route that adds its own search parameters also has
+[Router.Route.useSearch]. It returns the route's record, with the root fields
+and the route's own, decoded from the current URL with the same rules as the
+server: a value that its parser rejects reads as [None] for an [optional]
+parameter and as the default for a [default] one. Its update function owns
+both sets of names:
+
+{[
+let (search, updateSearch) = Router.Results.useSearch();
+
+let next = () => updateSearch({...search, page: search.page + 1}) |> ignore;
+]}
+
+It reads the current URL whichever route is active, so call it from the
+route's own components. A route without its own parameters shares
+[Router.search] and [Router.useSearch]. On the server, both hooks read the
+location the page renders for.
+
+When the record has a [required] parameter, the hook returns
+[option(search)]: [None] when the current URL lacks the value or it does not
+parse, for example while another route is active. The update function is the
+same.
+
 Search updates are {e shallow}. They update the URL and client state
 synchronously and never contact the server. When server-rendered content
 depends on a search value, navigate to a destination carrying the new value
 instead of calling [updateSearch].
+
+The update function takes a whole record built from the record of the last
+render. Two updates in one event handler then both start from the same record,
+and the second drops the first one's change. [Router.useUpdateSearch] and
+[Router.Route.useUpdateSearch] return a function that takes the update as a
+function of the latest record instead, including updates made earlier in the
+same task:
+
+{[
+let updateSearch = Router.Results.useUpdateSearch();
+
+let onClear = () => {
+  updateSearch(search => {...search, page: 1}) |> ignore;
+  updateSearch(search => {...search, filter: None}) |> ignore;
+};
+]}
+
+Both updates apply. When the record has a [required] parameter, the update
+function takes [option(search)], as [useSearch] returns it, and returns a
+whole record. A second [Push] search update in the same task, from any
+of these functions or from a shallow [navigate] (see below), replaces the entry
+the first one pushed, so one handler adds one history entry.
+[RouterReact.useUpdateSearchWith] is the untyped form: it takes [~owned]
+names and a function from every current name and its values to the values of
+the owned names.
+
+{3 Shallow search parameters}
+
+[~shallow=true] on a search parameter says that no server output depends on
+it: client components read it with [useSearch].
+
+{[
+~search={
+  page: Router.Search.default(int, 1),
+  panel: Router.Search.optional(~shallow=true, string),
+}
+]}
+
+A [navigate], or a [Link] click, to a destination with the committed path
+whose search differs from the committed search only in shallow parameters of
+the destination's route, without [~revalidate=true], sends no request. It
+commits the URL like [updateSearch], with the destination's search and hash,
+and its [~history]. It is not held by [useBlocker]. Any other difference still
+asks the server. The server still receives shallow parameters on every
+request and passes them to loaders and pages, so a document load renders
+them. [RouterRuntime.shallowSearch destination] lists the URL keys of a
+destination's shallow parameters. A plain anchor carries no destination, so
+its clicks always ask the server.
 
 [Router.useUpdateHash] commits hash-only changes without a request.
 
@@ -627,12 +864,37 @@ query has one spelling.
 
 [RouterReact.Link] renders an [a] element that navigates on the client. Besides
 [~destination], [~className], [~target], [~download] and [~ariaCurrent] it
-accepts [~id], [~title], [~rel], [~ariaLabel], [~onClick] and [~onMouseEnter].
-The [~onClick] handler runs first. When it calls [preventDefault], or the event
-is already prevented, the router does not navigate. On the server the link
-renders the same attributes and ignores both handlers. These props are on
-[RouterReact.Link] only: the generated per-route [Link]s do not
-take them, because they would clash with path parameters such as [id].
+accepts [~id], [~title], [~rel], [~ariaLabel], [~style], [~data],
+[~anchorRef], [~onClick] and [~onMouseEnter]. [~data] is a list of name and
+value pairs that render as [data-<name>] attributes. A name must be made of
+ASCII letters, digits, [_], [.], [:] and [-]; any other entry, such as one
+with a space, a quote or [=], is dropped on the server and in the browser, so
+a name built from user input cannot add other attributes. [~anchorRef] is the
+ref of the [a] element. The [~onClick] handler runs first. When it calls
+[preventDefault], or the event is already prevented, the router does not
+navigate. On the server the link renders the same attributes and ignores the
+handlers and the ref.
+
+The generated per-route links take path parameters as labelled arguments, so a
+prop named [id] would clash with a path parameter [id]. They take the anchor
+props as one [~attributes] value instead:
+
+{[
+<Router.Note
+  id
+  className="note-link"
+  attributes={RouterReact.Link.attributes(
+    ~id="note-link",
+    ~style=ReactDOM.Style.make(~color="red", ()),
+    ~data=[("testid", "note")],
+    (),
+  )}>
+  children
+</Router.Note>
+]}
+
+[RouterReact.Link] takes [~attributes] too. A prop given directly wins over the
+same field of [~attributes], and the [data] entries of both are rendered.
 
 A [Link] whose destination is the current location renders
 [aria-current="page"], unless [~ariaCurrent] is given. The destination is
@@ -644,7 +906,30 @@ for its children. Style current links with [a[aria-current="page"]].
 elements. The comparison uses the URL: a destination does not carry its route
 id.
 
-Every [Link] without [~ariaCurrent] renders [data-router-link]. After each
+For navigation menus, [~activeWhen] on [RouterReact.Link] changes the rule:
+
+- [Url], the default, is the rule above: same path and same search.
+- [Route]: same path, any search. A generated destination has one path for
+  each route and set of path parameters, so this is the same route with the
+  same path parameters. A link to a list stays current while the user changes
+  its filters.
+- [Subtree]: the destination's path or any path below it, by whole decoded
+  segments. [/notes] is current on [/notes] and [/notes/42/edit], not on
+  [/notes-archive].
+
+The hash is always ignored.
+
+{[
+<RouterReact.Link destination={Router.Notes.destination()} activeWhen=RouterReact.Subtree>
+  {React.string("Notes")}
+</RouterReact.Link>
+]}
+
+[RouterReact.useIsActive(~activeWhen=?, destination)] applies a rule for other
+elements, with [Route] as its default.
+
+Every [Link] without [~ariaCurrent] renders [data-router-link], with the
+value [route] or [subtree] for those rules and empty for [Url]. After each
 committed navigation, including a patch and a search update, the provider sets
 or removes [aria-current="page"] on these anchors, so links in layouts that a
 patch does not render again stay correct.
@@ -688,6 +973,12 @@ turns a destination back into its string. A server function returns the href
 string. The client rebuilds the destination with [destination ~path] and
 passes it to [navigate].
 
+[RouterRuntime.absoluteHref ~origin destination] returns the full URL of a
+destination, for an email or a copied link. [origin] is a scheme and host such
+as ["https://example.com"]; trailing slashes are dropped. In the browser, pass
+[window.location.origin]. A destination whose href does not start with [/],
+such as an absolute [unsafeDestination], is returned unchanged.
+
 {1 Loaders}
 
 A loader runs on the server before streaming. It receives the decoded path
@@ -715,13 +1006,48 @@ The root and its groups receive [Router.search]. A route and its page receive
 used as the page of two routes that each add search parameters receives two
 different types: give each route its own component.
 
-Loaders execute parent-first and complete before response headers or RSC
-rendering begin. The scope's components receive [Data] ([~note] in the
-manifest above). [NotFound] and [Error] render the nearest boundary, and
-[Redirect(destination)] escapes the whole branch. [PermanentRedirect(destination)]
-does the same and answers documents with status 308. Use it only for moves
-that never change. Building a destination from user input, such as a [?next=]
-parameter, can create an open redirect, and browsers cache 308 responses.
+Loaders complete before response headers or RSC rendering begin. The
+scope's components receive [Data] ([~note] in the manifest above). [NotFound]
+and [Error] render the nearest boundary, and [Redirect(destination)] escapes
+the whole branch. [PermanentRedirect(destination)] does the same and answers
+documents with status 308. Use it only for moves that never change. Building
+a destination from user input, such as a [?next=] parameter, can create an
+open redirect, and browsers cache 308 responses.
+
+A loader receives the results of all its ancestor loaders as labelled
+arguments, also the ones it ignores with [~note as _]. The generator cannot
+see which arguments a loader uses, so by default a loader starts only after
+its parent loader finishes. A loader that needs no ancestor result declares it
+with [~loaderParallel=true] next to [~loader]:
+
+{[
+Router.group(
+  ~path="/workspaces/:workspaceId<WorkspaceId.t>",
+  ~loader=WorkspaceLoader,
+  [
+    Router.route(
+      Note,
+      ~page=NotePage,
+      ~path="/notes/:id<NoteId.t>",
+      ~loader=NoteLoader,
+      ~loaderParallel=true,
+    ),
+  ],
+)
+]}
+
+[NoteLoader.load] then receives the path parameters, [~search] and
+[~context], but no ancestor loader result. It starts when the route's loaders
+start, before [WorkspaceLoader] finishes. Its result still reaches the
+route's components and the descendant loaders without [~loaderParallel].
+[~loaderParallel] takes [true] or [false] and requires [~loader].
+
+Results are still read parent-first. The first result that is not [Data], in
+scope order, decides, also when a later loader finished first: an ancestor
+[Error] wins over a parallel loader that failed earlier. A parallel loader
+runs to the end even when an ancestor then fails or redirects, and its result
+is dropped. This is wasted work, so keep side effects out of loaders. An
+exception in a parallel loader is handled as in any loader.
 
 A loader runs again on every request, including patches, so a patch that
 reuses the loader's scope keeps the layout rendered from the {e previous}
@@ -732,31 +1058,88 @@ A patch still runs every loader on the matched branch, not only the loaders
 of the scopes it sends. Child loaders receive the results of their ancestors,
 so the server cannot skip an ancestor loader.
 
-Loaders read request-local data, such as a session or a request id, from
-the request the adapter holds. [DreamRouter.routes] holds the Dream request
-for the whole response, including the streamed body, and
-[DreamRouter.request ()] returns it in loaders, [~metadata], [~headers] and
-server components. Lwt copies this storage into every callback when the
-callback is registered, so each loader reads its own request after any wait,
-also when requests run at the same time. Outside a request it returns [None].
-
-{[
-let load = (~id as _, ()) =>
-  switch (DreamRouter.request()) {
-  | Some(request) => findSession(request)
-  | None => Lwt.return(Router.Loader.NotFound)
-  };
-]}
-
-An adapter for another server does the same: it sets an [Lwt.key] with
-[Lwt.with_value] around the {e whole} handler, including the streaming
-response, not only [Server.run]. A streaming body, for example the callback
-of [Dream.stream], runs after the handler returns, so a key set only around
-[Server.run] is empty there.
-
 Keep loaders for fast validation, redirects, and route-level not-found
 decisions; stream slow data from async server components inside the route
 elements instead.
+
+{2 Request context}
+
+Loaders read request-local data, such as the signed-in session, from the
+request context. [~context] on [Router.make] names its type:
+
+{[
+Router.make(~basePath="/admin", ~context=Session.t, ...)
+]}
+
+Every loader, [~metadata] and [~headers] then receives [~context] before its
+other inputs. Pages, layouts and boundaries do not.
+
+{[
+module BillingLoader = {
+  let load = (~context: Session.t, ~search as _, ()) =>
+    Billing.fetchAccount(context.userId)
+    |> Lwt.map(account => Router.Loader.Data(account));
+};
+]}
+
+The generated [RouterRegistry.server] then comes from
+[RouterServer.Server.makeWithContext]. The adapter builds the context once per
+request and runs the server with [RouterServer.runWithContext ~context]
+instead of [RouterServer.run]. [DreamRouter.routesWithContext ~context] takes
+a function from the Dream request. Without [~context] on [Router.make],
+nothing changes: the generated code passes no context, and the adapter calls
+[RouterServer.run] and [DreamRouter.routes].
+
+Server components render after [RouterServer.run] returns, so they cannot
+receive the context. They read request-local data from the request the
+adapter holds. [DreamRouter.routes] holds the Dream request for the whole
+response, including the streamed body, and [DreamRouter.request ()] returns
+it. Lwt copies this storage into every callback when the callback is
+registered, so each component reads its own request after any wait, also
+when requests run at the same time. Outside a request it returns [None].
+
+An adapter for another server does the same: it sets an [Lwt.key] with
+[Lwt.with_value] around the {e whole} handler, including the streaming
+response, not only [RouterServer.run]. A streaming body, for example the callback
+of [Dream.stream], runs after the handler returns, so a key set only around
+[RouterServer.run] is empty there.
+
+{2 Request-scoped cache}
+
+[RouterServer.Request.memo] runs a function once per request for each key and
+argument, like React's [cache]. Every later call in the same request gets the
+same promise, so a loader and a server component that need the same data
+fetch it once:
+
+{[
+let viewerKey: RouterServer.Request.key(User.t) = RouterServer.Request.key();
+
+let viewer = id =>
+  RouterServer.Request.memo(viewerKey, Int.to_string(id), () =>
+    Users.fetch(id)
+  );
+]}
+
+The string must hold every input of the function, encoded so that two
+different inputs never give the same string. A failed promise is shared too.
+Outside a request scope, [memo] runs the function each time.
+
+Every adapter entry point opens a new, empty cache for its request, and
+[RouterServer.Request.scope] never joins an enclosing scope. A scope opened
+around the whole server, by mistake, therefore cannot share one user's
+entries with another request. [Adapter.serve], [Adapter.serveWithContext],
+[Adapter.serveFormAction] and [Adapter.serveFormActionWithContext] keep the
+cache for the whole streamed body, so loaders, [~metadata], [~headers] and
+server components share it; [DreamRouter.routes] uses them. [Adapter.handle],
+[Adapter.handleWithContext] and the [formActionReply] functions open a cache
+for loaders, [~metadata] and [~headers] only: the server components that
+[Adapter.response] streams afterwards run outside it. A server function runs
+outside every cache.
+
+The router does not memoise loaders. A request runs each loader of the
+matched branch once, and the generated code has no safe key for a loader's
+inputs: the request context and ancestor loader results have no string form.
+The cache lives for one request; nothing is kept across requests.
 
 {1 Error handling}
 
@@ -778,10 +1161,15 @@ Router.make(~error=AppError, ~errorStatus=AppError.status, ...)
 
 Without [~errorStatus], an application error answers 500. The other errors
 do not use it: a missing route or a loader [NotFound] answers 404, an invalid
-path or search parameter 400, and an internal failure 500.
+path or search parameter 400, and an internal failure 500. [Router.Status.t]
+has [Ok], [BadRequest], [Unauthorized] (401), [Forbidden] (403), [NotFound],
+[Gone] (410), [TooManyRequests] (429), [InternalServerError],
+[ServiceUnavailable] (503), [TemporaryRedirect] and [PermanentRedirect].
 
 [Router.Error.t] distinguishes [NotFound], [Application], invalid path or
-search parameters, and [Internal] failures carrying only a diagnostic id.
+search parameters, and [Internal] failures carrying only a diagnostic id. The
+reason of [NotFound] is [NoMatchingRoute], [LoaderNotFound] or
+[RenderNotFound] (see "Not found and redirect from render code").
 Boundary components receive the scope inputs plus [~error]. The nearest
 [~notFound] handles missing routes and loader [NotFound] results. Without one,
 the nearest [~error] renders instead. A path or search decode failure in a
@@ -794,12 +1182,82 @@ renders a built-in plain paragraph ([Not found], [Bad request], or
 [Something went wrong]) through [RouterServer.Plan.resolvedElement]. It never
 shows error details. [DreamRouter] uses it.
 
+{2 Errors in the browser}
+
+Each scope with [~error] also catches exceptions while its content renders in
+the browser: a page or component that throws, content that streams in with an
+error, or the content of a client navigation. The boundary sits inside the
+scope's layout, around the content below it, so the layout stays and the
+fallback takes the place of the content. The fallback is the scope's [~error]
+component with [Internal({diagnosticId: "render"})]: the server renders it
+with the page and sends it with the response, because the browser cannot
+render a server component. An error in a layout itself reaches the boundary
+of an enclosing scope.
+
+The fallback renders inside the same response, as a separate part of the
+payload. When the [~error] component itself throws there, only that part
+fails: the page still renders with its status. If the boundary then needs
+the fallback in the browser, the fallback throws and the next boundary up,
+at least the root one, shows instead. When the [~error] component renders
+as the page, after a failed loader or server function, an exception in it
+fails the response like any page.
+
+The router also wraps every routed page in a root boundary that shows the
+built-in [Something went wrong] paragraph, so an error outside every [~error]
+scope does not unmount the application. A boundary shows its content again
+after the next content navigation commits. React reports the caught error to
+the console; set [onCaughtError] on the React root to report it elsewhere.
+[RouterReact.errorBoundary ~fallback ~children ()] is the boundary, for other
+parts of a page.
+
+{2 Not found and redirect from render code}
+
+A loader decides most not-found and redirect answers. When only rendering
+can decide, a page or server component calls [RouterServer.Render.notFound ()]
+or [RouterServer.Render.redirect(~permanent=?, destination)]:
+
+{[
+module Note = {
+  [@react.component]
+  let make = (~id as _, ~search as _, ~note) =>
+    if (Note.archived(note)) {
+      RouterServer.Render.notFound();
+    } else {
+      <NoteView note />;
+    };
+};
+]}
+
+The signal takes effect when the adapter answers with
+[RouterServer.Adapter.serve] or [serveWithContext], or, for the page rendered
+again after a failed form post without JavaScript, [serveFormAction] or
+[serveFormActionWithContext]. [DreamRouter] uses them for every routed
+response.
+They render the HTML shell, or the first chunk of a navigation payload, before
+they send the status. A signal raised by then, outside a [Suspense] boundary
+or in its synchronous part, changes the answer:
+
+- [notFound] runs the route again with the error
+  [NotFound({reason: RenderNotFound})]: the nearest [~notFound] boundary, or
+  [~error], renders with status 404. The route's loaders run a second time.
+- [redirect] answers like a loader [Redirect] or [PermanentRedirect].
+
+Content that streams in after the response started cannot change the status.
+A signal there is an error in that content, and the nearest [~error] boundary
+shows in the browser. A signal while the not-found boundary renders answers
+500.
+
+[serve] treats any other exception in the HTML shell of a document the same
+way: the route runs again with [Internal({diagnosticId})], and its nearest
+[~error] boundary renders with status 500 instead of a failed response. An
+exception while that boundary renders still fails the response.
+
 {1 Metadata and headers}
 
 [~metadata] and [~headers] resolve per scope on every response, including
 patches, and merge from the root down. Like loaders, they receive the decoded
-path parameters, the search record, and ancestor loader results, and return
-[Lwt] promises:
+path parameters, the search record, ancestor loader results and, when the
+manifest declares it, [~context]. They return [Lwt] promises:
 
 {[
 module NoteMetadata = {
@@ -840,7 +1298,9 @@ Child entries go after the remaining parent entries. The default keys are
 [property]. A tag that repeats, such as several [alternate] links or
 [og:image], needs an explicit [~key], or the last one replaces the others.
 Rendering adds the React key ["router:" ^ key]. [attrs] named [rel] or [href]
-are ignored: the [rel] and [href] arguments win. A [meta] named
+are ignored: the [rel] and [href] arguments win. An [attrs] name made of
+anything but ASCII letters, digits, [_], [.], [:] and [-] is dropped, so it
+cannot add other attributes. A [meta] named
 [description] renders next to the [~description] field and does not replace
 it. Use one of them.
 
@@ -849,12 +1309,63 @@ it. Use one of them.
 The native generator emits [RouterRegistry.server], a configured
 [RouterServer.Server.t]. A native HTTP adapter builds a
 [RouterServer.ServerEngine.request] from the request location and router
-navigation headers, then calls [RouterServer.Server.run]. The adapter maps the
-resulting full, patch, redirect, permanent-redirect, or reload-required outcome
-to its HTTP server and streams render data through [ReactServerDOM].
+navigation headers, then calls [RouterServer.run], or
+[RouterServer.runWithContext] when the manifest declares [~context]. The
+adapter maps the resulting full, patch, redirect, permanent-redirect, or
+reload-required outcome to its HTTP server and streams render data through
+[ReactServerDOM].
 
 [RouterServer.Adapter] holds the parts that do not depend on a server, so an
-adapter only parses the request and writes the reply:
+adapter only passes the request in and writes the response out:
+
+- [Adapter.handle server ~diagnosticId ~document ~method_ ~target ~headers ()]
+  answers one request: [methodReply], then [parseRequest], [RouterServer.run]
+  and [reply]. A [HEAD] reply has no body. [?allow] defaults to [GET], [HEAD]
+  and [OPTIONS]; an adapter that serves server functions at the same paths
+  adds [POST] and sends [POST]s elsewhere. [Adapter.handleWithContext] takes
+  [~context:(unit => 'context)] and calls it only when the router runs.
+- [Adapter.serve] and [Adapter.serveWithContext] take the arguments of
+  [handle] and the rendering options of [response] ([?env], [?timeout],
+  [?skipRoot], [?bootstrapModules], [?nonce]) and return the response. They
+  render the start of the body before they reply, so render code can answer not
+  found or redirect (see "Not found and redirect from render code").
+- [Adapter.parseRequest ~target ~headers] reads the request target and a list
+  of headers. Header names match in any letter case.
+  [Accept: application/react.component] makes a navigation request, with
+  [Router-Navigation-From], [Router-Registry], [Router-Base-Revision] and
+  [Router-Prefetch]; any other request is a document request.
+- [Adapter.response reply] adds the transport headers and returns
+  [{ status; headers; body }], where [body] is [None] or a function that
+  writes each chunk with the function it receives. [Html] streams through
+  [ReactServerDOM.render_html] with [?skipRoot], [?bootstrapModules] and
+  [?nonce]; [Model] streams the Flight payload with
+  [Content-Type: application/react.component], [X-Location] and
+  [X-Content-Type-Options: nosniff].
+
+An adapter for another HTTP server is then a few lines, where [write] sends
+[status], [headers] and each chunk of [body] with that server:
+
+{[
+let respond = (request) =>
+  RouterServer.Request.scope(() => {
+    let%lwt reply =
+      RouterServer.Adapter.handle(
+        RouterRegistry.server,
+        ~diagnosticId=Printexc.to_string,
+        ~document,
+        ~method_=request.method_,
+        ~target=request.target,
+        ~headers=request.headers,
+        (),
+      );
+    write(RouterServer.Adapter.response(~bootstrapModules=["/app.js"], reply));
+  });
+]}
+
+[RouterServer.Request.scope] keeps the request cache (see "Request-scoped
+cache") open while [write] streams server components.
+
+The parts below are what [handle] and [response] use:
 
 - [Adapter.reply server ~target ~pageCacheCapacity ~document ~kind outcome]
   returns [{ status; headers; body }]. [body] is [Empty], [Html element] or
@@ -879,9 +1390,13 @@ Bootstrap modules and the skip-root choice are not part of the reply. The
 adapter picks them for each request when it writes [Html].
 
 The client root receives the router's settings as props. [~interceptLinks]
-(default [true]) and [~viewTransitions] (default [false]) on [Router.make], or
-[?interceptLinks] and [?viewTransitions] on [Server.make], reach the client
-[Provider]. The client root also receives [routes]: every concrete route path
+(default [true]), [~viewTransitions] (default [false]) and
+[~pageCacheMaxAge] on [Router.make], or the same optional arguments on
+[Server.make], reach the client [Provider], with the [?pageCacheCapacity]
+given to [Adapter.reply]. The [make] given to [Server.clientRootWith]
+receives all of them: [~interceptLinks] and [~viewTransitions] as [bool], and
+[~pageCacheCapacity] and [~pageCacheMaxAge] as options, [None] for the
+provider's default. The client root also receives [routes]: every concrete route path
 without the base path, from [Server.routes]. The client matches plain links
 against them with [RouterPattern.matchesPath(~basePath)], which strips the
 percent-encoded base path segment by segment. [onNavigationError] is a function, so it cannot
@@ -889,10 +1404,12 @@ travel from the server in the RSC payload. To set it, render your own client
 component through [Server.clientRootWith] and give the [Provider]
 [~onNavigationError] there.
 
-The repository's [demo/dream-router/DreamRouter.ml] is a thin Dream adapter
-over these functions. It also parses the request and sets the request
-context. [DreamRouter] is demo-only: it is not installed by any published
-package.
+The library [server-reason-react.dream] holds [DreamRouter], a Dream adapter
+over these functions. It is optional: dune builds it only when Dream is
+installed, so [server-reason-react] does not depend on Dream. Add
+[server-reason-react.dream] to your [dune] file. [DreamRouter.routes] returns
+the Dream routes of the router, and [DreamRouter.request ()] holds the request
+context.
 
 {2 Request details}
 
@@ -901,15 +1418,16 @@ package.
   match. [/app] matches [/app] and [/app/x] but not [/apple], and
   [/m%c3%bcnchen] matches the base path [/m%C3%BCnchen]. The base path itself
   must be written in canonical form, without a trailing slash.
-- Search: empty pairs, as in [?a=1&&b=2&], are ignored. A key or value that is
-  not valid UTF-8 after percent-decoding, such as [?q=%FF], makes the search
-  invalid, the same as a malformed escape: the response is 400 with
-  [InvalidSearchParameter].
+- Search: empty pairs, as in [?a=1&&b=2&], are ignored. A pair with a
+  malformed escape, or a key or value that is not valid UTF-8 after
+  percent-decoding, such as [?q=%FF], is dropped. A query longer than 8192
+  bytes answers 400 with [InvalidSearchParameter].
 - Methods: [Adapter.methodReply ~allow method_] decides a method before
-  [Server.run]. [allow] lists the methods the adapter serves at the router's
+  [RouterServer.run]. [allow] lists the methods the adapter serves at the router's
   paths. [OPTIONS] answers 204 and a method outside [allow] answers 405, both
   with an [Allow] header. For [None], [GET] and [HEAD] run the router, and the
-  adapter sends a [HEAD] reply without its body. [DreamRouter.routes] allows
+  adapter sends a [HEAD] reply without its body. [Adapter.handle] does both.
+  [DreamRouter.routes] allows
   [GET, HEAD, OPTIONS, POST] and sends [POST] to the action handler.
 - [~metadata] and [~headers] of all scopes start at the same time. The results
   still merge from the root down, whatever order they resolve in.
@@ -944,7 +1462,10 @@ the Flight action response as before. When that function calls
 [RouterServer.Adapter.runFormAction ~lookup formData] runs the function and
 returns [Completed], [Redirected(destination)] or [Failed(exn)], or [None]
 when the form names no registered function.
-[RouterServer.Adapter.formActionReply] turns the result into the reply.
+[RouterServer.Adapter.formActionReply] turns the result into the reply, and
+[serveFormAction] also renders it, with render signals: a redirect signal
+from the page answers 303, a not-found signal its not-found boundary with
+404.
 [DreamRouter.routes ~lookup] does both for a multipart [POST] without an
 [ACTION_ID] header, behind the same origin check as the other actions. A
 multipart [POST] without a [$ACTION_ID_] field, such as a plain upload, goes
@@ -966,8 +1487,8 @@ internal error. A server function that redirects there fails.
 Melange applications depend on [server-reason-react.router]. Native
 applications depend on [server-reason-react.router-native]. Route generation
 uses [server-reason-react.router-gen]. A native adapter that calls
-[ReactServerDOM] also depends on [server-reason-react.reactDom]. There is no
-installed Dream router package.
+[ReactServerDOM] also depends on [server-reason-react.reactDom]. The Dream
+adapter is the library [server-reason-react.dream] (see Server integration).
 
 The generator reads the manifest on standard input and writes [Router.ml]
 ([--mode handles]), its interface [Router.mli] ([--mode interface]) and the

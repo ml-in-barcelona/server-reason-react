@@ -36,6 +36,9 @@ let destinationFromPattern ~pattern ~parameters ~search =
   RouterTypes.renderDestination ~pattern ~parameters ~search ~encodeParameter:encodeSegment ~encodeSearch
 
 let href = RouterTypes.href
+let absoluteHref = RouterTypes.absoluteHref
 let withHash = RouterTypes.destinationWithHash ~encode
 let prefetchLevel = RouterTypes.prefetchLevel
 let withPrefetch = RouterTypes.withPrefetch
+let shallowSearch = RouterTypes.shallowSearch
+let withShallowSearch = RouterTypes.withShallowSearch

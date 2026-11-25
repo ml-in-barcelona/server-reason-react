@@ -14,6 +14,13 @@ type updateSearch =
     unit
   ) =>
   navigationResult;
+type updateSearchWith =
+  (
+    ~owned: list(string),
+    ~history: RouterRuntime.Navigation.historyAction=?,
+    list((string, list(string))) => list((string, list(string)))
+  ) =>
+  navigationResult;
 type updateHash =
   (~hash: string, ~history: RouterRuntime.Navigation.historyAction=?, unit) =>
   navigationResult;
@@ -40,6 +47,11 @@ type blocker =
 type invalidation =
   | All
   | Prefix(RouterRuntime.destination);
+
+type activeWhen =
+  | Url
+  | Route
+  | Subtree;
 
 type contextValue = {
   committed: RouterRuntime.Navigation.committed,
@@ -93,6 +105,9 @@ let navigate: navigate = (~history as _=?, ~revalidate as _=?, _destination) =>
 let updateSearch: updateSearch =
     (~owned as _, ~values as _, ~history as _=?, ()) =>
   unavailable();
+let updateSearchWith: updateSearchWith =
+    (~owned as _, ~history as _=?, _update) =>
+  unavailable();
 let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>
   unavailable();
 
@@ -109,8 +124,10 @@ let useCurrentRoute = () =>
   | [] => None
   };
 let useSearch = () => (useContextValue().search, updateSearch);
+let useUpdateSearchWith = () => updateSearchWith;
 let useUpdateHash = () => updateHash;
 let useLocation = () => useContextValue().committed.location;
+let useMatches = () => useContextValue().committed.matches;
 let locationScope =
     (~committed: RouterRuntime.Navigation.committed, ~children, ()) =>
   provider(
@@ -136,6 +153,31 @@ let isCurrent = (~location: RouterRuntime.Navigation.location, href) =>
 
 let useIsCurrent = destination =>
   isCurrent(~location=useLocation(), RouterRuntime.href(destination));
+
+let isActive =
+    (~activeWhen, ~location: RouterRuntime.Navigation.location, href) =>
+  switch (activeWhen) {
+  | Url => isCurrent(~location, href)
+  | Route =>
+    RouterSearchKey.isActive(~prefix=false, ~pathname=location.pathname, href)
+  | Subtree =>
+    RouterSearchKey.isActive(~prefix=true, ~pathname=location.pathname, href)
+  };
+
+let activeRule =
+  fun
+  | Url => ""
+  | Route => "route"
+  | Subtree => "subtree";
+
+let useIsActive = (~activeWhen=Route, destination) =>
+  isActive(
+    ~activeWhen,
+    ~location=useLocation(),
+    RouterRuntime.href(destination),
+  );
+
+let useIsPending = (~activeWhen as _=Route, _destination) => false;
 let useBlocker = _shouldBlock => Unblocked;
 
 let outlet = (~owner, ~children, ()) =>
@@ -147,7 +189,44 @@ let outlet = (~owner, ~children, ()) =>
 let suspense = (~fallback, ~children, ()) =>
   <React.Suspense fallback> children </React.Suspense>;
 
+let errorBoundary = (~fallback, ~children, ()) =>
+  RouterErrorBoundary.make(
+    RouterErrorBoundary.makeProps(~fallback, ~children, ()),
+  );
+
 module Link = {
+  type attributes = {
+    id: option(string),
+    title: option(string),
+    rel: option(string),
+    ariaLabel: option(string),
+    style: option(ReactDOM.Style.t),
+    data: list((string, string)),
+  };
+
+  let attributes =
+      (
+        ~id=?,
+        ~title=?,
+        ~rel=?,
+        ~ariaLabel=?,
+        ~style=?,
+        ~data=[],
+        ~anchorRef as _: option(ReactDOM.domRef)=?,
+        ~onClick as _: option(React.Event.Mouse.t => unit)=?,
+        ~onMouseEnter as _: option(React.Event.Mouse.t => unit)=?,
+        (),
+      ) => {
+    id,
+    title,
+    rel,
+    ariaLabel,
+    style,
+    data,
+  };
+
+  let noAttributes = attributes();
+
   [@react.component]
   let make =
       (
@@ -156,16 +235,31 @@ module Link = {
         ~target=?,
         ~download=?,
         ~ariaCurrent=?,
+        ~activeWhen=Url,
         ~id=?,
         ~title=?,
         ~rel=?,
         ~ariaLabel=?,
+        ~style=?,
+        ~data=[],
+        ~anchorRef as _: option(ReactDOM.domRef)=?,
+        ~attributes=noAttributes,
         ~onClick as _=?,
         ~onMouseEnter as _=?,
         ~history as _=?,
         ~revalidate as _=?,
         ~children,
       ) => {
+    let either = (flat, fromAttributes) =>
+      switch (flat) {
+      | Some(_) => flat
+      | None => fromAttributes
+      };
+    let id = either(id, attributes.id);
+    let title = either(title, attributes.title);
+    let rel = either(rel, attributes.rel);
+    let ariaLabel = either(ariaLabel, attributes.ariaLabel);
+    let style = either(style, attributes.style);
     let href = RouterRuntime.href(destination);
     let dataRouterPrefetch =
       switch (RouterRuntime.prefetchLevel(destination)) {
@@ -175,7 +269,7 @@ module Link = {
     let routerContext = React.useContext(context);
     let dataRouterLink =
       switch (ariaCurrent, routerContext) {
-      | (None, Some(_)) => Some("")
+      | (None, Some(_)) => Some(activeRule(activeWhen))
       | (Some(_), _)
       | (None, None) => None
       };
@@ -185,25 +279,46 @@ module Link = {
       | None =>
         switch (routerContext) {
         | Some({ committed, _ })
-            when isCurrent(~location=committed.location, href) =>
+            when isActive(~activeWhen, ~location=committed.location, href) =>
           Some("page")
         | Some(_)
         | None => None
         }
       };
-    <a
-      href
-      ?className
-      ?target
-      ?download
-      ?ariaCurrent
-      ?id
-      ?title
-      ?rel
-      ?ariaLabel
-      ?dataRouterPrefetch
-      ?dataRouterLink>
-      children
-    </a>;
+    let link =
+      <a
+        href
+        ?className
+        ?target
+        ?download
+        ?ariaCurrent
+        ?id
+        ?title
+        ?rel
+        ?ariaLabel
+        ?style
+        ?dataRouterPrefetch
+        ?dataRouterLink>
+        children
+      </a>;
+    switch (
+      List.filter(
+        ((name, _)) => RouterTypes.validAttributeName(name),
+        attributes.data @ data,
+      )
+    ) {
+    | [] => link
+    | data =>
+      React.cloneElement(
+        link,
+        List.map(
+          ((name, value)) => {
+            let name = "data-" ++ name;
+            React.JSX.String((name, name, value));
+          },
+          data,
+        ),
+      )
+    };
   };
 };

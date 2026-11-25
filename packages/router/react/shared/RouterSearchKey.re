@@ -44,3 +44,26 @@ let isCurrent = (~pathname, ~search, href) => {
   let (hrefPathname, hrefSearch) = splitHref(href);
   String.equal(hrefPathname, pathname) && pairs(hrefSearch) == pairs(search);
 };
+
+let pathSegments = pathname =>
+  pathname
+  |> String.split_on_char('/')
+  |> List.filter(segment => segment != "")
+  |> List.map(segment =>
+       RouterPattern.percentDecode(~plus=false, ~malformed=Keep, segment)
+       |> Option.value(~default=segment)
+     );
+
+let rec startsWithSegments = (~prefix, segments) =>
+  switch (prefix, segments) {
+  | ([], _) => true
+  | ([expected, ...prefix], [segment, ...segments]) =>
+    String.equal(expected, segment) && startsWithSegments(~prefix, segments)
+  | ([_, ..._], []) => false
+  };
+
+let isActive = (~prefix, ~pathname, href) => {
+  let target = pathSegments(fst(splitHref(href)));
+  let current = pathSegments(pathname);
+  prefix ? startsWithSegments(~prefix=target, current) : target == current;
+};

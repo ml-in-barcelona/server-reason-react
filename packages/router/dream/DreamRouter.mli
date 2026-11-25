@@ -8,7 +8,9 @@
 val request : unit -> Dream.request option
 (** The request being handled. [routes], [createFromRequest] and [streamFunctionResponse] hold it for the whole
     response, including streaming, so route loaders, [~metadata], [~headers], server components and server functions
-    read their own request after any [Lwt] wait, also when requests run concurrently. [None] outside a request. *)
+    read their own request after any [Lwt] wait, also when requests run concurrently. [None] outside a request. [routes]
+    and [createFromRequest] also open {!RouterServer.Request.scope} around the response; a server function runs outside
+    it. *)
 
 val get_header : string -> string option
 (** Read a request header from the ambient request.
@@ -94,7 +96,7 @@ val streamFunctionResponse :
     @param request current Dream request *)
 
 val routes :
-  server:(React.element, 'error) RouterServer.Server.t ->
+  server:(React.element, 'error, unit) RouterServer.Server.t ->
   actionHandler:(Dream.request -> Dream.response Lwt.t) ->
   ?lookup:(string -> ReactServerDOM.server_function option) ->
   ?diagnosticId:(exn -> string) ->
@@ -132,3 +134,19 @@ val routes :
     @param pageCacheCapacity
       maximum visited pages cached by the client router (default: the client's 30; 0 turns it off)
     @param document build the HTML document. [~head] is the resolved metadata, to place inside [<head>]. *)
+
+val routesWithContext :
+  server:(React.element, 'error, 'context) RouterServer.Server.t ->
+  context:(Dream.request -> 'context) ->
+  actionHandler:(Dream.request -> Dream.response Lwt.t) ->
+  ?lookup:(string -> ReactServerDOM.server_function option) ->
+  ?diagnosticId:(exn -> string) ->
+  ?revision:(unit -> string) ->
+  ?ssr:(Dream.request -> bool) ->
+  ?bootstrapModules:string list ->
+  ?pageCacheCapacity:int ->
+  document:(head:React.element -> React.element -> React.element) ->
+  unit ->
+  Dream.route list
+(** {!routes} for a router whose manifest declares [~context]. [context] builds the request context once per routed
+    request, inside the request context of {!request}. Loaders, [~metadata] and [~headers] receive it as [~context]. *)

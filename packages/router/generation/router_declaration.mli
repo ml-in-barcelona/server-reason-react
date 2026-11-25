@@ -16,14 +16,16 @@ type search_kind = Required | Optional | Default of expression | Many
 
 type search = {
   name : string;
+  key : string;
   typ : core_type;
   parser : Longident.t;
   to_string : Longident.t;
   kind : search_kind;
+  shallow : bool;
   loc : Location.t;
 }
 
-type loader = { run : expression; result_label : string; loc : Location.t }
+type loader = { run : expression; result_label : string; parallel : bool; loc : Location.t }
 
 type attachments = {
   layout : expression option;
@@ -82,8 +84,10 @@ type t = {
   trailing_slash : trailing_slash;
   intercept_links : bool option;
   view_transitions : bool option;
+  page_cache_max_age : string option;
   error_status : expression option;
   invalid_search : expression option;
+  context : core_type option;
   root : group;
   loc : Location.t;
 }

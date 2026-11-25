@@ -2,6 +2,20 @@ let string = Alcotest.string;
 let pairs = Alcotest.(list(pair(string, string)));
 let active = Alcotest.(list(pair(string, pairs)));
 
+let markup = element => {
+  let (html, _rest) =
+    Lwt_main.run(ReactServerDOM.render_html(~skipRoot=false, element));
+  let rec scriptStart = index =>
+    if (index + 7 > String.length(html)) {
+      String.length(html);
+    } else if (String.sub(html, index, 7) == "<script") {
+      index;
+    } else {
+      scriptStart(index + 1);
+    };
+  String.sub(html, 0, scriptStart(0));
+};
+
 let resolve = (~query="", pathname) => {
   let search =
     switch (RouterServer.Search.parse(query)) {
@@ -23,7 +37,7 @@ let resolve = (~query="", pathname) => {
       switch (
         Lwt_main.run(
           RouterServer.Execution.run(
-            RouterServer.Endpoint.execution(prepared),
+            RouterServer.Endpoint.executionWithContext(prepared, ~context=""),
           ),
         )
       ) {
@@ -34,12 +48,7 @@ let resolve = (~query="", pathname) => {
               RouterRuntime.Status.InternalServerError
             ),
           );
-        (
-          matches,
-          ReactDOM.renderToStaticMarkup(
-            RouterServer.Plan.resolvedElement(resolved),
-          ),
-        );
+        (matches, markup(RouterServer.Plan.resolvedElement(resolved)));
       | _ => Alcotest.fail("expected page plan for " ++ pathname)
       };
     }
@@ -430,17 +439,178 @@ let testClientOptions = () => {
     true,
     contains({|"interceptLinks":false,"viewTransitions":true|}),
   );
+  Alcotest.check(
+    Alcotest.bool,
+    "page cache max age",
+    true,
+    contains({|"pageCacheMaxAge":30,|}),
+  );
+};
+
+let renderPage = (~search, pathname) =>
+  switch (
+    Lwt_main.run(
+      RouterServer.runWithContext(
+        RouterRegistry.server,
+        ~diagnosticId=_ => "diagnostic",
+        ~context="",
+        {
+          pathname,
+          search,
+          hash: "",
+          kind: RouterServer.ServerEngine.Document,
+          navigation: None,
+        },
+      ),
+    )
+  ) {
+  | RouterServer.ServerEngine.Full(full) =>
+    markup(RouterServer.Plan.resolvedElement(full.resolved))
+  | _ => Alcotest.fail("expected a full response for " ++ pathname)
+  };
+
+let testSearchKey = () => {
+  Alcotest.check(
+    string,
+    "href writes keys sorted by key",
+    "/site/support?a-zone=w&info-page=x&resources-projectId=7&z=q",
+    Router.Support.href(
+      ~search={
+        infoPage: Some("x"),
+        resourcesProjectId: 7,
+        alpha: Some("q"),
+        zone: ["w"],
+      },
+      (),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "default omitted",
+    "/site/support?info-page=x",
+    Router.Support.href(
+      ~search=Router.Support.search(~infoPage="x", ()),
+      (),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "server decodes keys into labels",
+    "x|7|q|w",
+    renderPage(
+      ~search="?info-page=x&resources-projectId=7&z=q&a-zone=w",
+      "/site/support",
+    ),
+  );
+  Alcotest.check(
+    string,
+    "labels are not keys",
+    "-|0|-|",
+    renderPage(
+      ~search="?infoPage=x&resourcesProjectId=7&alpha=q&zone=w",
+      "/site/support",
+    ),
+  );
+  let record =
+    Router.Support.search(~infoPage="x", ~resourcesProjectId=3, ());
+  Alcotest.(check(bool))(
+    "rsc round trip",
+    true,
+    Router.Support.search_of_rsc(Router.Support.search_to_rsc(record))
+    == record,
+  );
+};
+
+let reportExecution = () => {
+  Pages.ReportGates.reset();
+  let search =
+    switch (RouterServer.Search.parse("")) {
+    | Ok(search) => search
+    | Error(_) => Alcotest.fail("expected valid search")
+    };
+  switch (
+    RouterServer.EndpointRegistry.find(
+      RouterRegistry.registry,
+      ~pathname="/reports/r1",
+    )
+  ) {
+  | Ok(Some(matched)) =>
+    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    | Ok(prepared) =>
+      RouterServer.Execution.run(
+        RouterServer.Endpoint.executionWithContext(prepared, ~context=""),
+      )
+    | Error(_) => Alcotest.fail("expected decoded report endpoint")
+    }
+  | _ => Alcotest.fail("expected a report match")
+  };
+};
+
+let reportPage = execution =>
+  switch (Lwt_main.run(execution)) {
+  | RouterRuntime.Loader.Data(plan) =>
+    Lwt_main.run(
+      RouterServer.Plan.resolve(plan, ~applicationStatus=_ =>
+        RouterRuntime.Status.InternalServerError
+      ),
+    )
+    |> RouterServer.Plan.resolvedElement
+    |> markup
+  | _ => Alcotest.fail("expected a report plan")
+  };
+
+let testParallelLoaderOverlap = () => {
+  let execution = reportExecution();
+  Alcotest.check(
+    Alcotest.list(string),
+    "both loaders start before either finishes",
+    ["stats:start", "report:start"],
+    Pages.ReportGates.events^,
+  );
+  Pages.ReportGates.(resolve(stats, RouterRuntime.Loader.Data("s")));
+  Pages.ReportGates.(resolve(report, RouterRuntime.Loader.Data("r")));
+  Alcotest.check(string, "page", "r1:r:s", reportPage(execution));
+  Alcotest.check(
+    Alcotest.list(string),
+    "child finished first",
+    ["stats:start", "report:start", "stats:done", "report:done"],
+    Pages.ReportGates.events^,
+  );
+};
+
+let testParallelLoaderParentFailureWins = () => {
+  let execution = reportExecution();
+  Pages.ReportGates.(resolve(stats, RouterRuntime.Loader.Error("stats")));
+  Pages.ReportGates.(resolve(report, RouterRuntime.Loader.Error("report")));
+  Alcotest.check(
+    string,
+    "parent error",
+    "report-error:report",
+    reportPage(execution),
+  );
+};
+
+let testParallelLoaderChildFailure = () => {
+  let execution = reportExecution();
+  Pages.ReportGates.(resolve(stats, RouterRuntime.Loader.NotFound));
+  Pages.ReportGates.(resolve(report, RouterRuntime.Loader.Data("r")));
+  Alcotest.check(
+    string,
+    "child not found",
+    "report-error",
+    reportPage(execution),
+  );
 };
 
 let testActionErrorBoundary = () => {
   let render = pathname => {
     let outcome =
       Lwt_main.run(
-        RouterServer.Server.run(
+        RouterServer.runWithContext(
           RouterRegistry.server,
           ~diagnosticId=_ => "diagnostic",
-          ~revision=() => "revision",
           ~actionError=RouterRuntime.Error.Internal({ diagnosticId: "d" }),
+          ~context="",
           {
             pathname,
             search: "",
@@ -453,9 +623,7 @@ let testActionErrorBoundary = () => {
     switch (outcome) {
     | RouterServer.ServerEngine.Full(full) => (
         RouterRuntime.Status.toInt(full.resolved.status),
-        ReactDOM.renderToStaticMarkup(
-          RouterServer.Plan.resolvedElement(full.resolved),
-        ),
+        markup(RouterServer.Plan.resolvedElement(full.resolved)),
       )
     | _ => Alcotest.fail("expected a full response for " ++ pathname)
     };
@@ -466,6 +634,278 @@ let testActionErrorBoundary = () => {
   let (status, html) = render("/site/help");
   Alcotest.check(Alcotest.int, "root status", 500, status);
   Alcotest.check(string, "root boundary", "", html);
+};
+
+let testLoaderContext = () => {
+  let outcome =
+    Lwt_main.run(
+      RouterServer.runWithContext(
+        RouterRegistry.server,
+        ~diagnosticId=_ => "diagnostic",
+        ~context="ada",
+        {
+          pathname: "/site/account",
+          search: "",
+          hash: "",
+          kind: RouterServer.ServerEngine.Document,
+          navigation: None,
+        },
+      ),
+    );
+  switch (outcome) {
+  | RouterServer.ServerEngine.Full(full) =>
+    Alcotest.check(
+      string,
+      "loader",
+      "viewer:ada",
+      markup(RouterServer.Plan.resolvedElement(full.resolved)),
+    );
+    Alcotest.check(
+      Alcotest.option(string),
+      "metadata",
+      Some("account:ada"),
+      full.resolved.metadata.title,
+    );
+    Alcotest.check(
+      Alcotest.option(string),
+      "headers",
+      Some("ada"),
+      List.assoc_opt(
+        "X-Viewer",
+        RouterRuntime.Headers.toList(full.resolved.headers),
+      ),
+    );
+  | _ => Alcotest.fail("expected a full response")
+  };
+};
+
+let committed = (~search="", ~matches, pathname) =>
+  RouterRuntime.Navigation.{
+    location: {
+      pathname,
+      search,
+      hash: "",
+      key: "test",
+    },
+    matches:
+      List.map(
+        ((routeId, parameters)) =>
+          {
+            routeId,
+            parameters,
+          },
+        matches,
+      ),
+    layouts: [],
+    revision: "",
+  };
+
+let routeName =
+  fun
+  | Router.Note({ id }) => "Note " ++ Int.to_string(id)
+  | Router.DocsTopic({ topic }) => "DocsTopic " ++ topic
+  | Router.Inspector => "Inspector"
+  | _ => "other";
+
+module RouteProbe = {
+  [@react.component]
+  let make = () => {
+    let route =
+      switch (Router.useRoute()) {
+      | Some(route) => routeName(route)
+      | None => "none"
+      };
+    let matches = Router.useMatches() |> List.map(routeName);
+    let active =
+      switch (Router.useActiveSearch()) {
+      | Some(Router.ActiveSearch.Note(search)) =>
+        "Note tab=" ++ Option.value(search.tab, ~default="-")
+      | Some(Router.ActiveSearch.Inspector(search)) =>
+        "Inspector target=" ++ search.target
+      | Some(_) => "other"
+      | None => "none"
+      };
+    let inspector =
+      switch (Router.Inspector.useSearch()) {
+      | (Some(search), _) => search.target
+      | (None, _) => "missing"
+      };
+    let location = Router.useLocation();
+    React.string(
+      String.concat(
+        "|",
+        [
+          route,
+          String.concat(",", matches),
+          active,
+          inspector,
+          location.pathname,
+        ],
+      ),
+    );
+  };
+};
+
+let probe = committed =>
+  ReactDOM.renderToStaticMarkup(
+    RouterReact.locationScope(~committed, ~children=<RouteProbe />, ()),
+  );
+
+let testActiveRouteHooks = () => {
+  Alcotest.check(
+    string,
+    "matched route",
+    "Note 42|Note 42|Note tab=x|missing|/site/notes/42",
+    probe(
+      committed(
+        ~search="?tab=x",
+        ~matches=[("Note", [("id", "42")])],
+        "/site/notes/42",
+      ),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "unknown route and invalid parameters",
+    "none|DocsTopic a|none|missing|/site/x",
+    probe(
+      committed(
+        ~matches=[
+          ("DocsTopic", [("topic", "a")]),
+          ("Note", [("id", "not-a-number")]),
+          ("Removed", []),
+        ],
+        "/site/x",
+      ),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "required search present",
+    "Inspector|Inspector|Inspector target=t|t|/site/inspector",
+    probe(
+      committed(
+        ~search="?target=t",
+        ~matches=[("Inspector", [])],
+        "/site/inspector",
+      ),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "required search missing",
+    "Inspector|Inspector|none|missing|/site/inspector",
+    probe(committed(~matches=[("Inspector", [])], "/site/inspector")),
+  );
+};
+
+let result = Alcotest.(result(string, string));
+
+let testTryHref = () => {
+  Alcotest.check(
+    result,
+    "valid",
+    Ok("/site/docs/a%20b"),
+    Router.DocsTopic.tryHref(~topic="a b", ()),
+  );
+  Alcotest.check(
+    result,
+    "slash",
+    Error("route parameters must be valid non-empty path segments"),
+    Router.DocsTopic.tryHref(~topic="a/b", ()),
+  );
+  Alcotest.check(
+    result,
+    "empty",
+    Error("route parameters must be valid non-empty path segments"),
+    Router.DocsTopic.tryHref(~topic="", ()),
+  );
+  Alcotest.check(
+    result,
+    "dot",
+    Error("route parameters must be valid non-empty path segments"),
+    Router.DocsTopic.tryHref(~topic="..", ()),
+  );
+  Alcotest.(check(bool))(
+    "destination",
+    true,
+    Result.map(RouterRuntime.href, Router.Note.tryDestination(~id=1, ()))
+    == Ok("/site/notes/1"),
+  );
+};
+
+let testLinkAttributes = () => {
+  Alcotest.check(
+    string,
+    "path parameter id and anchor id",
+    {|<a style="color:red" href="/site/notes/7" id="note-link" title="Seven" data-testid="note" data-kind="primary">x</a>|},
+    ReactDOM.renderToStaticMarkup(
+      <Router.Note
+        id=7
+        attributes={RouterReact.Link.attributes(
+          ~id="note-link",
+          ~title="Seven",
+          ~style=ReactDOM.Style.make(~color="red", ()),
+          ~data=[("testid", "note"), ("kind", "primary")],
+          (),
+        )}>
+        {React.string("x")}
+      </Router.Note>,
+    ),
+  );
+  Alcotest.check(
+    string,
+    "flat props win",
+    {|<a href="/site/account" id="flat" data-a="1">y</a>|},
+    ReactDOM.renderToStaticMarkup(
+      <RouterReact.Link
+        destination={Router.Account.destination()}
+        id="flat"
+        data=[("a", "1")]
+        attributes={RouterReact.Link.attributes(~id="ignored", ())}>
+        {React.string("y")}
+      </RouterReact.Link>,
+    ),
+  );
+  Alcotest.check(
+    string,
+    "data names that are not attribute names are dropped",
+    {|<a href="/site/account" data-ok_1.a:b-c="2">z</a>|},
+    ReactDOM.renderToStaticMarkup(
+      <RouterReact.Link
+        destination={Router.Account.destination()}
+        data=[
+          ("x autofocus onfocus=alert(1) y", "1"),
+          ("ok_1.a:b-c", "2"),
+          ("", "3"),
+          ("a\"b", "4"),
+          ("a>b", "5"),
+        ]>
+        {React.string("z")}
+      </RouterReact.Link>,
+    ),
+  );
+};
+
+let testAbsoluteHref = () => {
+  Alcotest.check(
+    string,
+    "origin and href",
+    "https://example.com/site/notes/1?tab=a",
+    RouterRuntime.absoluteHref(
+      ~origin="https://example.com/",
+      Router.Note.destination(~id=1, ~search={ tab: Some("a") }, ()),
+    ),
+  );
+  Alcotest.check(
+    string,
+    "absolute destination",
+    "https://docs.example.com/x",
+    RouterRuntime.absoluteHref(
+      ~origin="https://example.com",
+      Router.unsafeDestination("https://docs.example.com/x"),
+    ),
+  );
 };
 
 let () =
@@ -492,7 +932,51 @@ let () =
         ],
       ),
       ("hash", [Alcotest.test_case("href", `Quick, testHash)]),
-      ("search", [Alcotest.test_case("record", `Quick, testSearchRecord)]),
+      (
+        "hooks",
+        [Alcotest.test_case("active route", `Quick, testActiveRouteHooks)],
+      ),
+      (
+        "destinations",
+        [
+          Alcotest.test_case("try href", `Quick, testTryHref),
+          Alcotest.test_case("absolute href", `Quick, testAbsoluteHref),
+          Alcotest.test_case("link attributes", `Quick, testLinkAttributes),
+        ],
+      ),
+      (
+        "search",
+        [
+          Alcotest.test_case("record", `Quick, testSearchRecord),
+          Alcotest.test_case("key", `Quick, testSearchKey),
+        ],
+      ),
+      (
+        "context",
+        [
+          Alcotest.test_case(
+            "loader, metadata, headers",
+            `Quick,
+            testLoaderContext,
+          ),
+        ],
+      ),
+      (
+        "parallel loader",
+        [
+          Alcotest.test_case("overlap", `Quick, testParallelLoaderOverlap),
+          Alcotest.test_case(
+            "parent failure wins",
+            `Quick,
+            testParallelLoaderParentFailureWins,
+          ),
+          Alcotest.test_case(
+            "child failure",
+            `Quick,
+            testParallelLoaderChildFailure,
+          ),
+        ],
+      ),
       (
         "form action",
         [

@@ -19,6 +19,13 @@ type updateSearch =
     unit
   ) =>
   navigationResult;
+type updateSearchWith =
+  (
+    ~owned: list(string),
+    ~history: Navigation.historyAction=?,
+    list((string, list(string))) => list((string, list(string)))
+  ) =>
+  navigationResult;
 type updateHash =
   (~hash: string, ~history: Navigation.historyAction=?, unit) =>
   navigationResult;
@@ -46,6 +53,27 @@ type invalidation =
   | All
   | Prefix(RouterRuntime.destination);
 
+type activeWhen =
+  | Url
+  | Route
+  | Subtree;
+
+let activeRule =
+  fun
+  | Url => ""
+  | Route => "route"
+  | Subtree => "subtree";
+
+let isActive = (~activeWhen, ~location, href) =>
+  RouterPolicy.linkMatches(~rule=activeRule(activeWhen), ~location, href);
+
+let pendingTarget = status =>
+  switch (status) {
+  | Navigation.Loading({ to_, _ }) => Some(to_)
+  | Navigation.Idle
+  | Navigation.Failed(_) => None
+  };
+
 type contextValue = {
   navigate,
   invalidate: invalidation => unit,
@@ -53,9 +81,18 @@ type contextValue = {
   committed: Navigation.committed,
   search: list((string, list(string))),
   updateSearch,
+  updateSearchWith,
   updateHash,
   blockers: RouterBlocker.t,
   blocked: option(RouterBlocker.request),
+};
+
+type actions = {
+  navigate,
+  invalidate: invalidation => unit,
+  updateSearch,
+  updateSearchWith,
+  updateHash,
 };
 
 type model = {
@@ -64,6 +101,12 @@ type model = {
   element: React.element,
   patchOperation: RouterOutlet.operation,
   restore: option((Navigation.historyAction, string, string)),
+};
+
+type pendingCommit = {
+  next: model,
+  finish: unit => unit,
+  resolve: navigationResult => unit,
 };
 
 type activeRequest = {
@@ -107,6 +150,9 @@ let outlet = (~owner, ~children, ()) =>
 
 let suspense = (~fallback, ~children, ()) =>
   <React.Suspense fallback> children </React.Suspense>;
+
+let errorBoundary = (~fallback, ~children, ()) =>
+  <RouterErrorBoundary fallback> children </RouterErrorBoundary>;
 
 let currentUrl = () => {
   let location = DOM.window->DOM.Window.location;
@@ -330,7 +376,10 @@ module Provider = {
       let window = DOM.window;
       RouterScroll.save(
         scrollId(committed.location.key),
-        (DOM.Window.scrollX(window), DOM.Window.scrollY(window)),
+        RouterScroll.capture((
+          DOM.Window.scrollX(window),
+          DOM.Window.scrollY(window),
+        )),
       );
     };
     let reportError = (~target, ~recovery, message) =>
@@ -354,6 +403,9 @@ module Provider = {
         | Navigation.Push
         | Navigation.Replace => None
         };
+      Option.iter(RouterScroll.restoreContainers, saved);
+      let saved =
+        Option.map((saved: RouterScroll.saved) => saved.window, saved);
       switch (RouterPolicy.scrollFor(~kind, ~saved, hash)) {
       | RouterPolicy.ScrollTo(x, y) => DOM.Window.scrollTo(x, y, window)
       | RouterPolicy.Fragment(id) =>
@@ -398,11 +450,18 @@ module Provider = {
         activeRequest.current = None
       | _ => ()
       };
+    let pendingCommit = React.useRef(None);
     let abortActiveRequest = () => {
       switch (activeRequest.current) {
       | Some(active) =>
         active.abort();
         activeRequest.current = None;
+      | None => ()
+      };
+      switch (pendingCommit.current) {
+      | Some(pending) =>
+        pendingCommit.current = None;
+        pending.resolve(Navigation.Result.Canceled);
       | None => ()
       };
       RouterViewTransition.supersede(viewTransition);
@@ -470,6 +529,24 @@ module Provider = {
       };
       Navigation.Result.Committed(committed);
     };
+    let searchPushedThisTick = React.useRef(false);
+    let commitSearch = (~action, location) => {
+      let action =
+        switch (action) {
+        | Navigation.Push when searchPushedThisTick.current => Navigation.Replace
+        | Navigation.Push =>
+          searchPushedThisTick.current = true;
+          let _ =
+            Js.Promise.resolve()
+            |> Js.Promise.then_(() => {
+                 searchPushedThisTick.current = false;
+                 Js.Promise.resolve();
+               });
+          Navigation.Push;
+        | action => action
+        };
+      commitLocation(~kind=Navigation.Shallow, ~action, location);
+    };
     let updateSearch = (~owned, ~values, ~history=Navigation.Replace, ()) => {
       let current = Navigation.committed(modelRef.current.navigationState);
       let nextValues =
@@ -485,8 +562,7 @@ module Provider = {
           )) {
         Navigation.Result.Committed(current);
       } else {
-        commitLocation(
-          ~kind=Navigation.Shallow,
+        commitSearch(
           ~action=history,
           {
             ...current.location,
@@ -494,6 +570,16 @@ module Provider = {
           },
         );
       };
+    };
+    let updateSearchWith = (~owned, ~history=Navigation.Replace, update) => {
+      let current = Navigation.committed(modelRef.current.navigationState);
+      updateSearch(
+        ~owned,
+        ~values=
+          update(RouterSearch.valuesFromString(current.location.search)),
+        ~history,
+        (),
+      );
     };
     let updateHash = (~hash, ~history=Navigation.Replace, ()) => {
       let current = Navigation.committed(modelRef.current.navigationState);
@@ -610,13 +696,6 @@ module Provider = {
               | None => RouterViewTransition.Forward
               }
             };
-          contentIdentity.current = nextContentIdentity;
-          mutateHistory(
-            ~action,
-            ~key=prepared.key,
-            ~position=nextPosition(action),
-            ~url=prepared.url,
-          );
           let (element, patchOperation) =
             switch (prepared.render) {
             | RouterTransaction.ReplacePayload(element) => (
@@ -648,13 +727,23 @@ module Provider = {
             patchOperation,
             restore: Some(prepared.restore),
           };
-          currentLayers.current =
-            RouterNavigationCache.invalidatedSince(
-              cache,
-              ~startedIn,
-              prepared.committed.location.pathname,
-            )
-              ? None : layers;
+          let finish = () => {
+            contentIdentity.current = nextContentIdentity;
+            mutateHistory(
+              ~action,
+              ~key=prepared.key,
+              ~position=nextPosition(action),
+              ~url=prepared.url,
+            );
+            currentLayers.current =
+              RouterNavigationCache.invalidatedSince(
+                cache,
+                ~startedIn,
+                prepared.committed.location.pathname,
+              )
+                ? None : layers;
+            modelRef.current = next;
+          };
           switch (layers) {
           | Some(layers) when !fromCache =>
             RouterNavigationCache.store(
@@ -670,18 +759,27 @@ module Provider = {
           | None => ()
           };
           if (options.current.viewTransitions
-              && RouterViewTransition.supported()) {
-            modelRef.current = next;
+              && RouterViewTransition.supported()
+              && !RouterViewTransition.reducedMotion()) {
+            finish();
             RouterViewTransition.run(
               viewTransition, ~enabled=true, ~direction, () =>
               ReactDOM.flushSync(() => setModel(_ => modelRef.current))
             );
+            Js.Promise.resolve(
+              Navigation.Result.Committed(prepared.committed),
+            );
           } else {
-            updateModel(next);
+            Js.Promise.make((~resolve, ~reject as _) => {
+              pendingCommit.current =
+                Some({
+                  next,
+                  finish,
+                  resolve: result => resolve(. result),
+                });
+              React.startTransition(() => setModel(_ => next));
+            });
           };
-          Js.Promise.resolve(
-            Navigation.Result.Committed(prepared.committed),
-          );
         };
       };
       let fetchNetwork = () => {
@@ -949,24 +1047,59 @@ module Provider = {
       guarded(~action, ~target, () =>
         navigateTarget(~action, ~revalidate, target)
       );
-    let navigate = (~history=Navigation.Push, ~revalidate=false, destination) => {
-      let target = RouterRuntime.href(destination);
-      switch (
-        RouterPolicy.hashOnlyTarget(
-          ~location=
-            Navigation.committed(modelRef.current.navigationState).location,
-          ~action=history,
-          ~revalidate,
-          target,
-        )
-      ) {
-      | Some(hash) =>
-        guarded(~action=history, ~target, () =>
-          Js.Promise.resolve(updateHash(~hash, ~history, ()))
-        )
-      | None => guardedNavigate(~action=history, ~revalidate, target)
+    let navigateUrl = (~action, ~revalidate, ~shallowKeys=[], target) => {
+      let state = modelRef.current.navigationState;
+      let committed = Navigation.committed(state);
+      if (RouterPolicy.unchangedTarget(
+            ~location=committed.location,
+            ~status=Navigation.status(state),
+            ~action,
+            ~revalidate,
+            target,
+          )) {
+        Js.Promise.resolve(Navigation.Result.Committed(committed));
+      } else {
+        switch (
+          RouterPolicy.hashOnlyTarget(
+            ~location=committed.location,
+            ~action,
+            ~revalidate,
+            target,
+          ),
+          RouterPolicy.shallowSearchTarget(
+            ~location=committed.location,
+            ~action,
+            ~revalidate,
+            ~shallowKeys,
+            target,
+          ),
+        ) {
+        | (Some(hash), _) =>
+          guarded(~action, ~target, () =>
+            Js.Promise.resolve(updateHash(~hash, ~history=action, ()))
+          )
+        | (None, Some((search, hash))) =>
+          Js.Promise.resolve(
+            commitSearch(
+              ~action,
+              {
+                ...committed.location,
+                search,
+                hash,
+              },
+            ),
+          )
+        | (None, None) => guardedNavigate(~action, ~revalidate, target)
+        };
       };
     };
+    let navigate = (~history=Navigation.Push, ~revalidate=false, destination) =>
+      navigateUrl(
+        ~action=history,
+        ~revalidate,
+        ~shallowKeys=RouterRuntime.shallowSearch(destination),
+        RouterRuntime.href(destination),
+      );
     let (prefetcher, _) =
       React.useState(() => RouterPrefetch.make(~limit=4));
     let prefetchAborts = React.useRef([]);
@@ -1188,7 +1321,10 @@ module Provider = {
             RouterScroll.entryId(~revision=state.revision, ~key=state.key),
           )
         ) {
-        | Some((x, y)) => DOM.Window.scrollTo(x, y, window)
+        | Some(saved) =>
+          RouterScroll.restoreContainers(saved);
+          let (x, y) = saved.window;
+          DOM.Window.scrollTo(x, y, window);
         | None => ()
         }
       | Some(_)
@@ -1237,11 +1373,7 @@ module Provider = {
           | Some(url) when routed(url) =>
             preventDefault(event);
             let _ =
-              guardedNavigate(
-                ~action=Navigation.Push,
-                ~revalidate=false,
-                url,
-              );
+              navigateUrl(~action=Navigation.Push, ~revalidate=false, url);
             ();
           | Some(_)
           | None => ()
@@ -1389,6 +1521,24 @@ module Provider = {
     });
     React.useLayoutEffect1(
       () => {
+        switch (pendingCommit.current) {
+        | Some(pending) when pending.next === model =>
+          pendingCommit.current = None;
+          pending.finish();
+          pending.resolve(
+            Navigation.Result.Committed(
+              Navigation.committed(model.navigationState),
+            ),
+          );
+        | Some(_)
+        | None => ()
+        };
+        None;
+      },
+      [|model|],
+    );
+    React.useLayoutEffect1(
+      () => {
         switch (model.restore) {
         | Some(restore)
             when
@@ -1418,6 +1568,45 @@ module Provider = {
       },
       [|Navigation.committed(model.navigationState)|],
     );
+    React.useLayoutEffect1(
+      () => {
+        RouterPolicy.markPendingLinks(
+          ~target=pendingTarget(Navigation.status(model.navigationState)),
+          RouterPolicy.routerLinks(),
+        );
+        None;
+      },
+      [|Navigation.status(model.navigationState)|],
+    );
+    let latest =
+      React.useRef({
+        navigate,
+        invalidate,
+        updateSearch,
+        updateSearchWith,
+        updateHash,
+      });
+    latest.current = {
+      navigate,
+      invalidate,
+      updateSearch,
+      updateSearchWith,
+      updateHash,
+    };
+    let (stable, _) =
+      React.useState(() =>
+        {
+          navigate: (~history=?, ~revalidate=?, destination) =>
+            latest.current.navigate(~history?, ~revalidate?, destination),
+          invalidate: invalidation => latest.current.invalidate(invalidation),
+          updateSearch: (~owned, ~values, ~history=?, ()) =>
+            latest.current.updateSearch(~owned, ~values, ~history?, ()),
+          updateSearchWith: (~owned, ~history=?, update) =>
+            latest.current.updateSearchWith(~owned, ~history?, update),
+          updateHash: (~hash, ~history=?, ()) =>
+            latest.current.updateHash(~hash, ~history?, ()),
+        }
+      );
     let committed = Navigation.committed(model.navigationState);
     React.createElement(
       RouterOutlet.provider,
@@ -1429,14 +1618,15 @@ module Provider = {
             {
               "value":
                 Some({
-                  navigate,
-                  invalidate,
+                  navigate: stable.navigate,
+                  invalidate: stable.invalidate,
                   navigation: Navigation.status(model.navigationState),
                   committed,
                   search:
                     RouterSearch.valuesFromString(committed.location.search),
-                  updateSearch,
-                  updateHash,
+                  updateSearch: stable.updateSearch,
+                  updateSearchWith: stable.updateSearchWith,
+                  updateHash: stable.updateHash,
                   blockers,
                   blocked,
                 }),
@@ -1472,9 +1662,13 @@ let useSearch = () => {
   (value.search, value.updateSearch);
 };
 
+let useUpdateSearchWith = () => useContextValue().updateSearchWith;
+
 let useUpdateHash = () => useContextValue().updateHash;
 
 let useLocation = () => useContextValue().committed.location;
+
+let useMatches = () => useContextValue().committed.matches;
 
 let locationScope = (~committed as _, ~children, ()) => children;
 
@@ -1486,26 +1680,82 @@ let useIsCurrent = destination =>
     RouterRuntime.href(destination),
   );
 
+let useIsActive = (~activeWhen=Route, destination) =>
+  isActive(
+    ~activeWhen,
+    ~location=useLocation(),
+    RouterRuntime.href(destination),
+  );
+
+let useIsPending = (~activeWhen=Route, destination) =>
+  switch (pendingTarget(useContextValue().navigation)) {
+  | Some(location) =>
+    isActive(~activeWhen, ~location, RouterRuntime.href(destination))
+  | None => false
+  };
+
 let useBlocker = shouldBlock => {
   let value = useContextValue();
   React.useEffect2(
     () => shouldBlock ? Some(RouterBlocker.retain(value.blockers)) : None,
     (shouldBlock, value.blockers),
   );
-  switch (value.blocked) {
-  | Some(request) when shouldBlock =>
-    Blocked({
-      target: request.target,
-      action: request.action,
-      proceed: () => RouterBlocker.proceed(value.blockers, request.id),
-      cancel: () => RouterBlocker.cancel(value.blockers, request.id),
-    })
-  | Some(_)
-  | None => Unblocked
-  };
+  let request = shouldBlock ? value.blocked : None;
+  React.useMemo2(
+    () =>
+      switch (request) {
+      | Some(request) =>
+        Blocked({
+          target: request.target,
+          action: request.action,
+          proceed: () => RouterBlocker.proceed(value.blockers, request.id),
+          cancel: () => RouterBlocker.cancel(value.blockers, request.id),
+        })
+      | None => Unblocked
+      },
+    (request, value.blockers),
+  );
 };
 
 module Link = {
+  type attributes = {
+    id: option(string),
+    title: option(string),
+    rel: option(string),
+    ariaLabel: option(string),
+    style: option(ReactDOM.Style.t),
+    data: list((string, string)),
+    anchorRef: option(ReactDOM.domRef),
+    onClick: option(React.Event.Mouse.t => unit),
+    onMouseEnter: option(React.Event.Mouse.t => unit),
+  };
+
+  let attributes =
+      (
+        ~id=?,
+        ~title=?,
+        ~rel=?,
+        ~ariaLabel=?,
+        ~style=?,
+        ~data=[],
+        ~anchorRef=?,
+        ~onClick=?,
+        ~onMouseEnter=?,
+        (),
+      ) => {
+    id,
+    title,
+    rel,
+    ariaLabel,
+    style,
+    data,
+    anchorRef,
+    onClick,
+    onMouseEnter,
+  };
+
+  let noAttributes = attributes();
+
   [@react.component]
   let make =
       (
@@ -1514,10 +1764,15 @@ module Link = {
         ~target=?,
         ~download=?,
         ~ariaCurrent=?,
+        ~activeWhen=Url,
         ~id=?,
         ~title=?,
         ~rel=?,
         ~ariaLabel=?,
+        ~style=?,
+        ~data=[],
+        ~anchorRef=?,
+        ~attributes=noAttributes,
         ~onClick as userOnClick=?,
         ~onMouseEnter=?,
         ~history=Navigation.Push,
@@ -1525,6 +1780,19 @@ module Link = {
         ~children,
       ) => {
     let value = useContextValue();
+    let either = (flat, fromAttributes) =>
+      switch (flat) {
+      | Some(_) => flat
+      | None => fromAttributes
+      };
+    let id = either(id, attributes.id);
+    let title = either(title, attributes.title);
+    let rel = either(rel, attributes.rel);
+    let ariaLabel = either(ariaLabel, attributes.ariaLabel);
+    let style = either(style, attributes.style);
+    let anchorRef = either(anchorRef, attributes.anchorRef);
+    let userOnClick = either(userOnClick, attributes.onClick);
+    let onMouseEnter = either(onMouseEnter, attributes.onMouseEnter);
     let href = RouterRuntime.href(destination);
     let dataRouterPrefetch =
       switch (RouterRuntime.prefetchLevel(destination)) {
@@ -1536,7 +1804,7 @@ module Link = {
       switch (ariaCurrent) {
       | Some(_) => ariaCurrent
       | None =>
-        RouterPolicy.isCurrent(~location=value.committed.location, href)
+        isActive(~activeWhen, ~location=value.committed.location, href)
           ? Some("page") : None
       };
     let onClick = event => {
@@ -1573,19 +1841,32 @@ module Link = {
         ?title
         ?rel
         ?ariaLabel
+        ?style
+        ref=?anchorRef
         ?onMouseEnter
         onClick>
         children
       </a>;
-    let attributes = Js.Dict.empty();
+    let extra = Js.Dict.empty();
+    List.iter(
+      ((name, value)) =>
+        if (RouterTypes.validAttributeName(name)) {
+          Js.Dict.set(extra, "data-" ++ name, value);
+        },
+      attributes.data @ data,
+    );
     Option.iter(
-      level => Js.Dict.set(attributes, "data-router-prefetch", level),
+      level => Js.Dict.set(extra, "data-router-prefetch", level),
       dataRouterPrefetch,
     );
     if (Option.is_none(explicitAriaCurrent)) {
-      Js.Dict.set(attributes, RouterPolicy.routerLinkAttribute, "");
+      Js.Dict.set(
+        extra,
+        RouterPolicy.routerLinkAttribute,
+        activeRule(activeWhen),
+      );
     };
-    Js.Array.length(Js.Dict.keys(attributes)) == 0
-      ? link : React.cloneElement(link, attributes);
+    Js.Array.length(Js.Dict.keys(extra)) == 0
+      ? link : React.cloneElement(link, extra);
   };
 };

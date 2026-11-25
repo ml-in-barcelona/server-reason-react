@@ -119,12 +119,21 @@ This feature requires one new pattern segment, one terminal trie edge, segment
 list encoding and decoding, and explicit specificity rules. It must not use
 codec success to choose between routes.
 
+### Optional parameters
+
+Status: Implemented. `:name?<type>` and a final `:name?<string...>` expand a
+route into one concrete pattern per combination of present and absent
+segments, and each concrete pattern follows the precedence and conflict rules.
+The generated helpers take an optional argument. See "Path syntax" in
+`router.mld` and the optional cases in
+`packages/router/cram/typed-destination.t/run.t` and
+`packages/router/generation/test/test_patterns.re`.
+
 ## Features to defer
 
-Optional parameters create multiple route shapes and optional generated
-arguments. Mixed segments such as `file-:id<int>` require an inner-segment
-matcher and new ambiguity rules. Codec-based route selection requires matcher
-backtracking after endpoint decoding.
+Mixed segments such as `file-:id<int>` require an inner-segment matcher and new
+ambiguity rules. Codec-based route selection requires matcher backtracking
+after endpoint decoding.
 
 These features add more complexity than their syntax suggests. Use explicit
-routes, search parameters, or a final catch-all instead.
+routes, search parameters, optional parameters, or a final catch-all instead.

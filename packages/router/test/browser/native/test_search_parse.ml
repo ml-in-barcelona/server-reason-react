@@ -12,17 +12,13 @@ let encode value =
   Buffer.contents buffer
 
 let native search =
-  match RouterQuery.parse search with
-  | Ok values -> Ok values
-  | Error (RouterQuery.MalformedEscape raw) -> Error ("malformed " ^ raw)
-  | Error RouterQuery.QueryTooLong -> Error "too long"
+  match RouterQuery.parse search with Ok values -> Ok values | Error RouterQuery.QueryTooLong -> Error "too long"
 
 let shared search =
   match
     RouterSearchParse.parse ~text:Fun.id ~slice:(fun value start stop -> String.sub value start (stop - start)) search
   with
   | Ok values -> Ok values
-  | Error (RouterSearchParse.MalformedEscape raw) -> Error ("malformed " ^ raw)
   | Error RouterSearchParse.QueryTooLong -> Error "too long"
 
 let check name parse =

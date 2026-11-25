@@ -1,4 +1,4 @@
-type error = MalformedEscape of string | QueryTooLong
+type error = QueryTooLong
 
 let maxLength = 8192
 
@@ -35,16 +35,16 @@ let rec decodeInto search stop decoded read write =
         decodeInto search stop decoded (read + 1) (write + 1)
 
 let decode ~text ~slice search start stop first =
-  if first < 0 then Ok (slice search start stop)
+  if first < 0 then Some (slice search start stop)
   else
     let size = decodedSize search stop first (first - start) in
-    if size < 0 then Error (MalformedEscape (slice search start stop))
+    if size < 0 then None
     else
       let decoded = Bytes.create size in
       Bytes.blit_string search start decoded 0 (first - start);
       decodeInto search stop decoded first (first - start);
       let decoded = Bytes.unsafe_to_string decoded in
-      if RouterPattern.validUtf8 decoded then Ok (text decoded) else Error (MalformedEscape (slice search start stop))
+      if RouterPattern.validUtf8 decoded then Some (text decoded) else None
 
 type index = Small | Large of (string, string list ref) Hashtbl.t
 
@@ -86,20 +86,17 @@ let rec scan ~text ~slice search length state start equals keyFirst valueFirst p
         (position + 1)
     else scan ~text ~slice search length state start equals keyFirst valueFirst (position + 1)
   else if start = position then
-    if position >= length then Ok ()
-    else scan ~text ~slice search length state (position + 1) (-1) (-1) (-1) (position + 1)
+    if position >= length then () else scan ~text ~slice search length state (position + 1) (-1) (-1) (-1) (position + 1)
   else
     let keyStop = if equals < 0 then position else equals in
     let valueStart = if equals < 0 then position else equals + 1 in
-    match decode ~text ~slice search start keyStop keyFirst with
-    | Error error -> Error error
-    | Ok key -> (
+    (match decode ~text ~slice search start keyStop keyFirst with
+    | None -> ()
+    | Some key -> (
         match decode ~text ~slice search valueStart position valueFirst with
-        | Error error -> Error error
-        | Ok value ->
-            add state key value;
-            if position >= length then Ok ()
-            else scan ~text ~slice search length state (position + 1) (-1) (-1) (-1) (position + 1))
+        | None -> ()
+        | Some value -> add state key value));
+    if position >= length then () else scan ~text ~slice search length state (position + 1) (-1) (-1) (-1) (position + 1)
 
 let parse ~text ~slice search =
   let length = String.length search in
@@ -107,7 +104,5 @@ let parse ~text ~slice search =
   else
     let first = if length > 0 && String.unsafe_get search 0 = '?' then 1 else 0 in
     let state = { keys = []; count = 0; index = Small } in
-    let result = if first = length then Ok () else scan ~text ~slice search length state first (-1) (-1) (-1) first in
-    match result with
-    | Ok () -> Ok (List.rev_map (fun (key, current) -> (key, List.rev !current)) state.keys)
-    | Error error -> Error error
+    if first < length then scan ~text ~slice search length state first (-1) (-1) (-1) first;
+    Ok (List.rev_map (fun (key, current) -> (key, List.rev !current)) state.keys)

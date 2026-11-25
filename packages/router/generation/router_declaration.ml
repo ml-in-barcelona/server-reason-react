@@ -16,14 +16,16 @@ type search_kind = Required | Optional | Default of expression | Many
 
 type search = {
   name : string;
+  key : string;
   typ : core_type;
   parser : Longident.t;
   to_string : Longident.t;
   kind : search_kind;
+  shallow : bool;
   loc : Location.t;
 }
 
-type loader = { run : expression; result_label : string; loc : Location.t }
+type loader = { run : expression; result_label : string; parallel : bool; loc : Location.t }
 
 type attachments = {
   layout : expression option;
@@ -82,8 +84,10 @@ type t = {
   trailing_slash : trailing_slash;
   intercept_links : bool option;
   view_transitions : bool option;
+  page_cache_max_age : string option;
   error_status : expression option;
   invalid_search : expression option;
+  context : core_type option;
   root : group;
   loc : Location.t;
 }
@@ -196,7 +200,9 @@ let argument label arguments =
 let unlabelled_arguments arguments =
   List.filter_map (fun (label, expression) -> if label = Nolabel then Some expression else None) arguments
 
-let attachment_labels = [ "layout"; "loading"; "notFound"; "error"; "loader"; "loaderLabel"; "metadata"; "headers" ]
+let attachment_labels =
+  [ "layout"; "loading"; "notFound"; "error"; "loader"; "loaderLabel"; "loaderParallel"; "metadata"; "headers" ]
+
 let renamed_labels = [ ("loaderAs_", "loaderLabel"); ("to_", "target") ]
 
 let rec duplicate = function
@@ -219,28 +225,53 @@ let validate_arguments ~loc ~allowed ~unlabelled arguments =
   if List.length (unlabelled_arguments arguments) <> unlabelled then
     error ~loc "expected %d unlabelled router argument(s)" unlabelled
 
-let search_kind expression =
+let search_kind ~name expression =
   let callee, arguments = arguments expression in
   let values = unlabelled_arguments arguments in
-  let kind, type_expression =
+  let kind, type_expression, unlabelled =
     if is_identifier [ "Router"; "Search"; "required" ] callee then
       match values with
-      | [ typ ] -> (Required, typ)
+      | [ typ ] -> (Required, typ, 1)
       | _ -> error ~loc:expression.pexp_loc "Search.required expects one type"
     else if is_identifier [ "Router"; "Search"; "optional" ] callee then
       match values with
-      | [ typ ] -> (Optional, typ)
+      | [ typ ] -> (Optional, typ, 1)
       | _ -> error ~loc:expression.pexp_loc "Search.optional expects one type"
     else if is_identifier [ "Router"; "Search"; "default" ] callee then
       match values with
-      | [ typ; default ] -> (Default default, typ)
+      | [ typ; default ] -> (Default default, typ, 2)
       | _ -> error ~loc:expression.pexp_loc "Search.default expects a type and default"
     else if is_identifier [ "Router"; "Search"; "many" ] callee then
-      match values with [ typ ] -> (Many, typ) | _ -> error ~loc:expression.pexp_loc "Search.many expects one type"
+      match values with [ typ ] -> (Many, typ, 1) | _ -> error ~loc:expression.pexp_loc "Search.many expects one type"
     else error ~loc:expression.pexp_loc "unknown search schema constructor"
+  in
+  validate_arguments ~loc:expression.pexp_loc ~allowed:[ "key"; "shallow" ] ~unlabelled arguments;
+  let shallow =
+    match argument (Labelled "shallow") arguments with
+    | None -> false
+    | Some { pexp_desc = Pexp_construct ({ txt = Lident "true"; _ }, None); _ } -> true
+    | Some { pexp_desc = Pexp_construct ({ txt = Lident "false"; _ }, None); _ } -> false
+    | Some shallow_expression ->
+        error ~loc:shallow_expression.pexp_loc "~shallow takes true or false, for example ~shallow:true"
+  in
+  let key =
+    match argument (Labelled "key") arguments with
+    | None -> name
+    | Some key_expression ->
+        let key =
+          match key_expression.pexp_desc with
+          | Pexp_constant (Pconst_string (key, _, _)) -> key
+          | _ -> error ~loc:key_expression.pexp_loc "~key takes a string literal, for example ~key:\"info-page\""
+        in
+        if String.equal key "" then error ~loc:key_expression.pexp_loc "search key must not be empty";
+        if not (RouterPattern.validUtf8 key) then
+          error ~loc:key_expression.pexp_loc "search key %S is not valid UTF-8" key;
+        key
   in
   let type_name = type_name_of_expression type_expression in
   ( kind,
+    key,
+    shallow,
     type_of_name ~loc:type_expression.pexp_loc type_name,
     parser_of_type ~loc:type_expression.pexp_loc type_name,
     to_string_of_type ~loc:type_expression.pexp_loc type_name )
@@ -255,8 +286,8 @@ let search_of_expression expression =
             | name :: _ -> name
             | [] -> error ~loc "search field needs a name"
           in
-          let kind, typ, parser, to_string = search_kind value in
-          { name; typ; parser; to_string; kind; loc })
+          let kind, key, shallow, typ, parser, to_string = search_kind ~name value in
+          { name; key; typ; parser; to_string; kind; shallow; loc })
         fields
   | _ -> error ~loc:expression.pexp_loc "~search must be a record schema"
 
@@ -287,10 +318,19 @@ let loader_alias expression =
   | Pexp_ident { txt = Longident.Lident name; _ } | Pexp_construct ({ txt = Longident.Lident name; _ }, None) -> name
   | _ -> error ~loc:expression.pexp_loc "~loaderLabel must be an identifier"
 
+let loader_parallel expression =
+  match expression.pexp_desc with
+  | Pexp_construct ({ txt = Longident.Lident "true"; _ }, None) -> true
+  | Pexp_construct ({ txt = Longident.Lident "false"; _ }, None) -> false
+  | _ -> error ~loc:expression.pexp_loc "~loaderParallel takes a bool literal, for example ~loaderParallel=true"
+
 let attachments arguments =
   let loader =
     match argument (Labelled "loader") arguments with
     | None -> (
+        (match argument (Labelled "loaderParallel") arguments with
+        | Some parallel -> error ~loc:parallel.pexp_loc "~loaderParallel requires ~loader"
+        | None -> ());
         match argument (Labelled "loaderLabel") arguments with
         | Some alias -> error ~loc:alias.pexp_loc "~loaderLabel requires ~loader"
         | None -> None)
@@ -301,7 +341,12 @@ let attachments arguments =
           | Some alias -> loader_alias alias
           | None -> inferred_label
         in
-        Some { run; result_label; loc = loader.pexp_loc }
+        let parallel =
+          match argument (Labelled "loaderParallel") arguments with
+          | Some parallel -> loader_parallel parallel
+          | None -> false
+        in
+        Some { run; result_label; parallel; loc = loader.pexp_loc }
   in
   let component label = Option.map (component_attachment ~label) (argument (Labelled label) arguments) in
   {
@@ -349,9 +394,21 @@ let bool_argument label arguments =
   | Some { pexp_desc = Pexp_construct ({ txt = Longident.Lident "false"; _ }, None); _ } -> Some false
   | Some expression -> error ~loc:expression.pexp_loc "~%s must be true or false" label
 
+let float_argument label arguments =
+  match argument (Labelled label) arguments with
+  | None -> None
+  | Some { pexp_desc = Pexp_constant (Pconst_float (literal, None)); _ } -> Some literal
+  | Some expression -> error ~loc:expression.pexp_loc "~%s must be a float literal, such as 30.0" label
+
+let reject_context ~callee arguments =
+  match argument (Labelled "context") arguments with
+  | Some context -> error ~loc:context.pexp_loc "%s cannot declare ~context; declare it on Router.make" callee
+  | None -> ()
+
 let rec node_of_expression ~address expression =
   let callee, arguments = arguments expression in
   if is_identifier [ "Router"; "route" ] callee then (
+    let () = reject_context ~callee:"Router.route" arguments in
     let () =
       validate_arguments ~loc:expression.pexp_loc
         ~allowed:([ "page"; "path"; "search"; "prefetch" ] @ attachment_labels)
@@ -380,6 +437,7 @@ let rec node_of_expression ~address expression =
         path optional max_optional_segments;
     Route { name; page; scope = scope ~id:("route:" ^ name) ~path arguments expression; loc = expression.pexp_loc })
   else if is_identifier [ "Router"; "group" ] callee then
+    let () = reject_context ~callee:"Router.group" arguments in
     let () =
       match argument (Labelled "search") arguments with
       | Some search ->
@@ -416,6 +474,7 @@ let rec node_of_expression ~address expression =
           }
     | _ -> error ~loc:expression.pexp_loc "group requires a child list"
   else if is_identifier [ "Router"; "redirect" ] callee then (
+    let () = reject_context ~callee:"Router.redirect" arguments in
     let () =
       validate_arguments ~loc:expression.pexp_loc
         ~allowed:[ "path"; "search"; "target"; "permanent" ]
@@ -461,6 +520,7 @@ let generated_labels =
   [
     "applicationStatus";
     "ariaCurrent";
+    "attributes";
     "basePath";
     "children";
     "className";
@@ -535,21 +595,30 @@ let endpoints declaration =
       (match duplicate (List.map (fun (search : search) -> search.name) search) with
       | Some name -> error ~loc "duplicate search parameter %s" name
       | None -> ());
+      (match duplicate (List.map (fun (search : search) -> search.key) search) with
+      | Some key ->
+          let search = List.filter (fun (search : search) -> String.equal search.key key) search in
+          let labels = List.map (fun (search : search) -> search.name) search in
+          let loc = match List.rev search with last :: _ -> last.loc | [] -> loc in
+          error ~loc "duplicate search key %S, used by %s" key (String.concat " and " labels)
+      | None -> ());
       let labels = List.map (fun (parameter : parameter) -> parameter.name) parameters @ loader_labels in
       match duplicate labels with
       | Some label -> error ~loc "duplicate branch input label %s" label
       | None ->
           List.iter
             (fun label ->
-              if List.mem label generated_labels then
-                error ~loc "branch input label %s conflicts with a generated router argument" label)
+              if List.mem label generated_labels || (Option.is_some declaration.context && String.equal label "context")
+              then error ~loc "branch input label %s conflicts with a generated router argument" label)
             labels)
     endpoints;
   let routes = List.filter_map (function Page route -> Some route | RedirectTo _ -> None) endpoints in
   (match duplicate (List.map (fun (route : route) -> route.name) routes) with
   | Some name -> error ~loc:declaration.loc "duplicate generated route name %s" name
   | None -> ());
-  let reserved = [ "Status"; "Loader"; "Error"; "Metadata"; "Headers"; "Navigation"; "Search"; "Link" ] in
+  let reserved =
+    [ "Status"; "Loader"; "Error"; "Metadata"; "Headers"; "Navigation"; "Search"; "Link"; "ActiveSearch" ]
+  in
   List.iter
     (fun route ->
       if List.mem route.name reserved then error ~loc:route.loc "generated route name %s is reserved" route.name)
@@ -613,7 +682,15 @@ let declaration_of_expression expression =
       validate_arguments ~loc:expression.pexp_loc
         ~allowed:
           ([
-             "basePath"; "trailingSlash"; "search"; "invalidSearch"; "interceptLinks"; "viewTransitions"; "errorStatus";
+             "basePath";
+             "trailingSlash";
+             "search";
+             "invalidSearch";
+             "interceptLinks";
+             "viewTransitions";
+             "pageCacheMaxAge";
+             "errorStatus";
+             "context";
            ]
           @ attachment_labels)
         ~unlabelled:1 arguments
@@ -650,8 +727,13 @@ let declaration_of_expression expression =
         trailing_slash = trailing_slash_policy arguments;
         intercept_links = bool_argument "interceptLinks" arguments;
         view_transitions = bool_argument "viewTransitions" arguments;
+        page_cache_max_age = float_argument "pageCacheMaxAge" arguments;
         error_status;
         invalid_search;
+        context =
+          Option.map
+            (fun context -> type_of_name ~loc:context.pexp_loc (type_name_of_expression context))
+            (argument (Labelled "context") arguments);
         root =
           {
             scope = root_scope;

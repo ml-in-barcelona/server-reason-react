@@ -8,7 +8,7 @@ let contains ~needle value =
   in
   loop 0
 
-let registry seen : ((React.element, string) RouterServer.Plan.t, string) RouterServer.EndpointRegistry.t =
+let registry seen : ((React.element, string) RouterServer.Plan.t, string, unit) RouterServer.EndpointRegistry.t =
   let endpoint =
     let metadata =
       RouterServer.Plan.Scope.make ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"Item" ())) ()
@@ -269,9 +269,9 @@ let registry_mismatch_returns_reload_required () =
   Alcotest.(check (option string)) "response kind" (Some "reload-required") (Dream.header response "Router-Response");
   Alcotest.(check (option string)) "endpoint skipped" None !seen
 
-let patch_registry () : ((React.element, string) RouterServer.Plan.t, string) RouterServer.EndpointRegistry.t =
-  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~reusable:true in
-  let route_branch id = RouterServer.Branch.Scope.make ~id ~parameters:[] ~reusable:true in
+let patch_registry () : ((React.element, string) RouterServer.Plan.t, string, unit) RouterServer.EndpointRegistry.t =
+  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~search:[] ~reusable:true in
+  let route_branch id = RouterServer.Branch.Scope.make ~id ~parameters:[] ~search:[] ~reusable:true in
   let root_scope =
     RouterServer.Plan.Scope.make ~layout:(fun child -> React.array [| React.string (String.make 2000 'x'); child |]) ()
   in
@@ -324,6 +324,23 @@ let patch_payload_is_smaller_than_full () =
   let patch_body = Lwt_main.run (Dream.body patch_response) in
   Alcotest.(check bool) "smaller" true (String.length patch_body < String.length full_body);
   Alcotest.(check (option string)) "patch" (Some "patch") (Dream.header patch_response "Router-Response")
+
+let empty_query_keeps_the_patch () =
+  let registry = patch_registry () in
+  let request =
+    Dream.request ~target:"/app/detail?"
+      ~headers:
+        [
+          ("Accept", "application/react.component");
+          ("Router-Registry", "2." ^ RouterServer.EndpointRegistry.fingerprint registry);
+          ("Router-Navigation-From", "/app");
+          ("Router-Base-Revision", "base");
+        ]
+      ""
+  in
+  let response = Dream.test (patch_handler registry) request in
+  Alcotest.(check (option string)) "patch" (Some "patch") (Dream.header response "Router-Response");
+  Alcotest.(check (option string)) "location" (Some "/app/detail") (Dream.header response "X-Location")
 
 let rsc_redirect_uses_navigation_envelope () =
   let endpoint =
@@ -512,6 +529,35 @@ let prefetch_above_route_level_is_refused () =
   Alcotest.(check (option string)) "level" (Some "intent") (Dream.header response "Router-Prefetch-Refused");
   Alcotest.(check (option string)) "vary" (Some "Accept, Router-Prefetch") (Dream.header response "Vary");
   Alcotest.(check string) "body" "" (Lwt_main.run (Dream.body response))
+
+let loaders_read_the_context () =
+  let endpoint =
+    RouterServer.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
+        Ok
+          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun context ->
+               RouterServer.Execution.load
+                 (fun () -> Lwt.return (RouterRuntime.Loader.Data context))
+                 (fun viewer ->
+                   RouterServer.Execution.done_
+                     (RouterServer.Plan.success ~scopes:[] ~page:(React.string ("viewer:" ^ viewer)))))))
+  in
+  let server =
+    RouterServer.Server.makeWithContext ~basePath:"/app"
+      ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
+      ~fallback:(fun ~context:_ ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+      ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+      ()
+  in
+  let router =
+    Dream.router
+      (DreamRouter.routesWithContext ~server
+         ~context:(fun request -> Option.value (Dream.header request "X-Viewer") ~default:"anonymous")
+         ~actionHandler:(fun _ -> Dream.empty `OK)
+         ~document ())
+  in
+  let body headers = Lwt_main.run (Lwt.bind (router (Dream.request ~target:"/app/item" ~headers "")) Dream.body) in
+  Alcotest.(check bool) "from the request" true (contains ~needle:"viewer:ada" (body [ ("X-Viewer", "ada") ]));
+  Alcotest.(check bool) "default" true (contains ~needle:"viewer:anonymous" (body []))
 
 let loaders_see_their_own_request () =
   let target () = match DreamRouter.request () with Some request -> Dream.target request | None -> "none" in
@@ -702,6 +748,52 @@ let no_js_form_failure_renders_the_boundary () =
   Alcotest.(check bool) "no error detail" false (contains ~needle:"save failed" body);
   Alcotest.(check (option string)) "cookie discarded" None (Dream.header response "Set-Cookie")
 
+let no_js_form_failure_honours_render_signals () =
+  let form =
+    React.createElement "form"
+      [
+        React.JSX.Action ("action", "action", { Runtime.id = "fail"; call = (fun () -> Lwt.return (React.string "")) });
+      ]
+      []
+  in
+  let endpoint path boundary =
+    RouterServer.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
+        Ok
+          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterServer.Execution.done_
+                 (RouterServer.Plan.withFailure (RouterServer.Plan.success ~scopes:[] ~page:form) (fun error ->
+                      RouterServer.Plan.failure ~scopes:[] ~error
+                        ~notFound:(fun _ -> React.createElement "p" [] [ React.string "gone" ])
+                        ~errorBoundary:(fun _ -> React.Upper_case_component ("Boundary", boundary))
+                        ())))))
+  in
+  let registry =
+    RouterServer.EndpointRegistry.makeExn
+      [
+        endpoint "/moved" (fun () -> RouterServer.Render.redirect (RouterRuntime.destination ~path:"/app/login"));
+        endpoint "/gone" (fun () -> RouterServer.Render.notFound ());
+      ]
+  in
+  let lookup = function
+    | "fail" -> Some (ReactServerDOM.FormData (fun _ _ -> Lwt.fail (Failure "save failed")))
+    | _ -> None
+  in
+  let router =
+    Dream.router
+      (DreamRouter.routes ~server:(server registry)
+         ~actionHandler:(fun _ -> Dream.empty `OK)
+         ~lookup
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~document ())
+  in
+  let response = Dream.test router (form_post "/app/moved" [ ("$ACTION_ID_fail", "") ]) in
+  Alcotest.(check int) "redirect status" 303 (status response);
+  Alcotest.(check (option string)) "redirect location" (Some "/app/login") (location response);
+  let response = Dream.test router (form_post "/app/gone" [ ("$ACTION_ID_fail", "") ]) in
+  let body = Lwt_main.run (Dream.body response) in
+  Alcotest.(check int) "not found status" 404 (status response);
+  Alcotest.(check bool) "not-found boundary" true (contains ~needle:"<p>gone</p>" body)
+
 let no_js_form_post_checks_origin () =
   let fixture = form_fixture () in
   let response =
@@ -783,7 +875,7 @@ let server_links_see_the_location () =
   Alcotest.(check bool) "html" true (contains ~needle:{|aria-current="page"|} document);
   Alcotest.(check bool) "document payload" true (contains ~needle:{|"aria-current":"page"|} document);
   Alcotest.(check bool) "navigation payload" true (contains ~needle:{|"aria-current":"page"|} navigation);
-  Alcotest.(check bool) "keyed client root" true (contains ~needle:{|"$L1","router:root"|} document)
+  Alcotest.(check bool) "keyed client root" true (contains ~needle:{|"router:root",{"initial":|} document)
 
 let no_js_form_post_never_answers_a_method_preserving_redirect () =
   List.iter
@@ -864,6 +956,7 @@ let () =
           test "rejected action discards cookie and streams error" rejected_action_discards_cookie_and_streams_error;
           test "registry mismatch returns reload-required" registry_mismatch_returns_reload_required;
           test "patch payload is smaller than full" patch_payload_is_smaller_than_full;
+          test "empty query keeps the patch" empty_query_keeps_the_patch;
           test "RSC redirect uses navigation envelope" rsc_redirect_uses_navigation_envelope;
           test "loader permanent redirect answers 308 and rsc envelope"
             loader_permanent_redirect_answers_308_and_rsc_envelope;
@@ -876,9 +969,11 @@ let () =
           test "prefetch matches navigation" prefetch_matches_navigation;
           test "prefetch above route level is refused" prefetch_above_route_level_is_refused;
           test "loaders see their own request" loaders_see_their_own_request;
+          test "loaders read the context" loaders_read_the_context;
           test "no-JS form post redirects to the page" no_js_form_post_redirects_to_the_page;
           test "no-JS form redirect follows the server function" no_js_form_redirect_follows_the_server_function;
           test "no-JS form failure renders the boundary" no_js_form_failure_renders_the_boundary;
+          test "no-JS form failure honours render signals" no_js_form_failure_honours_render_signals;
           test "no-JS form post checks origin" no_js_form_post_checks_origin;
           test "JS server function call is unchanged" js_server_function_call_is_unchanged;
           test "JS action redirect sets header" js_action_redirect_sets_header;
