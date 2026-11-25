@@ -71,7 +71,8 @@ let updateSearch: updateSearch = (~owned, ~values, ~history as _=?, ()) => {
 let updateSearchWith: updateSearchWith = (~owned, ~history as _=?, update) => {
   let values = update(searchValues^);
   searchUpdates := [(owned, values), ...searchUpdates^];
-  searchValues := RouterRuntime.Search.update(~owned, ~values, searchValues^);
+  searchValues :=
+    RouterEngine.SearchValues.update(~owned, ~values, searchValues^);
   RouterRuntime.Navigation.Result.Canceled;
 };
 let updateHash: updateHash = (~hash as _, ~history as _=?, ()) =>

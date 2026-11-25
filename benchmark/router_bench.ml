@@ -4,10 +4,10 @@ type result = { name : string; nanoseconds : float; words : float }
 let sink = ref 0
 let samples = 7
 let sample_seconds = 0.03
-let route ~id ~path = RouterServer.Route.make ~id ~path
+let route ~id ~path = RouterEngine.Route.make ~id ~path
 
 let registry routes =
-  match RouterServer.Registry.make routes with
+  match RouterEngine.Registry.make routes with
   | Ok registry -> registry
   | Error _ -> failwith "invalid benchmark registry"
 
@@ -24,58 +24,58 @@ let dynamic_registry count =
   |> registry
 
 let endpoint ~id ~path =
-  RouterServer.Endpoint.make ~id ~path ~activeRoutes:[] ~fingerprint:id ~decode:(fun _ ->
+  RouterEngine.Endpoint.make ~id ~path ~activeRoutes:[] ~fingerprint:id ~decode:(fun _ ->
       Ok
-        (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-             RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:()))))
+        (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+             RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page:()))))
 
 let static_endpoint_registry count =
   List.init count (fun index ->
       let value = Printf.sprintf "%04d" index in
       endpoint ~id:("static-" ^ value) ~path:("/static/" ^ value))
-  |> RouterServer.EndpointRegistry.makeExn
+  |> RouterEngine.EndpointRegistry.makeExn
 
 let dynamic_endpoint_registry count =
   List.init count (fun index ->
       let value = Printf.sprintf "%04d" index in
       endpoint ~id:("dynamic-" ^ value) ~path:("/resource/" ^ value ^ "/:id<string>"))
-  |> RouterServer.EndpointRegistry.makeExn
+  |> RouterEngine.EndpointRegistry.makeExn
 
 let consume_match registry pathname () =
-  match RouterServer.Match.find registry ~pathname with
-  | Ok (Some matched) -> sink := !sink + String.length (RouterServer.Route.id matched.route)
+  match RouterEngine.Match.find registry ~pathname with
+  | Ok (Some matched) -> sink := !sink + String.length (RouterEngine.Route.id matched.route)
   | Ok None -> sink := !sink + 1
   | Error _ -> sink := !sink + 2
 
 let consume_path pathname () =
-  match RouterServer.Path.decodePathname pathname with
+  match RouterEngine.Path.decodePathname pathname with
   | Ok segments -> sink := !sink + List.length segments
   | Error _ -> sink := !sink + 1
 
 let consume_endpoint_match registry pathname () =
-  match RouterServer.EndpointRegistry.find registry ~pathname with
+  match RouterEngine.EndpointRegistry.find registry ~pathname with
   | Ok (Some matched) ->
-      sink := !sink + String.length (RouterServer.EndpointRegistry.route matched |> RouterServer.Route.id)
+      sink := !sink + String.length (RouterEngine.EndpointRegistry.route matched |> RouterEngine.Route.id)
   | Ok None -> sink := !sink + 1
   | Error _ -> sink := !sink + 2
 
 let consume_search search () =
-  match RouterServer.Search.parse search with
-  | Ok parsed -> sink := !sink + List.length (RouterServer.Search.values parsed "tag")
+  match RouterEngine.Search.parse search with
+  | Ok parsed -> sink := !sink + List.length (RouterEngine.Search.values parsed "tag")
   | Error _ -> sink := !sink + 1
 
 let page_registry () =
-  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~search:[] ~reusable:true in
+  let root_branch = RouterEngine.Branch.Scope.make ~id:"root" ~parameters:[] ~search:[] ~reusable:true in
   let headers values = match RouterRuntime.Headers.make values with Ok headers -> headers | Error _ -> assert false in
   let root =
-    RouterServer.Plan.Scope.make
+    RouterEngine.Plan.Scope.make
       ~layout:(fun child -> child)
       ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"App" ~description:"Root" ()))
       ~headers:(fun () -> Lwt.return (headers [ ("Vary", "Cookie"); ("Cache-Control", "private") ]))
       ()
   in
   let leaf id =
-    RouterServer.Plan.Scope.make
+    RouterEngine.Plan.Scope.make
       ~metadata:(fun () ->
         Lwt.return
           (RouterRuntime.Metadata.make ~title:id ~entries:[ RouterRuntime.Metadata.meta ~name:"robots" "noindex" ] ()))
@@ -83,35 +83,36 @@ let page_registry () =
       ()
   in
   let endpoint id =
-    RouterServer.Endpoint.make ~id
+    RouterEngine.Endpoint.make ~id
       ~path:("/" ^ id ^ "/:id<string>")
       ~activeRoutes:[ (id, [ "id" ]) ]
       ~fingerprint:id
       ~decode:(fun input ->
-        match RouterServer.Decode.path ~input ~name:"id" ~parse:(fun value -> Ok value) with
+        match RouterEngine.Decode.path ~input ~name:"id" ~parse:(fun value -> Ok value) with
         | Error error -> Error error
         | Ok value ->
             Ok
-              (RouterServer.Endpoint.prepared
+              (RouterEngine.Endpoint.prepared
                  ~branch:
                    [
                      root_branch;
-                     RouterServer.Branch.Scope.make ~id ~parameters:[ ("id", value) ] ~search:[] ~reusable:true;
+                     RouterEngine.Branch.Scope.make ~id ~parameters:[ ("id", value) ] ~search:[] ~reusable:true;
                    ]
                  ~execution:(fun () ->
-                   RouterServer.Execution.load
+                   RouterEngine.Execution.load
                      (fun () -> Lwt.return (RouterRuntime.Loader.Data value))
                      (fun data ->
-                       RouterServer.Execution.done_
-                         (RouterServer.Plan.success ~scopes:[ root; leaf id ] ~page:(String.length data))))))
+                       RouterEngine.Execution.done_
+                         (RouterEngine.Plan.success ~scopes:[ root; leaf id ] ~page:(String.length data))))))
   in
-  RouterServer.EndpointRegistry.makeExn [ endpoint "notes"; endpoint "teams" ]
+  RouterEngine.EndpointRegistry.makeExn [ endpoint "notes"; endpoint "teams" ]
 
 let engine_outcome registry request =
   match
     Lwt.state
-      (RouterServer.ServerEngine.run ~registry ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
-         ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+      (RouterEngine.ServerEngine.run ~context:() ~registry ~basePath:"/"
+         ~trailingSlash:RouterEngine.TrailingSlash.Redirect
+         ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
          ~applicationStatus:(fun () -> RouterRuntime.Status.InternalServerError)
          ~diagnosticId:(fun _ -> "diagnostic")
          ~protocolVersion:1 request)
@@ -121,8 +122,8 @@ let engine_outcome registry request =
 
 let consume_engine registry request () =
   match engine_outcome registry request with
-  | RouterServer.ServerEngine.Full full -> sink := !sink + List.length full.matches
-  | RouterServer.ServerEngine.Patch patch -> sink := !sink + String.length patch.replace_from
+  | RouterEngine.ServerEngine.Full full -> sink := !sink + List.length full.matches
+  | RouterEngine.ServerEngine.Patch patch -> sink := !sink + String.length patch.replace_from
   | _ -> sink := !sink + 1
 
 let run_iterations iterations run =
@@ -204,21 +205,21 @@ let () =
   let large_static_endpoints = static_endpoint_registry 512 in
   let large_dynamic_endpoints = dynamic_endpoint_registry 512 in
   let pages = page_registry () in
-  let page_request ?navigation kind : RouterServer.ServerEngine.request =
+  let page_request ?navigation kind : RouterEngine.ServerEngine.request =
     { pathname = "/notes/42"; search = "?tab=a"; hash = ""; kind; navigation }
   in
   let patch_navigation =
     {
-      RouterServer.ServerEngine.from = Some "/teams/7?tab=a";
-      registry = Some ("1." ^ RouterServer.EndpointRegistry.fingerprint pages);
+      RouterEngine.ServerEngine.from = Some "/teams/7?tab=a";
+      registry = Some ("1." ^ RouterEngine.EndpointRegistry.fingerprint pages);
       base_revision = Some "base";
     }
   in
   (match engine_outcome pages (page_request Document) with
-  | RouterServer.ServerEngine.Full _ -> ()
+  | RouterEngine.ServerEngine.Full _ -> ()
   | _ -> failwith "engine/full-document must give a full response");
   (match engine_outcome pages (page_request ~navigation:patch_navigation Rsc) with
-  | RouterServer.ServerEngine.Patch _ -> ()
+  | RouterEngine.ServerEngine.Patch _ -> ()
   | _ -> failwith "engine/patch-rsc must give a patch");
   let benchmarks =
     [

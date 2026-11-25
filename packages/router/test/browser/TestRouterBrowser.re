@@ -367,27 +367,27 @@ let searchTarget = {
 };
 expect(
   "different content identities were classified as shallow",
-  RouterRuntime.Navigation.classifyPopByContentIdentity(
+  RouterEngine.Navigation.classifyPopByContentIdentity(
     committed,
     ~target=searchTarget,
     ~currentIdentity="content-2",
     ~targetIdentity=Some("content-1"),
   )
-  == RouterRuntime.Navigation.Content,
+  == RouterEngine.Navigation.Content,
 );
 expect(
   "a shallow search entry was classified as content",
-  RouterRuntime.Navigation.classifyPopByContentIdentity(
+  RouterEngine.Navigation.classifyPopByContentIdentity(
     committed,
     ~target=searchTarget,
     ~currentIdentity="content-2",
     ~targetIdentity=Some("content-2"),
   )
-  == RouterRuntime.Navigation.Shallow,
+  == RouterEngine.Navigation.Shallow,
 );
 expect(
   "a hash entry was not classified as hash-only",
-  RouterRuntime.Navigation.classifyPopByContentIdentity(
+  RouterEngine.Navigation.classifyPopByContentIdentity(
     committed,
     ~target={
       ...location,
@@ -396,39 +396,39 @@ expect(
     ~currentIdentity="content-2",
     ~targetIdentity=Some("content-2"),
   )
-  == RouterRuntime.Navigation.HashOnly,
+  == RouterEngine.Navigation.HashOnly,
 );
 
-let navigationState = RouterRuntime.Navigation.make(committed);
+let navigationState = RouterEngine.Navigation.make(committed);
 let (firstState, firstRequest) =
-  RouterRuntime.Navigation.start(
+  RouterEngine.Navigation.start(
     navigationState,
     ~to_=searchTarget,
     ~action=RouterRuntime.Navigation.Pop,
   );
 expect(
   "a loading request was not active",
-  RouterRuntime.Navigation.isActive(firstState, ~requestId=firstRequest),
+  RouterEngine.Navigation.isActive(firstState, ~requestId=firstRequest),
 );
 let (secondState, secondRequest) =
-  RouterRuntime.Navigation.start(
+  RouterEngine.Navigation.start(
     firstState,
     ~to_=searchTarget,
     ~action=RouterRuntime.Navigation.Push,
   );
 expect(
   "a superseded request was still active",
-  !RouterRuntime.Navigation.isActive(secondState, ~requestId=firstRequest),
+  !RouterEngine.Navigation.isActive(secondState, ~requestId=firstRequest),
 );
 expect(
   "the newest request was not active",
-  RouterRuntime.Navigation.isActive(secondState, ~requestId=secondRequest),
+  RouterEngine.Navigation.isActive(secondState, ~requestId=secondRequest),
 );
 expect(
   "a request was active after the navigation went idle",
   !
-    RouterRuntime.Navigation.isActive(
-      RouterRuntime.Navigation.shallow(
+    RouterEngine.Navigation.isActive(
+      RouterEngine.Navigation.shallow(
         secondState,
         ~location=searchTarget,
         ~action=RouterRuntime.Navigation.Push,
@@ -439,7 +439,7 @@ expect(
 
 expect(
   "the removed failed response kind was still accepted",
-  RouterRuntime.NavigationResponse.kindOfString("failed") == None,
+  RouterEngine.NavigationResponse.kindOfString("failed") == None,
 );
 
 let encodingTable = [
@@ -457,17 +457,17 @@ let encodingTable = [
   ({js|😀|js}, "%F0%9F%98%80"),
   ("a-b_c.d~e!*'()", "a-b_c.d~e!*'()"),
 ];
-let encodingPattern = RouterRuntime.pattern("/:v<string>");
+let encodingPattern = RouterEngine.pattern("/:v<string>");
 List.iter(
   ((input, expected)) => {
     expect(
       "search encoding differs for " ++ input,
-      RouterRuntime.encodeSearch([("k", [input])]) == "k=" ++ expected,
+      RouterEngine.encodeSearch([("k", [input])]) == "k=" ++ expected,
     );
     expect(
       "destination search encoding differs for " ++ input,
       RouterRuntime.href(
-        RouterRuntime.destinationFromPattern(
+        RouterEngine.destinationFromPattern(
           ~pattern=encodingPattern,
           ~parameters=[("v", "x")],
           ~search=[("k", [input])],
@@ -480,7 +480,7 @@ List.iter(
       expect(
         "path encoding differs for " ++ input,
         RouterRuntime.href(
-          RouterRuntime.destinationFromPattern(
+          RouterEngine.destinationFromPattern(
             ~pattern=encodingPattern,
             ~parameters=[("v", input)],
             ~search=[],
@@ -495,13 +495,13 @@ List.iter(
 );
 expect(
   "search is not sorted by name",
-  RouterRuntime.encodeSearch([("b", ["1"]), ("a", ["2", "3"])])
+  RouterEngine.encodeSearch([("b", ["1"]), ("a", ["2", "3"])])
   == "a=2&a=3&b=1",
 );
 
 expect(
   "search names are not sorted by code point",
-  RouterRuntime.encodeSearch([
+  RouterEngine.encodeSearch([
     (Js.String.fromCodePoint(0x1f600), ["2"]),
     (Js.String.fromCodePoint(0xff21), ["1"]),
   ])
@@ -520,25 +520,25 @@ let rejects = encode =>
 expect(
   "a lone surrogate in a search value was printed",
   rejects(() =>
-    RouterRuntime.encodeSearch([("k", [Js.String.fromCharCode(0xd800)])])
+    RouterEngine.encodeSearch([("k", [Js.String.fromCharCode(0xd800)])])
   ),
 );
 expect(
   "a lone surrogate in a search name was printed",
   rejects(() =>
-    RouterRuntime.encodeSearch([(Js.String.fromCharCode(0xdc00), ["v"])])
+    RouterEngine.encodeSearch([(Js.String.fromCharCode(0xdc00), ["v"])])
   ),
 );
 expect(
   "a surrogate pair in a search value was replaced",
-  RouterRuntime.encodeSearch([("k", [{js|😀|js}])]) == "k=%F0%9F%98%80",
+  RouterEngine.encodeSearch([("k", [{js|😀|js}])]) == "k=%F0%9F%98%80",
 );
 
 List.iter(
   ((input, expected)) =>
     expect(
       "parseInt differs for " ++ input,
-      RouterRuntime.Search.parseInt(input) == expected,
+      RouterEngine.SearchValues.parseInt(input) == expected,
     ),
   [
     ("2147483647", Ok(2147483647)),
@@ -561,14 +561,15 @@ let badSearch = [
   ("o", ["nope"]),
   ("r", ["nope"]),
 ];
-let parseInt = RouterRuntime.Search.parseInt;
+let parseInt = RouterEngine.SearchValues.parseInt;
 expect(
   "a bad optional search value was not read as None",
-  RouterRuntime.Search.optional(~name="o", ~parse=parseInt, badSearch) == None,
+  RouterEngine.SearchValues.optional(~name="o", ~parse=parseInt, badSearch)
+  == None,
 );
 expect(
   "a bad defaulted search value did not fall back to the default",
-  RouterRuntime.Search.default(
+  RouterEngine.SearchValues.default(
     ~name="page",
     ~parse=parseInt,
     ~fallback=1,
@@ -578,20 +579,26 @@ expect(
 );
 expect(
   "bad repeated search values were not skipped",
-  RouterRuntime.Search.many(~name="n", ~parse=parseInt, badSearch) == [1, 3],
+  RouterEngine.SearchValues.many(~name="n", ~parse=parseInt, badSearch)
+  == [1, 3],
 );
 expect(
   "a bad required search value was not read as None",
-  RouterRuntime.Search.required(~name="r", ~parse=parseInt, badSearch) == None,
+  RouterEngine.SearchValues.required(~name="r", ~parse=parseInt, badSearch)
+  == None,
 );
 expect(
   "a missing required search value was not read as None",
-  RouterRuntime.Search.required(~name="missing", ~parse=parseInt, badSearch)
+  RouterEngine.SearchValues.required(
+    ~name="missing",
+    ~parse=parseInt,
+    badSearch,
+  )
   == None,
 );
 expect(
   "a good required search value was not read",
-  RouterRuntime.Search.required(
+  RouterEngine.SearchValues.required(
     ~name="r",
     ~parse=parseInt,
     [("r", ["7", "8"])],
@@ -1169,7 +1176,7 @@ expect(
   "a content navigation with a hash did not scroll to the fragment",
   RouterPolicy.scrollFor(
     ~resetScroll=true,
-    ~kind=RouterRuntime.Navigation.Content,
+    ~kind=RouterEngine.Navigation.Content,
     ~saved=None,
     "#details",
   )
@@ -1179,7 +1186,7 @@ expect(
   "an encoded fragment was not decoded",
   RouterPolicy.scrollFor(
     ~resetScroll=true,
-    ~kind=RouterRuntime.Navigation.Content,
+    ~kind=RouterEngine.Navigation.Content,
     ~saved=None,
     "#caf%C3%A9",
   )
@@ -1189,7 +1196,7 @@ expect(
   "a content navigation without a hash did not scroll to the top",
   RouterPolicy.scrollFor(
     ~resetScroll=true,
-    ~kind=RouterRuntime.Navigation.Content,
+    ~kind=RouterEngine.Navigation.Content,
     ~saved=None,
     "",
   )
@@ -1199,7 +1206,7 @@ expect(
   "a shallow navigation without a hash scrolled",
   RouterPolicy.scrollFor(
     ~resetScroll=true,
-    ~kind=RouterRuntime.Navigation.Shallow,
+    ~kind=RouterEngine.Navigation.Shallow,
     ~saved=None,
     "",
   )
@@ -1209,7 +1216,7 @@ expect(
   "a content navigation that keeps its scroll scrolled to the top",
   RouterPolicy.scrollFor(
     ~resetScroll=false,
-    ~kind=RouterRuntime.Navigation.Content,
+    ~kind=RouterEngine.Navigation.Content,
     ~saved=None,
     "",
   )
@@ -1219,7 +1226,7 @@ expect(
   "a content navigation that keeps its scroll ignored the fragment",
   RouterPolicy.scrollFor(
     ~resetScroll=false,
-    ~kind=RouterRuntime.Navigation.Content,
+    ~kind=RouterEngine.Navigation.Content,
     ~saved=None,
     "#details",
   )
@@ -1229,7 +1236,7 @@ expect(
   "a saved position did not win over the fragment",
   RouterPolicy.scrollFor(
     ~resetScroll=true,
-    ~kind=RouterRuntime.Navigation.Content,
+    ~kind=RouterEngine.Navigation.Content,
     ~saved=Some((0.0, 9.0)),
     "#details",
   )
@@ -1788,22 +1795,22 @@ expect(
   "a shallow pop to an unreadable search stayed on the client",
   RouterPolicy.popKind(
     ~search="?text=" ++ String.make(8190, 'a'),
-    RouterRuntime.Navigation.Shallow,
+    RouterEngine.Navigation.Shallow,
   )
-  == RouterRuntime.Navigation.Content,
+  == RouterEngine.Navigation.Content,
 );
 expect(
   "a shallow pop to a search with a malformed pair went to the server",
-  RouterPolicy.popKind(~search="?text=%FF", RouterRuntime.Navigation.Shallow)
-  == RouterRuntime.Navigation.Shallow,
+  RouterPolicy.popKind(~search="?text=%FF", RouterEngine.Navigation.Shallow)
+  == RouterEngine.Navigation.Shallow,
 );
 expect(
   "a hash-only pop on a page with an unreadable search went to the server",
-  RouterPolicy.popKind(~search="?text=%ZZ", RouterRuntime.Navigation.HashOnly)
-  == RouterRuntime.Navigation.HashOnly,
+  RouterPolicy.popKind(~search="?text=%ZZ", RouterEngine.Navigation.HashOnly)
+  == RouterEngine.Navigation.HashOnly,
 );
 expect(
   "a shallow pop to a readable search went to the server",
-  RouterPolicy.popKind(~search="?text=a+b", RouterRuntime.Navigation.Shallow)
-  == RouterRuntime.Navigation.Shallow,
+  RouterPolicy.popKind(~search="?text=a+b", RouterEngine.Navigation.Shallow)
+  == RouterEngine.Navigation.Shallow,
 );

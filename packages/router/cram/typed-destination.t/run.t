@@ -102,13 +102,14 @@ A route can have five optional segments, since each one doubles the patterns it 
   Error: router: invalid route path /docs/:rest?<string...>/raw
   [2]
 
-  $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -Eo 'activeRoutes:\[\]|RouterServer.Execution.redirect|Router.Note.destination' | sort -u
+  $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -Eo 'activeRoutes:\[\]|RouterEngine.Execution.redirect|Router.Note.destination' | sort -u
   Router.Note.destination
-  RouterServer.Execution.redirect
+  RouterEngine.Execution.redirect
   activeRoutes:[]
   $ server-reason-react.router-gen --mode registry --source input.ml < input.ml | grep -A2 'id:"Asset"' | tr -d ' ~\n' | grep -Eo 'activeRoutes:\[(\("[A-Za-z]+",\[[^]]*\]\);?)*\]'
   activeRoutes:[("Asset",["parts"])]
   $ ocamlc -c RouterRuntime.ml
+  $ ocamlc -c RouterEngine.ml
   $ ocamlc -c RSC.ml
   $ ocamlc -c Js.ml
   $ ocamlc -c React.ml
@@ -312,11 +313,11 @@ use the names of runtime modules.
   $ server-reason-react.router-gen --mode registry --source unicode-path.ml < unicode-path.ml > unicode-registry.ml
   $ grep 'let basePath' unicode-registry.ml
   let basePath = "/m%C3%BCnchen"
-  $ grep -o 'trailingSlash:RouterServer.TrailingSlash.Redirect' unicode-registry.ml
-  trailingSlash:RouterServer.TrailingSlash.Redirect
+  $ grep -o 'trailingSlash:RouterEngine.TrailingSlash.Redirect' unicode-registry.ml
+  trailingSlash:RouterEngine.TrailingSlash.Redirect
 
-  $ server-reason-react.router-gen --mode registry --source trailing-slash-reject.ml < trailing-slash-reject.ml | grep -o 'trailingSlash:RouterServer.TrailingSlash.Reject'
-  trailingSlash:RouterServer.TrailingSlash.Reject
+  $ server-reason-react.router-gen --mode registry --source trailing-slash-reject.ml < trailing-slash-reject.ml | grep -o 'trailingSlash:RouterEngine.TrailingSlash.Reject'
+  trailingSlash:RouterEngine.TrailingSlash.Reject
 
   $ server-reason-react.router-gen --mode registry --source trailing-slash-invalid.ml < trailing-slash-invalid.ml
   File "trailing-slash-invalid.ml", line 1, characters 44-53:
@@ -357,9 +358,9 @@ Errors name the manifest location, or the file set by a line directive.
 
 A redirect is temporary unless it sets ~permanent:true.
 
-  $ server-reason-react.router-gen --mode registry --source permanent-redirect.ml < permanent-redirect.ml | grep -Eo 'RouterServer.Execution.(permanentRedirect|redirect)'
-  RouterServer.Execution.permanentRedirect
-  RouterServer.Execution.redirect
+  $ server-reason-react.router-gen --mode registry --source permanent-redirect.ml < permanent-redirect.ml | grep -Eo 'RouterEngine.Execution.(permanentRedirect|redirect)'
+  RouterEngine.Execution.permanentRedirect
+  RouterEngine.Execution.redirect
   $ server-reason-react.router-gen --mode handles --source invalid-permanent.ml < invalid-permanent.ml
   File "invalid-permanent.ml", line 1, characters 115-120:
   Error: router: ~permanent must be true or false
@@ -529,24 +530,24 @@ A route without its own parameters shares the root record and hook.
 
 `~context` on Router.make declares the type of the request context. Every
 loader, `~metadata` and `~headers` receives it as `~context`. Executions take
-it as their argument, the fallback takes `~context`, and the registry builds
-the server with `Server.makeWithContext`, so `RouterServer.runWithContext
+it as their argument, the fallback takes `~context`, and `RouterServer.run
 ~context` reaches them. A redirect ignores it.
 
-  $ server-reason-react.router-gen --mode registry --source context.ml < context.ml | tr -s ' \n' ' ' | grep -Eo '(fun |~context:)\([_a-z]+ : [A-Za-z.]+\)|[A-Za-z]+\.[a-z]+ ~context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c | sed "s/^ *//"
+  $ server-reason-react.router-gen --mode registry --source context.ml < context.ml | tr -s ' \n' ' ' | grep -Eo '(fun |~context:)\([_a-z]+ : [A-Za-z.]+\)|[A-Za-z]+\.[a-z]+ ~context|RouterEngine.Server.make[A-Za-z]*' | sort | uniq -c | sed "s/^ *//"
   2 NoteHeaders.make ~context
   1 NoteLoader.load ~context
   6 RootMetadata.make ~context
-  1 RouterServer.Server.makeWithContext
+  1 RouterEngine.Server.make
   1 fun (_ : Session.t)
   2 fun (context : Session.t)
   1 ~context:(context : Session.t)
 
-Without `~context`, executions take `()`, nothing mentions a context, and the
-registry uses `Server.make`, so `RouterServer.run` runs it.
+Without `~context`, executions take `()` and the fallback takes
+`~context:()`, so `RouterServer.run ~context:()` runs it.
 
-  $ server-reason-react.router-gen --mode registry --source loader-label.ml < loader-label.ml | tr -s ' \n' ' ' | grep -Eo '~execution:\(fun [^-]*->|context|RouterServer.Server.make[A-Za-z]*' | sort | uniq -c | sed "s/^ *//"
-  1 RouterServer.Server.make
+  $ server-reason-react.router-gen --mode registry --source loader-label.ml < loader-label.ml | tr -s ' \n' ' ' | grep -Eo '~execution:\(fun [^-]*->|context|RouterEngine.Server.make[A-Za-z]*' | sort | uniq -c | sed "s/^ *//"
+  1 RouterEngine.Server.make
+  1 context
   1 ~execution:(fun () ->
 
 `~context` belongs to Router.make only. Loaders, metadata and headers
@@ -645,7 +646,7 @@ other labelled argument.
 
 `~shallow:true` marks a search parameter whose changes need no server
 response. Generated destinations list the URL keys of their route's shallow
-parameters, root parameters included, with `RouterRuntime.withShallowSearch`.
+parameters, root parameters included, with `RouterEngine.withShallowSearch`.
 The flag is part of the registry fingerprint. It takes a boolean literal.
 
   $ server-reason-react.router-gen --mode handles --source shallow-search.ml < shallow-search.ml | tr -s ' \n' ' ' | grep -Eo 'withShallowSearch|~hash\) \["[^]]*\]'

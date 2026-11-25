@@ -1,4 +1,4 @@
-module Navigation = RouterRuntime.Navigation;
+module Navigation = RouterTypes.Navigation;
 
 type layer('bytes) = {
   graftAt: option(string),

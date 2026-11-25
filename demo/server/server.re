@@ -55,6 +55,7 @@ let server =
       ...List.concat([
            DreamRouter.routes(
              ~server=RouterRegistry.server,
+             ~context=_ => (),
              ~actionHandler=serverFunctionHandler,
              ~lookup=FunctionReferences.get,
              ~ssr=shouldSSR,
@@ -66,6 +67,7 @@ let server =
            ),
            DreamRouter.routes(
              ~server=Demo_hacker_news_router_native.RouterRegistry.server,
+             ~context=_ => (),
              ~actionHandler=serverFunctionHandler,
              ~lookup=FunctionReferences.get,
              ~ssr=shouldSSR,

@@ -1,7 +1,7 @@
 module DOM = Webapi.Dom;
 module Location = DOM.Location;
-module Response = RouterRuntime.NavigationResponse;
-module Navigation = RouterRuntime.Navigation;
+module Response = RouterTypes.NavigationResponse;
+module Navigation = RouterTypes.Navigation;
 
 type navigationResult = Navigation.Result.t;
 type navigate =
@@ -551,7 +551,7 @@ module Provider = {
     let updateSearch = (~owned, ~values, ~history=Navigation.Replace, ()) => {
       let current = Navigation.committed(modelRef.current.navigationState);
       let nextValues =
-        RouterRuntime.Search.update(
+        RouterTypes.Search.update(
           ~owned,
           ~values,
           RouterSearch.valuesFromString(current.location.search),
@@ -1117,7 +1117,7 @@ module Provider = {
         ~action=history,
         ~revalidate,
         ~resetScroll,
-        ~shallowKeys=RouterRuntime.shallowSearch(destination),
+        ~shallowKeys=RouterTypes.shallowSearch(destination),
         RouterRuntime.href(destination),
       );
     let (prefetcher, _) =

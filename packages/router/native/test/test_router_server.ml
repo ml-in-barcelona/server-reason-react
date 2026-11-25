@@ -7,17 +7,17 @@ let contains ~needle value =
   in
   loop 0
 
-let route ~id ~path = RouterServer.Route.make ~id ~path
+let route ~id ~path = RouterEngine.Route.make ~id ~path
 
 let registry routes =
-  match RouterServer.Registry.make routes with
+  match RouterEngine.Registry.make routes with
   | Ok registry -> registry
   | Error _ -> Alcotest.fail "expected valid registry"
 
 let static_precedes_dynamic () =
   let registry = registry [ route ~id:"note" ~path:"/:id<NoteId.t>"; route ~id:"new" ~path:"/new" ] in
-  match RouterServer.Match.find registry ~pathname:"/new" with
-  | Ok (Some matched) -> Alcotest.(check string) "route" "new" (RouterServer.Route.id matched.route)
+  match RouterEngine.Match.find registry ~pathname:"/new" with
+  | Ok (Some matched) -> Alcotest.(check string) "route" "new" (RouterEngine.Route.id matched.route)
   | _ -> Alcotest.fail "expected static match"
 
 let total_specificity_precedes_earlier_static () =
@@ -28,27 +28,27 @@ let total_specificity_precedes_earlier_static () =
         route ~id:"earlier-static" ~path:"/a/:second<string>/:third<string>";
       ]
   in
-  match RouterServer.Match.find registry ~pathname:"/a/b/c" with
+  match RouterEngine.Match.find registry ~pathname:"/a/b/c" with
   | Ok (Some matched) ->
-      Alcotest.(check string) "route" "more-static" (RouterServer.Route.id matched.route);
+      Alcotest.(check string) "route" "more-static" (RouterEngine.Route.id matched.route);
       Alcotest.(check (list (pair string string))) "params" [ ("first", "a") ] matched.parameters
   | _ -> Alcotest.fail "expected most-specific match"
 
 let failed_static_branch_backtracks_to_parameter () =
   let registry = registry [ route ~id:"static" ~path:"/a/b/z"; route ~id:"parameter" ~path:"/a/:value<string>/c" ] in
-  match RouterServer.Match.find registry ~pathname:"/a/b/c" with
-  | Ok (Some matched) -> Alcotest.(check string) "route" "parameter" (RouterServer.Route.id matched.route)
+  match RouterEngine.Match.find registry ~pathname:"/a/b/c" with
+  | Ok (Some matched) -> Alcotest.(check string) "route" "parameter" (RouterEngine.Route.id matched.route)
   | _ -> Alcotest.fail "expected parameter fallback"
 
 let encoded_static_segment () =
   let registry = registry [ route ~id:"cafe" ~path:"/notes/café" ] in
-  match RouterServer.Match.find registry ~pathname:"/notes/caf%C3%A9" with
-  | Ok (Some matched) -> Alcotest.(check string) "route" "cafe" (RouterServer.Route.id matched.route)
+  match RouterEngine.Match.find registry ~pathname:"/notes/caf%C3%A9" with
+  | Ok (Some matched) -> Alcotest.(check string) "route" "cafe" (RouterEngine.Route.id matched.route)
   | _ -> Alcotest.fail "expected encoded static match"
 
 let decoded_parameters () =
   let registry = registry [ route ~id:"note" ~path:"/notes/:slug<Slug.t>" ] in
-  match RouterServer.Match.find registry ~pathname:"/notes/caf%C3%A9" with
+  match RouterEngine.Match.find registry ~pathname:"/notes/caf%C3%A9" with
   | Ok (Some matched) -> Alcotest.(check (list (pair string string))) "params" [ ("slug", "café") ] matched.parameters
   | _ -> Alcotest.fail "expected decoded match"
 
@@ -62,19 +62,19 @@ let catch_all_precedence_and_capture () =
         route ~id:"deep" ~path:"/assets/img/:name<string>";
       ]
   in
-  let find pathname = RouterServer.Match.find registry ~pathname in
+  let find pathname = RouterEngine.Match.find registry ~pathname in
   (match find "/assets/logo" with
-  | Ok (Some matched) -> Alcotest.(check string) "static wins" "static" (RouterServer.Route.id matched.route)
+  | Ok (Some matched) -> Alcotest.(check string) "static wins" "static" (RouterEngine.Route.id matched.route)
   | _ -> Alcotest.fail "expected static match");
   (match find "/assets/one" with
-  | Ok (Some matched) -> Alcotest.(check string) "parameter wins" "named" (RouterServer.Route.id matched.route)
+  | Ok (Some matched) -> Alcotest.(check string) "parameter wins" "named" (RouterEngine.Route.id matched.route)
   | _ -> Alcotest.fail "expected parameter match");
   (match find "/assets/img/logo" with
-  | Ok (Some matched) -> Alcotest.(check string) "deeper finite wins" "deep" (RouterServer.Route.id matched.route)
+  | Ok (Some matched) -> Alcotest.(check string) "deeper finite wins" "deep" (RouterEngine.Route.id matched.route)
   | _ -> Alcotest.fail "expected deeper finite match");
   (match find "/assets/one/two/caf%C3%A9" with
   | Ok (Some matched) ->
-      Alcotest.(check string) "catch-all" "asset" (RouterServer.Route.id matched.route);
+      Alcotest.(check string) "catch-all" "asset" (RouterEngine.Route.id matched.route);
       Alcotest.(check (list (pair string string))) "captured" [ ("parts", "one/two/café") ] matched.parameters
   | _ -> Alcotest.fail "expected catch-all match");
   match find "/assets" with Ok None -> () | _ -> Alcotest.fail "expected no match without a captured segment"
@@ -89,13 +89,13 @@ let less_specific_route_below_a_more_specific_subtree () =
         route ~id:"edit" ~path:"/:lang<string>/:page<string>/edit";
       ]
   in
-  match RouterServer.Match.find registry ~pathname:"/docs/intro" with
-  | Ok (Some matched) -> Alcotest.(check string) "more statics wins" "docs" (RouterServer.Route.id matched.route)
+  match RouterEngine.Match.find registry ~pathname:"/docs/intro" with
+  | Ok (Some matched) -> Alcotest.(check string) "more statics wins" "docs" (RouterEngine.Route.id matched.route)
   | _ -> Alcotest.fail "expected catch-all match"
 
 let ambiguous_catch_all_patterns () =
   match
-    RouterServer.Registry.make
+    RouterEngine.Registry.make
       [ route ~id:"left" ~path:"/assets/:a<string...>"; route ~id:"right" ~path:"/assets/:b<string...>" ]
   with
   | Error (AmbiguousPattern _) -> ()
@@ -105,7 +105,7 @@ let crossing_catch_all_patterns_are_order_independent () =
   let left = route ~id:"left" ~path:"/foo/:left<string...>" in
   let right = route ~id:"right" ~path:"/:scope<string>/bar/:right<string...>" in
   let check routes expected =
-    match RouterServer.Registry.make routes with
+    match RouterEngine.Registry.make routes with
     | Error (AmbiguousPattern (left, right)) -> Alcotest.(check (pair string string)) "patterns" expected (left, right)
     | _ -> Alcotest.fail "expected crossing catch-all ambiguity"
   in
@@ -114,34 +114,34 @@ let crossing_catch_all_patterns_are_order_independent () =
 
 let catch_all_endpoint_decoding () =
   let endpoint =
-    RouterServer.Endpoint.make ~id:"asset" ~path:"/assets/:parts<string...>" ~activeRoutes:[] ~fingerprint:"asset"
+    RouterEngine.Endpoint.make ~id:"asset" ~path:"/assets/:parts<string...>" ~activeRoutes:[] ~fingerprint:"asset"
       ~decode:(fun input ->
-        match RouterServer.Decode.path ~input ~name:"parts" ~parse:RouterRuntime.CatchAll.parse with
+        match RouterEngine.Decode.path ~input ~name:"parts" ~parse:RouterEngine.CatchAll.parse with
         | Ok parts ->
-            Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () -> RouterServer.Execution.done_ parts))
+            Ok (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () -> RouterEngine.Execution.done_ parts))
         | Error error -> Error error)
   in
-  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let registry = RouterEngine.EndpointRegistry.makeExn [ endpoint ] in
   let search =
-    match RouterServer.Search.parse "" with Ok search -> search | Error _ -> Alcotest.fail "expected search"
+    match RouterEngine.Search.parse "" with Ok search -> search | Error _ -> Alcotest.fail "expected search"
   in
-  match RouterServer.EndpointRegistry.find registry ~pathname:"/assets/a%2Bb/c" with
+  match RouterEngine.EndpointRegistry.find registry ~pathname:"/assets/a%2Bb/c" with
   | Ok (Some matched) -> (
-      match RouterServer.EndpointRegistry.decode matched ~search with
+      match RouterEngine.EndpointRegistry.decode matched ~search with
       | Ok prepared -> (
-          match Lwt_main.run (RouterServer.Execution.run (RouterServer.Endpoint.execution prepared)) with
+          match Lwt_main.run (RouterEngine.Execution.run (RouterEngine.Endpoint.execution prepared ~context:())) with
           | RouterRuntime.Loader.Data parts -> Alcotest.(check (list string)) "decoded" [ "a+b"; "c" ] parts
           | _ -> Alcotest.fail "expected data")
       | Error _ -> Alcotest.fail "expected prepared endpoint")
   | _ -> Alcotest.fail "expected endpoint match"
 
 let catch_all_to_string_validation () =
-  Alcotest.(check string) "joined" "a/b" (RouterRuntime.CatchAll.toString [ "a"; "b" ]);
+  Alcotest.(check string) "joined" "a/b" (RouterEngine.CatchAll.toString [ "a"; "b" ]);
   List.iter
     (fun segments ->
       let rejected =
         try
-          ignore (RouterRuntime.CatchAll.toString segments);
+          ignore (RouterEngine.CatchAll.toString segments);
           false
         with Invalid_argument _ -> true
       in
@@ -150,33 +150,33 @@ let catch_all_to_string_validation () =
 
 let destination_catch_all_encoding () =
   let destination =
-    RouterRuntime.destinationFromPattern
-      ~pattern:(RouterRuntime.pattern "/assets/:parts<string...>")
-      ~parameters:[ ("parts", RouterRuntime.CatchAll.toString [ "a+b"; "café" ]) ]
+    RouterEngine.destinationFromPattern
+      ~pattern:(RouterEngine.pattern "/assets/:parts<string...>")
+      ~parameters:[ ("parts", RouterEngine.CatchAll.toString [ "a+b"; "café" ]) ]
       ~search:[]
   in
   Alcotest.(check string) "path" "/assets/a%2Bb/caf%C3%A9" (RouterRuntime.href destination)
 
 let duplicate_paths () =
-  match RouterServer.Registry.make [ route ~id:"left" ~path:"/notes"; route ~id:"right" ~path:"/notes" ] with
+  match RouterEngine.Registry.make [ route ~id:"left" ~path:"/notes"; route ~id:"right" ~path:"/notes" ] with
   | Error (DuplicatePath "/notes") -> ()
   | _ -> Alcotest.fail "expected duplicate path"
 
 let duplicate_ids () =
-  match RouterServer.Registry.make [ route ~id:"note" ~path:"/notes"; route ~id:"note" ~path:"/archive" ] with
+  match RouterEngine.Registry.make [ route ~id:"note" ~path:"/notes"; route ~id:"note" ~path:"/archive" ] with
   | Error (DuplicateId "note") -> ()
   | _ -> Alcotest.fail "expected duplicate id"
 
 let ambiguous_patterns () =
   match
-    RouterServer.Registry.make [ route ~id:"note" ~path:"/:id<NoteId.t>"; route ~id:"slug" ~path:"/:slug<Slug.t>" ]
+    RouterEngine.Registry.make [ route ~id:"note" ~path:"/:id<NoteId.t>"; route ~id:"slug" ~path:"/:slug<Slug.t>" ]
   with
   | Error (AmbiguousPattern _) -> ()
   | _ -> Alcotest.fail "expected ambiguous pattern"
 
 let overlapping_patterns () =
   match
-    RouterServer.Registry.make
+    RouterEngine.Registry.make
       [ route ~id:"left" ~path:"/foo/:id<string>"; route ~id:"right" ~path:"/:slug<string>/bar" ]
   with
   | Error (AmbiguousPattern _) -> ()
@@ -184,19 +184,19 @@ let overlapping_patterns () =
 
 let malformed_escape () =
   let registry = registry [ route ~id:"note" ~path:"/:id<NoteId.t>" ] in
-  match RouterServer.Match.find registry ~pathname:"/%ZZ" with
+  match RouterEngine.Match.find registry ~pathname:"/%ZZ" with
   | Error (MalformedEscape "%ZZ") -> ()
   | _ -> Alcotest.fail "expected malformed escape"
 
 let malformed_escape_reports_leftmost_segment () =
   let registry = registry [ route ~id:"route" ~path:"/:first<string>/:second<string>" ] in
-  match RouterServer.Match.find registry ~pathname:"/%ZZ/%GG" with
+  match RouterEngine.Match.find registry ~pathname:"/%ZZ/%GG" with
   | Error (MalformedEscape "%ZZ") -> ()
   | _ -> Alcotest.fail "expected leftmost malformed escape"
 
 let encoded_slash () =
   let registry = registry [ route ~id:"note" ~path:"/:id<NoteId.t>" ] in
-  match RouterServer.Match.find registry ~pathname:"/a%2Fb" with
+  match RouterEngine.Match.find registry ~pathname:"/a%2Fb" with
   | Error (EncodedSlash "a%2Fb") -> ()
   | _ -> Alcotest.fail "expected encoded slash error"
 
@@ -204,12 +204,12 @@ let dot_segments () =
   let dynamic_registry = registry [ route ~id:"note" ~path:"/:id<NoteId.t>" ] in
   List.iter
     (fun pathname ->
-      match RouterServer.Match.find dynamic_registry ~pathname with
+      match RouterEngine.Match.find dynamic_registry ~pathname with
       | Error (InvalidPath _) -> ()
       | _ -> Alcotest.failf "expected invalid path for %s" pathname)
     [ "/."; "/.."; "/%2e"; "/%2E%2e" ];
   let registry = registry [ route ~id:"note" ~path:"/:id<NoteId.t>/expected" ] in
-  match RouterServer.Match.find registry ~pathname:"/%2e%2e/other" with
+  match RouterEngine.Match.find registry ~pathname:"/%2e%2e/other" with
   | Error (InvalidPath _) -> ()
   | _ -> Alcotest.fail "expected dot segment rejection before route matching"
 
@@ -217,7 +217,7 @@ let invalid_utf8_path () =
   let registry = registry [ route ~id:"note" ~path:"/:id<string>" ] in
   List.iter
     (fun pathname ->
-      match RouterServer.Match.find registry ~pathname with
+      match RouterEngine.Match.find registry ~pathname with
       | Error (InvalidPath _) -> ()
       | _ -> Alcotest.fail "expected invalid UTF-8 path")
     [ "/\255"; "/%FF"; "/%00"; "/%1F"; "/%7F" ];
@@ -231,22 +231,22 @@ let invalid_utf8_path () =
 
 let destination_segment_encoding () =
   let destination =
-    RouterRuntime.destinationFromPattern
-      ~pattern:(RouterRuntime.pattern "/notes/:id<string>")
+    RouterEngine.destinationFromPattern
+      ~pattern:(RouterEngine.pattern "/notes/:id<string>")
       ~parameters:[ ("id", "a+b") ]
       ~search:[]
   in
   Alcotest.(check string) "path" "/notes/a%2Bb" (RouterRuntime.href destination)
 
 let scalar_destinations_round_trip () =
-  let pattern = RouterRuntime.pattern "/notes/:id<string>" in
+  let pattern = RouterEngine.pattern "/notes/:id<string>" in
   let registry = registry [ route ~id:"note" ~path:"/notes/:id<string>" ] in
   List.iter
     (fun (value, expected) ->
-      let destination = RouterRuntime.destinationFromPattern ~pattern ~parameters:[ ("id", value) ] ~search:[] in
+      let destination = RouterEngine.destinationFromPattern ~pattern ~parameters:[ ("id", value) ] ~search:[] in
       let href = RouterRuntime.href destination in
       Alcotest.(check string) value expected href;
-      match RouterServer.Match.find registry ~pathname:href with
+      match RouterEngine.Match.find registry ~pathname:href with
       | Ok (Some matched) -> Alcotest.(check (list (pair string string))) "decoded" [ ("id", value) ] matched.parameters
       | _ -> Alcotest.failf "generated destination did not match: %s" href)
     [
@@ -256,12 +256,12 @@ let scalar_destinations_round_trip () =
     ]
 
 let invalid_scalar_destinations () =
-  let pattern = RouterRuntime.pattern "/notes/:id<string>" in
+  let pattern = RouterEngine.pattern "/notes/:id<string>" in
   List.iter
     (fun value ->
       let rejected =
         try
-          ignore (RouterRuntime.destinationFromPattern ~pattern ~parameters:[ ("id", value) ] ~search:[]);
+          ignore (RouterEngine.destinationFromPattern ~pattern ~parameters:[ ("id", value) ] ~search:[]);
           false
         with Invalid_argument _ -> true
       in
@@ -269,72 +269,72 @@ let invalid_scalar_destinations () =
     [ ""; "."; ".."; "a/b"; "\000"; "\031"; "\127"; "\255" ]
 
 let repeated_search () =
-  match RouterServer.Search.parse "?tag=one&tag=two&empty=&flag" with
+  match RouterEngine.Search.parse "?tag=one&tag=two&empty=&flag" with
   | Ok search ->
-      Alcotest.(check (list string)) "tags" [ "one"; "two" ] (RouterServer.Search.values search "tag");
-      Alcotest.(check (list string)) "empty" [ "" ] (RouterServer.Search.values search "empty");
-      Alcotest.(check (list string)) "flag" [ "" ] (RouterServer.Search.values search "flag")
+      Alcotest.(check (list string)) "tags" [ "one"; "two" ] (RouterEngine.Search.values search "tag");
+      Alcotest.(check (list string)) "empty" [ "" ] (RouterEngine.Search.values search "empty");
+      Alcotest.(check (list string)) "flag" [ "" ] (RouterEngine.Search.values search "flag")
   | Error _ -> Alcotest.fail "expected valid search"
 
 let large_search_index () =
-  match RouterServer.Search.parse "?a=1&b=2&c=3&d=4&e=5&f=6&g=7&h=8&a=9&i=10" with
+  match RouterEngine.Search.parse "?a=1&b=2&c=3&d=4&e=5&f=6&g=7&h=8&a=9&i=10" with
   | Ok search ->
-      Alcotest.(check (list string)) "repeated" [ "1"; "9" ] (RouterServer.Search.values search "a");
+      Alcotest.(check (list string)) "repeated" [ "1"; "9" ] (RouterEngine.Search.values search "a");
       Alcotest.(check (list string))
         "order"
         [ "a"; "b"; "c"; "d"; "e"; "f"; "g"; "h"; "i" ]
-        (RouterServer.Search.unknown search ~owned:[] |> List.map fst)
+        (RouterEngine.Search.unknown search ~owned:[] |> List.map fst)
   | Error _ -> Alcotest.fail "expected valid large search"
 
 let decoded_search () =
-  match RouterServer.Search.parse "filter=caf%C3%A9%2Fopen&utm_source=test&q=a+b" with
+  match RouterEngine.Search.parse "filter=caf%C3%A9%2Fopen&utm_source=test&q=a+b" with
   | Ok search ->
-      Alcotest.(check (list string)) "filter" [ "café/open" ] (RouterServer.Search.values search "filter");
-      Alcotest.(check (list string)) "plus" [ "a b" ] (RouterServer.Search.values search "q");
+      Alcotest.(check (list string)) "filter" [ "café/open" ] (RouterEngine.Search.values search "filter");
+      Alcotest.(check (list string)) "plus" [ "a b" ] (RouterEngine.Search.values search "q");
       Alcotest.(check (list (pair string (list string))))
         "unknown"
         [ ("utm_source", [ "test" ]) ]
-        (RouterServer.Search.unknown search ~owned:[ "filter"; "q" ])
+        (RouterEngine.Search.unknown search ~owned:[ "filter"; "q" ])
   | Error _ -> Alcotest.fail "expected decoded search"
 
 let malformed_search () =
-  match RouterServer.Search.parse "?a=1&filter=%ZZ&b=2&%ZZ=x&t=1&t=ab%4&t=%&t=2" with
+  match RouterEngine.Search.parse "?a=1&filter=%ZZ&b=2&%ZZ=x&t=1&t=ab%4&t=%&t=2" with
   | Ok search ->
       Alcotest.(check (list (pair string (list string))))
         "pairs"
         [ ("a", [ "1" ]); ("b", [ "2" ]); ("t", [ "1"; "2" ]) ]
-        (RouterServer.Search.unknown search ~owned:[])
+        (RouterEngine.Search.unknown search ~owned:[])
   | Error _ -> Alcotest.fail "expected malformed pairs to be dropped"
 
 let oversized_search () =
-  match RouterServer.Search.parse (String.make 8193 'x') with
-  | Error RouterServer.Search.QueryTooLong -> ()
+  match RouterEngine.Search.parse (String.make 8193 'x') with
+  | Error RouterEngine.Search.QueryTooLong -> ()
   | _ -> Alcotest.fail "expected oversized search rejection"
 
 let search_skips_empty_pairs () =
-  match RouterServer.Search.parse "?&a=1&&b=2&" with
+  match RouterEngine.Search.parse "?&a=1&&b=2&" with
   | Ok search ->
       Alcotest.(check (list (pair string (list string))))
         "pairs"
         [ ("a", [ "1" ]); ("b", [ "2" ]) ]
-        (RouterServer.Search.unknown search ~owned:[])
+        (RouterEngine.Search.unknown search ~owned:[])
   | Error _ -> Alcotest.fail "expected valid search"
 
 let invalid_utf8_search () =
   List.iter
     (fun search ->
-      match RouterServer.Search.parse ("a=1&" ^ search) with
+      match RouterEngine.Search.parse ("a=1&" ^ search) with
       | Ok parsed ->
           Alcotest.(check (list (pair string (list string))))
             search
             [ ("a", [ "1" ]) ]
-            (RouterServer.Search.unknown parsed ~owned:[])
+            (RouterEngine.Search.unknown parsed ~owned:[])
       | Error _ -> Alcotest.failf "expected %S to be dropped" search)
     [ "q=%FF"; "q=%C3"; "%C3=1"; "q=\xff"; "q=%ED%A0%80"; "q=%C0%80"; "q=%E0%80%80"; "q=%F4%90%80%80"; "q=%E2%82" ];
   List.iter
     (fun (search, expected) ->
-      match RouterServer.Search.parse search with
-      | Ok parsed -> Alcotest.(check (list string)) search [ expected ] (RouterServer.Search.values parsed "q")
+      match RouterEngine.Search.parse search with
+      | Ok parsed -> Alcotest.(check (list string)) search [ expected ] (RouterEngine.Search.values parsed "q")
       | Error _ -> Alcotest.failf "expected %S to be accepted" search)
     [
       ("q=%F0%9F%98%80", "\xF0\x9F\x98\x80");
@@ -345,35 +345,35 @@ let invalid_utf8_search () =
     ]
 
 let search_input query =
-  match RouterServer.Search.parse query with
-  | Ok search -> RouterServer.Input.forSearch search
+  match RouterEngine.Search.parse query with
+  | Ok search -> RouterEngine.Input.forSearch search
   | Error _ -> Alcotest.failf "expected %S to parse" query
 
 let search_result = Alcotest.(result (option int) reject)
 
 let search_decoders_by_kind () =
-  let parse = RouterRuntime.Search.parseInt in
+  let parse = RouterEngine.SearchValues.parseInt in
   let input = search_input "?page=nope&n=1&n=x&n=3&n=&o=nope" in
   let check_error label = function
     | Error (RouterRuntime.Error.InvalidSearchParameter { name }) -> Alcotest.(check string) label "r" name
     | Ok _ | Error _ -> Alcotest.failf "%s: expected InvalidSearchParameter" label
   in
-  Alcotest.check search_result "optional" (Ok None) (RouterServer.Decode.searchOptional ~input ~name:"o" ~parse);
+  Alcotest.check search_result "optional" (Ok None) (RouterEngine.Decode.searchOptional ~input ~name:"o" ~parse);
   Alcotest.(check (result int reject))
     "default" (Ok 1)
-    (RouterServer.Decode.searchDefault ~input ~name:"page" ~parse ~fallback:1);
+    (RouterEngine.Decode.searchDefault ~input ~name:"page" ~parse ~fallback:1);
   Alcotest.(check (result (list int) reject))
     "many"
     (Ok [ 1; 3 ])
-    (RouterServer.Decode.searchMany ~input ~name:"n" ~parse);
-  check_error "required missing" (RouterServer.Decode.searchRequired ~input ~name:"r" ~parse);
-  check_error "required bad" (RouterServer.Decode.searchRequired ~input:(search_input "?r=nope") ~name:"r" ~parse);
+    (RouterEngine.Decode.searchMany ~input ~name:"n" ~parse);
+  check_error "required missing" (RouterEngine.Decode.searchRequired ~input ~name:"r" ~parse);
+  check_error "required bad" (RouterEngine.Decode.searchRequired ~input:(search_input "?r=nope") ~name:"r" ~parse);
   Alcotest.(check (result int reject))
     "required good" (Ok 4)
-    (RouterServer.Decode.searchRequired ~input:(search_input "?r=4") ~name:"r" ~parse)
+    (RouterEngine.Decode.searchRequired ~input:(search_input "?r=4") ~name:"r" ~parse)
 
 let base_path_matches_segments () =
-  let strip ~basePath pathname = RouterServer.Path.stripBasePath ~basePath pathname in
+  let strip ~basePath pathname = RouterEngine.Path.stripBasePath ~basePath pathname in
   let check ~basePath pathname expected =
     Alcotest.(check (option string)) (basePath ^ " " ^ pathname) expected (strip ~basePath pathname)
   in
@@ -396,31 +396,31 @@ let base_path_matches_segments () =
 let loader_sequence () =
   let events = ref [] in
   let execution =
-    RouterServer.Execution.load
+    RouterEngine.Execution.load
       (fun () ->
         events := "parent" :: !events;
         Lwt.return (RouterRuntime.Loader.Data 2))
       (fun parent ->
-        RouterServer.Execution.load
+        RouterEngine.Execution.load
           (fun () ->
             events := "child" :: !events;
             Lwt.return (RouterRuntime.Loader.Data (parent + 3)))
-          (fun child -> RouterServer.Execution.done_ (child * 2)))
+          (fun child -> RouterEngine.Execution.done_ (child * 2)))
   in
-  match Lwt_main.run (RouterServer.Execution.run execution) with
+  match Lwt_main.run (RouterEngine.Execution.run execution) with
   | RouterRuntime.Loader.Data 10 -> Alcotest.(check (list string)) "order" [ "parent"; "child" ] (List.rev !events)
   | _ -> Alcotest.fail "expected loader data"
 
 let loader_short_circuit () =
   let child_ran = ref false in
   let execution =
-    RouterServer.Execution.load
+    RouterEngine.Execution.load
       (fun () -> Lwt.return RouterRuntime.Loader.NotFound)
       (fun (_ : int) ->
         child_ran := true;
-        RouterServer.Execution.done_ ())
+        RouterEngine.Execution.done_ ())
   in
-  (match Lwt_main.run (RouterServer.Execution.run execution) with
+  (match Lwt_main.run (RouterEngine.Execution.run execution) with
   | RouterRuntime.Loader.NotFound -> ()
   | _ -> Alcotest.fail "expected loader not found");
   Alcotest.(check bool) "child skipped" false !child_ran
@@ -431,38 +431,39 @@ let rejected_loader_uses_nearest_boundary () =
     | RouterRuntime.Error.Internal { diagnosticId } -> name ^ ":" ^ diagnosticId
     | _ -> name ^ ":wrong-error"
   in
-  let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
-    RouterServer.Endpoint.make ~id:"root" ~path:"/" ~activeRoutes:[] ~fingerprint:"root" ~decode:(fun _ ->
+  let endpoint : ((string, string) RouterEngine.Plan.t, string, unit) RouterEngine.Endpoint.t =
+    RouterEngine.Endpoint.make ~id:"root" ~path:"/" ~activeRoutes:[] ~fingerprint:"root" ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.loadWithBoundary
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.loadWithBoundary
                  ~run:(fun () -> Lwt.return (RouterRuntime.Loader.Data ()))
                  ~failure:(fun error ->
-                   RouterServer.Plan.failure ~scopes:[] ~error ~errorBoundary:(boundary "outer") ())
+                   RouterEngine.Plan.failure ~scopes:[] ~error ~errorBoundary:(boundary "outer") ())
                  ~next:(fun () ->
-                   RouterServer.Execution.loadWithBoundary
+                   RouterEngine.Execution.loadWithBoundary
                      ~run:(fun () -> Lwt.fail (Failure "private loader detail"))
                      ~failure:(fun error ->
-                       RouterServer.Plan.failure ~scopes:[] ~error ~errorBoundary:(boundary "inner") ())
+                       RouterEngine.Plan.failure ~scopes:[] ~error ~errorBoundary:(boundary "inner") ())
                      ~next:(fun (_ : unit) ->
-                       RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:"loaded"))))))
+                       RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page:"loaded"))))))
   in
-  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
-  let request : RouterServer.ServerEngine.request =
+  let registry = RouterEngine.EndpointRegistry.makeExn [ endpoint ] in
+  let request : RouterEngine.ServerEngine.request =
     { pathname = "/"; search = ""; hash = ""; kind = Document; navigation = None }
   in
   let outcome =
     Lwt_main.run
-      (RouterServer.ServerEngine.run ~registry ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
-         ~fallback:(fun ~search:_ ~error ->
+      (RouterEngine.ServerEngine.run ~context:() ~registry ~basePath:"/"
+         ~trailingSlash:RouterEngine.TrailingSlash.Redirect
+         ~fallback:(fun ~context:() ~search:_ ~error ->
            fallback_called := true;
-           RouterServer.Plan.failure ~scopes:[] ~error ~errorBoundary:(boundary "fallback") ())
+           RouterEngine.Plan.failure ~scopes:[] ~error ~errorBoundary:(boundary "fallback") ())
          ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
          ~diagnosticId:(fun _ -> "diagnostic-1")
          ~protocolVersion:1 request)
   in
   match outcome with
-  | RouterServer.ServerEngine.Full full ->
+  | RouterEngine.ServerEngine.Full full ->
       Alcotest.(check bool) "root fallback skipped" false !fallback_called;
       Alcotest.(check (option string)) "nearest boundary" (Some "inner:diagnostic-1") full.resolved.element
   | _ -> Alcotest.fail "expected full boundary response"
@@ -470,15 +471,15 @@ let rejected_loader_uses_nearest_boundary () =
 let fatal_loader_exceptions_propagate () =
   let propagates expected =
     let execution =
-      RouterServer.Execution.loadWithBoundary
+      RouterEngine.Execution.loadWithBoundary
         ~run:(fun () -> Lwt.fail expected)
         ~failure:(fun _ -> ())
-        ~next:(fun (_ : unit) -> RouterServer.Execution.done_ ())
+        ~next:(fun (_ : unit) -> RouterEngine.Execution.done_ ())
     in
     match
       Lwt_main.run
         (Lwt.catch
-           (fun () -> Lwt.map Result.ok (RouterServer.Execution.run execution))
+           (fun () -> Lwt.map Result.ok (RouterEngine.Execution.run execution))
            (fun error -> Lwt.return (Error error)))
     with
     | Error actual -> Alcotest.(check string) "exception" (Printexc.to_string expected) (Printexc.to_string actual)
@@ -489,22 +490,22 @@ let fatal_loader_exceptions_propagate () =
 
 let started_loader_exceptions_use_boundary () =
   let execution failure =
-    RouterServer.Execution.start
+    RouterEngine.Execution.start
       ~run:(fun () -> raise failure)
       ~next:(fun started ->
-        RouterServer.Execution.loadWithBoundary
+        RouterEngine.Execution.loadWithBoundary
           ~run:(fun () -> Lwt.return (RouterRuntime.Loader.Data ()))
           ~failure:(fun _ -> "parent")
           ~next:(fun () ->
-            RouterServer.Execution.loadWithBoundary ~run:(RouterServer.Execution.await started)
+            RouterEngine.Execution.loadWithBoundary ~run:(RouterEngine.Execution.await started)
               ~failure:(function
                 | RouterRuntime.Error.Internal { diagnosticId } -> "child:" ^ diagnosticId | _ -> "child:wrong-error")
-              ~next:(fun (_ : unit) -> RouterServer.Execution.done_ "loaded")))
+              ~next:(fun (_ : unit) -> RouterEngine.Execution.done_ "loaded")))
   in
   let run failure =
     Lwt_main.run
       (Lwt.catch
-         (fun () -> Lwt.map Result.ok (RouterServer.Execution.run ~diagnosticId:Printexc.to_string (execution failure)))
+         (fun () -> Lwt.map Result.ok (RouterEngine.Execution.run ~diagnosticId:Printexc.to_string (execution failure)))
          (fun error -> Lwt.return (Error error)))
   in
   (match run (Failure "detail") with
@@ -515,21 +516,21 @@ let started_loader_exceptions_use_boundary () =
   | Ok _ -> Alcotest.fail "expected exception to propagate"
 
 let request_memo_runs_once_per_request () =
-  let key : int RouterServer.Request.key = RouterServer.Request.key () in
-  let other : int RouterServer.Request.key = RouterServer.Request.key () in
+  let key : int RouterServer.memoKey = RouterServer.memoKey () in
+  let other : int RouterServer.memoKey = RouterServer.memoKey () in
   let runs = ref [] in
   let fetch key argument =
-    RouterServer.Request.memo key argument (fun () ->
+    RouterServer.memo key argument (fun () ->
         runs := !runs @ [ argument ];
         Lwt.bind (Lwt.pause ()) (fun () -> Lwt.return (List.length !runs)))
   in
   let request () =
-    RouterServer.Request.scope (fun () ->
+    RouterServer.requestScope (fun () ->
         let first = fetch key "a" in
         let again = fetch key "a" in
         let different = fetch key "b" in
         let other_key = fetch other "a" in
-        let nested = RouterServer.Request.scope (fun () -> fetch key "a") in
+        let nested = RouterServer.requestScope (fun () -> fetch key "a") in
         Lwt.all [ first; again; different; other_key; nested ])
   in
   let int_list = Alcotest.(list int) in
@@ -617,7 +618,7 @@ let metadata_rendering () =
             "/es";
         ]
       ()
-    |> RouterServer.Adapter.metadata_element |> ReactDOM.renderToStaticMarkup
+    |> RouterServer.metadataElement |> ReactDOM.renderToStaticMarkup
   in
   Alcotest.(check string)
     "markup"
@@ -661,6 +662,7 @@ let initial_commit revision pathname =
 
 let latest_navigation_wins () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let state = make (initial_commit "r1" "/") in
   let state, first = start state ~to_:(location "first" "/one" "") ~action:Push in
   let state, second = start state ~to_:(location "second" "/two" "") ~action:Push in
@@ -673,6 +675,7 @@ let latest_navigation_wins () =
 
 let stale_revision_rejected () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let state = make (initial_commit "r1" "/") in
   let state, requestId = start state ~to_:(location "next" "/next" "") ~action:Push in
   match commit state ~requestId ~baseRevision:"old" ~next:(initial_commit "r2" "/next") with
@@ -681,6 +684,7 @@ let stale_revision_rejected () =
 
 let shallow_location_commit () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let state = make (initial_commit "r1" "/notes") in
   let state = shallow state ~location:(location "search" "/notes" "?q=cat") ~action:Replace in
   let committed = committed state in
@@ -688,7 +692,7 @@ let shallow_location_commit () =
   Alcotest.(check string) "revision" "r1" committed.revision
 
 let valid_full_navigation_response () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   let response =
     Full
       {
@@ -721,7 +725,7 @@ let valid_full_navigation_response () =
   | Error _ -> Alcotest.fail "expected valid full response"
 
 let navigation_response_rsc_round_trip () =
-  let original : string RouterRuntime.NavigationResponse.full =
+  let original : string RouterEngine.NavigationResponse.full =
     {
       protocolVersion = 1;
       registryFingerprint = "registry";
@@ -734,12 +738,12 @@ let navigation_response_rsc_round_trip () =
       payload = "payload";
     }
   in
-  let encoded = RouterRuntime.NavigationResponse.full_to_rsc RSC.Primitives.string_to_rsc original in
-  let decoded = RouterRuntime.NavigationResponse.full_of_rsc RSC.Primitives.string_of_rsc encoded in
+  let encoded = RouterEngine.NavigationResponse.full_to_rsc RSC.Primitives.string_to_rsc original in
+  let decoded = RouterEngine.NavigationResponse.full_of_rsc RSC.Primitives.string_of_rsc encoded in
   Alcotest.(check bool) "round trip" true (decoded = original)
 
 let superseded_navigation_response_is_canceled () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   let response = ReloadRequired in
   match
     validate ~expectedProtocolVersion:1 ~expectedRegistryFingerprint:"registry" ~activeRequestId:8
@@ -752,7 +756,7 @@ let superseded_navigation_response_is_canceled () =
   | _ -> Alcotest.fail "expected superseded response"
 
 let stale_navigation_response_is_rejected () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   match
     validate ~expectedProtocolVersion:1 ~expectedRegistryFingerprint:"registry" ~activeRequestId:7
       ~committedRevision:"r2"
@@ -764,7 +768,7 @@ let stale_navigation_response_is_rejected () =
   | _ -> Alcotest.fail "expected stale response"
 
 let stale_patch_base_is_rejected () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   let response =
     Patch
       {
@@ -798,12 +802,12 @@ let stale_patch_base_is_rejected () =
   | _ -> Alcotest.fail "expected stale patch response"
 
 let redirect_and_reload_response_kinds () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   Alcotest.(check bool) "redirect" true (kindOfString "redirect" = Some RedirectResponse);
   Alcotest.(check bool) "reload" true (kindOfString "reload-required" = Some ReloadRequiredResponse)
 
 let redirect_and_reload_navigation_responses () =
-  let open RouterRuntime.NavigationResponse in
+  let open RouterEngine.NavigationResponse in
   let validateResponse facts response =
     validate ~expectedProtocolVersion:1 ~expectedRegistryFingerprint:"registry" ~activeRequestId:7
       ~committedRevision:"r1"
@@ -823,12 +827,14 @@ let redirect_and_reload_navigation_responses () =
 
 let history_action_selects_mutation () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   Alcotest.(check bool) "push" true (historyMutation Push = PushEntry);
   Alcotest.(check bool) "replace" true (historyMutation Replace = ReplaceEntry);
   Alcotest.(check bool) "pop fallback replaces" true (historyMutation Pop = ReplaceEntry)
 
 let hash_only_location_commit () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let state = make (initial_commit "r1" "/notes") in
   let location = { (location "hash" "/notes" "?q=cat") with hash = "#details" } in
   let state = hashOnly state ~location ~action:Push in
@@ -837,7 +843,7 @@ let hash_only_location_commit () =
   Alcotest.(check string) "revision" "r1" committed.revision
 
 let builtin_bool_codec () =
-  let open RouterRuntime.Search in
+  let open RouterEngine.SearchValues in
   Alcotest.(check bool) "true" true (parseBool "true" = Ok true);
   Alcotest.(check bool) "false" true (parseBool "false" = Ok false);
   List.iter
@@ -845,7 +851,7 @@ let builtin_bool_codec () =
     [ "True"; "FALSE"; "1"; "0"; ""; "yes" ]
 
 let builtin_int_codec () =
-  let open RouterRuntime.Search in
+  let open RouterEngine.SearchValues in
   List.iter
     (fun (value, expected) -> Alcotest.(check bool) value true (parseInt value = Ok expected))
     [ ("0", 0); ("42", 42); ("-5", -5); ("007", 7); ("2147483647", 2147483647); ("-2147483648", -2147483648) ];
@@ -869,14 +875,14 @@ let builtin_int_codec () =
     ]
 
 let typed_search_decoding () =
-  let open RouterRuntime.Search in
+  let open RouterEngine.SearchValues in
   let values = [ ("page", [ "2" ]); ("tag", [ "one"; "two" ]) ] in
   Alcotest.(check int) "defaulted" 2 (default ~name:"page" ~parse:parseInt ~fallback:1 values);
   Alcotest.(check (option string)) "optional" None (optional ~name:"filter" ~parse:parseString values);
   Alcotest.(check (list string)) "many" [ "one"; "two" ] (many ~name:"tag" ~parse:parseString values)
 
 let shallow_search_preserves_unowned_values () =
-  let open RouterRuntime.Search in
+  let open RouterEngine.SearchValues in
   let current = [ ("searchText", [ "old" ]); ("utm_source", [ "test" ]) ] in
   Alcotest.(check (list (pair string (list string))))
     "search"
@@ -885,6 +891,7 @@ let shallow_search_preserves_unowned_values () =
 
 let pop_navigation_kind () =
   let open RouterRuntime.Navigation in
+  let open RouterEngine.Navigation in
   let committed = initial_commit "r1" "/notes" in
   let hashTarget = { committed.location with hash = "#details" } in
   let searchTarget = { committed.location with search = "?q=cat" } in
@@ -903,27 +910,28 @@ let pop_navigation_kind () =
 
 let typed_endpoint_decoding () =
   let endpoint =
-    RouterServer.Endpoint.make ~id:"note" ~path:"/notes/:id<NoteId.t>" ~activeRoutes:[] ~fingerprint:"note"
+    RouterEngine.Endpoint.make ~id:"note" ~path:"/notes/:id<NoteId.t>" ~activeRoutes:[] ~fingerprint:"note"
       ~decode:(fun input ->
         match
-          ( RouterServer.Decode.path ~input ~name:"id" ~parse:(fun value ->
+          ( RouterEngine.Decode.path ~input ~name:"id" ~parse:(fun value ->
                 match int_of_string_opt value with Some value -> Ok value | None -> Error "expected integer"),
-            RouterServer.Decode.searchDefault ~input ~name:"page" ~parse:RouterRuntime.Search.parseInt ~fallback:1 )
+            RouterEngine.Decode.searchDefault ~input ~name:"page" ~parse:RouterEngine.SearchValues.parseInt ~fallback:1
+          )
         with
         | Ok id, Ok page ->
             Ok
-              (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () -> RouterServer.Execution.done_ (id + page)))
+              (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () -> RouterEngine.Execution.done_ (id + page)))
         | Error error, _ | _, Error error -> Error error)
   in
-  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let registry = RouterEngine.EndpointRegistry.makeExn [ endpoint ] in
   let search =
-    match RouterServer.Search.parse "?page=2" with Ok search -> search | Error _ -> Alcotest.fail "expected search"
+    match RouterEngine.Search.parse "?page=2" with Ok search -> search | Error _ -> Alcotest.fail "expected search"
   in
-  match RouterServer.EndpointRegistry.find registry ~pathname:"/notes/40" with
+  match RouterEngine.EndpointRegistry.find registry ~pathname:"/notes/40" with
   | Ok (Some matched) -> (
-      match RouterServer.EndpointRegistry.decode matched ~search with
+      match RouterEngine.EndpointRegistry.decode matched ~search with
       | Ok prepared -> (
-          match Lwt_main.run (RouterServer.Execution.run (RouterServer.Endpoint.execution prepared)) with
+          match Lwt_main.run (RouterEngine.Execution.run (RouterEngine.Endpoint.execution prepared ~context:())) with
           | RouterRuntime.Loader.Data value -> Alcotest.(check int) "decoded" 42 value
           | _ -> Alcotest.fail "expected data")
       | Error _ -> Alcotest.fail "expected prepared endpoint")
@@ -931,49 +939,50 @@ let typed_endpoint_decoding () =
 
 let typed_endpoint_decode_error () =
   let endpoint =
-    RouterServer.Endpoint.make ~id:"note" ~path:"/notes/:id<NoteId.t>" ~activeRoutes:[] ~fingerprint:"note"
+    RouterEngine.Endpoint.make ~id:"note" ~path:"/notes/:id<NoteId.t>" ~activeRoutes:[] ~fingerprint:"note"
       ~decode:(fun input ->
-        match RouterServer.Decode.path ~input ~name:"id" ~parse:(fun _ -> Error "invalid") with
+        match RouterEngine.Decode.path ~input ~name:"id" ~parse:(fun _ -> Error "invalid") with
         | Ok (_ : int) ->
-            Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () -> RouterServer.Execution.done_ ()))
+            Ok (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () -> RouterEngine.Execution.done_ ()))
         | Error error -> Error error)
   in
-  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let registry = RouterEngine.EndpointRegistry.makeExn [ endpoint ] in
   let search =
-    match RouterServer.Search.parse "" with Ok search -> search | Error _ -> Alcotest.fail "expected search"
+    match RouterEngine.Search.parse "" with Ok search -> search | Error _ -> Alcotest.fail "expected search"
   in
-  match RouterServer.EndpointRegistry.find registry ~pathname:"/notes/nope" with
+  match RouterEngine.EndpointRegistry.find registry ~pathname:"/notes/nope" with
   | Ok (Some matched) -> (
-      match RouterServer.EndpointRegistry.decode matched ~search with
+      match RouterEngine.EndpointRegistry.decode matched ~search with
       | Error (RouterRuntime.Error.InvalidPathParameter { name = "id" }) -> ()
       | _ -> Alcotest.fail "expected invalid path parameter")
   | _ -> Alcotest.fail "expected endpoint match"
 
 let run_trailing_slash_engine ~trailingSlash ~basePath ~pathname ?(search = "") () =
-  let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
-    RouterServer.Endpoint.make ~id:"notes" ~path:"/notes" ~activeRoutes:[] ~fingerprint:"notes" ~decode:(fun _ ->
+  let endpoint : ((string, string) RouterEngine.Plan.t, string, unit) RouterEngine.Endpoint.t =
+    RouterEngine.Endpoint.make ~id:"notes" ~path:"/notes" ~activeRoutes:[] ~fingerprint:"notes" ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:"notes"))))
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page:"notes"))))
   in
-  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let registry = RouterEngine.EndpointRegistry.makeExn [ endpoint ] in
   Lwt_main.run
-    (RouterServer.ServerEngine.run ~registry ~basePath ~trailingSlash
-       ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    (RouterEngine.ServerEngine.run ~context:() ~registry ~basePath ~trailingSlash
+       ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
        ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
        ~diagnosticId:(fun _ -> "diagnostic")
        ~protocolVersion:1
        { pathname; search; hash = ""; kind = Document; navigation = None })
 
 let run_redirect_engine ~kind execution =
-  let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
-    RouterServer.Endpoint.make ~id:"old" ~path:"/old" ~activeRoutes:[] ~fingerprint:"old" ~decode:(fun _ ->
-        Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution))
+  let endpoint : ((string, string) RouterEngine.Plan.t, string, unit) RouterEngine.Endpoint.t =
+    RouterEngine.Endpoint.make ~id:"old" ~path:"/old" ~activeRoutes:[] ~fingerprint:"old" ~decode:(fun _ ->
+        Ok (RouterEngine.Endpoint.prepared ~branch:[] ~execution))
   in
-  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let registry = RouterEngine.EndpointRegistry.makeExn [ endpoint ] in
   Lwt_main.run
-    (RouterServer.ServerEngine.run ~registry ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
-       ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    (RouterEngine.ServerEngine.run ~context:() ~registry ~basePath:"/"
+       ~trailingSlash:RouterEngine.TrailingSlash.Redirect
+       ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
        ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
        ~diagnosticId:(fun _ -> "diagnostic")
        ~protocolVersion:1
@@ -982,89 +991,89 @@ let run_redirect_engine ~kind execution =
 let loader_permanent_redirect_reaches_engine () =
   let destination = RouterRuntime.destination ~path:"/new" in
   let execution () =
-    RouterServer.Execution.load
+    RouterEngine.Execution.load
       (fun () -> Lwt.return (RouterRuntime.Loader.PermanentRedirect destination))
-      (fun (_ : unit) -> RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:"old"))
+      (fun (_ : unit) -> RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page:"old"))
   in
   List.iter
     (fun kind ->
       match run_redirect_engine ~kind execution with
-      | RouterServer.ServerEngine.PermanentRedirect found ->
+      | RouterEngine.ServerEngine.PermanentRedirect found ->
           Alcotest.(check string) "destination" "/new" (RouterRuntime.href found)
       | _ -> Alcotest.fail "expected permanent redirect")
-    [ RouterServer.ServerEngine.Document; RouterServer.ServerEngine.Rsc ]
+    [ RouterEngine.ServerEngine.Document; RouterEngine.ServerEngine.Rsc ]
 
 let execution_permanent_redirect_skips_loaders () =
   let destination = RouterRuntime.destination ~path:"/new" in
-  let execution () = RouterServer.Execution.permanentRedirect destination in
+  let execution () = RouterEngine.Execution.permanentRedirect destination in
   match run_redirect_engine ~kind:Document execution with
-  | RouterServer.ServerEngine.PermanentRedirect found ->
+  | RouterEngine.ServerEngine.PermanentRedirect found ->
       Alcotest.(check string) "destination" "/new" (RouterRuntime.href found)
   | _ -> Alcotest.fail "expected permanent redirect"
 
 let loader_redirect_stays_temporary () =
   let destination = RouterRuntime.destination ~path:"/new" in
-  match run_redirect_engine ~kind:Document (fun () -> RouterServer.Execution.redirect destination) with
-  | RouterServer.ServerEngine.Redirect _ -> ()
+  match run_redirect_engine ~kind:Document (fun () -> RouterEngine.Execution.redirect destination) with
+  | RouterEngine.ServerEngine.Redirect _ -> ()
   | _ -> Alcotest.fail "expected temporary redirect"
 
 let trailing_slash_redirects_to_canonical () =
   match
-    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/app"
+    run_trailing_slash_engine ~trailingSlash:RouterEngine.TrailingSlash.Redirect ~basePath:"/app"
       ~pathname:"/app/notes/" ~search:"?page=2" ()
   with
-  | RouterServer.ServerEngine.PermanentRedirect destination ->
+  | RouterEngine.ServerEngine.PermanentRedirect destination ->
       Alcotest.(check string) "destination" "/app/notes?page=2" (RouterRuntime.href destination)
   | _ -> Alcotest.fail "expected permanent redirect"
 
 let trailing_slash_redirect_collapses_repeated_slashes () =
   match
-    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname:"/notes///" ()
+    run_trailing_slash_engine ~trailingSlash:RouterEngine.TrailingSlash.Redirect ~basePath:"/" ~pathname:"/notes///" ()
   with
-  | RouterServer.ServerEngine.PermanentRedirect destination ->
+  | RouterEngine.ServerEngine.PermanentRedirect destination ->
       Alcotest.(check string) "destination" "/notes" (RouterRuntime.href destination)
   | _ -> Alcotest.fail "expected permanent redirect"
 
 let trailing_slash_redirects_base_path_root () =
   match
-    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/app" ~pathname:"/app/" ()
+    run_trailing_slash_engine ~trailingSlash:RouterEngine.TrailingSlash.Redirect ~basePath:"/app" ~pathname:"/app/" ()
   with
-  | RouterServer.ServerEngine.PermanentRedirect destination ->
+  | RouterEngine.ServerEngine.PermanentRedirect destination ->
       Alcotest.(check string) "destination" "/app" (RouterRuntime.href destination)
   | _ -> Alcotest.fail "expected permanent redirect"
 
 let trailing_slash_reject_is_not_found () =
   match
-    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Reject ~basePath:"/" ~pathname:"/notes/" ()
+    run_trailing_slash_engine ~trailingSlash:RouterEngine.TrailingSlash.Reject ~basePath:"/" ~pathname:"/notes/" ()
   with
-  | RouterServer.ServerEngine.Full full ->
+  | RouterEngine.ServerEngine.Full full ->
       Alcotest.(check int) "status" 404 (RouterRuntime.Status.toInt full.resolved.status)
   | _ -> Alcotest.fail "expected not-found response"
 
 let trailing_slash_redirect_never_leaves_the_origin () =
   List.iter
     (fun pathname ->
-      match run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname () with
-      | RouterServer.ServerEngine.PermanentRedirect destination ->
+      match run_trailing_slash_engine ~trailingSlash:RouterEngine.TrailingSlash.Redirect ~basePath:"/" ~pathname () with
+      | RouterEngine.ServerEngine.PermanentRedirect destination ->
           Alcotest.failf "%s redirected to %s" pathname (RouterRuntime.href destination)
-      | RouterServer.ServerEngine.Full full ->
+      | RouterEngine.ServerEngine.Full full ->
           Alcotest.(check int) pathname 404 (RouterRuntime.Status.toInt full.resolved.status)
       | _ -> Alcotest.fail "expected not-found response")
     [ "//evil.example/"; "///evil.example//"; "//evil.example/notes/"; "/\\evil.example/"; "/\\\\evil.example/" ]
 
 let root_pathname_is_canonical () =
-  match run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/" ~pathname:"/" () with
-  | RouterServer.ServerEngine.PermanentRedirect _ -> Alcotest.fail "expected no redirect for the root pathname"
-  | RouterServer.ServerEngine.Full full ->
+  match run_trailing_slash_engine ~trailingSlash:RouterEngine.TrailingSlash.Redirect ~basePath:"/" ~pathname:"/" () with
+  | RouterEngine.ServerEngine.PermanentRedirect _ -> Alcotest.fail "expected no redirect for the root pathname"
+  | RouterEngine.ServerEngine.Full full ->
       Alcotest.(check int) "status" 404 (RouterRuntime.Status.toInt full.resolved.status)
   | _ -> Alcotest.fail "expected full response"
 
 let engine_matches_lower_case_base_path_escapes () =
   match
-    run_trailing_slash_engine ~trailingSlash:RouterServer.TrailingSlash.Redirect ~basePath:"/m%C3%BCnchen"
+    run_trailing_slash_engine ~trailingSlash:RouterEngine.TrailingSlash.Redirect ~basePath:"/m%C3%BCnchen"
       ~pathname:"/m%c3%bcnchen/notes" ()
   with
-  | RouterServer.ServerEngine.Full full ->
+  | RouterEngine.ServerEngine.Full full ->
       Alcotest.(check int) "status" 200 (RouterRuntime.Status.toInt full.resolved.status)
   | _ -> Alcotest.fail "expected full response"
 
@@ -1072,11 +1081,11 @@ let default_boundary_renders_text () =
   let render error =
     let resolved =
       Lwt_main.run
-        (RouterServer.Plan.resolve (RouterServer.Plan.failure ~scopes:[] ~error ()) ~applicationStatus:(fun _ ->
+        (RouterEngine.Plan.resolve (RouterEngine.Plan.failure ~scopes:[] ~error ()) ~applicationStatus:(fun _ ->
              RouterRuntime.Status.InternalServerError))
     in
     Alcotest.(check bool) "no app boundary" true (Option.is_none resolved.element);
-    ReactDOM.renderToString (RouterServer.Plan.resolvedElement resolved)
+    ReactDOM.renderToString (RouterEngine.Plan.resolvedElement resolved)
   in
   Alcotest.(check string)
     "not found" "<p>Not found</p>"
@@ -1086,16 +1095,16 @@ let default_boundary_renders_text () =
     (render (RouterRuntime.Error.Application "secret detail"))
 
 let server_base_path_validation () =
-  let endpoint : ((unit, unit) RouterServer.Plan.t, unit, unit) RouterServer.Endpoint.t =
-    RouterServer.Endpoint.make ~id:"root" ~path:"/" ~activeRoutes:[] ~fingerprint:"root" ~decode:(fun _ ->
+  let endpoint : ((unit, unit) RouterEngine.Plan.t, unit, unit) RouterEngine.Endpoint.t =
+    RouterEngine.Endpoint.make ~id:"root" ~path:"/" ~activeRoutes:[] ~fingerprint:"root" ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:()))))
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page:()))))
   in
-  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let registry = RouterEngine.EndpointRegistry.makeExn [ endpoint ] in
   let make basePath =
-    RouterServer.Server.make ~basePath ~registry
-      ~fallback:(fun ~search:_ ~error:_ -> RouterServer.Plan.success ~scopes:[] ~page:())
+    RouterEngine.Server.make ~basePath ~registry
+      ~fallback:(fun ~context:() ~search:_ ~error:_ -> RouterEngine.Plan.success ~scopes:[] ~page:())
       ~applicationStatus:(fun () -> RouterRuntime.Status.InternalServerError)
       ()
   in
@@ -1114,33 +1123,33 @@ let server_base_path_validation () =
 
 let adapter_server ?interceptLinks ?viewTransitions ?pageCacheMaxAge () =
   let page =
-    RouterServer.Plan.success
+    RouterEngine.Plan.success
       ~scopes:
         [
-          RouterServer.Plan.Scope.make
+          RouterEngine.Plan.Scope.make
             ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"Item" ~description:"D" ()))
             ();
         ]
       ~page:(React.createElement "main" [] [ React.string "item" ])
   in
   let endpoint path id decode_result =
-    RouterServer.Endpoint.make ~id ~path
+    RouterEngine.Endpoint.make ~id ~path
       ~activeRoutes:[ (id, []) ]
       ~fingerprint:id
-      ~decode:(fun _ -> Ok (RouterServer.Endpoint.prepared ~branch:[] ~execution:decode_result))
+      ~decode:(fun _ -> Ok (RouterEngine.Endpoint.prepared ~branch:[] ~execution:decode_result))
   in
   let registry =
-    RouterServer.EndpointRegistry.makeExn
+    RouterEngine.EndpointRegistry.makeExn
       [
-        endpoint "/item" "item" (fun () -> RouterServer.Execution.done_ page);
+        endpoint "/item" "item" (fun () -> RouterEngine.Execution.done_ page);
         endpoint "/go" "go" (fun () ->
-            RouterServer.Execution.load
+            RouterEngine.Execution.load
               (fun () -> Lwt.return (RouterRuntime.Loader.Redirect (RouterRuntime.destination ~path:"/item")))
-              (fun () -> RouterServer.Execution.done_ page));
+              (fun () -> RouterEngine.Execution.done_ page));
       ]
   in
-  RouterServer.Server.make ~basePath:"/app" ~registry
-    ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+  RouterEngine.Server.make ~basePath:"/app" ~registry
+    ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ?interceptLinks ?viewTransitions ?pageCacheMaxAge ()
 
@@ -1148,20 +1157,22 @@ let adapter_reply ?(registry = None) ?(search = "") ~kind pathname =
   let server = adapter_server () in
   let navigation =
     match kind with
-    | RouterServer.ServerEngine.Document -> None
+    | RouterEngine.ServerEngine.Document -> None
     | Rsc ->
         Some
           {
-            RouterServer.ServerEngine.from = Some "/app";
-            registry = Some (Option.value registry ~default:("1." ^ RouterServer.Server.fingerprint server));
+            RouterEngine.ServerEngine.from = Some "/app";
+            registry = Some (Option.value registry ~default:("1." ^ RouterEngine.Server.fingerprint server));
             base_revision = Some "base";
           }
   in
   let outcome =
     Lwt_main.run
-      (RouterServer.run server ~diagnosticId:(fun _ -> "diagnostic") { pathname; search; hash = ""; kind; navigation })
+      (RouterEngine.Server.run ~context:() server
+         ~diagnosticId:(fun _ -> "diagnostic")
+         { pathname; search; hash = ""; kind; navigation })
   in
-  RouterServer.Adapter.reply server ~target:pathname ~pageCacheCapacity:0
+  RouterServer.reply server ~target:pathname ~pageCacheCapacity:0
     ~document:(fun ~head children ->
       React.createElement "html" []
         [ React.createElement "head" [] [ head ]; React.createElement "body" [] [ children ] ])
@@ -1172,18 +1183,18 @@ let revision_defaults_to_empty () =
   let revision ?revision () =
     match
       Lwt_main.run
-        (RouterServer.run server
+        (RouterEngine.Server.run ~context:() server
            ~diagnosticId:(fun _ -> "diagnostic")
            ?revision
            { pathname = "/app/item"; search = ""; hash = ""; kind = Document; navigation = None })
     with
-    | RouterServer.ServerEngine.Full full -> full.revision
+    | RouterEngine.ServerEngine.Full full -> full.revision
     | _ -> Alcotest.fail "expected full response"
   in
   Alcotest.(check string) "default" "" (revision ());
   Alcotest.(check string) "given" "r2" (revision ~revision:(fun () -> "r2") ())
 
-let header name (reply : RouterServer.Adapter.reply) = List.assoc_opt name reply.headers
+let header name (reply : RouterServer.reply) = List.assoc_opt name reply.headers
 let check_header reply name expected = Alcotest.(check (option string)) name expected (header name reply)
 
 let count_occurrences ~needle haystack =
@@ -1199,7 +1210,7 @@ let html_document ~head children =
   React.createElement "html" [] [ React.createElement "head" [] [ head ]; React.createElement "body" [] [ children ] ]
 
 let parse_request_reads_router_headers () =
-  let parse headers = RouterServer.Adapter.parseRequest ~target:"/app/item?q=1" ~headers in
+  let parse headers = RouterServer.parseRequest ~target:"/app/item?q=1" ~headers in
   let rsc =
     parse
       [
@@ -1235,7 +1246,7 @@ let parse_request_reads_router_headers () =
 
 let parse_request_empty_query_and_fragment () =
   let location target =
-    let { RouterServer.Adapter.engine; _ } = RouterServer.Adapter.parseRequest ~target ~headers:[] in
+    let { RouterServer.engine; _ } = RouterServer.parseRequest ~target ~headers:[] in
     (engine.pathname, engine.search)
   in
   let check target expected = Alcotest.(check (pair string string)) target expected (location target) in
@@ -1247,7 +1258,9 @@ let parse_request_empty_query_and_fragment () =
 
 let handle ?(allow = None) ?(headers = []) method_ target =
   Lwt_main.run
-    (RouterServer.Adapter.handle (adapter_server ())
+    (RouterServer.handle
+       ~context:(fun () -> ())
+       (adapter_server ())
        ~diagnosticId:(fun _ -> "diagnostic")
        ~document:html_document ?allow ~method_ ~target ~headers ())
 
@@ -1259,14 +1272,14 @@ let adapter_handle () =
   let head = handle "HEAD" "/app/item" in
   Alcotest.(check int) "head status" 200 head.status;
   Alcotest.(check bool) "head headers" true (head.headers = document.headers);
-  Alcotest.(check bool) "head body" true (head.body = RouterServer.Adapter.Empty);
+  Alcotest.(check bool) "head body" true (head.body = RouterServer.Empty);
   let rsc =
     handle
       ~headers:
         [
           ("accept", "application/react.component");
           ("router-navigation-from", "/app");
-          ("router-registry", "1." ^ RouterServer.Server.fingerprint (adapter_server ()));
+          ("router-registry", "1." ^ RouterEngine.Server.fingerprint (adapter_server ()));
           ("router-base-revision", "");
         ]
       "GET" "/app/item"
@@ -1291,7 +1304,7 @@ let adapter_handle_builds_context_only_to_run () =
   let built = ref 0 in
   let handle method_ =
     Lwt_main.run
-      (RouterServer.Adapter.handleWithContext (adapter_server ())
+      (RouterServer.handle (adapter_server ())
          ~diagnosticId:(fun _ -> "diagnostic")
          ~document:html_document
          ~context:(fun () -> incr built)
@@ -1302,11 +1315,52 @@ let adapter_handle_builds_context_only_to_run () =
   Alcotest.(check int) "get" 200 (handle "GET").status;
   Alcotest.(check int) "one context for get" 1 !built
 
-let request_memo_reaches_streamed_components () =
-  let key : string RouterServer.Request.key = RouterServer.Request.key () in
+let context_memo_shares_the_request_cache () =
+  let key : string RouterServer.memoKey = RouterServer.memoKey () in
   let runs = ref 0 in
   let viewer () =
-    RouterServer.Request.memo key "viewer" (fun () ->
+    RouterServer.memo key "viewer" (fun () ->
+        incr runs;
+        Lwt.return "ada")
+  in
+  let endpoint =
+    RouterEngine.Endpoint.make ~id:"item" ~path:"/item"
+      ~activeRoutes:[ ("item", []) ]
+      ~fingerprint:"item"
+      ~decode:(fun _ ->
+        Ok
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun context ->
+               RouterEngine.Execution.load
+                 (fun () -> Lwt.map (fun viewer -> RouterRuntime.Loader.Data (context ^ viewer)) (viewer ()))
+                 (fun page ->
+                   RouterEngine.Execution.done_
+                     (RouterEngine.Plan.success ~scopes:[] ~page:(React.createElement "main" [] [ React.string page ]))))))
+  in
+  let server =
+    RouterEngine.Server.make ~basePath:"/app"
+      ~registry:(RouterEngine.EndpointRegistry.makeExn [ endpoint ])
+      ~fallback:(fun ~context:_ ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
+      ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+      ()
+  in
+  let context () =
+    ignore (viewer ());
+    "viewer:"
+  in
+  let response =
+    Lwt_main.run
+      (RouterServer.serve server
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~document:html_document ~context ~method_:"GET" ~target:"/app/item" ~headers:[] ())
+  in
+  Alcotest.(check int) "status" 200 response.status;
+  Alcotest.(check int) "fetched once" 1 !runs
+
+let request_memo_reaches_streamed_components () =
+  let key : string RouterServer.memoKey = RouterServer.memoKey () in
+  let runs = ref 0 in
+  let viewer () =
+    RouterServer.memo key "viewer" (fun () ->
         incr runs;
         Lwt.return ("viewer-" ^ string_of_int !runs))
   in
@@ -1315,32 +1369,34 @@ let request_memo_reaches_streamed_components () =
       ("Viewer", fun () -> Lwt.map (fun viewer -> React.createElement "main" [] [ React.string viewer ]) (viewer ()))
   in
   let endpoint =
-    RouterServer.Endpoint.make ~id:"item" ~path:"/item"
+    RouterEngine.Endpoint.make ~id:"item" ~path:"/item"
       ~activeRoutes:[ ("item", []) ]
       ~fingerprint:"item"
       ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.load
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.load
                  (fun () -> Lwt.map (fun viewer -> RouterRuntime.Loader.Data viewer) (viewer ()))
                  (fun (_ : string) ->
                    let metadata () = Lwt.map (fun title -> RouterRuntime.Metadata.make ~title ()) (viewer ()) in
-                   RouterServer.Execution.done_
-                     (RouterServer.Plan.success ~scopes:[ RouterServer.Plan.Scope.make ~metadata () ] ~page)))))
+                   RouterEngine.Execution.done_
+                     (RouterEngine.Plan.success ~scopes:[ RouterEngine.Plan.Scope.make ~metadata () ] ~page)))))
   in
   let server =
-    RouterServer.Server.make ~basePath:"/app"
-      ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
-      ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    RouterEngine.Server.make ~basePath:"/app"
+      ~registry:(RouterEngine.EndpointRegistry.makeExn [ endpoint ])
+      ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
       ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
       ()
   in
   let request () =
     Lwt.bind
-      (RouterServer.Adapter.serve server
+      (RouterServer.serve
+         ~context:(fun () -> ())
+         server
          ~diagnosticId:(fun _ -> "diagnostic")
          ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ())
-      (fun (response : RouterServer.Adapter.response) ->
+      (fun (response : RouterServer.response) ->
         match response.body with
         | None -> Alcotest.fail "expected a body"
         | Some body ->
@@ -1359,14 +1415,18 @@ let request_memo_reaches_streamed_components () =
   Alcotest.(check int) "one run per request" 2 !runs;
   ignore
     (Lwt_main.run
-       (RouterServer.Adapter.handle server
+       (RouterServer.handle
+          ~context:(fun () -> ())
+          server
           ~diagnosticId:(fun _ -> "diagnostic")
           ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ()));
   Alcotest.(check int) "handle shares between loader and metadata" 3 !runs;
   let outer () =
-    RouterServer.Request.scope (fun () ->
+    RouterServer.requestScope (fun () ->
         let handled () =
-          RouterServer.Adapter.handle server
+          RouterServer.handle
+            ~context:(fun () -> ())
+            server
             ~diagnosticId:(fun _ -> "diagnostic")
             ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ()
         in
@@ -1377,7 +1437,7 @@ let request_memo_reaches_streamed_components () =
   Lwt_main.run (outer ());
   Alcotest.(check int) "requests under an outer scope do not share entries" 4 !runs
 
-let collect (response : RouterServer.Adapter.response) =
+let collect (response : RouterServer.response) =
   match response.body with
   | None -> None
   | Some body ->
@@ -1388,13 +1448,11 @@ let collect (response : RouterServer.Adapter.response) =
              Lwt.return_unit));
       Some (Buffer.contents chunks)
 
-let count_header name (response : RouterServer.Adapter.response) =
+let count_header name (response : RouterServer.response) =
   List.length (List.filter (fun (key, _) -> String.equal (String.lowercase_ascii key) name) response.headers)
 
 let adapter_response () =
-  let document =
-    RouterServer.Adapter.response ~bootstrapModules:[ "/app.js" ] (adapter_reply ~kind:Document "/app/item")
-  in
+  let document = RouterServer.response ~bootstrapModules:[ "/app.js" ] (adapter_reply ~kind:Document "/app/item") in
   Alcotest.(check int) "document status" 200 document.status;
   Alcotest.(check (option string))
     "document type" (Some "text/html; charset=utf-8")
@@ -1405,7 +1463,7 @@ let adapter_response () =
       Alcotest.(check bool) "routed markup" true (contains ~needle:"<main>item</main>" html);
       Alcotest.(check bool) "bootstrap module" true (contains ~needle:"/app.js" html)
   | None -> Alcotest.fail "expected a document body");
-  let model = RouterServer.Adapter.response (adapter_reply ~kind:Rsc "/app/item") in
+  let model = RouterServer.response (adapter_reply ~kind:Rsc "/app/item") in
   Alcotest.(check (option string)) "location" (Some "/app/item") (List.assoc_opt "X-Location" model.headers);
   Alcotest.(check (option string)) "nosniff" (Some "nosniff") (List.assoc_opt "X-Content-Type-Options" model.headers);
   Alcotest.(check int) "one model content type" 1 (count_header "content-type" model);
@@ -1419,7 +1477,7 @@ let adapter_response () =
         "flight payload" true
         (contains ~needle:"<main>" flight || contains ~needle:"\"main\"" flight)
   | None -> Alcotest.fail "expected a model body");
-  let empty = RouterServer.Adapter.response (adapter_reply ~registry:(Some "0.stale") ~kind:Rsc "/app/item") in
+  let empty = RouterServer.response (adapter_reply ~registry:(Some "0.stale") ~kind:Rsc "/app/item") in
   Alcotest.(check int) "reload status" 409 empty.status;
   Alcotest.(check bool) "no body" true (Option.is_none empty.body)
 
@@ -1430,7 +1488,7 @@ let client_root_settings () =
   let seen server ?pageCacheCapacity () =
     let seen = ref None in
     ignore
-      (RouterServer.Server.clientRootWith ?pageCacheCapacity server
+      (RouterServer.clientRootWith ?pageCacheCapacity server
          ~make:(fun
              ~initial:_
              ~protocolVersion:_
@@ -1457,11 +1515,13 @@ let client_root_settings () =
   let html server =
     let reply =
       Lwt_main.run
-        (RouterServer.Adapter.handle server
+        (RouterServer.handle
+           ~context:(fun () -> ())
+           server
            ~diagnosticId:(fun _ -> "diagnostic")
            ~pageCacheCapacity:5 ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ())
     in
-    Option.get (collect (RouterServer.Adapter.response reply))
+    Option.get (collect (RouterServer.response reply))
   in
   let with_max_age = html (adapter_server ~pageCacheMaxAge:30.0 ()) in
   Alcotest.(check bool) "max age prop" true (contains ~needle:{|"pageCacheMaxAge":30,|} with_max_age);
@@ -1508,7 +1568,7 @@ let adapter_rsc_reply () =
   Alcotest.(check int) "status" 200 reply.status;
   check_header reply "Vary" (Some "Accept, Router-Prefetch");
   check_header reply "Router-Response" (Some "full");
-  check_header reply "Router-Registry" (Some ("1." ^ RouterServer.Server.fingerprint (adapter_server ())));
+  check_header reply "Router-Registry" (Some ("1." ^ RouterEngine.Server.fingerprint (adapter_server ())));
   check_header reply "Cache-Control" (Some "private, no-store");
   match reply.body with
   | Model { location; _ } -> Alcotest.(check string) "x-location" "/app/item" location
@@ -1537,7 +1597,7 @@ let adapter_rsc_redirect_reply () =
   Alcotest.(check int) "status" 200 reply.status;
   check_header reply "Vary" (Some "Accept, Router-Prefetch");
   check_header reply "Router-Response" (Some "redirect");
-  check_header reply "Router-Registry" (Some ("1." ^ RouterServer.Server.fingerprint (adapter_server ())));
+  check_header reply "Router-Registry" (Some ("1." ^ RouterEngine.Server.fingerprint (adapter_server ())));
   check_header reply "Cache-Control" (Some "private, no-store");
   check_header reply "Content-Type" (Some "application/react.component");
   match reply.body with
@@ -1548,21 +1608,21 @@ let full_plan_composition () =
   let open RouterRuntime in
   let headers values = match Headers.make values with Ok headers -> headers | Error _ -> Alcotest.fail "headers" in
   let root =
-    RouterServer.Plan.Scope.make
+    RouterEngine.Plan.Scope.make
       ~layout:(fun child -> "root(" ^ child ^ ")")
       ~metadata:(fun () -> Lwt.return (Metadata.make ~title:"Root" ()))
       ~headers:(fun () -> Lwt.return (headers [ ("Vary", "Accept"); ("Set-Cookie", "root=1") ]))
       ()
   in
   let child =
-    RouterServer.Plan.Scope.make
+    RouterEngine.Plan.Scope.make
       ~layout:(fun child -> "child(" ^ child ^ ")")
       ~metadata:(fun () -> Lwt.return (Metadata.make ~description:"Child" ()))
       ~headers:(fun () -> Lwt.return (headers [ ("Cache-Control", "private"); ("Set-Cookie", "child=1") ]))
       ()
   in
-  let plan = RouterServer.Plan.success ~scopes:[ root; child ] ~page:"page" in
-  let resolved = Lwt_main.run (RouterServer.Plan.resolve plan ~applicationStatus:(fun _ -> Status.Forbidden)) in
+  let plan = RouterEngine.Plan.success ~scopes:[ root; child ] ~page:"page" in
+  let resolved = Lwt_main.run (RouterEngine.Plan.resolve plan ~applicationStatus:(fun _ -> Status.Forbidden)) in
   Alcotest.(check (option string)) "element" (Some "root(child(page))") resolved.element;
   Alcotest.(check (option string)) "title" (Some "Root") resolved.metadata.title;
   Alcotest.(check (option string)) "description" (Some "Child") resolved.metadata.description;
@@ -1576,64 +1636,64 @@ let failure_plan_selects_not_found_boundary () =
   let open RouterRuntime in
   let error = Error.NotFound { reason = Error.LoaderNotFound } in
   let plan =
-    RouterServer.Plan.failure ~scopes:[] ~error ~notFound:(fun _ -> "not-found") ~errorBoundary:(fun _ -> "error") ()
+    RouterEngine.Plan.failure ~scopes:[] ~error ~notFound:(fun _ -> "not-found") ~errorBoundary:(fun _ -> "error") ()
   in
-  let resolved = Lwt_main.run (RouterServer.Plan.resolve plan ~applicationStatus:(fun _ -> Status.Forbidden)) in
+  let resolved = Lwt_main.run (RouterEngine.Plan.resolve plan ~applicationStatus:(fun _ -> Status.Forbidden)) in
   Alcotest.(check (option string)) "boundary" (Some "not-found") resolved.element;
   Alcotest.(check int) "status" 404 (Status.toInt resolved.status)
 
 let shared_layout_prefix_uses_canonical_identity () =
-  let scope = RouterServer.Branch.Scope.make ~search:[] in
+  let scope = RouterEngine.Branch.Scope.make ~search:[] in
   let root = scope ~id:"root" ~parameters:[] ~reusable:true in
   let note = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:true in
   let same = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:true in
   let other = scope ~id:"group:note" ~parameters:[ ("id", "2") ] ~reusable:true in
   let outletless = scope ~id:"group:note" ~parameters:[ ("id", "1") ] ~reusable:false in
-  Alcotest.(check int) "same" 2 (RouterServer.Branch.sharedPrefix [ root; note ] [ root; same ]);
-  Alcotest.(check int) "different params" 1 (RouterServer.Branch.sharedPrefix [ root; note ] [ root; other ]);
+  Alcotest.(check int) "same" 2 (RouterEngine.Branch.sharedPrefix [ root; note ] [ root; same ]);
+  Alcotest.(check int) "different params" 1 (RouterEngine.Branch.sharedPrefix [ root; note ] [ root; other ]);
   Alcotest.(check int)
     "scope without an outlet" 1
-    (RouterServer.Branch.sharedPrefix [ root; note ] [ root; outletless ])
+    (RouterEngine.Branch.sharedPrefix [ root; note ] [ root; outletless ])
 
 let shared_layout_prefix_compares_search_in_reach () =
-  let scope search = RouterServer.Branch.Scope.make ~search ~reusable:true in
+  let scope search = RouterEngine.Branch.Scope.make ~search ~reusable:true in
   let root text = scope [ ("text", text) ] ~id:"root" ~parameters:[] in
   let note text = scope [ ("text", text) ] ~id:"group:note" ~parameters:[ ("id", "1") ] in
   Alcotest.(check int)
     "same search" 2
-    (RouterServer.Branch.sharedPrefix [ root [ "a" ]; note [ "a" ] ] [ root [ "a" ]; note [ "a" ] ]);
+    (RouterEngine.Branch.sharedPrefix [ root [ "a" ]; note [ "a" ] ] [ root [ "a" ]; note [ "a" ] ]);
   Alcotest.(check int)
     "changed search in reach" 0
-    (RouterServer.Branch.sharedPrefix [ root [ "a" ]; note [ "a" ] ] [ root [ "b" ]; note [ "b" ] ]);
+    (RouterEngine.Branch.sharedPrefix [ root [ "a" ]; note [ "a" ] ] [ root [ "b" ]; note [ "b" ] ]);
   Alcotest.(check int)
     "values are framed" 0
-    (RouterServer.Branch.sharedPrefix [ root [ "ab"; "c" ] ] [ root [ "a"; "bc" ] ]);
+    (RouterEngine.Branch.sharedPrefix [ root [ "ab"; "c" ] ] [ root [ "a"; "bc" ] ]);
   Alcotest.(check string)
     "search does not enter the instance key"
-    (RouterServer.Branch.Scope.instanceKey (root [ "a" ]))
-    (RouterServer.Branch.Scope.instanceKey (root [ "b" ]))
+    (RouterEngine.Branch.Scope.instanceKey (root [ "a" ]))
+    (RouterEngine.Branch.Scope.instanceKey (root [ "b" ]))
 
 let plan_scope_count_bounds_the_graft () =
-  let scope = RouterServer.Plan.Scope.make ~layout:(fun child -> child) () in
+  let scope = RouterEngine.Plan.Scope.make ~layout:(fun child -> child) () in
   Alcotest.(check int)
     "success" 2
-    (RouterServer.Plan.scopeCount (RouterServer.Plan.success ~scopes:[ scope; scope ] ~page:"page"));
+    (RouterEngine.Plan.scopeCount (RouterEngine.Plan.success ~scopes:[ scope; scope ] ~page:"page"));
   Alcotest.(check int)
     "failure drops the failing scope" 1
-    (RouterServer.Plan.scopeCount
-       (RouterServer.Plan.failure ~scopes:[ scope ]
+    (RouterEngine.Plan.scopeCount
+       (RouterEngine.Plan.failure ~scopes:[ scope ]
           ~error:(RouterRuntime.Error.NotFound { reason = RouterRuntime.Error.LoaderNotFound })
           ()))
 
 let suffix_plan_omits_shared_layouts () =
   let open RouterRuntime in
-  let root = RouterServer.Plan.Scope.make ~layout:(fun child -> "root(" ^ child ^ ")") () in
-  let child = RouterServer.Plan.Scope.make ~layout:(fun child -> "child(" ^ child ^ ")") () in
-  let plan = RouterServer.Plan.success ~scopes:[ root; child ] ~page:"page" in
+  let root = RouterEngine.Plan.Scope.make ~layout:(fun child -> "root(" ^ child ^ ")") () in
+  let child = RouterEngine.Plan.Scope.make ~layout:(fun child -> "child(" ^ child ^ ")") () in
+  let plan = RouterEngine.Plan.success ~scopes:[ root; child ] ~page:"page" in
   let resolved =
     Lwt_main.run
-      (RouterServer.Plan.resolve plan
-         ~render:(RouterServer.Plan.Suffix { omitted_scopes = 1 })
+      (RouterEngine.Plan.resolve plan
+         ~render:(RouterEngine.Plan.Suffix { omitted_scopes = 1 })
          ~applicationStatus:(fun _ -> Status.InternalServerError))
   in
   Alcotest.(check (option string)) "suffix" (Some "child(page)") resolved.element
@@ -1648,7 +1708,7 @@ let scope_values_resolve_concurrently () =
       started := name :: !started;
       Lwt.map (fun () -> value) ready
     in
-    ( RouterServer.Plan.Scope.make
+    ( RouterEngine.Plan.Scope.make
         ~metadata:(fun () -> start (Metadata.make ~title ?description ()))
         ~headers:(fun () -> start (headers [ ("Set-Cookie", name ^ "=1") ]))
         (),
@@ -1656,8 +1716,8 @@ let scope_values_resolve_concurrently () =
   in
   let root, wake_root = scope "root" ~title:"Root" ~description:"Root" () in
   let child, wake_child = scope "child" ~title:"Child" () in
-  let plan = RouterServer.Plan.success ~scopes:[ root; child ] ~page:"page" in
-  let resolved = RouterServer.Plan.resolve plan ~applicationStatus:(fun _ -> Status.InternalServerError) in
+  let plan = RouterEngine.Plan.success ~scopes:[ root; child ] ~page:"page" in
+  let resolved = RouterEngine.Plan.resolve plan ~applicationStatus:(fun _ -> Status.InternalServerError) in
   Alcotest.(check (list string))
     "all scopes start before any resolves" [ "child"; "child"; "root"; "root" ] (List.sort compare !started);
   Lwt.wakeup wake_child ();
@@ -1674,7 +1734,7 @@ let scope_values_resolve_concurrently () =
 
 let adapter_method_replies () =
   let allow = [ "GET"; "HEAD"; "OPTIONS"; "POST" ] in
-  let reply method_ = RouterServer.Adapter.methodReply ~allow method_ in
+  let reply method_ = RouterServer.methodReply ~allow method_ in
   List.iter
     (fun method_ -> Alcotest.(check bool) (method_ ^ " runs the router") true (Option.is_none (reply method_)))
     [ "GET"; "HEAD"; "POST" ];
@@ -1683,7 +1743,7 @@ let adapter_method_replies () =
     | Some reply ->
         Alcotest.(check int) (method_ ^ " status") status reply.status;
         check_header reply "Allow" (Some "GET, HEAD, OPTIONS, POST");
-        Alcotest.(check bool) (method_ ^ " empty body") true (reply.body = RouterServer.Adapter.Empty)
+        Alcotest.(check bool) (method_ ^ " empty body") true (reply.body = RouterServer.Empty)
     | None -> Alcotest.failf "expected a reply for %s" method_
   in
   check "OPTIONS" 204;
@@ -1692,37 +1752,37 @@ let adapter_method_replies () =
   check "get" 405
 
 let prefetch_registry ran =
-  let endpoint ~id ?prefetch () : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
+  let endpoint ~id ?prefetch () : ((string, string) RouterEngine.Plan.t, string, unit) RouterEngine.Endpoint.t =
     let endpoint =
-      RouterServer.Endpoint.make ~id ~path:("/" ^ id) ~activeRoutes:[] ~fingerprint:id ~decode:(fun _ ->
+      RouterEngine.Endpoint.make ~id ~path:("/" ^ id) ~activeRoutes:[] ~fingerprint:id ~decode:(fun _ ->
           Ok
-            (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-                 RouterServer.Execution.load
+            (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+                 RouterEngine.Execution.load
                    (fun () ->
                      incr ran;
                      Lwt.return (RouterRuntime.Loader.Data ()))
-                   (fun () -> RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:id)))))
+                   (fun () -> RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page:id)))))
     in
-    match prefetch with Some level -> RouterServer.Endpoint.withPrefetch endpoint level | None -> endpoint
+    match prefetch with Some level -> RouterEngine.Endpoint.withPrefetch endpoint level | None -> endpoint
   in
-  RouterServer.EndpointRegistry.makeExn
+  RouterEngine.EndpointRegistry.makeExn
     [ endpoint ~id:"viewport" ~prefetch:RouterRuntime.PrefetchLevel.Viewport (); endpoint ~id:"default" () ]
 
-let prefetch_request pathname : RouterServer.ServerEngine.request =
+let prefetch_request pathname : RouterEngine.ServerEngine.request =
   { pathname; search = ""; hash = ""; kind = Rsc; navigation = None }
 
 let run_prefetch ~ran ?prefetch pathname =
   Lwt_main.run
-    (RouterServer.ServerEngine.run ~registry:(prefetch_registry ran) ~basePath:"/"
-       ~trailingSlash:RouterServer.TrailingSlash.Redirect
-       ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    (RouterEngine.ServerEngine.run ~context:() ~registry:(prefetch_registry ran) ~basePath:"/"
+       ~trailingSlash:RouterEngine.TrailingSlash.Redirect
+       ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
        ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
        ~diagnosticId:(fun _ -> "diagnostic")
        ~protocolVersion:1 ?prefetch (prefetch_request pathname))
 
 let vary outcome =
   match outcome with
-  | RouterServer.ServerEngine.Full full -> List.assoc_opt "Vary" (RouterRuntime.Headers.toList full.resolved.headers)
+  | RouterEngine.ServerEngine.Full full -> List.assoc_opt "Vary" (RouterRuntime.Headers.toList full.resolved.headers)
   | _ -> Alcotest.fail "expected full response"
 
 let refused_prefetch_runs_no_loader () =
@@ -1730,7 +1790,7 @@ let refused_prefetch_runs_no_loader () =
   let ran = ref 0 in
   let refused ~prefetch pathname expected =
     match run_prefetch ~ran ~prefetch pathname with
-    | RouterServer.ServerEngine.PrefetchRefused level ->
+    | RouterEngine.ServerEngine.PrefetchRefused level ->
         Alcotest.(check string) pathname (toString expected) (toString level)
     | _ -> Alcotest.failf "expected %s to refuse a %s prefetch" pathname (toString prefetch)
   in
@@ -1740,7 +1800,7 @@ let refused_prefetch_runs_no_loader () =
   Alcotest.(check bool)
     "unmatched path runs as a navigation" true
     (match run_prefetch ~ran ~prefetch:Idle "/missing" with
-    | RouterServer.ServerEngine.Full full -> RouterRuntime.Status.toInt full.resolved.status = 404
+    | RouterEngine.ServerEngine.Full full -> RouterRuntime.Status.toInt full.resolved.status = 404
     | _ -> false);
   Alcotest.(check int) "no loader ran" 0 !ran
 
@@ -1777,12 +1837,12 @@ let adapter_refused_prefetch_reply () =
   let reply prefetch =
     let outcome =
       Lwt_main.run
-        (RouterServer.run server
+        (RouterEngine.Server.run ~context:() server
            ~diagnosticId:(fun _ -> "diagnostic")
            ~prefetch
            { pathname = "/app/item"; search = ""; hash = ""; kind = Rsc; navigation = None })
     in
-    RouterServer.Adapter.reply server ~target:"/app/item" ~pageCacheCapacity:0
+    RouterServer.reply server ~target:"/app/item" ~pageCacheCapacity:0
       ~document:(fun ~head:_ children -> children)
       ~kind:Rsc outcome
   in
@@ -1794,32 +1854,32 @@ let adapter_refused_prefetch_reply () =
   check_header refused "Router-Prefetch-Refused" (Some "intent");
   check_header refused "Vary" (Some "Accept, Router-Prefetch");
   check_header refused "Cache-Control" (Some "private, no-store");
-  Alcotest.(check bool) "empty body" true (refused.body = RouterServer.Adapter.Empty)
+  Alcotest.(check bool) "empty body" true (refused.body = RouterServer.Empty)
 
 let client_routes_exclude_base_path () =
-  let endpoint path : ((React.element, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
-    RouterServer.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
+  let endpoint path : ((React.element, string) RouterEngine.Plan.t, string, unit) RouterEngine.Endpoint.t =
+    RouterEngine.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:React.null))))
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page:React.null))))
   in
   let registry =
-    RouterServer.EndpointRegistry.makeExn
+    RouterEngine.EndpointRegistry.makeExn
       [ endpoint "/"; endpoint "/notes/:id<int>"; endpoint "/assets/:parts<string...>"; endpoint "/docs" ]
   in
   let server basePath =
-    RouterServer.Server.make ~basePath ~registry
-      ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    RouterEngine.Server.make ~basePath ~registry
+      ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
       ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
       ()
   in
   let expected = [| "/"; "/notes/:id<int>"; "/assets/:parts<string...>"; "/docs" |] in
   List.iter
-    (fun basePath -> Alcotest.(check (array string)) basePath expected (RouterServer.Server.routes (server basePath)))
+    (fun basePath -> Alcotest.(check (array string)) basePath expected (RouterEngine.Server.routes (server basePath)))
     [ "/"; "/app"; "/m%C3%BCnchen" ];
   let passed = ref [||] in
   ignore
-    (RouterServer.Server.clientRootWith (server "/app")
+    (RouterServer.clientRootWith (server "/app")
        ~make:(fun
            ~initial:_
            ~protocolVersion:_
@@ -1848,29 +1908,29 @@ let client_routes_exclude_base_path () =
 
 let action_error_renders_after_loaders () =
   let run ?(redirect = false) ?(withFailure = true) () =
-    let page = RouterServer.Plan.success ~scopes:[] ~page:"page" in
+    let page = RouterEngine.Plan.success ~scopes:[] ~page:"page" in
     let page =
       if withFailure then
-        RouterServer.Plan.withFailure page (fun error ->
-            RouterServer.Plan.failure ~scopes:[] ~error ~errorBoundary:(fun _ -> "boundary") ())
+        RouterEngine.Plan.withFailure page (fun error ->
+            RouterEngine.Plan.failure ~scopes:[] ~error ~errorBoundary:(fun _ -> "boundary") ())
       else page
     in
-    let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
-      RouterServer.Endpoint.make ~id:"page" ~path:"/page" ~activeRoutes:[] ~fingerprint:"page" ~decode:(fun _ ->
+    let endpoint : ((string, string) RouterEngine.Plan.t, string, unit) RouterEngine.Endpoint.t =
+      RouterEngine.Endpoint.make ~id:"page" ~path:"/page" ~activeRoutes:[] ~fingerprint:"page" ~decode:(fun _ ->
           Ok
-            (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-                 RouterServer.Execution.load
+            (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+                 RouterEngine.Execution.load
                    (fun () ->
                      Lwt.return
                        (if redirect then RouterRuntime.Loader.Redirect (RouterRuntime.destination ~path:"/login")
                         else RouterRuntime.Loader.Data ()))
-                   (fun () -> RouterServer.Execution.done_ page))))
+                   (fun () -> RouterEngine.Execution.done_ page))))
     in
     Lwt_main.run
-      (RouterServer.ServerEngine.run
-         ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
-         ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
-         ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+      (RouterEngine.ServerEngine.run ~context:()
+         ~registry:(RouterEngine.EndpointRegistry.makeExn [ endpoint ])
+         ~basePath:"/" ~trailingSlash:RouterEngine.TrailingSlash.Redirect
+         ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
          ~applicationStatus:(fun _ -> RouterRuntime.Status.Forbidden)
          ~diagnosticId:(fun _ -> "diagnostic")
          ~protocolVersion:1
@@ -1878,32 +1938,32 @@ let action_error_renders_after_loaders () =
          { pathname = "/page"; search = ""; hash = ""; kind = Document; navigation = None })
   in
   (match run () with
-  | RouterServer.ServerEngine.Full full ->
+  | RouterEngine.ServerEngine.Full full ->
       Alcotest.(check int) "status" 500 (RouterRuntime.Status.toInt full.resolved.status);
       Alcotest.(check (option string)) "boundary" (Some "boundary") full.resolved.element
   | _ -> Alcotest.fail "expected full response");
   (match run ~withFailure:false () with
-  | RouterServer.ServerEngine.Full full ->
+  | RouterEngine.ServerEngine.Full full ->
       Alcotest.(check int) "plain status" 500 (RouterRuntime.Status.toInt full.resolved.status);
       Alcotest.(check (option string)) "no boundary" None full.resolved.element
   | _ -> Alcotest.fail "expected full response");
   match run ~redirect:true () with
-  | RouterServer.ServerEngine.Redirect _ -> ()
+  | RouterEngine.ServerEngine.Redirect _ -> ()
   | _ -> Alcotest.fail "expected the loader redirect to win"
 
 let unsafe_redirects_are_internal_errors () =
   let run target =
-    let endpoint : ((string, string) RouterServer.Plan.t, string, unit) RouterServer.Endpoint.t =
-      RouterServer.Endpoint.make ~id:"go" ~path:"/go" ~activeRoutes:[] ~fingerprint:"go" ~decode:(fun _ ->
+    let endpoint : ((string, string) RouterEngine.Plan.t, string, unit) RouterEngine.Endpoint.t =
+      RouterEngine.Endpoint.make ~id:"go" ~path:"/go" ~activeRoutes:[] ~fingerprint:"go" ~decode:(fun _ ->
           Ok
-            (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-                 RouterServer.Execution.redirect (RouterRuntime.destination ~path:target))))
+            (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+                 RouterEngine.Execution.redirect (RouterRuntime.destination ~path:target))))
     in
     Lwt_main.run
-      (RouterServer.ServerEngine.run
-         ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
-         ~basePath:"/" ~trailingSlash:RouterServer.TrailingSlash.Redirect
-         ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+      (RouterEngine.ServerEngine.run ~context:()
+         ~registry:(RouterEngine.EndpointRegistry.makeExn [ endpoint ])
+         ~basePath:"/" ~trailingSlash:RouterEngine.TrailingSlash.Redirect
+         ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
          ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
          ~diagnosticId:(fun _ -> "diagnostic")
          ~protocolVersion:1
@@ -1912,7 +1972,7 @@ let unsafe_redirects_are_internal_errors () =
   List.iter
     (fun target ->
       match run target with
-      | RouterServer.ServerEngine.Full full ->
+      | RouterEngine.ServerEngine.Full full ->
           Alcotest.(check int) target 500 (RouterRuntime.Status.toInt full.resolved.status)
       | _ -> Alcotest.failf "expected %S to be refused" target)
     [
@@ -1929,42 +1989,42 @@ let unsafe_redirects_are_internal_errors () =
   List.iter
     (fun target ->
       match run target with
-      | RouterServer.ServerEngine.Redirect destination ->
+      | RouterEngine.ServerEngine.Redirect destination ->
           Alcotest.(check string) target target (RouterRuntime.href destination)
       | _ -> Alcotest.failf "expected %S to redirect" target)
     [ "/"; "/notes?a=1#top"; "https://example.com/x"; "http://example.com"; "HTTPS://example.com/" ];
   Alcotest.(check (option string))
     "location of a safe destination" (Some "/notes")
-    (RouterServer.Adapter.redirectLocation (RouterRuntime.destination ~path:"/notes"));
+    (RouterServer.redirectLocation (RouterRuntime.destination ~path:"/notes"));
   Alcotest.(check (option string))
     "location of an unsafe destination" None
-    (RouterServer.Adapter.redirectLocation (RouterRuntime.destination ~path:"javascript:alert(1)"))
+    (RouterServer.redirectLocation (RouterRuntime.destination ~path:"javascript:alert(1)"))
 
 let signal_server () =
   let text value = React.createElement "p" [] [ React.string value ] in
   let page name body = React.Upper_case_component (name, body) in
   let plan page =
-    RouterServer.Plan.withFailure (RouterServer.Plan.success ~scopes:[] ~page) (fun error ->
-        RouterServer.Plan.failure ~scopes:[] ~error
+    RouterEngine.Plan.withFailure (RouterEngine.Plan.success ~scopes:[] ~page) (fun error ->
+        RouterEngine.Plan.failure ~scopes:[] ~error
           ~notFound:(fun _ -> text "missing note")
           ~errorBoundary:(fun _ -> text "broken")
           ())
   in
   let pages =
     [
-      ("/missing", page "Missing" (fun () -> RouterServer.Render.notFound ()));
+      ("/missing", page "Missing" (fun () -> RouterServer.notFound ()));
       ("/broken", page "Broken" (fun () -> failwith "page failed"));
       ( "/failing-fallback",
         RouterReact.errorBoundary
           ~fallback:(page "FailingFallback" (fun () -> failwith "fallback failed"))
           ~children:(text "content") () );
-      ("/moved", page "Moved" (fun () -> RouterServer.Render.redirect (RouterRuntime.destination ~path:"/app/plain")));
+      ("/moved", page "Moved" (fun () -> RouterServer.redirect (RouterRuntime.destination ~path:"/app/plain")));
       ( "/suspended-missing",
         React.Suspense
           {
             key = None;
             fallback = Some (text "loading");
-            children = page "SyncInside" (fun () -> RouterServer.Render.notFound ());
+            children = page "SyncInside" (fun () -> RouterServer.notFound ());
           } );
       ( "/late-missing",
         React.Suspense
@@ -1976,7 +2036,7 @@ let signal_server () =
                 ( "Late",
                   fun () ->
                     Lwt.bind (Lwt.pause ()) (fun () ->
-                        Lwt.bind (Lwt.pause ()) (fun () -> Lwt.return (RouterServer.Render.notFound ()))) );
+                        Lwt.bind (Lwt.pause ()) (fun () -> Lwt.return (RouterServer.notFound ()))) );
           } );
       ( "/plain",
         React.list
@@ -1994,17 +2054,17 @@ let signal_server () =
     ]
   in
   let registry =
-    RouterServer.EndpointRegistry.makeExn
+    RouterEngine.EndpointRegistry.makeExn
       (List.map
          (fun (path, element) ->
-           RouterServer.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
+           RouterEngine.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
                Ok
-                 (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-                      RouterServer.Execution.done_ (plan element)))))
+                 (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+                      RouterEngine.Execution.done_ (plan element)))))
          pages)
   in
-  RouterServer.Server.make ~basePath:"/app" ~registry
-    ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+  RouterEngine.Server.make ~basePath:"/app" ~registry
+    ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ()
 
@@ -2012,7 +2072,9 @@ let serve ?(rsc = false) target =
   let headers = if rsc then [ ("Accept", "application/react.component"); ("Router-Navigation-From", "/app") ] else [] in
   let response =
     Lwt_main.run
-      (RouterServer.Adapter.serve (signal_server ())
+      (RouterServer.serve
+         ~context:(fun () -> ())
+         (signal_server ())
          ~diagnosticId:(fun _ -> "d")
          ~document:(fun ~head children ->
            React.createElement "html" []
@@ -2030,7 +2092,7 @@ let serve ?(rsc = false) target =
   (response, String.concat "" (List.rev !chunks))
 
 let render_signals_change_the_response () =
-  let header (response : RouterServer.Adapter.response) name = List.assoc_opt name response.headers in
+  let header (response : RouterServer.response) name = List.assoc_opt name response.headers in
   let response, body = serve "/app/missing" in
   Alcotest.(check int) "document not found status" 404 response.status;
   Alcotest.(check bool) "not-found boundary" true (contains ~needle:"missing note" body);
@@ -2076,45 +2138,47 @@ let render_signals_after_the_shell_keep_the_status () =
 let render_signal_in_a_search_patch_answers_the_boundary () =
   let text value = React.createElement "p" [] [ React.string value ] in
   let endpoint =
-    RouterServer.Endpoint.make ~id:"list" ~path:"/list" ~activeRoutes:[] ~fingerprint:"list" ~decode:(fun input ->
-        let search = RouterServer.Decode.searchValues ~input [ "q" ] in
+    RouterEngine.Endpoint.make ~id:"list" ~path:"/list" ~activeRoutes:[] ~fingerprint:"list" ~decode:(fun input ->
+        let search = RouterEngine.Decode.searchValues ~input [ "q" ] in
         let page =
           match search with
-          | [ ("q", [ "missing" ]) ] -> React.Upper_case_component ("Missing", fun () -> RouterServer.Render.notFound ())
+          | [ ("q", [ "missing" ]) ] -> React.Upper_case_component ("Missing", fun () -> RouterServer.notFound ())
           | _ -> text "listed"
         in
         let plan =
-          RouterServer.Plan.withFailure
-            (RouterServer.Plan.success
+          RouterEngine.Plan.withFailure
+            (RouterEngine.Plan.success
                ~scopes:
-                 [ RouterServer.Plan.Scope.make ~layout:(fun child -> React.list [ text "kept shell"; child ]) () ]
+                 [ RouterEngine.Plan.Scope.make ~layout:(fun child -> React.list [ text "kept shell"; child ]) () ]
                ~page)
             (fun error ->
-              RouterServer.Plan.failure ~scopes:[] ~error
+              RouterEngine.Plan.failure ~scopes:[] ~error
                 ~notFound:(fun _ -> text "missing note")
                 ~errorBoundary:(fun _ -> text "broken")
                 ())
         in
         Ok
-          (RouterServer.Endpoint.prepared
+          (RouterEngine.Endpoint.prepared
              ~branch:
                [
-                 RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~search:[] ~reusable:true;
-                 RouterServer.Branch.Scope.make ~id:"route:list" ~parameters:[] ~search ~reusable:false;
+                 RouterEngine.Branch.Scope.make ~id:"root" ~parameters:[] ~search:[] ~reusable:true;
+                 RouterEngine.Branch.Scope.make ~id:"route:list" ~parameters:[] ~search ~reusable:false;
                ]
-             ~execution:(fun () -> RouterServer.Execution.done_ plan)))
+             ~execution:(fun () -> RouterEngine.Execution.done_ plan)))
   in
   let server =
-    RouterServer.Server.make ~basePath:"/app"
-      ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
-      ~fallback:(fun ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    RouterEngine.Server.make ~basePath:"/app"
+      ~registry:(RouterEngine.EndpointRegistry.makeExn [ endpoint ])
+      ~fallback:(fun ~context:() ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
       ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
       ()
   in
   let navigate target =
     let response =
       Lwt_main.run
-        (RouterServer.Adapter.serve server
+        (RouterServer.serve
+           ~context:(fun () -> ())
+           server
            ~diagnosticId:(fun _ -> "d")
            ~document:(fun ~head:_ children -> children)
            ~method_:"GET" ~target
@@ -2136,7 +2200,7 @@ let render_signal_in_a_search_patch_answers_the_boundary () =
       response.body;
     (response, String.concat "" (List.rev !chunks))
   in
-  let kind (response : RouterServer.Adapter.response) = List.assoc_opt "Router-Response" response.headers in
+  let kind (response : RouterServer.response) = List.assoc_opt "Router-Response" response.headers in
   let response, body = navigate "/app/list?q=b" in
   Alcotest.(check (option string)) "search change answers a patch" (Some "patch") (kind response);
   Alcotest.(check bool) "patch omits the kept layout" false (contains ~needle:"kept shell" body);
@@ -2191,6 +2255,8 @@ let () =
           test "fatal loader exceptions propagate" fatal_loader_exceptions_propagate;
           test "started loader exceptions use boundary" started_loader_exceptions_use_boundary;
           test "request memo runs once per request" request_memo_runs_once_per_request;
+          test "adapter handle builds context only to run" adapter_handle_builds_context_only_to_run;
+          test "a memo in the context shares the request cache" context_memo_shares_the_request_cache;
           test "request memo reaches streamed components" request_memo_reaches_streamed_components;
           test "error status" error_status;
           test "metadata composition" metadata_composition;
@@ -2239,7 +2305,6 @@ let () =
           test "parse request reads router headers" parse_request_reads_router_headers;
           test "parse request empty query and fragment" parse_request_empty_query_and_fragment;
           test "adapter handle" adapter_handle;
-          test "adapter handle builds context only to run" adapter_handle_builds_context_only_to_run;
           test "adapter response" adapter_response;
           test "client root settings" client_root_settings;
           test "full plan composition" full_plan_composition;

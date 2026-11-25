@@ -6,4 +6,4 @@ let countVisit = (_formData: Js.FormData.t): Js.Promise.t(unit) => {
 
 [@react.server.function]
 let redirectToLong = (): Js.Promise.t(unit) =>
-  RouterServer.Action.redirect(Router.E2eLong.destination());
+  RouterServer.redirect(Router.E2eLong.destination());

@@ -22,8 +22,8 @@ try(
 | Invalid_argument(_) => ()
 };
 let unicodeHref =
-  RouterRuntime.destinationFromPattern(
-    ~pattern=RouterRuntime.pattern("/café/東京"),
+  RouterEngine.destinationFromPattern(
+    ~pattern=RouterEngine.pattern("/café/東京"),
     ~parameters=[],
     ~search=[],
   )
@@ -31,9 +31,9 @@ let unicodeHref =
 if (unicodeHref != "/caf%C3%A9/%E6%9D%B1%E4%BA%AC") {
   failwith("Melange static paths did not use UTF-8 encoding");
 };
-let scalarPattern = RouterRuntime.pattern("/notes/:id<string>");
+let scalarPattern = RouterEngine.pattern("/notes/:id<string>");
 let scalarHref = value =>
-  RouterRuntime.destinationFromPattern(
+  RouterEngine.destinationFromPattern(
     ~pattern=scalarPattern,
     ~parameters=[("id", value)],
     ~search=[],
@@ -88,8 +88,8 @@ let committed =
     revision: "r1",
   };
 let (loading, requestId) =
-  RouterRuntime.Navigation.start(
-    RouterRuntime.Navigation.make(committed),
+  RouterEngine.Navigation.start(
+    RouterEngine.Navigation.make(committed),
     ~to_={
       ...location,
       pathname: "/to",
@@ -140,8 +140,8 @@ switch (
 };
 
 let (patchLoading, patchRequestId) =
-  RouterRuntime.Navigation.start(
-    RouterRuntime.Navigation.make(committed),
+  RouterEngine.Navigation.start(
+    RouterEngine.Navigation.make(committed),
     ~to_={
       ...location,
       pathname: "/to",
@@ -217,8 +217,8 @@ switch (
 };
 
 let (hashLoading, hashRequestId) =
-  RouterRuntime.Navigation.start(
-    RouterRuntime.Navigation.make(committed),
+  RouterEngine.Navigation.start(
+    RouterEngine.Navigation.make(committed),
     ~to_={
       ...location,
       pathname: "/to",

@@ -15,27 +15,27 @@ let table =
     ("a-b_c.d~e!*'()", "a-b_c.d~e!*'()");
   ]
 
-let pattern = RouterRuntime.pattern "/:v<string>"
+let pattern = RouterEngine.pattern "/:v<string>"
 
 let case (input, expected) =
   Alcotest.test_case (String.escaped input) `Quick (fun () ->
-      Alcotest.(check string) "search" ("k=" ^ expected) (RouterRuntime.encodeSearch [ ("k", [ input ]) ]);
+      Alcotest.(check string) "search" ("k=" ^ expected) (RouterEngine.encodeSearch [ ("k", [ input ]) ]);
       Alcotest.(check string)
         "destination search" ("/x?k=" ^ expected)
         (RouterRuntime.href
-           (RouterRuntime.destinationFromPattern ~pattern ~parameters:[ ("v", "x") ] ~search:[ ("k", [ input ]) ]));
+           (RouterEngine.destinationFromPattern ~pattern ~parameters:[ ("v", "x") ] ~search:[ ("k", [ input ]) ]));
       if not (String.contains input '/') then
         Alcotest.(check string)
           "path" ("/" ^ expected)
-          (RouterRuntime.href (RouterRuntime.destinationFromPattern ~pattern ~parameters:[ ("v", input) ] ~search:[])))
+          (RouterRuntime.href (RouterEngine.destinationFromPattern ~pattern ~parameters:[ ("v", input) ] ~search:[])))
 
 let sorted () =
-  Alcotest.(check string) "sorted" "a=2&a=3&b=1" (RouterRuntime.encodeSearch [ ("b", [ "1" ]); ("a", [ "2"; "3" ]) ])
+  Alcotest.(check string) "sorted" "a=2&a=3&b=1" (RouterEngine.encodeSearch [ ("b", [ "1" ]); ("a", [ "2"; "3" ]) ])
 
 let sorted_by_code_point () =
   Alcotest.(check string)
     "sorted" "%EF%BC%A1=1&%F0%9F%98%80=2"
-    (RouterRuntime.encodeSearch [ ("\u{1F600}", [ "2" ]); ("\u{FF21}", [ "1" ]) ])
+    (RouterEngine.encodeSearch [ ("\u{1F600}", [ "2" ]); ("\u{FF21}", [ "1" ]) ])
 
 let link_attributes () =
   let html =

@@ -1,4 +1,4 @@
-module Response = RouterRuntime.NavigationResponse;
+module Response = RouterTypes.NavigationResponse;
 
 type page = {
   href: string,
@@ -189,7 +189,7 @@ let saveData: unit => bool = [%mel.raw
   {|() => { const connection = typeof navigator !== "undefined" ? navigator.connection : undefined; return !!(connection && connection.saveData); }|}
 ];
 
-let isCurrent = (~location: RouterRuntime.Navigation.location, href) =>
+let isCurrent = (~location: RouterTypes.Navigation.location, href) =>
   RouterSearchKey.isCurrent(
     ~pathname=location.pathname,
     ~search=location.search,
@@ -209,7 +209,7 @@ let routerLinks: unit => array(anchor) = [%mel.raw
 
 let routerPendingAttribute = "data-router-pending";
 
-let linkMatches = (~rule, ~location: RouterRuntime.Navigation.location, href) =>
+let linkMatches = (~rule, ~location: RouterTypes.Navigation.location, href) =>
   switch (rule) {
   | "route" =>
     RouterSearchKey.isActive(~prefix=false, ~pathname=location.pathname, href)
@@ -261,7 +261,7 @@ let markPendingLinks = (~target, anchors) =>
 
 let popKind = (~search, kind) =>
   switch (kind) {
-  | RouterRuntime.Navigation.Shallow when !RouterSearch.valid(search) => RouterRuntime.Navigation.Content
+  | RouterTypes.Navigation.Shallow when !RouterSearch.valid(search) => RouterTypes.Navigation.Content
   | kind => kind
   };
 
@@ -296,11 +296,11 @@ let hashOf = href =>
   };
 
 let hashOnlyTarget =
-    (~location: RouterRuntime.Navigation.location, ~action, ~revalidate, href) =>
+    (~location: RouterTypes.Navigation.location, ~action, ~revalidate, href) =>
   switch (action) {
-  | RouterRuntime.Navigation.Pop => None
-  | RouterRuntime.Navigation.Push
-  | RouterRuntime.Navigation.Replace =>
+  | RouterTypes.Navigation.Pop => None
+  | RouterTypes.Navigation.Push
+  | RouterTypes.Navigation.Replace =>
     let hash = hashOf(href);
     !revalidate && hash != "" && isCurrent(~location, href)
       ? Some(hash) : None;
@@ -308,18 +308,18 @@ let hashOnlyTarget =
 
 let unchangedTarget =
     (
-      ~location: RouterRuntime.Navigation.location,
-      ~status: RouterRuntime.Navigation.status,
+      ~location: RouterTypes.Navigation.location,
+      ~status: RouterTypes.Navigation.status,
       ~action,
       ~revalidate,
       href,
     ) =>
   switch (action, status) {
-  | (RouterRuntime.Navigation.Pop, _)
-  | (_, RouterRuntime.Navigation.Loading(_)) => false
+  | (RouterTypes.Navigation.Pop, _)
+  | (_, RouterTypes.Navigation.Loading(_)) => false
   | (
-      RouterRuntime.Navigation.Push | RouterRuntime.Navigation.Replace,
-      RouterRuntime.Navigation.Idle | RouterRuntime.Navigation.Failed(_),
+      RouterTypes.Navigation.Push | RouterTypes.Navigation.Replace,
+      RouterTypes.Navigation.Idle | RouterTypes.Navigation.Failed(_),
     ) =>
     !revalidate
     && String.equal(hashOf(href), location.hash)
@@ -336,16 +336,16 @@ let changedSearchKeys = (~current, ~next) => {
 
 let shallowSearchTarget =
     (
-      ~location: RouterRuntime.Navigation.location,
+      ~location: RouterTypes.Navigation.location,
       ~action,
       ~revalidate,
       ~shallowKeys,
       href,
     ) =>
   switch (action, shallowKeys) {
-  | (RouterRuntime.Navigation.Pop, _)
+  | (RouterTypes.Navigation.Pop, _)
   | (_, []) => None
-  | (RouterRuntime.Navigation.Push | RouterRuntime.Navigation.Replace, _) =>
+  | (RouterTypes.Navigation.Push | RouterTypes.Navigation.Replace, _) =>
     let (_, search) = RouterSearchKey.splitHref(href);
     let next = RouterSearch.valuesFromString(search);
     let changed =
@@ -390,8 +390,8 @@ let scrollFor = (~kind, ~resetScroll, ~saved, hash) =>
       };
     switch (fragment, kind) {
     | (Some(id), _) => Fragment(id)
-    | (None, RouterRuntime.Navigation.Shallow) => Stay
-    | (None, RouterRuntime.Navigation.Content)
-    | (None, RouterRuntime.Navigation.HashOnly) => resetScroll ? Top : Stay
+    | (None, RouterTypes.Navigation.Shallow) => Stay
+    | (None, RouterTypes.Navigation.Content)
+    | (None, RouterTypes.Navigation.HashOnly) => resetScroll ? Top : Stay
     };
   };

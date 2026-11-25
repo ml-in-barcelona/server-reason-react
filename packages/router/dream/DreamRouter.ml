@@ -47,7 +47,7 @@ let set_cookie = RequestContext.set_cookie
 let with_render_context request =
  fun fn ->
   Lwt.with_value RequestContext.request_key (Some request) (fun () ->
-      Lwt.with_value RequestContext.phase_key (Some RequestContext.Render) (fun () -> RouterServer.Request.scope fn))
+      Lwt.with_value RequestContext.phase_key (Some RequestContext.Render) (fun () -> RouterServer.requestScope fn))
 
 let with_action_context request =
  fun fn ->
@@ -154,8 +154,8 @@ let streamFunctionResponse ?(debug = false) ?(timeout = stream_timeout) ~lookup 
         let cookies = serialize_pending_cookies !pending in
         Lwt.return (`Settled (Lwt.return result, cookies)))
       (function
-        | RouterServer.Action.Redirect destination as exn -> (
-            match RouterServer.Adapter.actionRedirectHeader destination with
+        | RouterServer.Signal (Redirect destination | PermanentRedirect destination) as exn -> (
+            match RouterServer.actionRedirectHeader destination with
             | Some header ->
                 let cookies = serialize_pending_cookies !pending in
                 Lwt.return (`Settled (Lwt.return (React.Model.Element React.null), header :: cookies))
@@ -238,7 +238,7 @@ let createFromRequest ?(debug = false) ?(disableSSR = false) ?(layout = fun chil
           stream_html ~debug ~skipRoot:disableSSR ~bootstrapScriptContent ~bootstrapScripts ~bootstrapModules
             (layout element))
 
-let write_response (response : RouterServer.Adapter.response) =
+let write_response (response : RouterServer.response) =
   let code = response.status and headers = response.headers in
   match response.body with
   | None -> Dream.respond ~code ~headers ""
@@ -258,8 +258,8 @@ let handler ~server ~context ~diagnosticId ~revision ?(ssr = fun _request -> tru
  fun request ->
   with_render_context request (fun () ->
       let%lwt response =
-        RouterServer.Adapter.serveWithContext server ~diagnosticId ~revision ?pageCacheCapacity ~document ~allow
-          ~env:`Dev ~timeout:stream_timeout
+        RouterServer.serve server ~diagnosticId ~revision ?pageCacheCapacity ~document ~allow ~env:`Dev
+          ~timeout:stream_timeout
           ~skipRoot:(not (ssr request))
           ~bootstrapModules
           ~context:(fun () -> context request)
@@ -291,26 +291,23 @@ let form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstra
         pass_on ()
     | `Ok formData -> (
         let pending, run =
-          with_action_context request (fun () ->
-              RouterServer.Adapter.runFormAction ~lookup (dreamFormDataToJs formData))
+          with_action_context request (fun () -> RouterServer.runFormAction ~lookup (dreamFormDataToJs formData))
         in
         match%lwt run () with
         | None -> Dream.empty `Bad_Request
         | Some action ->
             let cookies =
               match action with
-              | RouterServer.Adapter.Failed _ -> []
+              | RouterServer.Failed _ -> []
               | Completed | Redirected _ -> serialize_pending_cookies !pending
             in
             with_render_context request (fun () ->
                 let%lwt response =
-                  RouterServer.Adapter.serveFormActionWithContext server ~diagnosticId ~revision
-                    ~target:(Dream.target request) ?pageCacheCapacity ~document ~env:`Dev ~timeout:stream_timeout
+                  RouterServer.serveFormAction server ~diagnosticId ~revision ~target:(Dream.target request)
+                    ?pageCacheCapacity ~document ~env:`Dev ~timeout:stream_timeout
                     ~skipRoot:(not (ssr request))
                     ~bootstrapModules ~context:(context request)
-                    (RouterServer.Adapter.parseRequest ~target:(Dream.target request)
-                       ~headers:(Dream.all_headers request))
-                      .engine
+                    (RouterServer.parseRequest ~target:(Dream.target request) ~headers:(Dream.all_headers request))
                     action
                 in
                 write_response { response with headers = response.headers @ cookies }))
@@ -318,9 +315,9 @@ let form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstra
 
 let random_id () = Dream.to_base64url (Dream.random 12)
 
-let routesWithContext ~server ~context ~actionHandler ?lookup ?(diagnosticId = fun _ -> random_id ())
-    ?(revision = random_id) ?(ssr = fun _request -> true) ?(bootstrapModules = []) ?pageCacheCapacity ~document () =
-  let basePath = RouterServer.Server.basePath server |> Dream.from_percent_encoded in
+let routes ~server ~context ~actionHandler ?lookup ?(diagnosticId = fun _ -> random_id ()) ?(revision = random_id)
+    ?(ssr = fun _request -> true) ?(bootstrapModules = []) ?pageCacheCapacity ~document () =
+  let basePath = RouterServer.basePath server |> Dream.from_percent_encoded in
   let handler = handler ~server ~context ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document in
   let wildcard = if String.equal basePath "/" then "/**" else basePath ^ "/**" in
   let actionHandler =
@@ -337,9 +334,3 @@ let routesWithContext ~server ~context ~actionHandler ?lookup ?(diagnosticId = f
     Dream.any basePath handler;
     Dream.any wildcard handler;
   ]
-
-let routes ~server ~actionHandler ?lookup ?diagnosticId ?revision ?ssr ?bootstrapModules ?pageCacheCapacity ~document ()
-    =
-  routesWithContext ~server
-    ~context:(fun _ -> ())
-    ~actionHandler ?lookup ?diagnosticId ?revision ?ssr ?bootstrapModules ?pageCacheCapacity ~document ()

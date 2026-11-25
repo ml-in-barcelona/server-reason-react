@@ -18,37 +18,37 @@ let markup = element => {
 
 let resolve = (~query="", pathname) => {
   let search =
-    switch (RouterServer.Search.parse(query)) {
+    switch (RouterEngine.Search.parse(query)) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected valid search")
     };
   switch (
-    RouterServer.EndpointRegistry.find(RouterRegistry.registry, ~pathname)
+    RouterEngine.EndpointRegistry.find(RouterRegistry.registry, ~pathname)
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    switch (RouterEngine.EndpointRegistry.decode(matched, ~search)) {
     | Error(_) => Alcotest.fail("expected decoded endpoint for " ++ pathname)
     | Ok(prepared) =>
       let matches =
-        RouterServer.EndpointRegistry.matches(matched, prepared)
+        RouterEngine.EndpointRegistry.matches(matched, prepared)
         |> List.map(({ RouterRuntime.Navigation.routeId, parameters }) =>
              (routeId, parameters)
            );
       switch (
         Lwt_main.run(
-          RouterServer.Execution.run(
-            RouterServer.Endpoint.executionWithContext(prepared, ~context=""),
+          RouterEngine.Execution.run(
+            RouterEngine.Endpoint.execution(prepared, ~context=""),
           ),
         )
       ) {
       | RouterRuntime.Loader.Data(plan) =>
         let resolved =
           Lwt_main.run(
-            RouterServer.Plan.resolve(plan, ~applicationStatus=_ =>
+            RouterEngine.Plan.resolve(plan, ~applicationStatus=_ =>
               RouterRuntime.Status.InternalServerError
             ),
           );
-        (matches, markup(RouterServer.Plan.resolvedElement(resolved)));
+        (matches, markup(RouterEngine.Plan.resolvedElement(resolved)));
       | _ => Alcotest.fail("expected page plan for " ++ pathname)
       };
     }
@@ -374,11 +374,11 @@ let testPrefetchLevels = () => {
 let testPrefetchRegistry = () => {
   let prefetch = pathname =>
     switch (
-      RouterServer.EndpointRegistry.find(RouterRegistry.registry, ~pathname)
+      RouterEngine.EndpointRegistry.find(RouterRegistry.registry, ~pathname)
     ) {
     | Ok(Some(matched)) =>
       RouterRuntime.PrefetchLevel.toString(
-        RouterServer.EndpointRegistry.prefetch(matched),
+        RouterEngine.EndpointRegistry.prefetch(matched),
       )
     | _ => Alcotest.fail("expected a match for " ++ pathname)
     };
@@ -415,7 +415,7 @@ let testClientOptions = () => {
     Lwt_main.run(
       ReactServerDOM.render_html(
         ~skipRoot=false,
-        RouterServer.Server.clientRoot(
+        RouterEngine.Server.clientRoot(
           RouterRegistry.server,
           ~initial,
           ~metadata=React.null,
@@ -450,7 +450,7 @@ let testClientOptions = () => {
 let renderPage = (~search, pathname) =>
   switch (
     Lwt_main.run(
-      RouterServer.runWithContext(
+      RouterEngine.Server.run(
         RouterRegistry.server,
         ~diagnosticId=_ => "diagnostic",
         ~context="",
@@ -458,14 +458,14 @@ let renderPage = (~search, pathname) =>
           pathname,
           search,
           hash: "",
-          kind: RouterServer.ServerEngine.Document,
+          kind: RouterEngine.ServerEngine.Document,
           navigation: None,
         },
       ),
     )
   ) {
-  | RouterServer.ServerEngine.Full(full) =>
-    markup(RouterServer.Plan.resolvedElement(full.resolved))
+  | RouterEngine.ServerEngine.Full(full) =>
+    markup(RouterEngine.Plan.resolvedElement(full.resolved))
   | _ => Alcotest.fail("expected a full response for " ++ pathname)
   };
 
@@ -524,21 +524,21 @@ let testSearchKey = () => {
 let reportExecution = () => {
   Pages.ReportGates.reset();
   let search =
-    switch (RouterServer.Search.parse("")) {
+    switch (RouterEngine.Search.parse("")) {
     | Ok(search) => search
     | Error(_) => Alcotest.fail("expected valid search")
     };
   switch (
-    RouterServer.EndpointRegistry.find(
+    RouterEngine.EndpointRegistry.find(
       RouterRegistry.registry,
       ~pathname="/reports/r1",
     )
   ) {
   | Ok(Some(matched)) =>
-    switch (RouterServer.EndpointRegistry.decode(matched, ~search)) {
+    switch (RouterEngine.EndpointRegistry.decode(matched, ~search)) {
     | Ok(prepared) =>
-      RouterServer.Execution.run(
-        RouterServer.Endpoint.executionWithContext(prepared, ~context=""),
+      RouterEngine.Execution.run(
+        RouterEngine.Endpoint.execution(prepared, ~context=""),
       )
     | Error(_) => Alcotest.fail("expected decoded report endpoint")
     }
@@ -550,11 +550,11 @@ let reportPage = execution =>
   switch (Lwt_main.run(execution)) {
   | RouterRuntime.Loader.Data(plan) =>
     Lwt_main.run(
-      RouterServer.Plan.resolve(plan, ~applicationStatus=_ =>
+      RouterEngine.Plan.resolve(plan, ~applicationStatus=_ =>
         RouterRuntime.Status.InternalServerError
       ),
     )
-    |> RouterServer.Plan.resolvedElement
+    |> RouterEngine.Plan.resolvedElement
     |> markup
   | _ => Alcotest.fail("expected a report plan")
   };
@@ -606,7 +606,7 @@ let testActionErrorBoundary = () => {
   let render = pathname => {
     let outcome =
       Lwt_main.run(
-        RouterServer.runWithContext(
+        RouterEngine.Server.run(
           RouterRegistry.server,
           ~diagnosticId=_ => "diagnostic",
           ~actionError=RouterRuntime.Error.Internal({ diagnosticId: "d" }),
@@ -615,15 +615,15 @@ let testActionErrorBoundary = () => {
             pathname,
             search: "",
             hash: "",
-            kind: RouterServer.ServerEngine.Document,
+            kind: RouterEngine.ServerEngine.Document,
             navigation: None,
           },
         ),
       );
     switch (outcome) {
-    | RouterServer.ServerEngine.Full(full) => (
+    | RouterEngine.ServerEngine.Full(full) => (
         RouterRuntime.Status.toInt(full.resolved.status),
-        markup(RouterServer.Plan.resolvedElement(full.resolved)),
+        markup(RouterEngine.Plan.resolvedElement(full.resolved)),
       )
     | _ => Alcotest.fail("expected a full response for " ++ pathname)
     };
@@ -639,7 +639,7 @@ let testActionErrorBoundary = () => {
 let testLoaderContext = () => {
   let outcome =
     Lwt_main.run(
-      RouterServer.runWithContext(
+      RouterEngine.Server.run(
         RouterRegistry.server,
         ~diagnosticId=_ => "diagnostic",
         ~context="ada",
@@ -647,18 +647,18 @@ let testLoaderContext = () => {
           pathname: "/site/account",
           search: "",
           hash: "",
-          kind: RouterServer.ServerEngine.Document,
+          kind: RouterEngine.ServerEngine.Document,
           navigation: None,
         },
       ),
     );
   switch (outcome) {
-  | RouterServer.ServerEngine.Full(full) =>
+  | RouterEngine.ServerEngine.Full(full) =>
     Alcotest.check(
       string,
       "loader",
       "viewer:ada",
-      markup(RouterServer.Plan.resolvedElement(full.resolved)),
+      markup(RouterEngine.Plan.resolvedElement(full.resolved)),
     );
     Alcotest.check(
       Alcotest.option(string),

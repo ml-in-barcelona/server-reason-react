@@ -1,4 +1,4 @@
-module Response = RouterRuntime.NavigationResponse;
+module Response = RouterTypes.NavigationResponse;
 
 type error =
   | MissingResponseKind

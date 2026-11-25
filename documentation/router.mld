@@ -131,9 +131,9 @@ answers 204 with [Router-Prefetch-Refused: <route level>] and runs no loader.
 Otherwise it answers exactly as it answers the navigation. Every navigation
 reply carries [Vary: Accept, Router-Prefetch], so a shared cache never
 answers a prefetch with a stored navigation or the other way round. A path
-that matches no route answers as a navigation does. An adapter passes the header's level to [RouterServer.run] as
-[?prefetch]. A refusal is the outcome [PrefetchRefused(level)], and
-[Adapter.reply] turns it into the 204. [DreamRouter] does this for RSC
+that matches no route answers as a navigation does. [RouterServer.parseRequest]
+reads the header's level into the request that [RouterServer.run] takes. A refusal is the outcome [PrefetchRefused(level)], and
+[RouterServer.reply] turns it into the 204. [DreamRouter] does this for RSC
 requests and ignores a header value that is not a level.
 
 {2 Names and labels}
@@ -583,7 +583,7 @@ The rule trusts the scope's inputs. A root or group loader, [~metadata] or
 [~headers] reads search only through its [~search] record, which holds the
 root parameters. Do not read a route's own query key from the raw request,
 for example through [~context] built from the request by
-[DreamRouter.routesWithContext]: a patch that changes only that key keeps the
+[DreamRouter.routes ~context]: a patch that changes only that key keeps the
 layout rendered from the old value, even though the loader runs again. When a loader fails, its scope and everything below it leave
 the response, and the graft moves up to the deepest scope the response still
 renders.
@@ -606,7 +606,7 @@ location with another scheme, such as [javascript:], fails the navigation.
 The default client root passes the router's settings to the provider (see
 Server integration). To set [~onNavigationError], render
 [RouterReact.Provider] from your own client component and give it to
-[RouterServer.Server.clientRootWith ~make].
+[RouterServer.clientRootWith ~make].
 
 [RouterReact.Provider] takes [~onNavigationError], which receives every failed
 navigation: its [target], a [message], and its [recovery], [StayOnPage] when
@@ -631,9 +631,8 @@ its request. Every other [Push] and [Replace] still asks the server.
 - [Push] and [Replace] use a cached page only when it is younger than
   [~pageCacheMaxAge] seconds. The default [0.0] means never, except for a
   prefetched page (see Prefetching). Set it on the manifest with
-  [Router.make(~pageCacheMaxAge=30.0, ...)], a float literal, or with
-  [?pageCacheMaxAge] on [RouterServer.Server.make]; the default client root
-  passes it to the provider.
+  [Router.make(~pageCacheMaxAge=30.0, ...)], a float literal; the default
+  client root passes it to the provider.
 - [~revalidate=true] does not read the cache. Its response is stored.
 - Only successful pages are stored: the HTTP status and the page status are
   both 2xx. An error page, a not-found page, or a page with another status
@@ -663,7 +662,7 @@ other changes that cached pages show.
 
 {3 Redirects from server functions}
 
-A server function that ends with [RouterServer.Action.redirect destination]
+A server function that ends with [RouterServer.redirect destination]
 answers a JavaScript call with a [Router-Redirect] header. Pass
 [ReactServerDOMEsbuild.fetchCallServer ()] as the [callServer] of the
 bootstrap; it posts each call (to [/] by default, or to [~url]) and reports
@@ -867,7 +866,7 @@ commits the URL like [updateSearch], with the destination's search and hash,
 and its [~history]. It is not held by [useBlocker]. Any other difference still
 asks the server. The server still receives shallow parameters on every
 request and passes them to loaders and pages, so a document load renders
-them. [RouterRuntime.shallowSearch destination] lists the URL keys of a
+them. [RouterEngine.shallowSearch destination] lists the URL keys of a
 destination's shallow parameters. A plain anchor carries no destination, so
 its clicks always ask the server.
 
@@ -1107,13 +1106,13 @@ module BillingLoader = {
 };
 ]}
 
-The generated [RouterRegistry.server] then comes from
-[RouterServer.Server.makeWithContext]. The adapter builds the context once per
-request and runs the server with [RouterServer.runWithContext ~context]
-instead of [RouterServer.run]. [DreamRouter.routesWithContext ~context] takes
-a function from the Dream request. Without [~context] on [Router.make],
-nothing changes: the generated code passes no context, and the adapter calls
-[RouterServer.run] and [DreamRouter.routes].
+The adapter passes the context to every [RouterServer] entry point.
+[RouterServer.serve] and [RouterServer.handle] take a function, which they
+call once, inside the request cache and only when the router runs;
+[RouterServer.run], [formActionReply] and [serveFormAction] take the value.
+[DreamRouter.routes ~context] takes a function from the Dream request.
+Without [~context] on [Router.make], pass [~context=()] or
+[~context=() => ()], and [DreamRouter.routes(~context=_ => (), ...)].
 
 Server components render after [RouterServer.run] returns, so they cannot
 receive the context. They read request-local data from the request the
@@ -1131,16 +1130,16 @@ of [Dream.stream], runs after the handler returns, so a key set only around
 
 {2 Request-scoped cache}
 
-[RouterServer.Request.memo] runs a function once per request for each key and
+[RouterServer.memo] runs a function once per request for each key and
 argument, like React's [cache]. Every later call in the same request gets the
 same promise, so a loader and a server component that need the same data
 fetch it once:
 
 {[
-let viewerKey: RouterServer.Request.key(User.t) = RouterServer.Request.key();
+let viewerKey: RouterServer.memoKey(User.t) = RouterServer.memoKey();
 
 let viewer = id =>
-  RouterServer.Request.memo(viewerKey, Int.to_string(id), () =>
+  RouterServer.memo(viewerKey, Int.to_string(id), () =>
     Users.fetch(id)
   );
 ]}
@@ -1150,15 +1149,15 @@ different inputs never give the same string. A failed promise is shared too.
 Outside a request scope, [memo] runs the function each time.
 
 Every adapter entry point opens a new, empty cache for its request, and
-[RouterServer.Request.scope] never joins an enclosing scope. A scope opened
+[RouterServer.requestScope] never joins an enclosing scope. A scope opened
 around the whole server, by mistake, therefore cannot share one user's
-entries with another request. [Adapter.serve], [Adapter.serveWithContext],
-[Adapter.serveFormAction] and [Adapter.serveFormActionWithContext] keep the
-cache for the whole streamed body, so loaders, [~metadata], [~headers] and
-server components share it; [DreamRouter.routes] uses them. [Adapter.handle],
-[Adapter.handleWithContext] and the [formActionReply] functions open a cache
-for loaders, [~metadata] and [~headers] only: the server components that
-[Adapter.response] streams afterwards run outside it. A server function runs
+entries with another request. [RouterServer.serve] and
+[RouterServer.serveFormAction] keep the cache for the whole streamed body, so
+loaders, [~metadata], [~headers] and server components share it;
+[DreamRouter.routes] uses them. [RouterServer.handle] and
+[RouterServer.formActionReply] open a cache for loaders, [~metadata] and
+[~headers] only: the server components that [RouterServer.response] streams
+afterwards run outside it. A server function runs
 outside every cache.
 
 The router does not memoise loaders. A request runs each loader of the
@@ -1204,7 +1203,7 @@ when declared.
 
 When no boundary applies, the response keeps its status and the adapter
 renders a built-in plain paragraph ([Not found], [Bad request], or
-[Something went wrong]) through [RouterServer.Plan.resolvedElement]. It never
+[Something went wrong]) through [RouterEngine.Plan.resolvedElement]. It never
 shows error details. [DreamRouter] uses it.
 
 {2 Errors in the browser}
@@ -1238,15 +1237,15 @@ parts of a page.
 {2 Not found and redirect from render code}
 
 A loader decides most not-found and redirect answers. When only rendering
-can decide, a page or server component calls [RouterServer.Render.notFound ()]
-or [RouterServer.Render.redirect(~permanent=?, destination)]:
+can decide, a page or server component calls [RouterServer.notFound ()]
+or [RouterServer.redirect(~permanent=?, destination)]:
 
 {[
 module Note = {
   [@react.component]
   let make = (~id as _, ~search as _, ~note) =>
     if (Note.archived(note)) {
-      RouterServer.Render.notFound();
+      RouterServer.notFound();
     } else {
       <NoteView note />;
     };
@@ -1254,10 +1253,9 @@ module Note = {
 ]}
 
 The signal takes effect when the adapter answers with
-[RouterServer.Adapter.serve] or [serveWithContext], or, for the page rendered
-again after a failed form post without JavaScript, [serveFormAction] or
-[serveFormActionWithContext]. [DreamRouter] uses them for every routed
-response.
+[RouterServer.serve], or, for the page rendered again after a failed form
+post without JavaScript, [RouterServer.serveFormAction]. [DreamRouter] uses
+them for every routed response.
 They render the HTML shell, or the first chunk of a navigation payload, before
 they send the status. A signal raised by then, outside a [Suspense] boundary
 or in its synchronous part, changes the answer:
@@ -1332,34 +1330,31 @@ it. Use one of them.
 {1 Server integration}
 
 The native generator emits [RouterRegistry.server], a configured
-[RouterServer.Server.t]. A native HTTP adapter builds a
-[RouterServer.ServerEngine.request] from the request location and router
-navigation headers, then calls [RouterServer.run], or
-[RouterServer.runWithContext] when the manifest declares [~context]. The
-adapter maps the resulting full, patch, redirect, permanent-redirect, or
-reload-required outcome to its HTTP server and streams render data through
-[ReactServerDOM].
+[RouterServer.t]. [RouterServer] is a flat module with everything an HTTP
+adapter needs; the modules that generated code calls live in [RouterEngine],
+which is not a stable API. An adapter only passes the request in and writes
+the response out:
 
-[RouterServer.Adapter] holds the parts that do not depend on a server, so an
-adapter only passes the request in and writes the response out:
-
-- [Adapter.handle server ~diagnosticId ~document ~method_ ~target ~headers ()]
-  answers one request: [methodReply], then [parseRequest], [RouterServer.run]
-  and [reply]. A [HEAD] reply has no body. [?allow] defaults to [GET], [HEAD]
-  and [OPTIONS]; an adapter that serves server functions at the same paths
-  adds [POST] and sends [POST]s elsewhere. [Adapter.handleWithContext] takes
-  [~context:(unit => 'context)] and calls it only when the router runs.
-- [Adapter.serve] and [Adapter.serveWithContext] take the arguments of
-  [handle] and the rendering options of [response] ([?env], [?timeout],
-  [?skipRoot], [?bootstrapModules], [?nonce]) and return the response. They
-  render the start of the body before they reply, so render code can answer not
-  found or redirect (see "Not found and redirect from render code").
-- [Adapter.parseRequest ~target ~headers] reads the request target and a list
-  of headers. Header names match in any letter case.
+- [RouterServer.handle(server, ~diagnosticId, ~document, ~context, ~method_,
+  ~target, ~headers, ())] answers one request: [methodReply], then
+  [parseRequest], [run] and [reply]. [~context] is a function that runs only
+  when the router runs, so an [OPTIONS] request builds no context. A [HEAD] reply has no body. [?allow]
+  defaults to [GET], [HEAD] and [OPTIONS]; an adapter that serves server
+  functions at the same paths adds [POST] and sends [POST]s elsewhere.
+- [RouterServer.serve] takes the arguments of [handle] and the rendering
+  options of [response] ([?env], [?timeout], [?skipRoot], [?bootstrapModules],
+  [?nonce]) and returns the response. It renders the start of the body before
+  it replies, so render code can answer not found or redirect (see "Not found
+  and redirect from render code").
+- [RouterServer.parseRequest(~target, ~headers)] reads the request target and
+  a list of headers. Header names match in any letter case.
   [Accept: application/react.component] makes a navigation request, with
   [Router-Navigation-From], [Router-Registry], [Router-Base-Revision] and
   [Router-Prefetch]; any other request is a document request.
-- [Adapter.response reply] adds the transport headers and returns
+  [RouterServer.run(server, ~diagnosticId, ~context, request)] runs the
+  router for it and returns the full, patch, redirect, permanent-redirect,
+  refused-prefetch or reload-required outcome.
+- [RouterServer.response(reply)] adds the transport headers and returns
   [{ status; headers; body }], where [body] is [None] or a function that
   writes each chunk with the function it receives. [Html] streams through
   [ReactServerDOM.render_html] with [?skipRoot], [?bootstrapModules] and
@@ -1372,27 +1367,29 @@ An adapter for another HTTP server is then a few lines, where [write] sends
 
 {[
 let respond = (request) =>
-  RouterServer.Request.scope(() => {
+  RouterServer.requestScope(() => {
     let%lwt reply =
-      RouterServer.Adapter.handle(
+      RouterServer.handle(
         RouterRegistry.server,
         ~diagnosticId=Printexc.to_string,
         ~document,
+        ~context=() => (),
         ~method_=request.method_,
         ~target=request.target,
         ~headers=request.headers,
         (),
       );
-    write(RouterServer.Adapter.response(~bootstrapModules=["/app.js"], reply));
+    write(RouterServer.response(~bootstrapModules=["/app.js"], reply));
   });
 ]}
 
-[RouterServer.Request.scope] keeps the request cache (see "Request-scoped
+[RouterServer.requestScope] keeps the request cache (see "Request-scoped
 cache") open while [write] streams server components.
 
 The parts below are what [handle] and [response] use:
 
-- [Adapter.reply server ~target ~pageCacheCapacity ~document ~kind outcome]
+- [RouterServer.reply(server, ~target, ~pageCacheCapacity, ~document, ~kind,
+  outcome)]
   returns [{ status; headers; body }]. [body] is [Empty], [Html element] or
   [Model { location; model }]. [headers] holds all protocol headers: [Vary:
   Accept] on every reply, [Router-Response], [Router-Registry] and
@@ -1401,9 +1398,7 @@ The parts below are what [handle] and [response] use:
   [Router-Response: reload-required] when the registry changed. The adapter
   writes [Html] with its bootstrap modules, and [Model] as a stream with
   [X-Location] set to [location] and [X-Content-Type-Options: nosniff].
-- [Adapter.document_element], [Adapter.full_model], [Adapter.patch_model],
-  [Adapter.redirect_model] and [Adapter.metadata_element] are the pieces
-  [reply] uses. [document] is [~head -> children -> element]: the app builds
+- [document] is [~head -> children -> element]: the app builds
   [<html>] itself, puts [head] (the resolved metadata) in [<head>] and
   [children] in [<body>]. [document] must place [head]: the routed root does
   not render the metadata again on the server, so a document that drops
@@ -1416,17 +1411,17 @@ adapter picks them for each request when it writes [Html].
 
 The client root receives the router's settings as props. [~interceptLinks]
 (default [true]), [~viewTransitions] (default [false]) and
-[~pageCacheMaxAge] on [Router.make], or the same optional arguments on
-[Server.make], reach the client [Provider], with the [?pageCacheCapacity]
-given to [Adapter.reply]. The [make] given to [Server.clientRootWith]
+[~pageCacheMaxAge] on [Router.make] reach the client [Provider], with the
+[?pageCacheCapacity] given to [RouterServer.reply]. The [make] given to
+[RouterServer.clientRootWith]
 receives all of them: [~interceptLinks] and [~viewTransitions] as [bool], and
 [~pageCacheCapacity] and [~pageCacheMaxAge] as options, [None] for the
 provider's default. The client root also receives [routes]: every concrete route path
-without the base path, from [Server.routes]. The client matches plain links
+without the base path. The client matches plain links
 against them with [RouterPattern.matchesPath(~basePath)], which strips the
 percent-encoded base path segment by segment. [onNavigationError] is a function, so it cannot
 travel from the server in the RSC payload. To set it, render your own client
-component through [Server.clientRootWith] and give the [Provider]
+component through [RouterServer.clientRootWith] and give the [Provider]
 [~onNavigationError] there.
 
 The library [server-reason-react.dream] holds [DreamRouter], a Dream adapter
@@ -1447,11 +1442,12 @@ context.
   malformed escape, or a key or value that is not valid UTF-8 after
   percent-decoding, such as [?q=%FF], is dropped. A query longer than 8192
   bytes answers 400 with [InvalidSearchParameter].
-- Methods: [Adapter.methodReply ~allow method_] decides a method before
+- Methods: [RouterServer.methodReply(~allow, method_)] decides a method before
   [RouterServer.run]. [allow] lists the methods the adapter serves at the router's
   paths. [OPTIONS] answers 204 and a method outside [allow] answers 405, both
   with an [Allow] header. For [None], [GET] and [HEAD] run the router, and the
-  adapter sends a [HEAD] reply without its body. [Adapter.handle] does both.
+  adapter sends a [HEAD] reply without its body. [RouterServer.handle] does
+  both.
   [DreamRouter.routes] allows
   [GET, HEAD, OPTIONS, POST] and sends [POST] to the action handler.
 - [~metadata] and [~headers] of all scopes start at the same time. The results
@@ -1466,9 +1462,9 @@ post/redirect/get, so a reload does not post again:
 
 - The server function runs with the rest of the form. Then the server
   answers 303 to the same URL, and the browser loads the page again.
-- A server function that calls [RouterServer.Action.redirect(destination)]
+- A server function that calls [RouterServer.redirect(destination)]
   gets a 303 to [destination] instead, for example
-  [RouterServer.Action.redirect(Router.Note.destination(~id, ()))].
+  [RouterServer.redirect(Router.Note.destination(~id, ()))].
 - A server function that fails renders the page, after its loaders, inside
   the nearest [~error] boundary of the route, with status 500. A route
   without a boundary shows the built-in text. Cookies set by the failed
@@ -1480,14 +1476,14 @@ post/redirect/get, so a reload does not post again:
 The server function's return value is not used: a page without JavaScript
 cannot show it. A call from JavaScript (with the [ACTION_ID] header) returns
 the Flight action response as before. When that function calls
-[RouterServer.Action.redirect], the response carries
+[RouterServer.redirect], the response carries
 [Router-Redirect: <href>] and the result [null], and the client navigates to
 [href]. The server waits for the function before it sends the headers.
 
-[RouterServer.Adapter.runFormAction ~lookup formData] runs the function and
+[RouterServer.runFormAction ~lookup formData] runs the function and
 returns [Completed], [Redirected(destination)] or [Failed(exn)], or [None]
 when the form names no registered function.
-[RouterServer.Adapter.formActionReply] turns the result into the reply, and
+[RouterServer.formActionReply] turns the result into the reply, and
 [serveFormAction] also renders it, with render signals: a redirect signal
 from the page answers 303, a not-found signal its not-found boundary with
 404.
@@ -1501,7 +1497,7 @@ still goes to [~actionHandler].
 
 The server sends a redirect only to a path that starts with a single [/]
 (not [//] or a slash followed by a backslash) or to an absolute [http:] or [https:] URL, without
-control characters. [RouterServer.Adapter.redirectLocation] makes this check
+control characters. [RouterServer.redirectLocation] makes this check
 for every redirect: the 303 or 308 [Location], the RSC redirect envelope and
 the [Router-Redirect] header. A loader or route redirect to another target,
 such as [javascript:alert(1)] or [//evil.example], renders the page as an

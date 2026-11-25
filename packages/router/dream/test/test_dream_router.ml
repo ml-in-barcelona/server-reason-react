@@ -1,5 +1,5 @@
 let test title fn = Alcotest.test_case title `Quick fn
-let fallback ~search:_ ~error = RouterServer.Plan.failure ~scopes:[] ~error ()
+let fallback ~context:_ ~search:_ ~error = RouterEngine.Plan.failure ~scopes:[] ~error ()
 
 let contains ~needle value =
   let limit = String.length value - String.length needle in
@@ -8,26 +8,26 @@ let contains ~needle value =
   in
   loop 0
 
-let registry seen : ((React.element, string) RouterServer.Plan.t, string, unit) RouterServer.EndpointRegistry.t =
+let registry seen : ((React.element, string) RouterEngine.Plan.t, string, unit) RouterEngine.EndpointRegistry.t =
   let endpoint =
     let metadata =
-      RouterServer.Plan.Scope.make ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"Item" ())) ()
+      RouterEngine.Plan.Scope.make ~metadata:(fun () -> Lwt.return (RouterRuntime.Metadata.make ~title:"Item" ())) ()
     in
-    RouterServer.Endpoint.make ~id:"item" ~path:"/item"
+    RouterEngine.Endpoint.make ~id:"item" ~path:"/item"
       ~activeRoutes:[ ("item", []) ]
       ~fingerprint:"item"
       ~decode:(fun _input ->
         seen := DreamRouter.get_header "X-Test";
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.done_
-                 (RouterServer.Plan.success ~scopes:[ metadata ]
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.done_
+                 (RouterEngine.Plan.success ~scopes:[ metadata ]
                     ~page:(React.createElement "main" [] [ React.string "item" ])))))
   in
-  RouterServer.EndpointRegistry.makeExn [ endpoint ]
+  RouterEngine.EndpointRegistry.makeExn [ endpoint ]
 
 let server ?(basePath = "/app") registry =
-  RouterServer.Server.make ~basePath ~registry ~fallback
+  RouterEngine.Server.make ~basePath ~registry ~fallback
     ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
     ()
 
@@ -44,6 +44,7 @@ let ssr request = match Dream.query request "ssr" with Some "false" -> false | S
 let handler seen request =
   let routes =
     DreamRouter.routes
+      ~context:(fun _ -> ())
       ~server:(server (registry seen))
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~diagnosticId:(fun _ -> "diagnostic")
@@ -125,6 +126,7 @@ let rejects_other_accept_values () =
 let unicode_base_path_is_routed () =
   let routes =
     DreamRouter.routes
+      ~context:(fun _ -> ())
       ~server:(server ~basePath:"/m%C3%BCnchen" (registry (ref None)))
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~document:(fun ~head:_ children -> children)
@@ -137,6 +139,7 @@ let unicode_base_path_is_routed () =
 let root_base_path_handler () =
   Dream.router
     (DreamRouter.routes
+       ~context:(fun _ -> ())
        ~server:(server ~basePath:"/" (registry (ref None)))
        ~actionHandler:(fun _ -> Dream.empty `OK)
        ~document:(fun ~head:_ children -> children)
@@ -165,6 +168,7 @@ let shared_action_dispatcher_handles_mount () =
   let router =
     Dream.router
       (DreamRouter.routes
+         ~context:(fun _ -> ())
          ~server:(server (registry (ref None)))
          ~actionHandler:action
          ~document:(fun ~head:_ children -> children)
@@ -269,24 +273,24 @@ let registry_mismatch_returns_reload_required () =
   Alcotest.(check (option string)) "response kind" (Some "reload-required") (Dream.header response "Router-Response");
   Alcotest.(check (option string)) "endpoint skipped" None !seen
 
-let patch_registry () : ((React.element, string) RouterServer.Plan.t, string, unit) RouterServer.EndpointRegistry.t =
-  let root_branch = RouterServer.Branch.Scope.make ~id:"root" ~parameters:[] ~search:[] ~reusable:true in
-  let route_branch id = RouterServer.Branch.Scope.make ~id ~parameters:[] ~search:[] ~reusable:true in
+let patch_registry () : ((React.element, string) RouterEngine.Plan.t, string, unit) RouterEngine.EndpointRegistry.t =
+  let root_branch = RouterEngine.Branch.Scope.make ~id:"root" ~parameters:[] ~search:[] ~reusable:true in
+  let route_branch id = RouterEngine.Branch.Scope.make ~id ~parameters:[] ~search:[] ~reusable:true in
   let root_scope =
-    RouterServer.Plan.Scope.make ~layout:(fun child -> React.array [| React.string (String.make 2000 'x'); child |]) ()
+    RouterEngine.Plan.Scope.make ~layout:(fun child -> React.array [| React.string (String.make 2000 'x'); child |]) ()
   in
   let endpoint ~id ~path ~page =
-    RouterServer.Endpoint.make ~id ~path
+    RouterEngine.Endpoint.make ~id ~path
       ~activeRoutes:[ (id, []) ]
       ~fingerprint:(id ^ path)
       ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared
+          (RouterEngine.Endpoint.prepared
              ~branch:[ root_branch; route_branch ("route:" ^ id) ]
              ~execution:(fun () ->
-               RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[ root_scope ] ~page))))
+               RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[ root_scope ] ~page))))
   in
-  RouterServer.EndpointRegistry.makeExn
+  RouterEngine.EndpointRegistry.makeExn
     [
       endpoint ~id:"home" ~path:"/" ~page:(React.string "home");
       endpoint ~id:"detail" ~path:"/detail" ~page:(React.string "detail");
@@ -294,7 +298,9 @@ let patch_registry () : ((React.element, string) RouterServer.Plan.t, string, un
 
 let patch_handler registry request =
   let routes =
-    DreamRouter.routes ~server:(server registry)
+    DreamRouter.routes
+      ~context:(fun _ -> ())
+      ~server:(server registry)
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~diagnosticId:(fun _ -> "diagnostic")
       ~revision:(fun () -> "revision")
@@ -306,7 +312,7 @@ let patch_handler registry request =
 let patch_payload_is_smaller_than_full () =
   let registry = patch_registry () in
   let full_request = Dream.request ~target:"/app/detail" ~headers:[ ("Accept", "application/react.component") ] "" in
-  let fingerprint = RouterServer.EndpointRegistry.fingerprint registry in
+  let fingerprint = RouterEngine.EndpointRegistry.fingerprint registry in
   let patch_request =
     Dream.request ~target:"/app/detail"
       ~headers:
@@ -332,7 +338,7 @@ let empty_query_keeps_the_patch () =
       ~headers:
         [
           ("Accept", "application/react.component");
-          ("Router-Registry", "1." ^ RouterServer.EndpointRegistry.fingerprint registry);
+          ("Router-Registry", "1." ^ RouterEngine.EndpointRegistry.fingerprint registry);
           ("Router-Navigation-From", "/app");
           ("Router-Base-Revision", "base");
         ]
@@ -344,19 +350,19 @@ let empty_query_keeps_the_patch () =
 
 let rsc_redirect_uses_navigation_envelope () =
   let endpoint =
-    RouterServer.Endpoint.make ~id:"redirect" ~path:"/redirect"
+    RouterEngine.Endpoint.make ~id:"redirect" ~path:"/redirect"
       ~activeRoutes:[ ("redirect", []) ]
       ~fingerprint:"redirect"
       ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.load
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.load
                  (fun () -> Lwt.return (RouterRuntime.Loader.Redirect (RouterRuntime.destination ~path:"/outside")))
                  (fun (_ : unit) ->
-                   RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:React.null)))))
+                   RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page:React.null)))))
   in
-  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
-  let fingerprint = RouterServer.EndpointRegistry.fingerprint registry in
+  let registry = RouterEngine.EndpointRegistry.makeExn [ endpoint ] in
+  let fingerprint = RouterEngine.EndpointRegistry.fingerprint registry in
   let request =
     Dream.request ~target:"/app/redirect"
       ~headers:
@@ -377,23 +383,23 @@ let rsc_redirect_uses_navigation_envelope () =
 
 let loader_permanent_redirect_answers_308_and_rsc_envelope () =
   let endpoint =
-    RouterServer.Endpoint.make ~id:"redirect" ~path:"/redirect"
+    RouterEngine.Endpoint.make ~id:"redirect" ~path:"/redirect"
       ~activeRoutes:[ ("redirect", []) ]
       ~fingerprint:"redirect"
       ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.load
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.load
                  (fun () ->
                    Lwt.return (RouterRuntime.Loader.PermanentRedirect (RouterRuntime.destination ~path:"/outside")))
                  (fun (_ : unit) ->
-                   RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page:React.null)))))
+                   RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page:React.null)))))
   in
-  let registry = RouterServer.EndpointRegistry.makeExn [ endpoint ] in
+  let registry = RouterEngine.EndpointRegistry.makeExn [ endpoint ] in
   let document = Dream.test (patch_handler registry) (Dream.request ~target:"/app/redirect" "") in
   Alcotest.(check int) "document status" 308 (Dream.status document |> Dream.status_to_int);
   Alcotest.(check (option string)) "location" (Some "/outside") (Dream.header document "Location");
-  let fingerprint = RouterServer.EndpointRegistry.fingerprint registry in
+  let fingerprint = RouterEngine.EndpointRegistry.fingerprint registry in
   let rsc =
     Dream.test (patch_handler registry)
       (Dream.request ~target:"/app/redirect"
@@ -429,13 +435,15 @@ let trailing_slash_rsc_uses_navigation_envelope () =
 let trailing_slash_reject_returns_not_found () =
   let seen = ref None in
   let router =
-    RouterServer.Server.make ~basePath:"/app" ~registry:(registry seen) ~trailingSlash:RouterServer.TrailingSlash.Reject
+    RouterEngine.Server.make ~basePath:"/app" ~registry:(registry seen) ~trailingSlash:RouterEngine.TrailingSlash.Reject
       ~fallback
       ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
       ()
   in
   let routes =
-    DreamRouter.routes ~server:router
+    DreamRouter.routes
+      ~context:(fun _ -> ())
+      ~server:router
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~diagnosticId:(fun _ -> "diagnostic")
       ~revision:(fun () -> "revision")
@@ -472,6 +480,7 @@ let other_methods_answer_with_allow () =
 let default_ids_do_not_use_the_global_generator () =
   let routes =
     DreamRouter.routes
+      ~context:(fun _ -> ())
       ~server:(server (registry (ref None)))
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~document:(fun ~head:_ children -> children)
@@ -493,6 +502,7 @@ let action_routes_check_origin () =
   let router =
     Dream.router
       (DreamRouter.routes
+         ~context:(fun _ -> ())
          ~server:(server (registry (ref None)))
          ~actionHandler:action
          ~document:(fun ~head:_ children -> children)
@@ -532,25 +542,25 @@ let prefetch_above_route_level_is_refused () =
 
 let loaders_read_the_context () =
   let endpoint =
-    RouterServer.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
+    RouterEngine.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun context ->
-               RouterServer.Execution.load
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun context ->
+               RouterEngine.Execution.load
                  (fun () -> Lwt.return (RouterRuntime.Loader.Data context))
                  (fun viewer ->
-                   RouterServer.Execution.done_
-                     (RouterServer.Plan.success ~scopes:[] ~page:(React.string ("viewer:" ^ viewer)))))))
+                   RouterEngine.Execution.done_
+                     (RouterEngine.Plan.success ~scopes:[] ~page:(React.string ("viewer:" ^ viewer)))))))
   in
   let server =
-    RouterServer.Server.makeWithContext ~basePath:"/app"
-      ~registry:(RouterServer.EndpointRegistry.makeExn [ endpoint ])
-      ~fallback:(fun ~context:_ ~search:_ ~error -> RouterServer.Plan.failure ~scopes:[] ~error ())
+    RouterEngine.Server.make ~basePath:"/app"
+      ~registry:(RouterEngine.EndpointRegistry.makeExn [ endpoint ])
+      ~fallback:(fun ~context:_ ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
       ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
       ()
   in
   let router =
     Dream.router
-      (DreamRouter.routesWithContext ~server
+      (DreamRouter.routes ~server
          ~context:(fun request -> Option.value (Dream.header request "X-Viewer") ~default:"anonymous")
          ~actionHandler:(fun _ -> Dream.empty `OK)
          ~document ())
@@ -559,13 +569,31 @@ let loaders_read_the_context () =
   Alcotest.(check bool) "from the request" true (contains ~needle:"viewer:ada" (body [ ("X-Viewer", "ada") ]));
   Alcotest.(check bool) "default" true (contains ~needle:"viewer:anonymous" (body []))
 
+let options_builds_no_context () =
+  let built = ref 0 in
+  let router =
+    Dream.router
+      (DreamRouter.routes
+         ~server:(server (registry (ref None)))
+         ~context:(fun _ -> incr built)
+         ~actionHandler:(fun _ -> Dream.empty `OK)
+         ~document ())
+  in
+  let status method_ =
+    Dream.status_to_int (Dream.status (Lwt_main.run (router (Dream.request ~method_ ~target:"/app/item" ""))))
+  in
+  Alcotest.(check int) "options" 204 (status `OPTIONS);
+  Alcotest.(check int) "no context for options" 0 !built;
+  Alcotest.(check int) "get" 200 (status `GET);
+  Alcotest.(check int) "one context for get" 1 !built
+
 let loaders_see_their_own_request () =
   let target () = match DreamRouter.request () with Some request -> Dream.target request | None -> "none" in
   let seen = ref [] in
   let record label = seen := (label, target ()) :: !seen in
   let endpoint =
     let scope =
-      RouterServer.Plan.Scope.make
+      RouterEngine.Plan.Scope.make
         ~metadata:(fun () ->
           Lwt.bind (Lwt.pause ()) (fun () ->
               record "metadata";
@@ -581,23 +609,24 @@ let loaders_see_their_own_request () =
                     record "stream";
                     Lwt.return (React.string ("streamed:" ^ target ())))) )
     in
-    RouterServer.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
+    RouterEngine.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.load
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.load
                  (fun () ->
                    Lwt.bind (Lwt.pause ()) (fun () ->
                        record "loader";
                        Lwt.return (RouterRuntime.Loader.Data (target ()))))
                  (fun loaded ->
-                   RouterServer.Execution.done_
-                     (RouterServer.Plan.success ~scopes:[ scope ]
+                   RouterEngine.Execution.done_
+                     (RouterEngine.Plan.success ~scopes:[ scope ]
                         ~page:(React.list [ React.string ("loaded:" ^ loaded); streamed ]))))))
   in
   let router =
     Dream.router
       (DreamRouter.routes
-         ~server:(server (RouterServer.EndpointRegistry.makeExn [ endpoint ]))
+         ~context:(fun _ -> ())
+         ~server:(server (RouterEngine.EndpointRegistry.makeExn [ endpoint ]))
          ~actionHandler:(fun _ -> Dream.empty `OK)
          ~document ())
   in
@@ -632,14 +661,14 @@ let form_page_registry () =
     React.createElement "p" [] [ React.string ("boundary " ^ string_of_int status) ]
   in
   let endpoint =
-    RouterServer.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
+    RouterEngine.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.done_
-                 (RouterServer.Plan.withFailure (RouterServer.Plan.success ~scopes:[] ~page) (fun error ->
-                      RouterServer.Plan.failure ~scopes:[] ~error ~errorBoundary:boundary ())))))
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.done_
+                 (RouterEngine.Plan.withFailure (RouterEngine.Plan.success ~scopes:[] ~page) (fun error ->
+                      RouterEngine.Plan.failure ~scopes:[] ~error ~errorBoundary:boundary ())))))
   in
-  RouterServer.EndpointRegistry.makeExn [ endpoint ]
+  RouterEngine.EndpointRegistry.makeExn [ endpoint ]
 
 let multipart fields =
   let part (name, value) = "--b\r\nContent-Disposition: form-data; name=\"" ^ name ^ "\"\r\n\r\n" ^ value ^ "\r\n" in
@@ -688,7 +717,7 @@ let form_fixture () =
     | "move" ->
         Some
           (ReactServerDOM.FormData
-             (fun _ _ -> RouterServer.Action.redirect (RouterRuntime.destination ~path:"/app/other?from=form")))
+             (fun _ _ -> RouterServer.redirect (RouterRuntime.destination ~path:"/app/other?from=form")))
     | "fail" ->
         Some
           (ReactServerDOM.FormData
@@ -699,12 +728,13 @@ let form_fixture () =
     | "escape" ->
         Some
           (ReactServerDOM.FormData
-             (fun _ _ -> RouterServer.Action.redirect (RouterRuntime.destination ~path:"javascript:alert(1)")))
+             (fun _ _ -> RouterServer.redirect (RouterRuntime.destination ~path:"javascript:alert(1)")))
     | _ -> None
   in
   let router =
     Dream.router
       (DreamRouter.routes
+         ~context:(fun _ -> ())
          ~server:(server (form_page_registry ()))
          ~actionHandler:(fun request ->
            incr actions;
@@ -757,21 +787,21 @@ let no_js_form_failure_honours_render_signals () =
       []
   in
   let endpoint path boundary =
-    RouterServer.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
+    RouterEngine.Endpoint.make ~id:path ~path ~activeRoutes:[] ~fingerprint:path ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.done_
-                 (RouterServer.Plan.withFailure (RouterServer.Plan.success ~scopes:[] ~page:form) (fun error ->
-                      RouterServer.Plan.failure ~scopes:[] ~error
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.done_
+                 (RouterEngine.Plan.withFailure (RouterEngine.Plan.success ~scopes:[] ~page:form) (fun error ->
+                      RouterEngine.Plan.failure ~scopes:[] ~error
                         ~notFound:(fun _ -> React.createElement "p" [] [ React.string "gone" ])
                         ~errorBoundary:(fun _ -> React.Upper_case_component ("Boundary", boundary))
                         ())))))
   in
   let registry =
-    RouterServer.EndpointRegistry.makeExn
+    RouterEngine.EndpointRegistry.makeExn
       [
-        endpoint "/moved" (fun () -> RouterServer.Render.redirect (RouterRuntime.destination ~path:"/app/login"));
-        endpoint "/gone" (fun () -> RouterServer.Render.notFound ());
+        endpoint "/moved" (fun () -> RouterServer.redirect (RouterRuntime.destination ~path:"/app/login"));
+        endpoint "/gone" (fun () -> RouterServer.notFound ());
       ]
   in
   let lookup = function
@@ -780,7 +810,9 @@ let no_js_form_failure_honours_render_signals () =
   in
   let router =
     Dream.router
-      (DreamRouter.routes ~server:(server registry)
+      (DreamRouter.routes
+         ~context:(fun _ -> ())
+         ~server:(server registry)
          ~actionHandler:(fun _ -> Dream.empty `OK)
          ~lookup
          ~diagnosticId:(fun _ -> "diagnostic")
@@ -815,6 +847,7 @@ let js_server_function_call_is_unchanged () =
 let page_cache_can_be_turned_off () =
   let routes =
     DreamRouter.routes
+      ~context:(fun _ -> ())
       ~server:(server (registry (ref None)))
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~pageCacheCapacity:0 ~document ()
@@ -830,7 +863,7 @@ let js_action_redirect_sets_header () =
              (fun _args ->
                Lwt.bind (Lwt.pause ()) (fun () ->
                    DreamRouter.set_cookie ~path:"/app" "moved" "yes";
-                   RouterServer.Action.redirect (RouterRuntime.destination ~path:"/app/next?from=action"))))
+                   RouterServer.redirect (RouterRuntime.destination ~path:"/app/next?from=action"))))
     | _ -> None
   in
   let request =
@@ -858,14 +891,15 @@ let server_links_see_the_location () =
                ~children:(React.string "item") ()) )
   in
   let endpoint =
-    RouterServer.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
+    RouterEngine.Endpoint.make ~id:"item" ~path:"/item" ~activeRoutes:[] ~fingerprint:"item" ~decode:(fun _ ->
         Ok
-          (RouterServer.Endpoint.prepared ~branch:[] ~execution:(fun () ->
-               RouterServer.Execution.done_ (RouterServer.Plan.success ~scopes:[] ~page))))
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun () ->
+               RouterEngine.Execution.done_ (RouterEngine.Plan.success ~scopes:[] ~page))))
   in
   let routes =
     DreamRouter.routes
-      ~server:(server (RouterServer.EndpointRegistry.makeExn [ endpoint ]))
+      ~context:(fun _ -> ())
+      ~server:(server (RouterEngine.EndpointRegistry.makeExn [ endpoint ]))
       ~actionHandler:(fun _ -> Dream.empty `OK)
       ~document ()
   in
@@ -916,7 +950,7 @@ let js_action_unsafe_redirect_is_refused () =
     | "go" ->
         Some
           (ReactServerDOM.Body
-             (fun _args -> RouterServer.Action.redirect (RouterRuntime.destination ~path:"javascript:alert(1)")))
+             (fun _args -> RouterServer.redirect (RouterRuntime.destination ~path:"javascript:alert(1)")))
     | _ -> None
   in
   let request =
@@ -970,6 +1004,7 @@ let () =
           test "prefetch above route level is refused" prefetch_above_route_level_is_refused;
           test "loaders see their own request" loaders_see_their_own_request;
           test "loaders read the context" loaders_read_the_context;
+          test "OPTIONS builds no context" options_builds_no_context;
           test "no-JS form post redirects to the page" no_js_form_post_redirects_to_the_page;
           test "no-JS form redirect follows the server function" no_js_form_redirect_follows_the_server_function;
           test "no-JS form failure renders the boundary" no_js_form_failure_renders_the_boundary;

@@ -1,9 +1,9 @@
-let pattern = RouterRuntime.pattern("/s/:v<string>");
+let pattern = RouterEngine.pattern("/s/:v<string>");
 
 let encodeSegment = value => {
   let href =
     RouterRuntime.href(
-      RouterRuntime.destinationFromPattern(
+      RouterEngine.destinationFromPattern(
         ~pattern,
         ~parameters=[("v", value)],
         ~search=[],
@@ -14,7 +14,7 @@ let encodeSegment = value => {
 
 let platform: UrlCases.platform = {
   text: RouterSearch.utf8Text,
-  encodeSearch: RouterRuntime.encodeSearch,
+  encodeSearch: RouterEngine.encodeSearch,
   parseSearch: search => Result.to_option(RouterSearch.parse(search)),
   encodeSegment,
   decodeSegment: segment =>

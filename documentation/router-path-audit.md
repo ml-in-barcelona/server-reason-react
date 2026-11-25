@@ -29,7 +29,7 @@ Severity: High
 Status: Resolved
 
 Duplicate paths and ambiguous patterns pass the declaration and handles
-generation stages. `RouterServer.EndpointRegistry.makeExn` rejects them when the
+generation stages. `RouterEngine.EndpointRegistry.makeExn` rejects them when the
 generated native registry module initializes. An invalid manifest can therefore
 compile and then stop the server during startup.
 
@@ -37,7 +37,7 @@ References:
 
 - `Router_declaration.routes` in `packages/router/generation/router_declaration.ml`
 - `registry` in `packages/router/generation/router_expansion.ml`
-- `RouterServer.Registry.make` in `packages/router/native/RouterServer.ml`
+- `RouterEngine.Registry.make` in `packages/router/native/RouterServer.ml`
 
 The generator must validate duplicate paths and ambiguous patterns in every
 generation mode. It must report the error at the route declaration location.
@@ -86,7 +86,7 @@ References:
 
 - `relationship` in `packages/router/runtime/shared/RouterPattern.re`
 - `active_routes` in `packages/router/generation/router_expansion.ml`
-- `RouterServer.Registry.make` in `packages/router/native/RouterServer.ml`
+- `RouterEngine.Registry.make` in `packages/router/native/RouterServer.ml`
 
 The router needs one rule. It can require matching parameter identities for
 route prefixes, or it can map child captures to the parameter names of each
@@ -110,7 +110,7 @@ References:
 
 - `RouterPattern.validUtf8` in `packages/router/runtime/shared/RouterPattern.re`
 - `parameters_of_path` in `packages/router/generation/router_declaration.ml`
-- `RouterServer.Path.decodePathname` in `packages/router/native/RouterServer.ml`
+- `RouterEngine.Path.decodePathname` in `packages/router/native/RouterServer.ml`
 
 Native matching must reject invalid UTF-8 after percent decoding and before
 route matching or codec execution.
@@ -126,15 +126,15 @@ Severity: Low
 
 Status: Resolved
 
-Generated base paths are validated, but `RouterServer.Server.make` accepts a
+Generated base paths are validated, but `RouterEngine.Server.make` accepts a
 plain string. A value with a trailing slash can make `stripBasePath` build a
 double-slash prefix and fail to match valid requests.
 
 References:
 
 - `declaration_of_expression` in `packages/router/generation/router_declaration.ml`
-- `RouterServer.Path.validBasePath` in `packages/router/native/RouterServer.ml`
-- `RouterServer.Server.make` in `packages/router/native/RouterServer.ml`
+- `RouterEngine.Path.validBasePath` in `packages/router/native/RouterServer.ml`
+- `RouterEngine.Server.make` in `packages/router/native/RouterServer.ml`
 
 `Server.make` must validate the base path or accept a validated path value.
 
@@ -154,9 +154,9 @@ Status: Closed without an API change
 
 References:
 
-- `RouterServer.Registry.error` in `packages/router/native/RouterServer.mli`
-- `RouterServer.Route.make` in `packages/router/native/RouterServer.ml`
-- `RouterServer.Registry.make` in `packages/router/native/RouterServer.ml`
+- `RouterEngine.Registry.error` in `packages/router/native/RouterServer.mli`
+- `RouterEngine.Route.make` in `packages/router/native/RouterServer.ml`
+- `RouterEngine.Registry.make` in `packages/router/native/RouterServer.ml`
 
 Remove the unreachable case, or change route construction so registry creation
 returns all route validation errors through one result type.
