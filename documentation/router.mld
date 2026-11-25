@@ -1106,11 +1106,13 @@ module BillingLoader = {
 };
 ]}
 
-The adapter builds the context once per request and passes it as
-[~context] to [RouterServer.run], [RouterServer.serve] and the other entry
-points. [DreamRouter.routes ~context] takes a function from the Dream
-request. Without [~context] on [Router.make], the adapter passes
-[~context=()], and [DreamRouter.routes] takes [~context=_ => ()].
+The adapter passes the context to every [RouterServer] entry point.
+[RouterServer.serve] and [RouterServer.handle] take a function, which they
+call once, inside the request cache and only when the router runs;
+[RouterServer.run], [formActionReply] and [serveFormAction] take the value.
+[DreamRouter.routes ~context] takes a function from the Dream request.
+Without [~context] on [Router.make], pass [~context=()] or
+[~context=() => ()], and [DreamRouter.routes(~context=_ => (), ...)].
 
 Server components render after [RouterServer.run] returns, so they cannot
 receive the context. They read request-local data from the request the
@@ -1335,7 +1337,8 @@ the response out:
 
 - [RouterServer.handle(server, ~diagnosticId, ~document, ~context, ~method_,
   ~target, ~headers, ())] answers one request: [methodReply], then
-  [parseRequest], [run] and [reply]. A [HEAD] reply has no body. [?allow]
+  [parseRequest], [run] and [reply]. [~context] is a function that runs only
+  when the router runs, so an [OPTIONS] request builds no context. A [HEAD] reply has no body. [?allow]
   defaults to [GET], [HEAD] and [OPTIONS]; an adapter that serves server
   functions at the same paths adds [POST] and sends [POST]s elsewhere.
 - [RouterServer.serve] takes the arguments of [handle] and the rendering
@@ -1370,7 +1373,7 @@ let respond = (request) =>
         RouterRegistry.server,
         ~diagnosticId=Printexc.to_string,
         ~document,
-        ~context=(),
+        ~context=() => (),
         ~method_=request.method_,
         ~target=request.target,
         ~headers=request.headers,
@@ -1444,8 +1447,7 @@ context.
   paths. [OPTIONS] answers 204 and a method outside [allow] answers 405, both
   with an [Allow] header. For [None], [GET] and [HEAD] run the router, and the
   adapter sends a [HEAD] reply without its body. [RouterServer.handle] does
-  both. [DreamRouter.routes] checks the method before it builds the request
-  context, so an [OPTIONS] request builds none.
+  both.
   [DreamRouter.routes] allows
   [GET, HEAD, OPTIONS, POST] and sends [POST] to the action handler.
 - [~metadata] and [~headers] of all scopes start at the same time. The results

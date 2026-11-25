@@ -256,19 +256,17 @@ let allow = [ "GET"; "HEAD"; "OPTIONS"; "POST" ]
 let handler ~server ~context ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = [])
     ?pageCacheCapacity ~document =
  fun request ->
-  let method_ = Dream.method_to_string (Dream.method_ request) in
-  match RouterServer.methodReply ~allow method_ with
-  | Some reply -> write_response (RouterServer.response reply)
-  | None ->
-      with_render_context request (fun () ->
-          let%lwt response =
-            RouterServer.serve server ~diagnosticId ~revision ?pageCacheCapacity ~document ~allow ~env:`Dev
-              ~timeout:stream_timeout
-              ~skipRoot:(not (ssr request))
-              ~bootstrapModules ~context:(context request) ~method_ ~target:(Dream.target request)
-              ~headers:(Dream.all_headers request) ()
-          in
-          write_response response)
+  with_render_context request (fun () ->
+      let%lwt response =
+        RouterServer.serve server ~diagnosticId ~revision ?pageCacheCapacity ~document ~allow ~env:`Dev
+          ~timeout:stream_timeout
+          ~skipRoot:(not (ssr request))
+          ~bootstrapModules
+          ~context:(fun () -> context request)
+          ~method_:(Dream.method_to_string (Dream.method_ request))
+          ~target:(Dream.target request) ~headers:(Dream.all_headers request) ()
+      in
+      write_response response)
 
 let is_form_post request =
   Option.is_none (Dream.header request "ACTION_ID")

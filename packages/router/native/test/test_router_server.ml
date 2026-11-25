@@ -1258,7 +1258,9 @@ let parse_request_empty_query_and_fragment () =
 
 let handle ?(allow = None) ?(headers = []) method_ target =
   Lwt_main.run
-    (RouterServer.handle ~context:() (adapter_server ())
+    (RouterServer.handle
+       ~context:(fun () -> ())
+       (adapter_server ())
        ~diagnosticId:(fun _ -> "diagnostic")
        ~document:html_document ?allow ~method_ ~target ~headers ())
 
@@ -1298,6 +1300,62 @@ let adapter_handle () =
   Alcotest.(check int) "delete" 405 with_post.status;
   check_header with_post "Allow" (Some "GET, HEAD, OPTIONS, POST")
 
+let adapter_handle_builds_context_only_to_run () =
+  let built = ref 0 in
+  let handle method_ =
+    Lwt_main.run
+      (RouterServer.handle (adapter_server ())
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~document:html_document
+         ~context:(fun () -> incr built)
+         ~method_ ~target:"/app/item" ~headers:[] ())
+  in
+  Alcotest.(check int) "options" 204 (handle "OPTIONS").status;
+  Alcotest.(check int) "no context for options" 0 !built;
+  Alcotest.(check int) "get" 200 (handle "GET").status;
+  Alcotest.(check int) "one context for get" 1 !built
+
+let context_memo_shares_the_request_cache () =
+  let key : string RouterServer.memoKey = RouterServer.memoKey () in
+  let runs = ref 0 in
+  let viewer () =
+    RouterServer.memo key "viewer" (fun () ->
+        incr runs;
+        Lwt.return "ada")
+  in
+  let endpoint =
+    RouterEngine.Endpoint.make ~id:"item" ~path:"/item"
+      ~activeRoutes:[ ("item", []) ]
+      ~fingerprint:"item"
+      ~decode:(fun _ ->
+        Ok
+          (RouterEngine.Endpoint.prepared ~branch:[] ~execution:(fun context ->
+               RouterEngine.Execution.load
+                 (fun () -> Lwt.map (fun viewer -> RouterRuntime.Loader.Data (context ^ viewer)) (viewer ()))
+                 (fun page ->
+                   RouterEngine.Execution.done_
+                     (RouterEngine.Plan.success ~scopes:[] ~page:(React.createElement "main" [] [ React.string page ]))))))
+  in
+  let server =
+    RouterEngine.Server.make ~basePath:"/app"
+      ~registry:(RouterEngine.EndpointRegistry.makeExn [ endpoint ])
+      ~fallback:(fun ~context:_ ~search:_ ~error -> RouterEngine.Plan.failure ~scopes:[] ~error ())
+      ~applicationStatus:(fun _ -> RouterRuntime.Status.InternalServerError)
+      ()
+  in
+  let context () =
+    ignore (viewer ());
+    "viewer:"
+  in
+  let response =
+    Lwt_main.run
+      (RouterServer.serve server
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~document:html_document ~context ~method_:"GET" ~target:"/app/item" ~headers:[] ())
+  in
+  Alcotest.(check int) "status" 200 response.status;
+  Alcotest.(check int) "fetched once" 1 !runs
+
 let request_memo_reaches_streamed_components () =
   let key : string RouterServer.memoKey = RouterServer.memoKey () in
   let runs = ref 0 in
@@ -1333,7 +1391,9 @@ let request_memo_reaches_streamed_components () =
   in
   let request () =
     Lwt.bind
-      (RouterServer.serve ~context:() server
+      (RouterServer.serve
+         ~context:(fun () -> ())
+         server
          ~diagnosticId:(fun _ -> "diagnostic")
          ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ())
       (fun (response : RouterServer.response) ->
@@ -1355,14 +1415,18 @@ let request_memo_reaches_streamed_components () =
   Alcotest.(check int) "one run per request" 2 !runs;
   ignore
     (Lwt_main.run
-       (RouterServer.handle ~context:() server
+       (RouterServer.handle
+          ~context:(fun () -> ())
+          server
           ~diagnosticId:(fun _ -> "diagnostic")
           ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ()));
   Alcotest.(check int) "handle shares between loader and metadata" 3 !runs;
   let outer () =
     RouterServer.requestScope (fun () ->
         let handled () =
-          RouterServer.handle ~context:() server
+          RouterServer.handle
+            ~context:(fun () -> ())
+            server
             ~diagnosticId:(fun _ -> "diagnostic")
             ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ()
         in
@@ -1451,7 +1515,9 @@ let client_root_settings () =
   let html server =
     let reply =
       Lwt_main.run
-        (RouterServer.handle ~context:() server
+        (RouterServer.handle
+           ~context:(fun () -> ())
+           server
            ~diagnosticId:(fun _ -> "diagnostic")
            ~pageCacheCapacity:5 ~document:html_document ~method_:"GET" ~target:"/app/item" ~headers:[] ())
     in
@@ -2006,7 +2072,9 @@ let serve ?(rsc = false) target =
   let headers = if rsc then [ ("Accept", "application/react.component"); ("Router-Navigation-From", "/app") ] else [] in
   let response =
     Lwt_main.run
-      (RouterServer.serve ~context:() (signal_server ())
+      (RouterServer.serve
+         ~context:(fun () -> ())
+         (signal_server ())
          ~diagnosticId:(fun _ -> "d")
          ~document:(fun ~head children ->
            React.createElement "html" []
@@ -2108,7 +2176,9 @@ let render_signal_in_a_search_patch_answers_the_boundary () =
   let navigate target =
     let response =
       Lwt_main.run
-        (RouterServer.serve ~context:() server
+        (RouterServer.serve
+           ~context:(fun () -> ())
+           server
            ~diagnosticId:(fun _ -> "d")
            ~document:(fun ~head:_ children -> children)
            ~method_:"GET" ~target
@@ -2185,6 +2255,8 @@ let () =
           test "fatal loader exceptions propagate" fatal_loader_exceptions_propagate;
           test "started loader exceptions use boundary" started_loader_exceptions_use_boundary;
           test "request memo runs once per request" request_memo_runs_once_per_request;
+          test "adapter handle builds context only to run" adapter_handle_builds_context_only_to_run;
+          test "a memo in the context shares the request cache" context_memo_shares_the_request_cache;
           test "request memo reaches streamed components" request_memo_reaches_streamed_components;
           test "error status" error_status;
           test "metadata composition" metadata_composition;

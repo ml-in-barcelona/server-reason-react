@@ -350,7 +350,7 @@ let handle server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow =
         (fun outcome ->
           let reply = reply server ~target ?pageCacheCapacity ~document ~kind:engine.kind outcome in
           if String.equal method_ "HEAD" then { reply with body = Empty } else reply)
-        (Server.run server ~diagnosticId ?revision ?prefetch ~context engine)
+        (Server.run server ~diagnosticId ?revision ?prefetch ~context:(context ()) engine)
 
 type response = { status : int; headers : (string * string) list; body : ((string -> unit Lwt.t) -> unit Lwt.t) option }
 
@@ -482,6 +482,7 @@ let serve server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow = 
   | None ->
       let { engine; prefetch } = parseRequest ~target ~headers in
       requestScope @@ fun () ->
+      let context = context () in
       let reply_to outcome = reply server ~target ?pageCacheCapacity ~document ~kind:engine.kind outcome in
       let run ?actionError () =
         Lwt.map reply_to (Server.run server ~diagnosticId ?revision ?prefetch ?actionError ~context engine)

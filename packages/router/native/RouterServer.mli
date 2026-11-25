@@ -2,8 +2,10 @@
     pieces of an HTTP adapter. [DreamRouter] is built on them; an adapter for another HTTP server parses its request
     with {!parseRequest}, answers it with {!serve}, and writes the {!response}.
 
-    Every entry point takes [~context], the request context that loaders, [~metadata] and [~headers] receive. Pass
-    [~context:()] for a manifest without [~context]. *)
+    Every entry point takes [~context], the request context that loaders, [~metadata] and [~headers] receive: a value
+    for {!run}, {!formActionReply} and {!serveFormAction}, and a function for {!handle} and {!serve}, which build it
+    inside the request's {!requestScope}. Pass [~context:()] or [~context:(fun () -> ())] for a manifest without
+    [~context]. *)
 
 type ('view, 'error, 'context) t = ('view, 'error, 'context) RouterEngine.Server.t
 (** A router server, made by the generated [RouterRegistry.server]. *)
@@ -29,7 +31,8 @@ val redirect : ?permanent:bool -> RouterRuntime.destination -> 'a
 
     In render code it answers like a loader redirect, with the same timing as {!notFound}. In a server function it ends
     the function: after a form post without JavaScript the adapter answers 303 to [destination] instead of to the page,
-    and a call from JavaScript answers with a [null] result and the {!actionRedirectHeader}. *)
+    and a call from JavaScript answers with a [null] result and the {!actionRedirectHeader}. A server function's code
+    called directly from a server component during {!serve} is render code, so its redirect redirects the page. *)
 
 (** {1 Request-scoped memoisation} *)
 
@@ -123,7 +126,7 @@ val handle :
   ?pageCacheCapacity:int ->
   document:(head:React.element -> React.element -> React.element) ->
   ?allow:string list ->
-  context:'context ->
+  context:(unit -> 'context) ->
   method_:string ->
   target:string ->
   headers:(string * string) list ->
@@ -131,7 +134,9 @@ val handle :
   reply Lwt.t
 (** Answers one router request: {!methodReply} with [allow] (default [GET], [HEAD], [OPTIONS]), then {!parseRequest},
     {!run} and {!reply}. A [HEAD] reply has no body. An adapter that serves [POST] at the router's paths, for server
-    functions, adds ["POST"] to [allow] and does not send [POST]s here. *)
+    functions, adds ["POST"] to [allow] and does not send [POST]s here. [context] runs once, inside the request's
+    {!requestScope} and only when the router runs, so a method that {!methodReply} answers builds no context and {!memo}
+    calls in [context] share the request's cache; pass [fun () -> ()] for a manifest without [~context]. *)
 
 type response = { status : int; headers : (string * string) list; body : ((string -> unit Lwt.t) -> unit Lwt.t) option }
 (** A reply ready to write. [body] is [None] for an empty body. Otherwise call it with a function that writes one chunk;
@@ -163,17 +168,17 @@ val serve :
   ?skipRoot:bool ->
   ?bootstrapModules:string list ->
   ?nonce:string ->
-  context:'context ->
+  context:(unit -> 'context) ->
   method_:string ->
   target:string ->
   headers:(string * string) list ->
   unit ->
   response Lwt.t
-(** {!handle} and {!response} in one step, with {!notFound} and {!redirect} signals. It renders the HTML shell, or the
-    first chunk of a navigation payload, before it returns, so a signal raised by then changes the response. A signal
-    while the not-found boundary renders answers 500. [HEAD] runs the router without rendering. Another exception while
-    the HTML shell renders runs the route again with [Internal { diagnosticId }], so its nearest [~error] boundary
-    renders with status 500; an exception there propagates. *)
+(** {!handle} and {!response} in one step, with {!notFound} and {!redirect} signals. [context] is built as in {!handle}.
+    It renders the HTML shell, or the first chunk of a navigation payload, before it returns, so a signal raised by then
+    changes the response. A signal while the not-found boundary renders answers 500. [HEAD] runs the router without
+    rendering. Another exception while the HTML shell renders runs the route again with [Internal { diagnosticId }], so
+    its nearest [~error] boundary renders with status 500; an exception there propagates. *)
 
 (** {1 Forms posted without JavaScript} *)
 
