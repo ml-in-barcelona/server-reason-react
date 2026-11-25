@@ -143,8 +143,8 @@ identity for layout reuse.
 ## Decode and generated code
 
 - No new `Decode` function. The catch-all uses the existing generic codec
-  plumbing: its parser is `RouterRuntime.CatchAll.parse` (splits the joined
-  capture) and its printer is `RouterRuntime.CatchAll.toString` (validates
+  plumbing: its parser is `RouterEngine.CatchAll.parse` (splits the joined
+  capture) and its printer is `RouterEngine.CatchAll.toString` (validates
   and joins). `Decode.path` applies the parser like any other codec.
 - The generated route record field and page argument have type
   `list(string)`.
