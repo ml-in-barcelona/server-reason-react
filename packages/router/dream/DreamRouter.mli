@@ -105,6 +105,7 @@ val routes :
   ?ssr:(Dream.request -> bool) ->
   ?bootstrapModules:string list ->
   ?pageCacheCapacity:int ->
+  ?clientRoot:RouterServer.makeClientRoot ->
   document:(head:React.element -> React.element -> React.element) ->
   unit ->
   Dream.route list
@@ -137,4 +138,7 @@ val routes :
     @param bootstrapModules JavaScript modules loaded by document responses
     @param pageCacheCapacity
       maximum visited pages cached by the client router (default: the client's 30; 0 turns it off)
+    @param clientRoot
+      make the client root of each document instead of the default one (see {!RouterServer.makeClientRoot}), for a
+      client bundle that registers its own root component
     @param document build the HTML document. [~head] is the resolved metadata, to place inside [<head>]. *)

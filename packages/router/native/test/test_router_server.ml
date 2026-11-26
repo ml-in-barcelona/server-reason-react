@@ -1906,6 +1906,73 @@ let client_routes_exclude_base_path () =
        ~metadata:React.null ~children:React.null);
   Alcotest.(check (array string)) "clientRootWith" expected !passed
 
+let custom_client_root () =
+  let server = adapter_server ~pageCacheMaxAge:60. () in
+  let received = ref [] in
+  let make ~(initial : RouterRuntime.Navigation.committed) ~protocolVersion ~registryFingerprint ~basePath ~routes
+      ~interceptLinks ~viewTransitions ~pageCacheCapacity ~pageCacheMaxAge ~metadata ~children =
+    received :=
+      ( { initial with location = { initial.location with key = "" } },
+        protocolVersion,
+        registryFingerprint,
+        basePath,
+        routes,
+        interceptLinks,
+        viewTransitions,
+        pageCacheCapacity,
+        pageCacheMaxAge )
+      :: !received;
+    React.Client_component
+      {
+        key = None;
+        props = [ ("metadata", React.Model.Element metadata); ("children", React.Model.Element children) ];
+        client = React.createElement "section" [ React.JSX.String ("id", "id", "custom-root") ] [ metadata; children ];
+        import_module = "./AdminRoot.js";
+        import_name = "AdminRoot";
+      }
+  in
+  let serve ?clientRoot () =
+    let response =
+      Lwt_main.run
+        (RouterServer.serve server
+           ~diagnosticId:(fun _ -> "diagnostic")
+           ~pageCacheCapacity:5 ?clientRoot ~document:html_document
+           ~context:(fun () -> ())
+           ~method_:"GET" ~target:"/app/item" ~headers:[] ())
+    in
+    Alcotest.(check int) "status" 200 response.status;
+    Option.get (collect response)
+  in
+  let html = serve ~clientRoot:make () in
+  Alcotest.(check bool) "custom root markup" true (contains ~needle:{|<section id="custom-root">|} html);
+  Alcotest.(check bool) "custom root reference" true (contains ~needle:"./AdminRoot.js" html);
+  Alcotest.(check bool) "no default root" false (contains ~needle:"RouterClientRoot" html);
+  Alcotest.(check bool) "routed page" true (contains ~needle:"<main>item</main>" html);
+  Alcotest.(check bool) "metadata" true (contains ~needle:"<title>Item</title>" html);
+  Alcotest.(check bool) "ssr marker" true (contains ~needle:"ssr-query-param" html);
+  let from_serve = List.hd !received in
+  let initial = match from_serve with initial, _, _, _, _, _, _, _, _ -> initial in
+  Alcotest.(check string) "committed pathname" "/app/item" initial.location.pathname;
+  ignore
+    (RouterServer.clientRootWith ~pageCacheCapacity:5 server ~make ~initial ~metadata:React.null ~children:React.null);
+  Alcotest.(check bool) "same settings as clientRootWith" true (List.hd !received = from_serve);
+  let html = serve () in
+  Alcotest.(check bool) "default root reference" true (contains ~needle:"RouterClientRoot" html);
+  Alcotest.(check bool) "default has no custom root" false (contains ~needle:"custom-root" html);
+  Alcotest.(check bool) "default routed page" true (contains ~needle:"<main>item</main>" html);
+  received := [];
+  let failed =
+    Lwt_main.run
+      (RouterServer.serveFormAction server
+         ~diagnosticId:(fun _ -> "diagnostic")
+         ~target:"/app/item" ~clientRoot:make ~document:html_document ~context:()
+         (RouterServer.parseRequest ~target:"/app/item" ~headers:[])
+         (RouterServer.Failed (Failure "boom")))
+  in
+  Alcotest.(check int) "failed form status" 500 failed.status;
+  Alcotest.(check bool) "failed form custom root" true (contains ~needle:"custom-root" (Option.get (collect failed)));
+  Alcotest.(check int) "failed form made the custom root" 1 (List.length !received)
+
 let action_error_renders_after_loaders () =
   let run ?(redirect = false) ?(withFailure = true) () =
     let page = RouterEngine.Plan.success ~scopes:[] ~page:"page" in
@@ -2307,6 +2374,7 @@ let () =
           test "adapter handle" adapter_handle;
           test "adapter response" adapter_response;
           test "client root settings" client_root_settings;
+          test "a custom client root through serve" custom_client_root;
           test "full plan composition" full_plan_composition;
           test "failure plan selects not-found boundary" failure_plan_selects_not_found_boundary;
           test "shared layout prefix uses canonical identity" shared_layout_prefix_uses_canonical_identity;

@@ -94,16 +94,38 @@ type reply = { status : int; headers : (string * string) list; body : body }
 (** [headers] holds every protocol header for the outcome, including [Content-Type] for [Html] and [Model] and
     [Location] for redirects. The adapter adds nothing but transport details. *)
 
+type makeClientRoot =
+  initial:RouterRuntime.Navigation.committed ->
+  protocolVersion:int ->
+  registryFingerprint:string ->
+  basePath:string ->
+  routes:string array ->
+  interceptLinks:bool ->
+  viewTransitions:bool ->
+  pageCacheCapacity:int option ->
+  pageCacheMaxAge:float option ->
+  metadata:React.element ->
+  children:React.element ->
+  React.element
+(** Makes a custom client root, for {!clientRootWith} and the [clientRoot] argument of {!reply}, {!handle}, {!serve},
+    {!formActionReply} and {!serveFormAction}. It receives every setting the default client root passes to
+    [RouterReact.Provider]; [None] means the [Provider]'s default, so pass the option on with [?pageCacheCapacity]. In a
+    document from {!reply}, [children] is the routed page inside its location scope and root error boundary, as the
+    default root gets it. *)
+
 val reply :
   (React.element, 'error, 'context) t ->
   target:string ->
   ?pageCacheCapacity:int ->
+  ?clientRoot:makeClientRoot ->
   document:(head:React.element -> React.element -> React.element) ->
   kind:RouterEngine.ServerEngine.requestKind ->
   (React.element, 'error) outcome ->
   reply
 (** Maps an outcome to status, headers and body. [target] is the request target, used for [X-Location] on navigation
-    redirects. [kind] is the kind of the request given to {!run}.
+    redirects. [kind] is the kind of the request given to {!run}. A document is [document] around the client root: the
+    default one ({!clientRoot}), or the one [clientRoot] makes (see {!clientRootWith}), for an application whose client
+    bundle registers its own root component.
     - Full and patch: the resolved status and headers.
     - Document redirect: 303 ([Redirect]) or 308 ([PermanentRedirect]) with [Location].
     - Navigation redirect: 200 with [Router-Response: redirect], [Router-Registry] and
@@ -124,6 +146,7 @@ val handle :
   diagnosticId:(exn -> string) ->
   ?revision:(unit -> string) ->
   ?pageCacheCapacity:int ->
+  ?clientRoot:makeClientRoot ->
   document:(head:React.element -> React.element -> React.element) ->
   ?allow:string list ->
   context:(unit -> 'context) ->
@@ -161,6 +184,7 @@ val serve :
   diagnosticId:(exn -> string) ->
   ?revision:(unit -> string) ->
   ?pageCacheCapacity:int ->
+  ?clientRoot:makeClientRoot ->
   document:(head:React.element -> React.element -> React.element) ->
   ?allow:string list ->
   ?env:[ `Dev | `Prod ] ->
@@ -198,6 +222,7 @@ val formActionReply :
   ?revision:(unit -> string) ->
   target:string ->
   ?pageCacheCapacity:int ->
+  ?clientRoot:makeClientRoot ->
   document:(head:React.element -> React.element -> React.element) ->
   context:'context ->
   request ->
@@ -217,6 +242,7 @@ val serveFormAction :
   ?revision:(unit -> string) ->
   target:string ->
   ?pageCacheCapacity:int ->
+  ?clientRoot:makeClientRoot ->
   document:(head:React.element -> React.element -> React.element) ->
   ?env:[ `Dev | `Prod ] ->
   ?timeout:float ->
@@ -261,26 +287,13 @@ val clientRoot :
 val clientRootWith :
   ?pageCacheCapacity:int ->
   (React.element, 'error, 'context) t ->
-  make:
-    (initial:RouterRuntime.Navigation.committed ->
-    protocolVersion:int ->
-    registryFingerprint:string ->
-    basePath:string ->
-    routes:string array ->
-    interceptLinks:bool ->
-    viewTransitions:bool ->
-    pageCacheCapacity:int option ->
-    pageCacheMaxAge:float option ->
-    metadata:React.element ->
-    children:React.element ->
-    React.element) ->
+  make:makeClientRoot ->
   initial:RouterRuntime.Navigation.committed ->
   metadata:React.element ->
   children:React.element ->
   React.element
-(** Builds the client root with a custom [make], for example a client component that renders [RouterReact.Provider] with
-    [~onNavigationError]. [make] receives every setting the default client root passes to the [Provider]; [None] means
-    the [Provider]'s default, so pass the option on with [?pageCacheCapacity]. *)
+(** Builds the client root with a custom [make] (see {!makeClientRoot}), for example a client component that renders
+    [RouterReact.Provider] with [~onNavigationError]. *)
 
 val metadataElement : RouterRuntime.Metadata.t -> React.element
 (** Renders resolved metadata as head elements: [<title>], [<meta name="description">], then each entry as a [<meta>] or

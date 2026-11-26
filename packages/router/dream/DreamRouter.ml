@@ -254,11 +254,11 @@ let write_response (response : RouterServer.response) =
 let allow = [ "GET"; "HEAD"; "OPTIONS"; "POST" ]
 
 let handler ~server ~context ~diagnosticId ~revision ?(ssr = fun _request -> true) ?(bootstrapModules = [])
-    ?pageCacheCapacity ~document =
+    ?pageCacheCapacity ?clientRoot ~document =
  fun request ->
   with_render_context request (fun () ->
       let%lwt response =
-        RouterServer.serve server ~diagnosticId ~revision ?pageCacheCapacity ~document ~allow ~env:`Dev
+        RouterServer.serve server ~diagnosticId ~revision ?pageCacheCapacity ?clientRoot ~document ~allow ~env:`Dev
           ~timeout:stream_timeout
           ~skipRoot:(not (ssr request))
           ~bootstrapModules
@@ -275,8 +275,8 @@ let is_form_post request =
   | Some content_type -> String.starts_with content_type ~prefix:"multipart/form-data"
   | None -> false
 
-let form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document
-    ~actionHandler =
+let form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ?clientRoot
+    ~document ~actionHandler =
  fun request ->
   if not (is_form_post request) then actionHandler request
   else
@@ -304,7 +304,7 @@ let form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstra
             with_render_context request (fun () ->
                 let%lwt response =
                   RouterServer.serveFormAction server ~diagnosticId ~revision ~target:(Dream.target request)
-                    ?pageCacheCapacity ~document ~env:`Dev ~timeout:stream_timeout
+                    ?pageCacheCapacity ?clientRoot ~document ~env:`Dev ~timeout:stream_timeout
                     ~skipRoot:(not (ssr request))
                     ~bootstrapModules ~context:(context request)
                     (RouterServer.parseRequest ~target:(Dream.target request) ~headers:(Dream.all_headers request))
@@ -316,16 +316,18 @@ let form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstra
 let random_id () = Dream.to_base64url (Dream.random 12)
 
 let routes ~server ~context ~actionHandler ?lookup ?(diagnosticId = fun _ -> random_id ()) ?(revision = random_id)
-    ?(ssr = fun _request -> true) ?(bootstrapModules = []) ?pageCacheCapacity ~document () =
+    ?(ssr = fun _request -> true) ?(bootstrapModules = []) ?pageCacheCapacity ?clientRoot ~document () =
   let basePath = RouterServer.basePath server |> Dream.from_percent_encoded in
-  let handler = handler ~server ~context ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ~document in
+  let handler =
+    handler ~server ~context ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity ?clientRoot ~document
+  in
   let wildcard = if String.equal basePath "/" then "/**" else basePath ^ "/**" in
   let actionHandler =
     match lookup with
     | None -> actionHandler
     | Some lookup ->
         form_handler ~server ~context ~lookup ~diagnosticId ~revision ~ssr ~bootstrapModules ?pageCacheCapacity
-          ~document ~actionHandler
+          ?clientRoot ~document ~actionHandler
   in
   let actionHandler = Dream.origin_referrer_check actionHandler in
   [
