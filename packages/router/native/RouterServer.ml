@@ -103,17 +103,35 @@ let scoped_element ~committed resolved =
          ~children:(Plan.resolvedElement resolved) ())
     ()
 
-let document_element server ?pageCacheCapacity ~document (response : (React.element, 'error) ServerEngine.full) =
+type makeClientRoot =
+  initial:RouterRuntime.Navigation.committed ->
+  protocolVersion:int ->
+  registryFingerprint:string ->
+  basePath:string ->
+  routes:string array ->
+  interceptLinks:bool ->
+  viewTransitions:bool ->
+  pageCacheCapacity:int option ->
+  pageCacheMaxAge:float option ->
+  metadata:React.element ->
+  children:React.element ->
+  React.element
+
+let document_element server ?pageCacheCapacity ?clientRoot ~document
+    (response : (React.element, 'error) ServerEngine.full) =
   let initial =
     committed ~canonical_url:response.canonical_url ~revision:response.revision ~matches:response.matches
       ~layouts:response.layouts
   in
   let head = metadataElement response.resolved.metadata in
+  let children = scoped_element ~committed:initial response.resolved in
   let root =
-    match
-      Server.clientRoot ?pageCacheCapacity server ~initial ~metadata:head
-        ~children:(scoped_element ~committed:initial response.resolved)
-    with
+    match clientRoot with
+    | None -> Server.clientRoot ?pageCacheCapacity server ~initial ~metadata:head ~children
+    | Some make -> Server.clientRootWith ?pageCacheCapacity server ~make ~initial ~metadata:head ~children
+  in
+  let root =
+    match root with
     | React.Client_component component -> React.Client_component { component with key = Some "router:root" }
     | root -> root
   in
@@ -223,7 +241,7 @@ let actionRedirectHeader destination =
 let see_other location = { status = 303; headers = [ ("Location", location) ]; body = Empty }
 let unsafe_redirect_reply = { status = 500; headers = [ ("Vary", "Accept") ]; body = Empty }
 
-let reply server ~target ?pageCacheCapacity ~document ~kind outcome =
+let reply server ~target ?pageCacheCapacity ?clientRoot ~document ~kind outcome =
   let protocolVersion = Server.protocolVersion server in
   let registryFingerprint = Server.fingerprint server in
   let redirect ~status destination =
@@ -270,23 +288,23 @@ let reply server ~target ?pageCacheCapacity ~document ~kind outcome =
       let headers = RouterRuntime.Headers.toList response.resolved.headers in
       let body =
         match response.kind with
-        | Document -> Html (document_element server ?pageCacheCapacity ~document response)
+        | Document -> Html (document_element server ?pageCacheCapacity ?clientRoot ~document response)
         | Rsc -> Model { location = response.canonical_url; model = full_model response }
       in
       { status; headers; body }
 
-let form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context
+let form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ?clientRoot ~document ~context
     (request : ServerEngine.request) actionError =
   Lwt.map
     (fun (outcome : (React.element, 'error) ServerEngine.outcome) ->
       match outcome with
       | Redirect destination | PermanentRedirect destination -> (
           match redirectLocation destination with Some location -> see_other location | None -> unsafe_redirect_reply)
-      | outcome -> reply server ~target ?pageCacheCapacity ~document ~kind:Document outcome)
+      | outcome -> reply server ~target ?pageCacheCapacity ?clientRoot ~document ~kind:Document outcome)
     (Server.run server ~diagnosticId ?revision ~actionError ~context
        { request with kind = Document; navigation = None })
 
-let form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context
+let form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ?clientRoot ~document ~context
     (request : ServerEngine.request) action =
   match action with
   | Completed ->
@@ -298,14 +316,15 @@ let form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity 
       Lwt.return
         (match redirectLocation destination with Some location -> see_other location | None -> unsafe_redirect_reply)
   | Failed exception_ ->
-      form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request
+      form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ?clientRoot ~document ~context
+        request
         (RouterRuntime.Error.Internal { diagnosticId = diagnosticId exception_ })
 
-let formActionReply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context (request : request)
-    action =
+let formActionReply server ~diagnosticId ?revision ~target ?pageCacheCapacity ?clientRoot ~document ~context
+    (request : request) action =
   requestScope (fun () ->
-      form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request.engine
-        action)
+      form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ?clientRoot ~document ~context
+        request.engine action)
 
 let header headers name =
   List.find_map
@@ -339,8 +358,8 @@ let parseRequest ~target ~headers =
 
 let defaultAllow = [ "GET"; "HEAD"; "OPTIONS" ]
 
-let handle server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow = defaultAllow) ~context ~method_ ~target
-    ~headers () =
+let handle server ~diagnosticId ?revision ?pageCacheCapacity ?clientRoot ~document ?(allow = defaultAllow) ~context
+    ~method_ ~target ~headers () =
   match methodReply ~allow method_ with
   | Some reply -> Lwt.return reply
   | None ->
@@ -348,7 +367,7 @@ let handle server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow =
       requestScope @@ fun () ->
       Lwt.map
         (fun outcome ->
-          let reply = reply server ~target ?pageCacheCapacity ~document ~kind:engine.kind outcome in
+          let reply = reply server ~target ?pageCacheCapacity ?clientRoot ~document ~kind:engine.kind outcome in
           if String.equal method_ "HEAD" then { reply with body = Empty } else reply)
         (Server.run server ~diagnosticId ?revision ?prefetch ~context:(context ()) engine)
 
@@ -472,18 +491,19 @@ let render_with_signals ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~diagno
             (rerun (RouterRuntime.Error.Internal { diagnosticId = diagnosticId exn }))
             (fun reply -> Lwt.bind (render reply) commit)))
 
-let serve server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow = defaultAllow) ?env ?timeout ?skipRoot
-    ?bootstrapModules ?nonce ~context ~method_ ~target ~headers () =
+let serve server ~diagnosticId ?revision ?pageCacheCapacity ?clientRoot ~document ?(allow = defaultAllow) ?env ?timeout
+    ?skipRoot ?bootstrapModules ?nonce ~context ~method_ ~target ~headers () =
   match methodReply ~allow method_ with
   | Some reply -> Lwt.return (response reply)
   | None when String.equal method_ "HEAD" ->
       Lwt.map response
-        (handle server ~diagnosticId ?revision ?pageCacheCapacity ~document ~allow ~context ~method_ ~target ~headers ())
+        (handle server ~diagnosticId ?revision ?pageCacheCapacity ?clientRoot ~document ~allow ~context ~method_ ~target
+           ~headers ())
   | None ->
       let { engine; prefetch } = parseRequest ~target ~headers in
       requestScope @@ fun () ->
       let context = context () in
-      let reply_to outcome = reply server ~target ?pageCacheCapacity ~document ~kind:engine.kind outcome in
+      let reply_to outcome = reply server ~target ?pageCacheCapacity ?clientRoot ~document ~kind:engine.kind outcome in
       let run ?actionError () =
         Lwt.map reply_to (Server.run server ~diagnosticId ?revision ?prefetch ?actionError ~context engine)
       in
@@ -493,15 +513,18 @@ let serve server ~diagnosticId ?revision ?pageCacheCapacity ~document ?(allow = 
           reply_to (if permanent then ServerEngine.PermanentRedirect destination else ServerEngine.Redirect destination))
         (run ())
 
-let serveFormAction server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ?env ?timeout ?skipRoot
-    ?bootstrapModules ?nonce ~context (request : request) action =
+let serveFormAction server ~diagnosticId ?revision ~target ?pageCacheCapacity ?clientRoot ~document ?env ?timeout
+    ?skipRoot ?bootstrapModules ?nonce ~context (request : request) action =
   let request = request.engine in
   requestScope @@ fun () ->
   render_with_signals ?env ?timeout ?skipRoot ?bootstrapModules ?nonce ~diagnosticId
-    ~rerun:(form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request)
+    ~rerun:
+      (form_failure_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ?clientRoot ~document ~context
+         request)
     ~redirect:(fun ~permanent:_ destination ->
       match redirectLocation destination with Some location -> see_other location | None -> unsafe_redirect_reply)
-    (form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ~document ~context request action)
+    (form_action_reply server ~diagnosticId ?revision ~target ?pageCacheCapacity ?clientRoot ~document ~context request
+       action)
 
 let run server ~diagnosticId ?revision ?actionError ~context (request : request) =
   Server.run server ~diagnosticId ?revision ?prefetch:request.prefetch ?actionError ~context request.engine
