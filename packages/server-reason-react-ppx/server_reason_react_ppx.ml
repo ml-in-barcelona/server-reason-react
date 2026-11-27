@@ -1765,6 +1765,12 @@ let traverse =
 
     method! structure_item ctx structure_item =
       let structure_item = super#structure_item ctx structure_item in
+      let structure_item =
+        Cache_attribute.rewrite_structure_item
+          ~native:(match mode.contents with Native -> true | Js -> false)
+          ~module_path:(Code_path.main_module_name (Expansion_context.Base.code_path ctx) :: nested_module_names)
+          structure_item
+      in
       try
         match mode.contents with
         | Native -> rewrite_structure_item ~nested_module_names structure_item
@@ -1777,7 +1783,7 @@ let traverse =
       | Js -> super#signature_item ctx signature_item
 
     method! expression ctx expr =
-      let expr = super#expression ctx expr in
+      let expr = Cache_attribute.check_local_binding (super#expression ctx expr) in
       let expr = match mode.contents with Native -> Style_rewrite.rewrite_expression expr | Js -> expr in
       match mode.contents with
       | Js -> Styles_attribute.expand expr

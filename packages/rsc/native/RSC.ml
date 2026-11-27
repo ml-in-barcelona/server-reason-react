@@ -31,6 +31,59 @@ let of_rsc_unexpected_variant ?depth:_ ?width:_ ~rsc msg =
 
 let of_model model = model
 let to_model model = model
+
+let to_cache_key value =
+  let buffer = Buffer.create 64 in
+  let part text =
+    Buffer.add_string buffer (string_of_int (String.length text));
+    Buffer.add_char buffer ':';
+    Buffer.add_string buffer text
+  in
+  let rec json : Yojson.Basic.t -> unit = function
+    | `Null -> Buffer.add_char buffer 'n'
+    | `Bool value -> Buffer.add_char buffer (if value then 't' else 'f')
+    | `Int value ->
+        Buffer.add_char buffer 'i';
+        part (string_of_int value)
+    | `Float value ->
+        Buffer.add_char buffer 'd';
+        part (Printf.sprintf "%h" value)
+    | `String value ->
+        Buffer.add_char buffer 's';
+        part value
+    | `List values ->
+        Buffer.add_char buffer 'a';
+        part (string_of_int (List.length values));
+        List.iter json values
+    | `Assoc fields ->
+        Buffer.add_char buffer 'o';
+        part (string_of_int (List.length fields));
+        List.iter
+          (fun (key, value) ->
+            part key;
+            json value)
+          fields
+  in
+  let rec model : t -> unit = function
+    | Model.Json value -> json value
+    | Model.List values ->
+        Buffer.add_char buffer 'A';
+        part (string_of_int (List.length values));
+        List.iter model values
+    | Model.Assoc fields ->
+        Buffer.add_char buffer 'O';
+        part (string_of_int (List.length fields));
+        List.iter
+          (fun (key, value) ->
+            part key;
+            model value)
+          fields
+    | (Model.Element _ | Model.Promise _ | Model.Function _ | Model.Error _) as value ->
+        invalid_arg ("RSC.to_cache_key: a " ^ describe_model value ^ " cannot be part of a cache key")
+  in
+  model value;
+  Buffer.contents buffer
+
 let map_json_list decode values = List.map (fun value -> decode (of_model (Model.Json value))) values
 
 module Primitives = struct

@@ -28,4 +28,20 @@ let () =
           round_trip "outer round trip" outer_of_rsc outer_to_rsc [ `X; `Y 4; `Z ];
           unknown "unknown tag" outer_of_rsc;
         ] );
+      ( "cache key",
+        [
+          Alcotest.test_case "different values give different keys" `Quick (fun () ->
+              let values = [ A; B 1; B 2; C { x = 2; y = "y" }; C { x = 2; y = "" }; D ] in
+              let keys = List.map (fun value -> RSC.to_cache_key (v_to_rsc value)) values in
+              Alcotest.(check int) "distinct" (List.length values) (List.length (List.sort_uniq compare keys)));
+          Alcotest.test_case "equal values give equal keys" `Quick (fun () ->
+              Alcotest.(check string)
+                "same key"
+                (RSC.to_cache_key (v_to_rsc (C { x = 1; y = "a" })))
+                (RSC.to_cache_key (v_to_rsc (C { x = 1; y = "a" }))));
+          Alcotest.test_case "elements are rejected" `Quick (fun () ->
+              match RSC.to_cache_key (RSC.Primitives.react_element_to_rsc React.null) with
+              | _ -> Alcotest.fail "expected Invalid_argument"
+              | exception Invalid_argument _ -> ());
+        ] );
     ]

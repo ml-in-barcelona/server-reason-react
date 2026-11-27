@@ -11,6 +11,11 @@ val of_rsc_msg_unexpected_variant : string -> 'a
 val of_model : React.element React.Model.t -> t
 val to_model : t -> React.element React.Model.t
 
+val to_cache_key : t -> string
+(** Encodes a value for {!React.Cache.run}. Two values of one type that [to_rsc] encodes differently give different
+    keys, so a type whose RSC codec round-trips gets an injective key. Raises [Invalid_argument] for an element, a
+    promise, a server function or an error. *)
+
 module Primitives : sig
   val string_of_rsc : t -> string
   val bool_of_rsc : t -> bool
