@@ -610,17 +610,28 @@ let endpoints declaration =
   in
   List.iter
     (fun endpoint ->
-      let parameters, search, loader_labels, loc =
+      let path, parameters, search, loader_labels, loc =
         match endpoint with
         | Page route ->
-            ( route.parameters,
+            ( route.path,
+              route.parameters,
               route.search,
               List.filter_map
                 (fun (scope : scope) -> Option.map (fun loader -> loader.result_label) scope.attachments.loader)
                 route.scopes,
               route.loc )
-        | RedirectTo redirect -> (redirect.parameters, redirect.search, [], redirect.loc)
+        | RedirectTo redirect -> (redirect.path, redirect.parameters, redirect.search, [], redirect.loc)
       in
+      let parameter_names = List.map (fun (parameter : parameter) -> parameter.name) parameters in
+      (match duplicate parameter_names with
+      | Some name -> error ~loc "path parameter %s appears more than once in %s" name path
+      | None -> ());
+      (match List.find_opt (fun label -> List.mem label parameter_names) loader_labels with
+      | Some label -> error ~loc "loader label %s is also a path parameter of %s" label path
+      | None -> ());
+      (match duplicate loader_labels with
+      | Some label -> error ~loc "loader label %s is used by more than one loader of this route" label
+      | None -> ());
       (match duplicate (List.map (fun (search : search) -> search.name) search) with
       | Some name -> error ~loc "duplicate search parameter %s" name
       | None -> ());
@@ -631,8 +642,7 @@ let endpoints declaration =
           let loc = match List.rev search with last :: _ -> last.loc | [] -> loc in
           error ~loc "duplicate search key %S, used by %s" key (String.concat " and " labels)
       | None -> ());
-      let labels = List.map (fun (parameter : parameter) -> parameter.name) parameters @ loader_labels in
-      (match duplicate labels with Some label -> error ~loc "duplicate branch input label %s" label | None -> ());
+      let labels = parameter_names @ loader_labels in
       List.iter
         (fun label ->
           if String.equal label "_" || List.mem label keywords then
