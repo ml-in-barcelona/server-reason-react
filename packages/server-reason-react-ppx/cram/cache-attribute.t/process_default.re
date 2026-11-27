@@ -1,4 +1,4 @@
-[@cache {tags: ["all"]}]
+[@cache {tags: [`All, `User(id)]}]
 let request = (~id: int): Lwt.t(string) => Lwt.return(string_of_int(id));
 
 [@cache {ttl: 30.}]

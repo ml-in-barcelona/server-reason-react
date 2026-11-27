@@ -27,7 +27,7 @@ The attribute wraps the function body in React.Cache.run, with a key built from 
       fun ~logger:(_ : string -> unit) ->
        React.Cache.run server_reason_react_cache
          ~key:(React.Cache.Key.parts [ React.Cache.Key.int id ])
-         ~tags:[ "user:" ^ string_of_int id ]
+         ~tags:[ `User id ]
          (fun () ->
            (incr calls;
             Lwt.return ("dark-" ^ string_of_int id)
@@ -84,7 +84,7 @@ The attribute wraps the function body in React.Cache.run, with a key built from 
                    let _ = appearance ~id:1 ~logger:ignore in
                    [%lwt
                      let _ = appearance ~id:1 ~logger:print_endline in
-                     React.Cache.expire ~tag:"user:1";
+                     React.Cache.expire ~tag:(`User 1);
                      [%lwt
                        let _ = appearance ~id:1 ~logger:ignore in
                        [%lwt
@@ -118,6 +118,12 @@ Melange keeps a Request cache as the plain function
     (incr calls;
      Lwt.return ("viewer-" ^ string_of_int id)
       : string Lwt.t)
+  
+
+Melange drops the tags of a Request cache with the rest of the cache
+
+  $ ../ppx.sh --output ml -js process_default.re | sed -n '/let request/,/^$/p'
+  let request ~(id : int) = (Lwt.return (string_of_int id) : string Lwt.t)
   
 
 Melange rejects a Process cache

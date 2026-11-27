@@ -14,7 +14,7 @@ type settings = {
 }
 
 let name = "cache"
-let example = "[@cache { ttl = 30.; tags = [ \"user\" ] }]"
+let example = "[@cache { ttl = 30.; tags = [ `User id ] }]"
 let is_cache attribute = String.equal attribute.attr_name.txt name
 let has_cache attributes = List.exists is_cache attributes
 let without_cache attributes = List.filter (fun attribute -> not (is_cache attribute)) attributes
