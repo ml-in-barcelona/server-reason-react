@@ -15,7 +15,8 @@ arguments, so two calls with equal arguments share one entry.
 
 {1:scopes Scopes}
 
-[scope] decides how long an entry lives.
+[scope] decides how long an entry lives. Every field is optional. Without
+[scope], [ttl] or [max] alone means [Process], and no field means [Request].
 
 {ul
   {li [Request], the default. One entry per key for one request. The router
@@ -30,7 +31,7 @@ arguments, so two calls with equal arguments share one entry.
 }
 
 {[
-[@cache {scope: Process, ttl: 30., tags: ["user:" ++ string_of_int(id)] }]
+[@cache {ttl: 30., tags: ["user:" ++ string_of_int(id)] }]
 let appearance = (~id: int): Lwt.t(Appearance.t) => Users.appearance(id);
 ]}
 
@@ -45,7 +46,8 @@ or the server calls [expire] itself.
 
 {table
   {tr {th Field} {th Type} {th Default} {th Meaning}}
-  {tr {td [scope]} {td [Request] or [Process]} {td [Request]} {td How long an entry lives.}}
+  {tr {td [scope]} {td [Request] or [Process]} {td [Process] with [ttl] or
+      [max], else [Request]} {td How long an entry lives.}}
   {tr {td [ttl]} {td [float], seconds} {td none} {td [Process] only. An entry
       older than [ttl], counted from when its promise resolved, runs the
       function again.}}
@@ -61,7 +63,7 @@ or the server calls [expire] itself.
       argument that does not change the result.}}
 }
 
-The ppx rejects [ttl] and [max] with [scope: Request], an unknown field,
+The ppx rejects [ttl] and [max] with an explicit [scope: Request], an unknown field,
 [let rec], a local binding, and an argument without a type annotation.
 
 {1:keys Keys}

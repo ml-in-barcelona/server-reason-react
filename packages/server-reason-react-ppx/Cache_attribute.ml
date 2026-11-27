@@ -5,7 +5,7 @@ type scope = Request | Process
 type errors = Keep | Retry
 
 type settings = {
-  scope : scope;
+  scope : scope option;
   ttl : expression option;
   max : expression option;
   errors : errors option;
@@ -14,7 +14,7 @@ type settings = {
 }
 
 let name = "cache"
-let example = "[@cache { scope = Process; ttl = 30.; tags = [ \"user\" ] }]"
+let example = "[@cache { ttl = 30.; tags = [ \"user\" ] }]"
 let is_cache attribute = String.equal attribute.attr_name.txt name
 let has_cache attributes = List.exists is_cache attributes
 let without_cache attributes = List.filter (fun attribute -> not (is_cache attribute)) attributes
@@ -26,7 +26,7 @@ let constructor ~loc ~field expression =
   | _ -> error ~loc "%s takes a constructor, as in %s" field example
 
 let settings_of_payload ~loc payload =
-  let empty = { scope = Request; ttl = None; max = None; errors = None; tags = None; key = None } in
+  let empty = { scope = None; ttl = None; max = None; errors = None; tags = None; key = None } in
   let settings =
     match payload with
     | PStr [] -> empty
@@ -36,8 +36,8 @@ let settings_of_payload ~loc payload =
             match txt with
             | Lident "scope" -> (
                 match constructor ~loc ~field:"scope" value with
-                | "Request" -> { settings with scope = Request }
-                | "Process" -> { settings with scope = Process }
+                | "Request" -> { settings with scope = Some Request }
+                | "Process" -> { settings with scope = Some Process }
                 | other -> error ~loc "scope is Request or Process, not %s" other)
             | Lident "errors" -> (
                 match constructor ~loc ~field:"errors" value with
@@ -52,11 +52,13 @@ let settings_of_payload ~loc payload =
           empty fields
     | _ -> error ~loc "takes no payload or a record, as in %s" example
   in
-  (match (settings.scope, settings.ttl, settings.max) with
-  | Request, Some _, _ -> error ~loc "ttl needs scope = Process"
-  | Request, _, Some _ -> error ~loc "max needs scope = Process"
-  | _ -> ());
-  settings
+  let process_only = Option.is_some settings.ttl || Option.is_some settings.max in
+  match (settings.scope, process_only) with
+  | Some Request, true ->
+      error ~loc "ttl and max need scope = Process. Remove scope = Request: ttl or max alone means Process"
+  | Some scope, _ -> (scope, settings)
+  | None, true -> (Process, settings)
+  | None, false -> (Request, settings)
 
 let base_encoder = function
   | "int" -> Some "int"
@@ -132,11 +134,9 @@ let rec rewrite_function ~settings ~cache ~params expression =
       { expression with pexp_desc = Pexp_function (new_params, constraint_, Pfunction_body body) }
   | _ -> error ~loc "goes on a function, as in let[@cache] viewer ~(id : int) = ..."
 
-let make_cache ~loc ~name ~settings =
+let make_cache ~loc ~name ~scope ~settings =
   let optional label = function None -> [] | Some value -> [ (Labelled label, value) ] in
-  let scope =
-    match settings.scope with Request -> [%expr React.Cache.Request] | Process -> [%expr React.Cache.Process]
-  in
+  let scope = match scope with Request -> [%expr React.Cache.Request] | Process -> [%expr React.Cache.Process] in
   let errors =
     Option.map (function Keep -> [%expr React.Cache.Keep] | Retry -> [%expr React.Cache.Retry]) settings.errors
   in
@@ -152,14 +152,14 @@ let rewrite_binding ~native ~module_path binding =
   | None -> binding
   | Some attribute -> (
       let loc = attribute.attr_loc in
-      let settings = settings_of_payload ~loc attribute.attr_payload in
+      let scope, settings = settings_of_payload ~loc attribute.attr_payload in
       let binding = { binding with pvb_attributes = without_cache binding.pvb_attributes } in
       let binding_name =
         match binding.pvb_pat.ppat_desc with
         | Ppat_var { txt; _ } -> txt
         | _ -> error ~loc:binding.pvb_pat.ppat_loc "goes on a binding with a name, as in let[@cache] viewer = ..."
       in
-      match (native, settings.scope) with
+      match (native, scope) with
       | false, Process -> error ~loc "scope = Process is for server code only: the browser has no process cache"
       | false, Request -> binding
       | true, _ ->
@@ -168,7 +168,7 @@ let rewrite_binding ~native ~module_path binding =
           let expr =
             [%expr
               let [%p ppat_var ~loc { txt = cache; loc }] =
-                [%e make_cache ~loc ~name:(cache_name ~module_path binding_name) ~settings]
+                [%e make_cache ~loc ~name:(cache_name ~module_path binding_name) ~scope ~settings]
               in
               [%e wrapped]]
           in

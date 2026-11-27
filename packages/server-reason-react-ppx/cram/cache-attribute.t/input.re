@@ -12,7 +12,7 @@ let viewer = (~id: int, ()): Lwt.t(string) => {
   Lwt.return("viewer-" ++ string_of_int(id));
 };
 
-[@cache {scope: Process, ttl: 30., max: 10, tags: ["user:" ++ string_of_int(id)]}]
+[@cache {ttl: 30., max: 10, tags: ["user:" ++ string_of_int(id)]}]
 let appearance = (~id: int, ~logger as _: string => unit): Lwt.t(string) => {
   incr(calls);
   Lwt.return("dark-" ++ string_of_int(id));
