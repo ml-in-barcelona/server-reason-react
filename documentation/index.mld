@@ -81,7 +81,6 @@ server-reason-react is designed to work with {{:https://github.com/ml-in-barcelo
   {li {{!page-"get-started".section-"ppx-platform"}Exclude client code from the native build}}
   {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
   {li {{!page-"ssr-and-hydration"}SSR and hydration}}
-  {li {{!page-"caching"}Caching server functions}}
 }
 
 {2 Core API}
