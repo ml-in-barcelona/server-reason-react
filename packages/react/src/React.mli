@@ -723,15 +723,24 @@ module Cache : sig
 
   val name : 'a t -> string
 
-  val run : 'a t -> key:string -> ?tags:string list -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+  val run : 'a t -> key:string -> ?tags:[> ] list -> (unit -> 'a Lwt.t) -> 'a Lwt.t
   (** [run cache ~key f] returns the entry for [key], or runs [f] and keeps its promise. [key] must hold every input of
       [f], encoded so that two different inputs never give the same string ({!Key} does this). Calls for one key that
       arrive while [f] runs share its promise, and a caller that cancels its promise does not cancel the shared one. A
-      [Process] entry runs [f] outside the request scope that started it. [tags] name the entry for {!expire}. *)
+      [Process] entry runs [f] outside the request scope that started it.
 
-  val expire : tag:string -> unit
+      [tags] name the entry for {!expire}. A tag is any polymorphic variant, with or without a payload, for example
+      [`All], [`User 42] or [`Team ("acme", 3)]. Two tags are equal when they have the same constructor and structurally
+      equal payloads, so [`User 1] and [`User 2] are different tags. A payload can hold ints, strings, floats, chars,
+      bools, and options, lists, tuples, records and variants of these. A payload that holds a function, an object, a
+      lazy value, a custom value such as [int64], or a cyclic value raises [Invalid_argument]. The tag is compared by
+      its value at the time of the call, so a later change to a mutable payload has no effect. Use one payload type per
+      constructor: [`User 1] and [`User "1"] are different tags. *)
+
+  val expire : tag:[> ] -> unit
   (** Removes every [Process] entry with [tag], and every entry with [tag] in the current request scope. A promise that
-      is still running is not cancelled. The next call for its key runs the function again. *)
+      is still running is not cancelled. The next call for its key runs the function again. Raises [Invalid_argument]
+      for a tag that {!run} rejects. *)
 
   val request_scope : (unit -> 'a Lwt.t) -> 'a Lwt.t
   (** Runs one request in a new, empty scope. It never joins an enclosing scope. *)

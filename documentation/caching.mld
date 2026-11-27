@@ -31,7 +31,7 @@ arguments, so two calls with equal arguments share one entry.
 }
 
 {[
-[@cache {ttl: 30., tags: ["user:" ++ string_of_int(id)] }]
+[@cache {ttl: 30., tags: [`User(id)]}]
 let appearance = (~id: int): Lwt.t(Appearance.t) => Users.appearance(id);
 ]}
 
@@ -56,8 +56,8 @@ or the server calls [expire] itself.
   {tr {td [errors]} {td [Keep] or [Retry]} {td [Keep] for [Request], [Retry]
       for [Process]} {td [Keep] shares a failed promise with later calls, as
       React's [cache] does. [Retry] drops it, so the next call runs again.}}
-  {tr {td [tags]} {td [list(string)], can use the arguments} {td [[]]}
-      {td Names for {!React.Cache.expire}.}}
+  {tr {td [tags]} {td a list of polymorphic variants, can use the
+      arguments} {td [[]]} {td Names for {!React.Cache.expire}.}}
   {tr {td [key]} {td [string], can use the arguments} {td every argument}
       {td The inputs that make two calls equal. Use it to leave out an
       argument that does not change the result.}}
@@ -86,12 +86,27 @@ and the key joins the arguments with their lengths, so [("a", "bc")] and
 
 {[
 let%lwt () = Users.setAppearance(id, value);
-React.Cache.expire(~tag="user:" ++ string_of_int(id));
+React.Cache.expire(~tag=`User(id));
 ]}
 
 [expire] drops every [Process] entry with the tag, and every entry with the
 tag in the current request. A call that is still running finishes. The next
 call for its key runs the function again.
+
+A tag is any polymorphic variant, with or without a payload: [`All],
+[`User(42)] or [`Team("acme", 3)]. You do not declare a type for it. Two tags
+are equal when they have the same constructor and equal payloads, so
+[`User(1)] and [`User(2)] are different tags, and [expire(~tag=`User(1))]
+leaves [`User(2)] entries in place. One entry can have many tags:
+[tags: [`All, `User(id)]].
+
+A payload can hold ints, strings, floats, chars, bools, and options, lists,
+tuples, records and variants of them. If a payload holds a function, an
+object, a lazy value, an [int64] or another custom value, or a cyclic value,
+[run] and [expire] raise [Invalid_argument]. The cache compares the value
+that the tag had at the call, so a later change to a [ref] in a payload has
+no effect. Use one payload type for each constructor: [`User(1)] and
+[`User("1")] are different tags.
 
 {1:browser In the browser}
 

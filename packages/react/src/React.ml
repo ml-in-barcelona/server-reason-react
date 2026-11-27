@@ -620,7 +620,7 @@ module Cache = struct
 
   type 'a entry = {
     promise : 'a Lwt.t;
-    tags : string list;
+    tags : string list;  (** Each tag encoded by [tag_key]. *)
     mutable resolved_at : float option;
     mutable last_used : int;
   }
@@ -742,13 +742,70 @@ module Cache = struct
             | _ -> ());
         Lwt.protected promise
 
+  (* A tag is any polymorphic variant. [tag_key] encodes its runtime value into a string, so two tags are equal when
+     their encodings are equal. The encoding is a snapshot: it never keeps the value, so mutating a payload later
+     changes nothing. Values that have no structural equality (closures, objects, lazy values, custom blocks such as
+     int64) raise [Invalid_argument] here, at [run] or [expire], and never when [expire] compares stored tags. A
+     cyclic or very large payload hits [tag_key_budget] and raises too. *)
+  let tag_key_budget = 10_000
+
+  let tag_key ~caller (tag : Obj.t) =
+    let buffer = Buffer.create 32 in
+    let budget = Stdlib.ref tag_key_budget in
+    let unsupported what =
+      invalid_arg
+        (Printf.sprintf "React.Cache.%s: a tag payload holds %s. Use ints, strings, floats and immutable data" caller
+           what)
+    in
+    (* [0.] and [-0.] are one tag, as [0. = -0.]; a NaN equals itself, as with [compare]. *)
+    let add_float float = Buffer.add_string buffer (Printf.sprintf "%h;" (if float = 0. then 0. else float)) in
+    let rec encode value =
+      decr budget;
+      if !budget < 0 then unsupported "a cyclic or too large value";
+      if Obj.is_int value then (
+        Buffer.add_char buffer 'i';
+        Buffer.add_string buffer (string_of_int (Obj.obj value : int));
+        Buffer.add_char buffer ';')
+      else
+        let tag = Obj.tag value in
+        if tag = Obj.string_tag then (
+          let text : string = Obj.obj value in
+          Buffer.add_char buffer 's';
+          Buffer.add_string buffer (string_of_int (String.length text));
+          Buffer.add_char buffer ':';
+          Buffer.add_string buffer text)
+        else if tag = Obj.double_tag then (
+          Buffer.add_char buffer 'd';
+          add_float (Obj.obj value))
+        else if tag = Obj.double_array_tag then (
+          let floats : float array = Obj.obj value in
+          Buffer.add_string buffer (Printf.sprintf "f%d(" (Array.length floats));
+          Array.iter add_float floats;
+          Buffer.add_char buffer ')')
+        else if tag = Obj.closure_tag || tag = Obj.infix_tag then unsupported "a function"
+        else if tag = Obj.object_tag then unsupported "an object"
+        else if tag = Obj.lazy_tag || tag = Obj.forward_tag then unsupported "a lazy value"
+        else if tag >= Obj.no_scan_tag then unsupported "an abstract or custom value (for example int64)"
+        else
+          let size = Obj.size value in
+          Buffer.add_string buffer (Printf.sprintf "b%d,%d(" tag size);
+          for index = 0 to size - 1 do
+            encode (Obj.field value index)
+          done;
+          Buffer.add_char buffer ')'
+    in
+    encode tag;
+    Buffer.contents buffer
+
   let run cache ~key ?(tags = []) run =
+    let tags = List.map (fun tag -> tag_key ~caller:"run" (Obj.repr tag)) tags in
     match cache.scope with
     | Process -> run_process cache ~key ~tags run
     | Request -> (
         match current_store () with None -> Lwt.apply run () | Some store -> run_request cache store ~key ~tags run)
 
   let expire ~tag =
+    let tag = tag_key ~caller:"expire" (Obj.repr tag) in
     let tagged tags = List.exists (String.equal tag) tags in
     List.iter
       (fun (Any cache) ->

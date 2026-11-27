@@ -12,7 +12,7 @@ let viewer = (~id: int, ()): Lwt.t(string) => {
   Lwt.return("viewer-" ++ string_of_int(id));
 };
 
-[@cache {ttl: 30., max: 10, tags: ["user:" ++ string_of_int(id)]}]
+[@cache {ttl: 30., max: 10, tags: [`User(id)]}]
 let appearance = (~id: int, ~logger as _: string => unit): Lwt.t(string) => {
   incr(calls);
   Lwt.return("dark-" ++ string_of_int(id));
@@ -40,7 +40,7 @@ let () =
       let%lwt _ = viewer(~id=2, ());
       let%lwt _ = appearance(~id=1, ~logger=ignore);
       let%lwt _ = appearance(~id=1, ~logger=print_endline);
-      React.Cache.expire(~tag="user:1");
+      React.Cache.expire(~tag=`User(1));
       let%lwt _ = appearance(~id=1, ~logger=ignore);
       let%lwt _ = Search.results({term: "a", page: 1}, ());
       let%lwt _ = Search.results({term: "a", page: 1}, ());
