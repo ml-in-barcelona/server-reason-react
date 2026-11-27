@@ -30,7 +30,10 @@ let serve pathname =
       | Ok (Some matched) -> (
           match RouterEngine.EndpointRegistry.decode matched ~search with
           | Error (InvalidPathParameter { name }) -> Error ("invalid path parameter " ^ name)
-          | Error _ -> Error "decode error"
+          | Error (InvalidSearchParameter { name }) -> Error ("invalid search parameter " ^ name)
+          | Error (NotFound _) -> Error "not found"
+          | Error (Application _) -> Error "application error"
+          | Error (Internal _) -> Error "internal error"
           | Ok prepared -> (
               Pages.rendered := None;
               match
@@ -65,7 +68,7 @@ let print_href props =
   | Error message -> print_endline ("tryHref: " ^ message));
   (match (tried, raised) with
   | Ok a, Ok b when String.equal a b -> ()
-  | Error _, Error _ -> ()
+  | Error a, Error b when String.equal a b -> ()
   | _, Ok b -> print_endline ("but href returns " ^ b)
   | _, Error message -> print_endline ("but href raises " ^ message));
   Result.to_option tried

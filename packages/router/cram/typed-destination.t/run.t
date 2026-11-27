@@ -371,6 +371,10 @@ group paths, in every generation mode.
   File "duplicate-group-parameter.ml", line 2, characters 42-101:
   Error: router: path parameter id appears more than once in /orgs/:id<int>/members/:id<string>
   [2]
+  $ server-reason-react.router-gen --mode handles --source duplicate-redirect-parameter.ml < duplicate-redirect-parameter.ml
+  File "duplicate-redirect-parameter.ml", line 5, characters 8-100:
+  Error: router: path parameter id appears more than once in /old/:id<int>/m/:id<int>
+  [2]
 
 A loader label cannot reuse a path parameter name or another loader label of
 the same route.
@@ -400,11 +404,11 @@ sub-delims, ":" and "@") and rejects every other printable ASCII character.
   >   printf 'Router.make ~basePath:"/" [ Router.route A ~page:Page ~path:"/a%sb" ]\n' "$escaped" > punctuation.ml
   >   if server-reason-react.router-gen --mode registry --source punctuation.ml < punctuation.ml > punctuation-registry.ml 2> punctuation.err
   >   then printf '[%s] accepted, %s\n' "$c" "$(grep -o 'path:"[^"]*"' punctuation-registry.ml)"
-  >   else printf '[%s] rejected\n' "$c"
+  >   else printf '[%s] %s\n' "$c" "$(tail -n 1 punctuation.err)"
   >   fi
   > done
   [!] accepted, path:"/a!b"
-  ["] rejected
+  ["] Error: router: invalid route path /a"b
   [$] accepted, path:"/a$b"
   [&] accepted, path:"/a&b"
   ['] accepted, path:"/a'b"
@@ -417,21 +421,21 @@ sub-delims, ":" and "@") and rejects every other printable ASCII character.
   [.] accepted, path:"/a.b"
   [:] accepted, path:"/a:b"
   [;] accepted, path:"/a;b"
-  [<] rejected
+  [<] Error: router: invalid route path /a<b
   [=] accepted, path:"/a=b"
-  [>] rejected
+  [>] Error: router: invalid route path /a>b
   [@] accepted, path:"/a@b"
-  [[] rejected
-  [\] rejected
-  []] rejected
-  [^] rejected
+  [[] Error: router: invalid route path /a[b
+  [\] Error: router: invalid route path /a\b
+  []] Error: router: invalid route path /a]b
+  [^] Error: router: invalid route path /a^b
   [_] accepted, path:"/a_b"
-  [`] rejected
-  [{] rejected
-  [|] rejected
-  [}] rejected
+  [`] Error: router: invalid route path /a`b
+  [{] Error: router: invalid route path /a{b
+  [|] Error: router: invalid route path /a|b
+  [}] Error: router: invalid route path /a}b
   [~] accepted, path:"/a~b"
-  [ ] rejected
+  [ ] Error: router: invalid route path /a b
 
 A redirect is temporary unless it sets ~permanent:true.
 
