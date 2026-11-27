@@ -356,6 +356,83 @@ Errors name the manifest location, or the file set by a line directive.
   Error: Syntax error: operator expected.
   [2]
 
+A path parameter name is used once per route, including names that come from
+group paths, in every generation mode.
+
+  $ for mode in handles interface registry; do server-reason-react.router-gen --mode $mode --source duplicate-parameter.ml < duplicate-parameter.ml; done
+  File "duplicate-parameter.ml", line 1, characters 28-92:
+  Error: router: path parameter id appears more than once in /a/:id<int>/b/:id<string>
+  File "duplicate-parameter.ml", line 1, characters 28-92:
+  Error: router: path parameter id appears more than once in /a/:id<int>/b/:id<string>
+  File "duplicate-parameter.ml", line 1, characters 28-92:
+  Error: router: path parameter id appears more than once in /a/:id<int>/b/:id<string>
+  [2]
+  $ server-reason-react.router-gen --mode handles --source duplicate-group-parameter.ml < duplicate-group-parameter.ml
+  File "duplicate-group-parameter.ml", line 2, characters 42-101:
+  Error: router: path parameter id appears more than once in /orgs/:id<int>/members/:id<string>
+  [2]
+
+A loader label cannot reuse a path parameter name or another loader label of
+the same route.
+
+  $ server-reason-react.router-gen --mode handles --source duplicate-loader-parameter.ml < duplicate-loader-parameter.ml
+  File "duplicate-loader-parameter.ml", line 1, characters 28-119:
+  Error: router: loader label note is also a path parameter of /notes/:note<int>
+  [2]
+  $ server-reason-react.router-gen --mode handles --source duplicate-loader-label.ml < duplicate-loader-label.ml
+  File "duplicate-loader-label.ml", line 4, characters 8-91:
+  Error: router: loader label data is used by more than one loader of this route
+  [2]
+
+Two routes cannot share a name.
+
+  $ server-reason-react.router-gen --mode handles --source duplicate-route-name.ml < duplicate-route-name.ml
+  File "duplicate-route-name.ml", line 1, characters 0-114:
+  Error: router: duplicate generated route name Member
+  [2]
+
+A static segment accepts the URI path punctuation of RFC 3986 (unreserved,
+sub-delims, ":" and "@") and rejects every other printable ASCII character.
+"/", "%", "?" and "#" have their own cases above.
+
+  $ for c in '!' '"' '$' '&' "'" '(' ')' '*' '+' ',' '-' '.' ':' ';' '<' '=' '>' '@' '[' '\' ']' '^' '_' '`' '{' '|' '}' '~' ' '; do
+  >   escaped=$(printf '%s' "$c" | sed 's/\\/\\\\/; s/"/\\"/')
+  >   printf 'Router.make ~basePath:"/" [ Router.route A ~page:Page ~path:"/a%sb" ]\n' "$escaped" > punctuation.ml
+  >   if server-reason-react.router-gen --mode registry --source punctuation.ml < punctuation.ml > punctuation-registry.ml 2> punctuation.err
+  >   then printf '[%s] accepted, %s\n' "$c" "$(grep -o 'path:"[^"]*"' punctuation-registry.ml)"
+  >   else printf '[%s] rejected\n' "$c"
+  >   fi
+  > done
+  [!] accepted, path:"/a!b"
+  ["] rejected
+  [$] accepted, path:"/a$b"
+  [&] accepted, path:"/a&b"
+  ['] accepted, path:"/a'b"
+  [(] accepted, path:"/a(b"
+  [)] accepted, path:"/a)b"
+  [*] accepted, path:"/a*b"
+  [+] accepted, path:"/a+b"
+  [,] accepted, path:"/a,b"
+  [-] accepted, path:"/a-b"
+  [.] accepted, path:"/a.b"
+  [:] accepted, path:"/a:b"
+  [;] accepted, path:"/a;b"
+  [<] rejected
+  [=] accepted, path:"/a=b"
+  [>] rejected
+  [@] accepted, path:"/a@b"
+  [[] rejected
+  [\] rejected
+  []] rejected
+  [^] rejected
+  [_] accepted, path:"/a_b"
+  [`] rejected
+  [{] rejected
+  [|] rejected
+  [}] rejected
+  [~] accepted, path:"/a~b"
+  [ ] rejected
+
 A redirect is temporary unless it sets ~permanent:true.
 
   $ server-reason-react.router-gen --mode registry --source permanent-redirect.ml < permanent-redirect.ml | grep -Eo 'RouterEngine.Execution.(permanentRedirect|redirect)'
