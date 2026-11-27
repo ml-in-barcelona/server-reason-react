@@ -1356,14 +1356,7 @@ let context_memo_shares_the_request_cache () =
   Alcotest.(check int) "status" 200 response.status;
   Alcotest.(check int) "fetched once" 1 !runs
 
-let request_memo_reaches_streamed_components () =
-  let key : string RouterServer.memoKey = RouterServer.memoKey () in
-  let runs = ref 0 in
-  let viewer () =
-    RouterServer.memo key "viewer" (fun () ->
-        incr runs;
-        Lwt.return ("viewer-" ^ string_of_int !runs))
-  in
+let streamed_components_share_the_request_cache ~runs ~viewer =
   let page =
     React.Async_component
       ("Viewer", fun () -> Lwt.map (fun viewer -> React.createElement "main" [] [ React.string viewer ]) (viewer ()))
@@ -1436,6 +1429,35 @@ let request_memo_reaches_streamed_components () =
   runs := 0;
   Lwt_main.run (outer ());
   Alcotest.(check int) "requests under an outer scope do not share entries" 4 !runs
+
+let request_memo_reaches_streamed_components () =
+  let key : string RouterServer.memoKey = RouterServer.memoKey () in
+  let runs = ref 0 in
+  let viewer () =
+    RouterServer.memo key "viewer" (fun () ->
+        incr runs;
+        Lwt.return ("viewer-" ^ string_of_int !runs))
+  in
+  streamed_components_share_the_request_cache ~runs ~viewer
+
+let react_cache_reaches_streamed_components () =
+  let runs = ref 0 in
+  let viewer =
+    React.cache (fun () ->
+        incr runs;
+        Lwt.return ("viewer-" ^ string_of_int !runs))
+  in
+  streamed_components_share_the_request_cache ~runs ~viewer
+
+let cache_module_reaches_streamed_components () =
+  let runs = ref 0 in
+  let cache : string React.Cache.t = React.Cache.make ~name:"viewer" () in
+  let viewer () =
+    React.Cache.run cache ~key:"" (fun () ->
+        incr runs;
+        Lwt.return ("viewer-" ^ string_of_int !runs))
+  in
+  streamed_components_share_the_request_cache ~runs ~viewer
 
 let collect (response : RouterServer.response) =
   match response.body with
@@ -2258,6 +2280,8 @@ let () =
           test "adapter handle builds context only to run" adapter_handle_builds_context_only_to_run;
           test "a memo in the context shares the request cache" context_memo_shares_the_request_cache;
           test "request memo reaches streamed components" request_memo_reaches_streamed_components;
+          test "React.cache reaches streamed components" react_cache_reaches_streamed_components;
+          test "React.Cache reaches streamed components" cache_module_reaches_streamed_components;
           test "error status" error_status;
           test "metadata composition" metadata_composition;
           test "metadata default keys" metadata_default_keys;

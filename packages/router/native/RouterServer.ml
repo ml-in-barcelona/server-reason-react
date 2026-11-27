@@ -26,34 +26,12 @@ let recording render =
   in
   Lwt.map (fun result -> (result, recorded)) result
 
-type 'a memoKey = 'a Type.Id.t
-type entry = Entry : 'a memoKey * 'a Lwt.t -> entry
+type 'a memoKey = 'a React.Cache.t
 
-let table : (int * string, entry) Hashtbl.t Lwt.key = Lwt.new_key ()
-let memoKey () = Type.Id.make ()
-let requestScope run = Lwt.with_value table (Some (Hashtbl.create 16)) run
-
-let reentering body =
-  match Lwt.get table with
-  | None -> body
-  | Some _ as entries -> fun write -> Lwt.with_value table entries (fun () -> body write)
-
-let memo (type a) (key : a memoKey) argument (run : unit -> a Lwt.t) : a Lwt.t =
-  match Lwt.get table with
-  | None -> run ()
-  | Some entries -> (
-      let slot = (Type.Id.uid key, argument) in
-      let cached =
-        Hashtbl.find_all entries slot
-        |> List.find_map (fun (Entry (stored, promise)) : a Lwt.t option ->
-            match Type.Id.provably_equal stored key with Some Type.Equal -> Some promise | None -> None)
-      in
-      match cached with
-      | Some promise -> promise
-      | None ->
-          let promise = Lwt.apply run () in
-          Hashtbl.add entries slot (Entry (key, promise));
-          promise)
+let memoKey () = React.Cache.make ~name:"RouterServer.memo" ()
+let requestScope run = React.Cache.request_scope run
+let reentering body = React.Cache.keep_request_scope body
+let memo key argument run = React.Cache.run key ~key:argument run
 
 let metadataElement (metadata : RouterRuntime.Metadata.t) =
   let attribute name value = React.JSX.String (name, name, value) in

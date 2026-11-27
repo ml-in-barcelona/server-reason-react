@@ -696,9 +696,73 @@ module Suspense : sig
   val make : (< fallback : element option ; children : element option > Js.t, element) componentLike
 end
 
+(** Server caches for functions that return a promise. The [[@cache]] attribute of [server-reason-react.ppx] writes the
+    calls to this module; code can also call it directly.
+
+    A [Request] cache keeps one entry per key for the length of one request scope. The router opens that scope for the
+    whole request, so loaders, metadata, headers and server components share it. [render_html], [render_model_value] and
+    [renderToStream] join an open scope, and open their own when none is open. A [Process] cache keeps entries across
+    requests in this process. *)
 module Cache : sig
+  type scope =
+    | Request  (** One entry per key for one request scope. Outside a scope, every call runs the function. *)
+    | Process  (** Entries live in this process across requests, until [ttl], eviction or {!expire}. *)
+
+  type errors =
+    | Keep  (** A failed promise stays in the cache, as React's [cache] keeps errors. The default for [Request]. *)
+    | Retry  (** A failed promise is removed, so the next call runs the function again. The default for [Process]. *)
+
+  type 'a t
+  (** A cache for one function. Create it once, at the top level. *)
+
+  val make : name:string -> ?scope:scope -> ?ttl:float -> ?max:int -> ?errors:errors -> unit -> 'a t
+  (** [name] names the function in errors, usually its module path. [scope] defaults to [Request]. [ttl] (seconds) is
+      for [Process] only: an entry older than [ttl], counted from when its promise resolved, runs the function again.
+      [max] (default 1000) is for [Process]: when it is full, the least recently used entry goes. Raises
+      [Invalid_argument] for [ttl] with [Request], a [ttl] that is not positive, or a [max] below 1. *)
+
+  val name : 'a t -> string
+
+  val run : 'a t -> key:string -> ?tags:string list -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+  (** [run cache ~key f] returns the entry for [key], or runs [f] and keeps its promise. [key] must hold every input of
+      [f], encoded so that two different inputs never give the same string ({!Key} does this). Calls for one key that
+      arrive while [f] runs share its promise. A [Process] entry runs [f] outside the request scope that started it, and
+      a caller that cancels its promise does not cancel the shared one. [tags] name the entry for {!expire}. *)
+
+  val expire : tag:string -> unit
+  (** Removes every [Process] entry with [tag], and every entry with [tag] in the current request scope. A promise that
+      is still running is not cancelled. The next call for its key runs the function again. *)
+
+  val request_scope : (unit -> 'a Lwt.t) -> 'a Lwt.t
+  (** Runs one request in a new, empty scope. It never joins an enclosing scope. *)
+
+  val keep_request_scope : ('a -> 'b Lwt.t) -> 'a -> 'b Lwt.t
+  (** [keep_request_scope f] captures the current scope, so [f] uses it when it runs later, for example to stream a body
+      after the handler returned. Without a current scope it returns [f]. *)
+
   val with_request_cache : (unit -> 'a) -> 'a
+  (** Runs [f] in the current scope, or in a new one when none is open. *)
+
   val with_request_cache_async : (unit -> 'a Lwt.t) -> 'a Lwt.t
+
+  (** Key encoders. Each one is injective, so two different values never give the same key. *)
+  module Key : sig
+    type 'a t = 'a -> string
+
+    val unit : unit t
+    val string : string t
+    val int : int t
+    val bool : bool t
+    val float : float t
+    val int64 : int64 t
+    val char : char t
+    val option : 'a t -> 'a option t
+    val list : 'a t -> 'a list t
+    val array : 'a t -> 'a array t
+
+    val parts : string list -> string
+    (** Joins already encoded parts, for example one per argument. *)
+  end
 end
 
 type any_promise = Any_promise : 'a Lwt.t -> any_promise
@@ -712,9 +776,9 @@ val memo : 'component -> 'component
 val memoCustomCompareProps : 'component -> ('props -> 'props -> bool) -> 'component
 
 val cache : ('a -> 'b) -> 'a -> 'b
-(** Request-scoped memoization: within [Cache.with_request_cache] (or its async variant) the wrapped function runs at
-    most once per distinct argument. Arguments are compared like React's cache: primitives (ints, strings, floats) by
-    value, all other values by physical identity. *)
+(** Request-scoped memoization: within a {!Cache} request scope the wrapped function runs at most once per distinct
+    argument. Arguments are compared like React's cache: primitives (ints, strings, floats) by value, all other values
+    by physical identity. *)
 
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
