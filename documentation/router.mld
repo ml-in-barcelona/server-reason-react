@@ -1130,10 +1130,17 @@ of [Dream.stream], runs after the handler returns, so a key set only around
 
 {2 Request-scoped cache}
 
-[RouterServer.memo] runs a function once per request for each key and
-argument, like React's [cache]. Every later call in the same request gets the
-same promise, so a loader and a server component that need the same data
-fetch it once:
+Use [[@cache]] on a function that loaders and server components share (see
+{{!page-"caching"}Caching server functions}):
+
+{[
+[@cache]
+let viewer = (~id: int): Lwt.t(User.t) => Users.fetch(id);
+]}
+
+A loader and a server component that call [viewer(~id=1)] in one request run
+it once. [RouterServer.memo] is the same request cache with a key that the
+caller writes:
 
 {[
 let viewerKey: RouterServer.memoKey(User.t) = RouterServer.memoKey();
@@ -1163,7 +1170,8 @@ outside every cache.
 The router does not memoise loaders. A request runs each loader of the
 matched branch once, and the generated code has no safe key for a loader's
 inputs: the request context and ancestor loader results have no string form.
-The cache lives for one request; nothing is kept across requests.
+The request cache lives for one request. For values kept across requests, use
+[[@cache {scope: Process}]].
 
 {1 Error handling}
 

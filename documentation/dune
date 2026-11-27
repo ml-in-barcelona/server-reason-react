@@ -7,7 +7,8 @@
   universal-code
   how-to-organise-universal-code
   externals-melange-attributes
-  ssr-and-hydration))
+  ssr-and-hydration
+  caching))
 
 (install
  (section doc)
