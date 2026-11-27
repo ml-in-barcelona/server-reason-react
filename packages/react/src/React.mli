@@ -717,8 +717,8 @@ module Cache : sig
 
   val make : name:string -> ?scope:scope -> ?ttl:float -> ?max:int -> ?errors:errors -> unit -> 'a t
   (** [name] names the function in errors, usually its module path. [scope] defaults to [Request]. [ttl] (seconds) is
-      for [Process] only: an entry older than [ttl], counted from when its promise resolved, runs the function again.
-      [max] (default 1000) is for [Process]: when it is full, the least recently used entry goes. Raises
+      for [Process] only: an entry older than [ttl], counted from when its promise resolved or failed, runs the function
+      again. [max] (default 1000) is for [Process]: when it is full, the least recently used entry goes. Raises
       [Invalid_argument] for [ttl] with [Request], a [ttl] that is not positive, or a [max] below 1. *)
 
   val name : 'a t -> string
@@ -726,8 +726,8 @@ module Cache : sig
   val run : 'a t -> key:string -> ?tags:string list -> (unit -> 'a Lwt.t) -> 'a Lwt.t
   (** [run cache ~key f] returns the entry for [key], or runs [f] and keeps its promise. [key] must hold every input of
       [f], encoded so that two different inputs never give the same string ({!Key} does this). Calls for one key that
-      arrive while [f] runs share its promise. A [Process] entry runs [f] outside the request scope that started it, and
-      a caller that cancels its promise does not cancel the shared one. [tags] name the entry for {!expire}. *)
+      arrive while [f] runs share its promise, and a caller that cancels its promise does not cancel the shared one. A
+      [Process] entry runs [f] outside the request scope that started it. [tags] name the entry for {!expire}. *)
 
   val expire : tag:string -> unit
   (** Removes every [Process] entry with [tag], and every entry with [tag] in the current request scope. A promise that
@@ -741,7 +741,8 @@ module Cache : sig
       after the handler returned. Without a current scope it returns [f]. *)
 
   val with_request_cache : (unit -> 'a) -> 'a
-  (** Runs [f] in the current scope, or in a new one when none is open. *)
+  (** Runs [f] in the current scope, or in a new one when none is open. A task started inside a request, for example
+      with [Lwt.async], keeps that request's scope. Wrap work that outlives the request in {!request_scope}. *)
 
   val with_request_cache_async : (unit -> 'a Lwt.t) -> 'a Lwt.t
 

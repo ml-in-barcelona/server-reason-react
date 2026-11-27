@@ -687,9 +687,12 @@ module Cache = struct
   (* Store the entry before watching the promise: a promise that already failed runs [forget] at once, and [forget]
      must find the entry to remove it. *)
   let watch cache entry ~forget =
+    let resolved () = entry.resolved_at <- Some (Unix.gettimeofday ()) in
     Lwt.on_any entry.promise
-      (fun _ -> entry.resolved_at <- Some (Unix.gettimeofday ()))
-      (fun _ -> match cache.errors with Retry -> forget () | Keep -> ())
+      (fun _ -> resolved ())
+      (fun _ ->
+        resolved ();
+        match cache.errors with Retry -> forget () | Keep -> ())
 
   let find_request (type a) (cache : a t) store slot : a entry option =
     match Hashtbl.find_opt store.entries slot with
@@ -700,7 +703,7 @@ module Cache = struct
   let run_request cache store ~key ~tags run =
     let slot = (Type.Id.uid cache.id, key) in
     match find_request cache store slot with
-    | Some entry -> entry.promise
+    | Some entry -> Lwt.protected entry.promise
     | None ->
         let entry = { promise = Lwt.apply run (); tags; resolved_at = None; last_used = 0 } in
         Hashtbl.replace store.entries slot (Request_entry (cache.id, entry));
@@ -708,7 +711,7 @@ module Cache = struct
             match find_request cache store slot with
             | Some stored when stored == entry -> Hashtbl.remove store.entries slot
             | _ -> ());
-        entry.promise
+        Lwt.protected entry.promise
 
   let evict_least_recent cache =
     let oldest =

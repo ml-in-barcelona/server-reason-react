@@ -184,6 +184,43 @@ let process_errors_retry () =
   assert_int !calls 2;
   Lwt.return ()
 
+let process_kept_error_expires_with_ttl () =
+  let calls = ref 0 in
+  let cache = React.Cache.make ~name:"test" ~scope:Process ~ttl:0.05 ~errors:Keep () in
+  let run () =
+    React.Cache.run cache ~key:"a" (fun () ->
+        incr calls;
+        if !calls = 1 then Lwt.fail (Failure "boom") else Lwt.return "ok")
+  in
+  let%lwt first = Lwt_result.catch run in
+  let%lwt second = Lwt_result.catch run in
+  Alcotest.(check bool) "error kept" true (Result.is_error first && Result.is_error second);
+  assert_int !calls 1;
+  let%lwt () = Lwt_unix.sleep 0.1 in
+  let%lwt third = run () in
+  assert_string third "ok";
+  assert_int !calls 2;
+  Lwt.return ()
+
+let cancelling_a_request_caller_keeps_the_shared_promise () =
+  let calls = ref 0 in
+  let cache = React.Cache.make ~name:"test" () in
+  let waiter, wakener = Lwt.task () in
+  let run () =
+    React.Cache.run cache ~key:"a" (fun () ->
+        incr calls;
+        waiter)
+  in
+  React.Cache.request_scope (fun () ->
+      let first = run () in
+      Lwt.cancel first;
+      let second = run () in
+      Lwt.wakeup wakener "done";
+      let%lwt second = second in
+      assert_string second "done";
+      assert_int !calls 1;
+      Lwt.return ())
+
 let process_max_evicts_least_recent () =
   let calls, run = counting ~scope:Process ~max:2 () in
   let%lwt _ = run "a" in
@@ -259,6 +296,9 @@ let tests =
       lwt_test "expire drops tagged request entries" expire_drops_request_entries;
       lwt_test "process errors retry" process_errors_retry;
       lwt_test "process max evicts the least recent" process_max_evicts_least_recent;
+      lwt_test "a kept process error expires with ttl" process_kept_error_expires_with_ttl;
+      lwt_test "cancelling a request caller keeps the shared promise"
+        cancelling_a_request_caller_keeps_the_shared_promise;
       lwt_test "process entry runs outside the request" process_entry_runs_outside_the_request;
       lwt_test "cancelling a caller keeps the shared promise" cancelling_a_caller_keeps_the_shared_promise;
       test "keys are injective" keys_are_injective;
