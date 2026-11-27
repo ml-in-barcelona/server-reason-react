@@ -1130,8 +1130,7 @@ of [Dream.stream], runs after the handler returns, so a key set only around
 
 {2 Request-scoped cache}
 
-Use [[@cache]] on a function that loaders and server components share (see
-{{!page-"caching"}Caching server functions}):
+Use [[@cache]] on a function that loaders and server components share:
 
 {[
 [@cache]
