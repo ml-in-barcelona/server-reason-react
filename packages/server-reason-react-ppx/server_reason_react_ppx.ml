@@ -1476,15 +1476,15 @@ module ServerFunction = struct
   let create_server_function_record ~loc id expression =
     [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }]
 
-  let rewrite_native_function ~vb ~rec_flag structure_item =
+  let rewrite_native_function ~module_path ~vb ~rec_flag structure_item =
     let loc = structure_item.pstr_loc in
     let function_name = get_function_name vb in
     let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
-    let base_fn = vb.pvb_expr in
-    let return_core_type = get_response_type base_fn in
+    let return_core_type = get_response_type vb.pvb_expr in
+    let call = Cache_attribute.server_function_call ~module_path vb in
     let id = generate_id ~loc:vb.pvb_loc function_name in
     let server_function_record_vb =
-      value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat ~expr:(create_server_function_record ~loc:vb.pvb_loc id base_fn)
+      value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat ~expr:(create_server_function_record ~loc:vb.pvb_loc id call)
     in
     let stri =
       [%stri
@@ -1547,7 +1547,7 @@ module ServerFunction = struct
       end]
 end
 
-let rewrite_structure_item ~nested_module_names structure_item =
+let rewrite_structure_item ~nested_module_names ~module_path structure_item =
   match structure_item.pstr_desc with
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
       match
@@ -1575,7 +1575,12 @@ let rewrite_structure_item ~nested_module_names structure_item =
                  "server-reason-react: server functions don't support recursive bindings yet. If you need it, please \
                   open an issue on %s"
                  issues_url)]]]
-      else ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
+      else
+        Cache_attribute.to_extension_item ~loc (fun () ->
+            match rec_flag with
+            | Recursive when Cache_attribute.has_cache vb.pvb_attributes ->
+                Cache_attribute.error ~loc "does not support let rec"
+            | _ -> ServerFunction.rewrite_native_function ~module_path ~vb ~rec_flag structure_item)
   | Pstr_value (rec_flag, value_bindings) -> (
       try
         let rewrite_component_binding vb =
@@ -1700,7 +1705,10 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
           [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]])
   | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
       let vb = List.hd value_bindings in
-      ServerFunction.rewrite_client_function ~nested_module_names ~vb ~rec_flag structure_item
+      let loc = structure_item.pstr_loc in
+      Cache_attribute.to_extension_item ~loc (fun () ->
+          Cache_attribute.check_client_server_function vb;
+          ServerFunction.rewrite_client_function ~nested_module_names ~vb ~rec_flag structure_item)
   | Pstr_value (rec_flag, value_bindings) when isClientComponentBinding value_bindings ->
       let first_value_binding = List.hd value_bindings in
       let make_client = expand_make_binding_to_client first_value_binding in
@@ -1765,9 +1773,15 @@ let traverse =
 
     method! structure_item ctx structure_item =
       let structure_item = super#structure_item ctx structure_item in
+      let module_path = Code_path.main_module_name (Expansion_context.Base.code_path ctx) :: nested_module_names in
+      let structure_item =
+        Cache_attribute.rewrite_structure_item
+          ~native:(match mode.contents with Native -> true | Js -> false)
+          ~module_path ~is_server_function:isReactServerFunctionBinding structure_item
+      in
       try
         match mode.contents with
-        | Native -> rewrite_structure_item ~nested_module_names structure_item
+        | Native -> rewrite_structure_item ~nested_module_names ~module_path structure_item
         | Js -> rewrite_structure_item_for_js ~nested_module_names ctx structure_item
       with Error err -> pstr_eval ~loc:structure_item.pstr_loc err []
 
@@ -1777,7 +1791,7 @@ let traverse =
       | Js -> super#signature_item ctx signature_item
 
     method! expression ctx expr =
-      let expr = super#expression ctx expr in
+      let expr = Cache_attribute.check_local_binding (super#expression ctx expr) in
       let expr = match mode.contents with Native -> Style_rewrite.rewrite_expression expr | Js -> expr in
       match mode.contents with
       | Js -> Styles_attribute.expand expr

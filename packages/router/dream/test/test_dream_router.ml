@@ -234,6 +234,35 @@ let successful_action_preserves_cookie_and_wire_output () =
     "cookie" (Some "session=saved; Path=/app; HttpOnly; SameSite=Lax") (Dream.header response "Set-Cookie");
   Alcotest.(check string) "wire output" "0:\"Saved\"\n" body
 
+let action_shares_request_cache () =
+  let runs = ref 0 in
+  let viewer = React.Cache.make ~name:"viewer" () in
+  let load () =
+    React.Cache.run viewer ~key:"1" (fun () ->
+        incr runs;
+        Lwt.return "viewer")
+  in
+  let lookup = function
+    | "load" ->
+        Some
+          (ReactServerDOM.Body
+             (fun _args ->
+               Lwt.bind (load ()) (fun _ -> Lwt.map (fun name -> React.Model.Element (React.string name)) (load ()))))
+    | _ -> None
+  in
+  let call () =
+    let request =
+      Dream.request ~method_:`POST ~target:"/app"
+        ~headers:[ ("ACTION_ID", "load"); ("Content-Type", "application/json") ]
+        "[]"
+    in
+    Lwt_main.run (Dream.body (Dream.test (DreamRouter.streamFunctionResponse ~timeout:0.1 ~lookup) request))
+  in
+  Alcotest.(check string) "wire output" "0:\"viewer\"\n" (call ());
+  Alcotest.(check int) "one run per action" 1 !runs;
+  ignore (call ());
+  Alcotest.(check int) "no sharing between actions" 2 !runs
+
 let rejected_action_discards_cookie_and_streams_error () =
   let lookup = function
     | "reject" ->
@@ -987,6 +1016,7 @@ let () =
           test "action routes check origin" action_routes_check_origin;
           test "action timeout bounds execution" action_timeout_bounds_execution;
           test "successful action preserves cookie and wire output" successful_action_preserves_cookie_and_wire_output;
+          test "action shares one request cache" action_shares_request_cache;
           test "rejected action discards cookie and streams error" rejected_action_discards_cookie_and_streams_error;
           test "registry mismatch returns reload-required" registry_mismatch_returns_reload_required;
           test "patch payload is smaller than full" patch_payload_is_smaller_than_full;

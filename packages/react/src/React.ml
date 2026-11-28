@@ -603,7 +603,7 @@ module Suspense = struct
 end
 
 module Cache = struct
-  type cache_entry = Ok of Obj.t | Error of exn
+  type fn_entry = Ok of Obj.t | Error of exn
 
   let same_arg (a : Obj.t) (b : Obj.t) =
     a == b
@@ -614,19 +614,241 @@ module Cache = struct
        && ((tag_a = Obj.string_tag && String.equal (Obj.obj a) (Obj.obj b))
           || (tag_a = Obj.double_tag && Float.equal (Obj.obj a) (Obj.obj b)))
 
-  type fn_cache = (Obj.t * cache_entry) list Stdlib.ref
-  type request_cache = (int, fn_cache) Hashtbl.t
+  type fn_cache = (Obj.t * fn_entry) list Stdlib.ref
+  type scope = Request | Process
+  type errors = Keep | Retry
 
-  let async_key : request_cache Lwt.key = Lwt.new_key ()
+  type 'a entry = {
+    promise : 'a Lwt.t;
+    tags : string list;  (** Each tag encoded by [tag_key]. *)
+    mutable resolved_at : float option;
+    mutable last_used : int;
+  }
+
+  type request_entry = Request_entry : 'a Type.Id.t * 'a entry -> request_entry
+  type store = { fns : (int, fn_cache) Hashtbl.t; entries : (int * string, request_entry) Hashtbl.t }
+
+  let store_key : store Lwt.key = Lwt.new_key ()
   let fn_id_counter : int Stdlib.ref = Stdlib.ref 0
+  let new_store () = { fns = Hashtbl.create 16; entries = Hashtbl.create 16 }
+  let current_store () = Lwt.get store_key
+  let request_scope run = Lwt.with_value store_key (Some (new_store ())) run
 
-  let with_request_cache f =
-    let cache = Hashtbl.create 16 in
-    Lwt.with_value async_key (Some cache) f
+  let join_or_open run =
+    match current_store () with Some _ -> run () | None -> Lwt.with_value store_key (Some (new_store ())) run
 
-  let with_request_cache_async f =
-    let cache = Hashtbl.create 16 in
-    Lwt.with_value async_key (Some cache) f
+  let with_request_cache run = join_or_open run
+  let with_request_cache_async run = join_or_open run
+
+  let keep_request_scope run =
+    match current_store () with
+    | None -> run
+    | Some _ as store -> fun argument -> Lwt.with_value store_key store (fun () -> run argument)
+
+  exception Timeout of string
+
+  type 'a t = {
+    name : string;
+    scope : scope;
+    ttl : float option;
+    timeout : float option;
+    max : int;
+    errors : errors;
+    id : 'a Type.Id.t;
+    process : (string, 'a entry) Hashtbl.t;
+  }
+
+  type any_cache = Any : 'a t -> any_cache
+
+  let process_caches : any_cache list Stdlib.ref = Stdlib.ref []
+  let use_counter = Stdlib.ref 0
+
+  let next_use () =
+    incr use_counter;
+    !use_counter
+
+  let name cache = cache.name
+
+  let make ~name ?(scope = Request) ?ttl ?(max = 1000) ?errors ?timeout () =
+    (match (scope, ttl) with
+    | Request, Some _ -> invalid_arg ("React.Cache.make: ~ttl needs ~scope:Process, in " ^ name)
+    | Process, Some ttl when not (ttl > 0.) -> invalid_arg ("React.Cache.make: ~ttl must be positive, in " ^ name)
+    | _ -> ());
+    (match timeout with
+    | Some timeout when not (timeout > 0.) -> invalid_arg ("React.Cache.make: ~timeout must be positive, in " ^ name)
+    | _ -> ());
+    if max < 1 then invalid_arg ("React.Cache.make: ~max must be at least 1, in " ^ name);
+    let errors =
+      match (errors, scope) with Some errors, _ -> errors | None, Request -> Keep | None, Process -> Retry
+    in
+    let cache = { name; scope; ttl; timeout; max; errors; id = Type.Id.make (); process = Hashtbl.create 16 } in
+    (match scope with Process -> process_caches := Any cache :: !process_caches | Request -> ());
+    cache
+
+  let start cache run =
+    let promise = Lwt.apply run () in
+    match (cache.timeout, Lwt.state promise) with
+    | Some seconds, Lwt.Sleep ->
+        Lwt.pick [ promise; Lwt.bind (Lwt_unix.sleep seconds) (fun () -> Lwt.fail (Timeout cache.name)) ]
+    | _ -> promise
+
+  (* A caller that reacts to a failure can call again before [watch] has removed the entry. *)
+  let usable cache entry =
+    match (cache.errors, Lwt.state entry.promise, cache.ttl, entry.resolved_at) with
+    | Retry, Lwt.Fail _, _, _ -> false
+    | _, _, Some ttl, Some resolved_at -> Unix.gettimeofday () -. resolved_at < ttl
+    | _ -> true
+
+  (* Store the entry before watching the promise: a promise that already failed runs [forget] at once, and [forget]
+     must find the entry to remove it. *)
+  let watch cache entry ~forget =
+    let resolved () = entry.resolved_at <- Some (Unix.gettimeofday ()) in
+    Lwt.on_any entry.promise
+      (fun _ -> resolved ())
+      (fun _ ->
+        resolved ();
+        match cache.errors with Retry -> forget () | Keep -> ())
+
+  let find_request (type a) (cache : a t) store slot : a entry option =
+    match Hashtbl.find_opt store.entries slot with
+    | Some (Request_entry (id, entry)) -> (
+        match Type.Id.provably_equal id cache.id with Some Type.Equal -> Some entry | None -> None)
+    | None -> None
+
+  let run_request cache store ~key ~tags run =
+    let slot = (Type.Id.uid cache.id, key) in
+    match find_request cache store slot with
+    | Some entry when usable cache entry -> Lwt.protected entry.promise
+    | Some _ | None ->
+        let entry = { promise = start cache run; tags; resolved_at = None; last_used = 0 } in
+        Hashtbl.replace store.entries slot (Request_entry (cache.id, entry));
+        watch cache entry ~forget:(fun () ->
+            match find_request cache store slot with
+            | Some stored when stored == entry -> Hashtbl.remove store.entries slot
+            | _ -> ());
+        Lwt.protected entry.promise
+
+  let evict_least_recent cache =
+    let oldest =
+      Hashtbl.fold
+        (fun key entry oldest ->
+          match oldest with
+          | Some (_, last_used) when last_used <= entry.last_used -> oldest
+          | _ -> Some (key, entry.last_used))
+        cache.process None
+    in
+    Option.iter (fun (key, _) -> Hashtbl.remove cache.process key) oldest
+
+  let run_process cache ~key ~tags run =
+    match Hashtbl.find_opt cache.process key with
+    | Some entry when usable cache entry ->
+        entry.last_used <- next_use ();
+        Lwt.protected entry.promise
+    | _ ->
+        Hashtbl.remove cache.process key;
+        if Hashtbl.length cache.process >= cache.max then evict_least_recent cache;
+        (* A shared entry must not see the request that happened to start it. *)
+        let promise = Lwt.with_value store_key None (fun () -> start cache run) in
+        let entry = { promise; tags; resolved_at = None; last_used = next_use () } in
+        Hashtbl.replace cache.process key entry;
+        watch cache entry ~forget:(fun () ->
+            match Hashtbl.find_opt cache.process key with
+            | Some stored when stored == entry -> Hashtbl.remove cache.process key
+            | _ -> ());
+        Lwt.protected promise
+
+  (* A tag is any polymorphic variant. [tag_key] encodes its runtime value into a string, so two tags are equal when
+     their encodings are equal. The encoding is a snapshot: it never keeps the value, so mutating a payload later
+     changes nothing. Values that have no structural equality (closures, objects, lazy values, custom blocks such as
+     int64) raise [Invalid_argument] here, at [run] or [expire], and never when [expire] compares stored tags. A
+     cyclic or very large payload hits [tag_key_budget] and raises too. *)
+  let tag_key_budget = 10_000
+
+  let tag_key ~caller (tag : Obj.t) =
+    let buffer = Buffer.create 32 in
+    let budget = Stdlib.ref tag_key_budget in
+    let unsupported what =
+      invalid_arg
+        (Printf.sprintf "React.Cache.%s: a tag payload holds %s. Use ints, strings, floats and immutable data" caller
+           what)
+    in
+    (* [0.] and [-0.] are one tag, as [0. = -0.]; a NaN equals itself, as with [compare]. *)
+    let add_float float = Buffer.add_string buffer (Printf.sprintf "%h;" (if float = 0. then 0. else float)) in
+    let rec encode value =
+      decr budget;
+      if !budget < 0 then unsupported "a cyclic or too large value";
+      if Obj.is_int value then (
+        Buffer.add_char buffer 'i';
+        Buffer.add_string buffer (string_of_int (Obj.obj value : int));
+        Buffer.add_char buffer ';')
+      else
+        let tag = Obj.tag value in
+        if tag = Obj.string_tag then (
+          let text : string = Obj.obj value in
+          Buffer.add_char buffer 's';
+          Buffer.add_string buffer (string_of_int (String.length text));
+          Buffer.add_char buffer ':';
+          Buffer.add_string buffer text)
+        else if tag = Obj.double_tag then (
+          Buffer.add_char buffer 'd';
+          add_float (Obj.obj value))
+        else if tag = Obj.double_array_tag then (
+          let floats : float array = Obj.obj value in
+          Buffer.add_string buffer (Printf.sprintf "f%d(" (Array.length floats));
+          Array.iter add_float floats;
+          Buffer.add_char buffer ')')
+        else if tag = Obj.closure_tag || tag = Obj.infix_tag then unsupported "a function"
+        else if tag = Obj.object_tag then unsupported "an object"
+        else if tag = Obj.lazy_tag || tag = Obj.forward_tag then unsupported "a lazy value"
+        else if tag >= Obj.no_scan_tag then unsupported "an abstract or custom value (for example int64)"
+        else
+          let size = Obj.size value in
+          Buffer.add_string buffer (Printf.sprintf "b%d,%d(" tag size);
+          for index = 0 to size - 1 do
+            encode (Obj.field value index)
+          done;
+          Buffer.add_char buffer ')'
+    in
+    encode tag;
+    Buffer.contents buffer
+
+  let run cache ~key ?(tags = []) run =
+    let tags = List.map (fun tag -> tag_key ~caller:"run" (Obj.repr tag)) tags in
+    match cache.scope with
+    | Process -> run_process cache ~key ~tags run
+    | Request -> (
+        match current_store () with None -> Lwt.apply run () | Some store -> run_request cache store ~key ~tags run)
+
+  let expire ~tag =
+    let tag = tag_key ~caller:"expire" (Obj.repr tag) in
+    let tagged tags = List.exists (String.equal tag) tags in
+    List.iter
+      (fun (Any cache) ->
+        Hashtbl.filter_map_inplace (fun _ entry -> if tagged entry.tags then None else Some entry) cache.process)
+      !process_caches;
+    match current_store () with
+    | None -> ()
+    | Some store ->
+        Hashtbl.filter_map_inplace
+          (fun _ (Request_entry (_, entry) as stored) -> if tagged entry.tags then None else Some stored)
+          store.entries
+
+  module Key = struct
+    type 'a t = 'a -> string
+
+    let part value = string_of_int (String.length value) ^ ":" ^ value
+    let unit () = ""
+    let string value = value
+    let int = string_of_int
+    let bool value = if value then "t" else "f"
+    let float value = Printf.sprintf "%h" value
+    let int64 = Int64.to_string
+    let char value = String.make 1 value
+    let option key = function None -> "N" | Some value -> "S" ^ key value
+    let list key values = String.concat "" (List.map (fun value -> part (key value)) values)
+    let array key values = list key (Array.to_list values)
+    let parts values = String.concat "" (List.map part values)
+  end
 end
 
 let memo component = component
@@ -636,15 +858,15 @@ let cache fn =
   let fn_id = !Cache.fn_id_counter in
   Cache.fn_id_counter := fn_id + 1;
   fun arg ->
-    match Lwt.get Cache.async_key with
+    match Cache.current_store () with
     | None -> fn arg
-    | Some cache_map -> (
+    | Some store -> (
         let fn_cache =
-          match Hashtbl.find_opt cache_map fn_id with
+          match Hashtbl.find_opt store.fns fn_id with
           | Some cache -> cache
           | None ->
               let cache = ref [] in
-              Hashtbl.add cache_map fn_id cache;
+              Hashtbl.add store.fns fn_id cache;
               cache
         in
         let arg_key = Obj.repr arg in
