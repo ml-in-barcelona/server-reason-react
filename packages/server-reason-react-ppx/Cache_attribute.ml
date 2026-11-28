@@ -84,6 +84,9 @@ let rec encoder ~loc (core_type : core_type) =
         List.map2 (fun name item -> [%expr [%e encoder ~loc item] [%e evar ~loc name]]) names items |> elist ~loc
       in
       [%expr fun [%p pattern] -> React.Cache.Key.parts [%e parts]]
+  | Ptyp_constr ({ txt = Ldot (Ldot (Lident "Js", "FormData"), "t"); _ }, []) ->
+      error ~loc:core_type.ptyp_loc
+        "cannot build a key from a Js.FormData.t argument. Give one, as in [@cache { key = ... }]"
   | Ptyp_var _ | Ptyp_any -> error ~loc:core_type.ptyp_loc "needs a concrete type for each argument"
   | _ -> [%expr fun value -> RSC.to_cache_key ([%to_rsc: [%t core_type]] value)]
 
@@ -147,6 +150,20 @@ let make_cache ~loc ~name ~scope ~settings =
 
 let cache_name ~module_path binding_name = String.concat "." (module_path @ [ binding_name ])
 
+let cached_expression ~module_path ~loc ~scope ~settings binding =
+  let binding_name =
+    match binding.pvb_pat.ppat_desc with
+    | Ppat_var { txt; _ } -> txt
+    | _ -> error ~loc:binding.pvb_pat.ppat_loc "goes on a binding with a name, as in let[@cache] viewer = ..."
+  in
+  let cache = "server_reason_react_cache" in
+  let wrapped = rewrite_function ~settings ~cache ~params:[] binding.pvb_expr in
+  [%expr
+    let [%p ppat_var ~loc { txt = cache; loc }] =
+      [%e make_cache ~loc ~name:(cache_name ~module_path binding_name) ~scope ~settings]
+    in
+    [%e wrapped]]
+
 let rewrite_binding ~native ~module_path binding =
   match List.find_opt is_cache binding.pvb_attributes with
   | None -> binding
@@ -154,35 +171,37 @@ let rewrite_binding ~native ~module_path binding =
       let loc = attribute.attr_loc in
       let scope, settings = settings_of_payload ~loc attribute.attr_payload in
       let binding = { binding with pvb_attributes = without_cache binding.pvb_attributes } in
-      let binding_name =
-        match binding.pvb_pat.ppat_desc with
-        | Ppat_var { txt; _ } -> txt
-        | _ -> error ~loc:binding.pvb_pat.ppat_loc "goes on a binding with a name, as in let[@cache] viewer = ..."
-      in
       match (native, scope) with
       | false, Process -> error ~loc "scope = Process is for server code only: the browser has no process cache"
       | false, Request -> binding
-      | true, _ ->
-          let cache = "server_reason_react_cache" in
-          let wrapped = rewrite_function ~settings ~cache ~params:[] binding.pvb_expr in
-          let expr =
-            [%expr
-              let [%p ppat_var ~loc { txt = cache; loc }] =
-                [%e make_cache ~loc ~name:(cache_name ~module_path binding_name) ~scope ~settings]
-              in
-              [%e wrapped]]
-          in
-          { binding with pvb_expr = expr })
+      | true, _ -> { binding with pvb_expr = cached_expression ~module_path ~loc ~scope ~settings binding })
 
-let rewrite_structure_item ~native ~module_path item =
+(* A server function keeps its signature for the registration and the client reference, and caches only [call]. *)
+let server_function_call ~module_path binding =
+  match List.find_opt is_cache binding.pvb_attributes with
+  | None -> binding.pvb_expr
+  | Some attribute ->
+      let loc = attribute.attr_loc in
+      let scope, settings = settings_of_payload ~loc attribute.attr_payload in
+      cached_expression ~module_path ~loc ~scope ~settings binding
+
+(* The browser calls the server, so a client reference accepts any scope. *)
+let check_client_server_function binding =
+  List.find_opt is_cache binding.pvb_attributes
+  |> Option.iter (fun attribute -> ignore (settings_of_payload ~loc:attribute.attr_loc attribute.attr_payload))
+
+let to_extension_item ~loc run =
+  try run () with Location.Error error -> pstr_extension ~loc (Location.Error.to_extension error) []
+
+let rewrite_structure_item ~native ~module_path ~is_server_function item =
   match item.pstr_desc with
-  | Pstr_value (rec_flag, bindings) when List.exists (fun binding -> has_cache binding.pvb_attributes) bindings -> (
-      try
-        match rec_flag with
-        | Recursive -> error ~loc:item.pstr_loc "does not support let rec"
-        | Nonrecursive ->
-            { item with pstr_desc = Pstr_value (rec_flag, List.map (rewrite_binding ~native ~module_path) bindings) }
-      with Location.Error error -> pstr_extension ~loc:item.pstr_loc (Location.Error.to_extension error) [])
+  | Pstr_value (_, bindings) when List.exists is_server_function bindings -> item
+  | Pstr_value (rec_flag, bindings) when List.exists (fun binding -> has_cache binding.pvb_attributes) bindings ->
+      to_extension_item ~loc:item.pstr_loc (fun () ->
+          match rec_flag with
+          | Recursive -> error ~loc:item.pstr_loc "does not support let rec"
+          | Nonrecursive ->
+              { item with pstr_desc = Pstr_value (rec_flag, List.map (rewrite_binding ~native ~module_path) bindings) })
   | _ -> item
 
 let check_local_binding expression =

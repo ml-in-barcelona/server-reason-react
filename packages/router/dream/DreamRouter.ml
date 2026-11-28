@@ -54,7 +54,8 @@ let with_action_context request =
   let pending = ref [] in
   let run () =
     Lwt.with_value RequestContext.request_key (Some request) (fun () ->
-        Lwt.with_value RequestContext.phase_key (Some (RequestContext.Action pending)) fn)
+        Lwt.with_value RequestContext.phase_key (Some (RequestContext.Action pending)) (fun () ->
+            RouterServer.requestScope fn))
   in
   (pending, run)
 

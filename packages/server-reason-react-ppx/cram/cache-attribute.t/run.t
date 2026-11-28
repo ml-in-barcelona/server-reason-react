@@ -133,6 +133,41 @@ Melange rejects a Process cache
   "server-reason-react: [@cache] scope = Process is for server code only: the \
    browser has no process cache"]
 
+A server function caches its call, so a call from a server component and a call from the browser share one entry. The browser keeps the client reference, for any scope
+
+  $ ../ppx.sh --output ml server_function.re | sed -n '/let viewer/,/^  ;;/p'
+    let viewer =
+      {
+        Runtime.id = "659777569";
+        call =
+          (let server_reason_react_cache =
+             React.Cache.make ~name:"Output.viewer" ~scope:React.Cache.Process
+               ~ttl:30. ()
+           in
+           fun ~(id : int) ->
+             React.Cache.run server_reason_react_cache
+               ~key:(React.Cache.Key.parts [ React.Cache.Key.int id ])
+               ~tags:[ `User id ]
+               (fun () ->
+                 (incr calls;
+                  Lwt.return ("viewer-" ^ string_of_int id)
+                   : string Js.Promise.t)));
+      }
+    ;;
+  $ ../ppx.sh --output ml -js server_function.re | sed -n '/let viewer/,/^    }/p'
+    let viewer =
+      {
+        Runtime.id = "659777569";
+        call =
+          (fun ~(id : int) ->
+            let action =
+              ReactServerDOMEsbuild.createServerReference "659777569"
+            in
+            (action id [@u])
+            |> Js.Promise.then_ (fun response ->
+                Js.Promise.resolve ([%of_rsc: string] response)));
+      }
+
 Errors
 
   $ ../ppx.sh --output ml errors.re
@@ -147,6 +182,10 @@ Errors
   [%%ocaml.error
   "server-reason-react: [@cache] has no field lifetime. Fields: scope, ttl, max, \
    errors, tags, key"]
+  $ ../ppx.sh --output ml server_function_form_data.re
+  [%%ocaml.error
+  "server-reason-react: [@cache] cannot build a key from a Js.FormData.t \
+   argument. Give one, as in [@cache { key = ... }]"]
   $ ../ppx.sh --output ml local.re
   let f () =
     [%ocaml.error
@@ -165,9 +204,16 @@ It runs: equal arguments share one call, expire drops tagged entries, and a reco
   >  (modules input)
   >  (libraries server-reason-react.react server-reason-react.rsc-native lwt lwt.unix)
   >  (preprocess (pps server-reason-react.ppx lwt_ppx server-reason-react.rsc-native.ppx)))
+  > (executable
+  >  (name server_function)
+  >  (modules server_function)
+  >  (libraries server-reason-react.react server-reason-react.runtime server-reason-react.reactDom melange-json-native server-reason-react.rsc-native lwt lwt.unix)
+  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=/ server-reason-react.melange_ppx lwt_ppx server-reason-react.rsc-native.ppx)))
   > EOF
 
-  $ dune build ./input.exe
+  $ dune build ./input.exe ./server_function.exe
   $ ./_build/default/input.exe
   everything: x
   calls: 7
+  $ ./_build/default/server_function.exe
+  server function calls: 3
