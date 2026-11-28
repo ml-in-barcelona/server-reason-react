@@ -9,6 +9,7 @@ type settings = {
   ttl : expression option;
   max : expression option;
   errors : errors option;
+  timeout : expression option;
   tags : expression option;
   key : expression option;
 }
@@ -26,7 +27,7 @@ let constructor ~loc ~field expression =
   | _ -> error ~loc "%s takes a constructor, as in %s" field example
 
 let settings_of_payload ~loc payload =
-  let empty = { scope = None; ttl = None; max = None; errors = None; tags = None; key = None } in
+  let empty = { scope = None; ttl = None; max = None; errors = None; timeout = None; tags = None; key = None } in
   let settings =
     match payload with
     | PStr [] -> empty
@@ -46,9 +47,11 @@ let settings_of_payload ~loc payload =
                 | other -> error ~loc "errors is Keep or Retry, not %s" other)
             | Lident "ttl" -> { settings with ttl = Some value }
             | Lident "max" -> { settings with max = Some value }
+            | Lident "timeout" -> { settings with timeout = Some value }
             | Lident "tags" -> { settings with tags = Some value }
             | Lident "key" -> { settings with key = Some value }
-            | other -> error ~loc "has no field %s. Fields: scope, ttl, max, errors, tags, key" (Longident.name other))
+            | other ->
+                error ~loc "has no field %s. Fields: scope, ttl, max, errors, timeout, tags, key" (Longident.name other))
           empty fields
     | _ -> error ~loc "takes no payload or a record, as in %s" example
   in
@@ -146,6 +149,7 @@ let make_cache ~loc ~name ~scope ~settings =
   pexp_apply ~loc [%expr React.Cache.make]
     ([ (Labelled "name", estring ~loc name); (Labelled "scope", scope) ]
     @ optional "ttl" settings.ttl @ optional "max" settings.max @ optional "errors" errors
+    @ optional "timeout" settings.timeout
     @ [ (Nolabel, [%expr ()]) ])
 
 let cache_name ~module_path binding_name = String.concat "." (module_path @ [ binding_name ])

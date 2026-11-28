@@ -645,10 +645,13 @@ module Cache = struct
     | None -> run
     | Some _ as store -> fun argument -> Lwt.with_value store_key store (fun () -> run argument)
 
+  exception Timeout of string
+
   type 'a t = {
     name : string;
     scope : scope;
     ttl : float option;
+    timeout : float option;
     max : int;
     errors : errors;
     id : 'a Type.Id.t;
@@ -666,22 +669,34 @@ module Cache = struct
 
   let name cache = cache.name
 
-  let make ~name ?(scope = Request) ?ttl ?(max = 1000) ?errors () =
+  let make ~name ?(scope = Request) ?ttl ?(max = 1000) ?errors ?timeout () =
     (match (scope, ttl) with
     | Request, Some _ -> invalid_arg ("React.Cache.make: ~ttl needs ~scope:Process, in " ^ name)
     | Process, Some ttl when not (ttl > 0.) -> invalid_arg ("React.Cache.make: ~ttl must be positive, in " ^ name)
+    | _ -> ());
+    (match timeout with
+    | Some timeout when not (timeout > 0.) -> invalid_arg ("React.Cache.make: ~timeout must be positive, in " ^ name)
     | _ -> ());
     if max < 1 then invalid_arg ("React.Cache.make: ~max must be at least 1, in " ^ name);
     let errors =
       match (errors, scope) with Some errors, _ -> errors | None, Request -> Keep | None, Process -> Retry
     in
-    let cache = { name; scope; ttl; max; errors; id = Type.Id.make (); process = Hashtbl.create 16 } in
+    let cache = { name; scope; ttl; timeout; max; errors; id = Type.Id.make (); process = Hashtbl.create 16 } in
     (match scope with Process -> process_caches := Any cache :: !process_caches | Request -> ());
     cache
 
-  let fresh cache entry =
-    match (cache.ttl, entry.resolved_at) with
-    | Some ttl, Some resolved_at -> Unix.gettimeofday () -. resolved_at < ttl
+  let start cache run =
+    let promise = Lwt.apply run () in
+    match (cache.timeout, Lwt.state promise) with
+    | Some seconds, Lwt.Sleep ->
+        Lwt.pick [ promise; Lwt.bind (Lwt_unix.sleep seconds) (fun () -> Lwt.fail (Timeout cache.name)) ]
+    | _ -> promise
+
+  (* A caller that reacts to a failure can call again before [watch] has removed the entry. *)
+  let usable cache entry =
+    match (cache.errors, Lwt.state entry.promise, cache.ttl, entry.resolved_at) with
+    | Retry, Lwt.Fail _, _, _ -> false
+    | _, _, Some ttl, Some resolved_at -> Unix.gettimeofday () -. resolved_at < ttl
     | _ -> true
 
   (* Store the entry before watching the promise: a promise that already failed runs [forget] at once, and [forget]
@@ -703,9 +718,9 @@ module Cache = struct
   let run_request cache store ~key ~tags run =
     let slot = (Type.Id.uid cache.id, key) in
     match find_request cache store slot with
-    | Some entry -> Lwt.protected entry.promise
-    | None ->
-        let entry = { promise = Lwt.apply run (); tags; resolved_at = None; last_used = 0 } in
+    | Some entry when usable cache entry -> Lwt.protected entry.promise
+    | Some _ | None ->
+        let entry = { promise = start cache run; tags; resolved_at = None; last_used = 0 } in
         Hashtbl.replace store.entries slot (Request_entry (cache.id, entry));
         watch cache entry ~forget:(fun () ->
             match find_request cache store slot with
@@ -726,14 +741,14 @@ module Cache = struct
 
   let run_process cache ~key ~tags run =
     match Hashtbl.find_opt cache.process key with
-    | Some entry when fresh cache entry ->
+    | Some entry when usable cache entry ->
         entry.last_used <- next_use ();
         Lwt.protected entry.promise
     | _ ->
         Hashtbl.remove cache.process key;
         if Hashtbl.length cache.process >= cache.max then evict_least_recent cache;
         (* A shared entry must not see the request that happened to start it. *)
-        let promise = Lwt.with_value store_key None (fun () -> Lwt.apply run ()) in
+        let promise = Lwt.with_value store_key None (fun () -> start cache run) in
         let entry = { promise; tags; resolved_at = None; last_used = next_use () } in
         Hashtbl.replace cache.process key entry;
         watch cache entry ~forget:(fun () ->

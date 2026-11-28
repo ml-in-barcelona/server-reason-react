@@ -715,11 +715,17 @@ module Cache : sig
   type 'a t
   (** A cache for one function. Create it once, at the top level. *)
 
-  val make : name:string -> ?scope:scope -> ?ttl:float -> ?max:int -> ?errors:errors -> unit -> 'a t
+  exception Timeout of string
+  (** The function of the named cache ran longer than its [timeout]. *)
+
+  val make : name:string -> ?scope:scope -> ?ttl:float -> ?max:int -> ?errors:errors -> ?timeout:float -> unit -> 'a t
   (** [name] names the function in errors, usually its module path. [scope] defaults to [Request]. [ttl] (seconds) is
       for [Process] only: an entry older than [ttl], counted from when its promise resolved or failed, runs the function
-      again. [max] (default 1000) is for [Process]: when it is full, the least recently used entry goes. Raises
-      [Invalid_argument] for [ttl] with [Request], a [ttl] that is not positive, or a [max] below 1. *)
+      again. [ttl] counts from when the promise settles, so an entry still running is shared until it settles; [timeout]
+      bounds that. [max] (default 1000) is for [Process]: when it is full, the least recently used entry goes. [timeout]
+      (seconds, either scope) counts from when the function starts: the shared promise then fails with {!Timeout} and
+      the function's promise is cancelled. [errors] decides whether that failure stays. Raises [Invalid_argument] for
+      [ttl] with [Request], a [ttl] or [timeout] that is not positive, or a [max] below 1. *)
 
   val name : 'a t -> string
 

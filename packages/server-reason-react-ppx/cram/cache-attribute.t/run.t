@@ -103,12 +103,13 @@ The attribute wraps the function body in React.Cache.run, with a key built from 
                                  print_endline ("calls: " ^ string_of_int !calls);
                                  Lwt.return ()]]]]]]]]]]]))
 
-Without scope, ttl or max means Process; anything else means Request
+Without scope, ttl or max means Process; anything else, timeout included, means Request
 
   $ ../ppx.sh --output ml process_default.re | grep 'React.Cache.make'
       React.Cache.make ~name:"Output.request" ~scope:React.Cache.Request ()
       React.Cache.make ~name:"Output.ttl_only" ~scope:React.Cache.Process ~ttl:30.
       React.Cache.make ~name:"Output.max_only" ~scope:React.Cache.Process ~max:5
+      React.Cache.make ~name:"Output.timeout_only" ~scope:React.Cache.Request
 
 Melange keeps a Request cache as the plain function
 
@@ -181,7 +182,7 @@ Errors
   $ ../ppx.sh --output ml unknown_field.re
   [%%ocaml.error
   "server-reason-react: [@cache] has no field lifetime. Fields: scope, ttl, max, \
-   errors, tags, key"]
+   errors, timeout, tags, key"]
   $ ../ppx.sh --output ml server_function_form_data.re
   [%%ocaml.error
   "server-reason-react: [@cache] cannot build a key from a Js.FormData.t \

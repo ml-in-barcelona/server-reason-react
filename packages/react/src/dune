@@ -8,5 +8,6 @@
   server-reason-react.html
   server-reason-react.dom
   lwt
+  lwt.unix
   unix
   yojson))

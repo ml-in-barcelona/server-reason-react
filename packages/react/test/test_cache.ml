@@ -356,6 +356,62 @@ let cancelling_a_caller_keeps_the_shared_promise () =
   assert_int !calls 1;
   Lwt.return ()
 
+let hanging cache calls =
+  React.Cache.run cache ~key:"a" (fun () ->
+      incr calls;
+      fst (Lwt.task ()))
+
+let timed_out promise =
+  Lwt.catch
+    (fun () -> Lwt.map (fun _ -> false) promise)
+    (function React.Cache.Timeout "slow" -> Lwt.return true | exn -> Lwt.reraise exn)
+
+let process_timeout_fails_and_retries () =
+  let calls = ref 0 in
+  let cache = React.Cache.make ~name:"slow" ~scope:Process ~timeout:0.01 () in
+  let first = hanging cache calls in
+  let joined = hanging cache calls in
+  let%lwt first = timed_out first and joined = timed_out joined in
+  Alcotest.(check bool) "first times out" true first;
+  Alcotest.(check bool) "joined caller times out" true joined;
+  assert_int !calls 1;
+  let%lwt again = timed_out (hanging cache calls) in
+  Alcotest.(check bool) "retry times out" true again;
+  assert_int !calls 2;
+  Lwt.return ()
+
+let timeout_cancels_the_function () =
+  let cancelled = ref false in
+  let cache = React.Cache.make ~name:"slow" ~scope:Process ~timeout:0.01 () in
+  let promise =
+    React.Cache.run cache ~key:"a" (fun () ->
+        let waiter, _ = Lwt.task () in
+        Lwt.on_cancel waiter (fun () -> cancelled := true);
+        waiter)
+  in
+  let%lwt _ = timed_out promise in
+  Alcotest.(check bool) "cancelled" true !cancelled;
+  Lwt.return ()
+
+let request_timeout_is_kept () =
+  let calls = ref 0 in
+  let cache = React.Cache.make ~name:"slow" ~timeout:0.01 () in
+  React.Cache.request_scope (fun () ->
+      let%lwt first = timed_out (hanging cache calls) in
+      let%lwt second = timed_out (hanging cache calls) in
+      Alcotest.(check bool) "first" true first;
+      Alcotest.(check bool) "second" true second;
+      assert_int !calls 1;
+      Lwt.return ())
+
+let fast_calls_ignore_the_timeout () =
+  let cache = React.Cache.make ~name:"fast" ~scope:Process ~timeout:5. () in
+  let%lwt value = React.Cache.run cache ~key:"a" (fun () -> Lwt.bind (Lwt.pause ()) (fun () -> Lwt.return "done")) in
+  assert_string value "done";
+  let%lwt cached = React.Cache.run cache ~key:"a" (fun () -> Lwt.return "again") in
+  assert_string cached "done";
+  Lwt.return ()
+
 let keys_are_injective () =
   let open React.Cache.Key in
   Alcotest.(check bool) "parts" true (parts [ "a"; "bc" ] <> parts [ "ab"; "c" ]);
@@ -372,7 +428,8 @@ let make_rejects_bad_settings () =
   in
   raises "ttl on Request" (fun () -> React.Cache.make ~name:"t" ~ttl:1. ());
   raises "zero ttl" (fun () -> React.Cache.make ~name:"t" ~scope:Process ~ttl:0. ());
-  raises "zero max" (fun () -> React.Cache.make ~name:"t" ~scope:Process ~max:0 ())
+  raises "zero max" (fun () -> React.Cache.make ~name:"t" ~scope:Process ~max:0 ());
+  raises "zero timeout" (fun () -> React.Cache.make ~name:"t" ~timeout:0. ())
 
 let tests =
   ( "React.Cache",
@@ -402,6 +459,10 @@ let tests =
         cancelling_a_request_caller_keeps_the_shared_promise;
       lwt_test "process entry runs outside the request" process_entry_runs_outside_the_request;
       lwt_test "cancelling a caller keeps the shared promise" cancelling_a_caller_keeps_the_shared_promise;
+      lwt_test "process timeout fails and retries" process_timeout_fails_and_retries;
+      lwt_test "timeout cancels the function" timeout_cancels_the_function;
+      lwt_test "request timeout is kept" request_timeout_is_kept;
+      lwt_test "fast calls ignore the timeout" fast_calls_ignore_the_timeout;
       test "keys are injective" keys_are_injective;
       test "make rejects bad settings" make_rejects_bad_settings;
     ] )
